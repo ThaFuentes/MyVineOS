@@ -115,20 +115,31 @@ def user_has_permission_for_user(cur, user_id: int, user_role: str | None, permi
 def user_has_permission(permission_key: str) -> bool:
     """
     Return True if the current user has the specified permission.
-    - Staff/Admin/Owner: always True (global override)
-    - Otherwise: check if permission_key exists in any of the user's group permissions JSON arrays
+    - Owner: always True (full reign)
+    - Staff/Admin: always True (global manager override)
+    - Otherwise: check group permissions JSON arrays
     """
     user_id = session.get('user_id')
     if not user_id:
         return False
 
-    if session.get('user_role') in GLOBAL_MANAGER_ROLES:
+    role = session.get('user_role')
+    if role == 'Owner' or role in GLOBAL_MANAGER_ROLES:
         return True
 
     try:
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
-        return user_has_permission_for_user(cur, user_id, session.get('user_role'), permission_key)
+        # Refresh role from DB if session is stale / missing
+        if not role:
+            cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+            row = cur.fetchone()
+            role = (row or {}).get('role')
+            if role:
+                session['user_role'] = role
+            if role == 'Owner' or role in GLOBAL_MANAGER_ROLES:
+                return True
+        return user_has_permission_for_user(cur, user_id, role, permission_key)
     except Exception as e:
         print(f"Permission check error: {e}")
         return False

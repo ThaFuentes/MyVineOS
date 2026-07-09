@@ -45,22 +45,74 @@ def can_manage_members() -> bool:
 
 
 def can_manage_users() -> bool:
+    """Owner/Admin/Staff always True via permission layer; Owner is absolute."""
+    if session.get('user_role') == 'Owner':
+        return True
     return user_has_permission('manage_users')
 
 
+def can_delete_member(target, actor_id, actor_role) -> tuple[bool, str]:
+    """
+    Who may permanently delete a user account.
+
+    - Owner: full reign (may delete anyone except self and the last Owner).
+    - Admin: may delete Member/Staff/pending/banned, but never Admin or Owner.
+    - Others: no (even with manage_users from a group).
+    """
+    if not target:
+        return False, 'Member not found.'
+
+    role = (actor_role or session.get('user_role') or '').strip()
+    target_role = (target.get('role') or 'Member').strip()
+    target_id = target.get('id')
+
+    if not can_manage_users() and role not in ('Owner', 'Admin'):
+        return False, 'You do not have permission to delete accounts.'
+
+    if target_id == actor_id:
+        return False, 'You cannot delete your own account.'
+
+    if role == 'Owner':
+        if target_role == 'Owner':
+            # Never remove the last Owner
+            try:
+                from app.models.db import get_db
+                import pymysql
+                db = get_db()
+                cur = db.cursor(pymysql.cursors.DictCursor)
+                cur.execute("SELECT COUNT(*) AS n FROM users WHERE role = 'Owner'")
+                n = int((cur.fetchone() or {}).get('n') or 0)
+                if n <= 1:
+                    return False, 'Cannot delete the last Owner account.'
+            except Exception:
+                return False, 'Could not verify Owner count; delete blocked for safety.'
+        return True, ''
+
+    if role == 'Admin':
+        if target_role in ('Admin', 'Owner'):
+            return False, 'Admins cannot delete Admin or Owner accounts. Only the Owner can.'
+        return True, ''
+
+    return False, 'Only Owner or Admin can delete accounts.'
+
+
 def can_moderate_account(target, actor_id, actor_role) -> bool:
-    """Account security tools require manage_users plus role ceiling."""
+    """Account security tools require manage_users plus role ceiling.
+    Owner: full reign over others. Admin: not Admin/Owner targets.
+    """
     if not target or target['id'] == actor_id:
         return False
+    if (actor_role or session.get('user_role')) == 'Owner':
+        return True
     if not can_manage_users():
         return False
     if target['role'] == 'Owner':
-        return actor_role == 'Owner'
+        return False
     if target['role'] == 'Admin':
         return actor_role == 'Owner'
     if target['role'] == 'Staff':
         return actor_role in ('Staff', 'Admin', 'Owner')
-    return True
+    return actor_role in ('Staff', 'Admin', 'Owner')
 
 
 def get_assignable_groups(cur, user_id, user_role):

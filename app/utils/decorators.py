@@ -91,7 +91,7 @@ def group_required(groups):
 def permission_required(*permission_keys, require_all: bool = False):
     """
     Require one or more group permissions (OR by default).
-    Staff/Admin/Owner always pass via user_has_permission().
+    Owner always passes (full reign). Staff/Admin pass via user_has_permission().
     """
     keys = permission_keys
     if len(keys) == 1 and isinstance(keys[0], (list, tuple, frozenset, set)):
@@ -102,6 +102,17 @@ def permission_required(*permission_keys, require_all: bool = False):
         @login_required
         def decorated_function(*args, **kwargs):
             from app.utils.permissions import user_has_permission as check_permission
+
+            # Owner has full access to every permission-gated route
+            if session.get('user_role') == 'Owner':
+                return f(*args, **kwargs)
+
+            # Re-check role from DB in case session is stale
+            user_id = session.get('user_id')
+            user = get_user_by_id(user_id) if user_id else None
+            if user and user.get('role') == 'Owner':
+                session['user_role'] = 'Owner'
+                return f(*args, **kwargs)
 
             if require_all:
                 allowed = all(check_permission(k) for k in keys)

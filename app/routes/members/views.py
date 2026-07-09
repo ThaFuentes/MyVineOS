@@ -24,7 +24,7 @@ from .queries import (
     update_member,
     get_member_by_id,
     get_member_for_export,
-    delete_member,
+    delete_member as delete_member_record,
     assign_groups_to_member,
     get_email_roster,
     build_roster_text,
@@ -36,6 +36,7 @@ from .utils import (
     can_manage_members,
     can_manage_users,
     can_moderate_account,
+    can_delete_member as actor_can_delete_member,
     get_assignable_groups,
     MEMBERS_VIEW_PERMISSIONS,
     MEMBERS_EDIT_PERMISSIONS,
@@ -223,7 +224,9 @@ Please log in and change your password.
 
 
 # ----------------------------------------------------------------------
-# Delete Member (Admin/Owner only)
+# Delete Member
+# Owner: full control (except self / last Owner).
+# Admin: may delete Members/Staff/etc., but not Admin or Owner accounts.
 # ----------------------------------------------------------------------
 @members_bp.route('/member/delete/<int:member_id>', methods=['POST'])
 @permission_required('manage_users')
@@ -234,14 +237,24 @@ def delete_member(member_id):
             flash('Member not found.', 'error')
             return redirect(url_for('members.members_directory'))
 
-        if member['role'] in ['Admin', 'Owner'] and session['user_role'] != 'Owner':
-            flash('Only Owner can delete Admin/Owner accounts.', 'error')
+        actor_id = session.get('user_id')
+        actor_role = session.get('user_role') or ''
+        allowed, reason = actor_can_delete_member(member, actor_id, actor_role)
+        if not allowed:
+            flash(reason or 'You do not have permission to delete this account.', 'error')
             return redirect(url_for('members.members_directory'))
 
-        delete_member(member_id)
+        delete_member_record(member_id)
 
         flash('Member deleted successfully.', 'success')
-        log_change(session['user_id'], 'delete_member', f'Deleted {member["first_name"]} {member["last_name"]} (ID {member_id})')
+        log_change(
+            actor_id,
+            'delete_member',
+            change_details=(
+                f"Deleted {member.get('first_name', '')} {member.get('last_name', '')} "
+                f"({member.get('username')}, role={member.get('role')}, ID {member_id})"
+            ),
+        )
 
     except Exception as e:
         flash('Failed to delete member.', 'error')
@@ -509,11 +522,17 @@ def member_admin_action(member_id):
             flash('Account login lock cleared.', 'success')
 
         elif action == 'ban':
-            if actor_role != 'Owner' and target['role'] in ('Staff', 'Admin'):
-                flash('Only Owner can ban Staff or Admin accounts.', 'error')
-            else:
+            # Owner: full reign. Admin: may ban Members/Staff, not Admin/Owner.
+            if target['id'] == actor_id:
+                flash('You cannot ban your own account.', 'error')
+            elif actor_role == 'Owner':
                 ban_user(member_id, actor_id)
                 flash('Account banned (cannot log in).', 'success')
+            elif actor_role == 'Admin' and target['role'] not in ('Admin', 'Owner'):
+                ban_user(member_id, actor_id)
+                flash('Account banned (cannot log in).', 'success')
+            else:
+                flash('Admins cannot ban Admin or Owner accounts. Only the Owner can.', 'error')
 
         elif action == 'unban':
             unban_user(member_id, actor_id)

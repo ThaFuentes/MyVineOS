@@ -126,7 +126,7 @@ Granted permissions control who can view, edit, or fully manage accounts.
                                    style="padding:0.45rem 0.8rem; font-size:0.9rem; min-width:60px; text-align:center;">
                                     Edit
                                 </a>
-                                {% if can_manage_users %}
+                                {% if can_manage_users and member.id != session.get('user_id') and (session.get('user_role') == 'Owner' or member.role not in ['Admin', 'Owner']) %}
                                 <form action="{{ url_for('members.delete_member', member_id=member.id) }}" method="post" class="inline-form" style="margin:0;">
                                     {% include 'partials/csrf_field.html' %}
                                     <button type="submit"

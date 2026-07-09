@@ -118,12 +118,15 @@ Admin/Owner: add members, export DOCX, email roster.
                             <div class="actions-buttons">
                                 <!-- FIXED: uses add_member with member_id for edit -->
                                 <a href="{{ url_for('members.add_member', member_id=member.id) }}" class="btn-primary btn-small">Edit</a>
+                                {% if member.id != session.get('user_id') and (session.get('user_role') == 'Owner' or member.role not in ['Admin', 'Owner']) %}
                                 <form action="{{ url_for('members.delete_member', member_id=member.id) }}" method="post" class="inline-form">
+                                    {% include 'partials/csrf_field.html' %}
                                     <button type="submit" class="btn-danger btn-small"
                                             onclick="return confirm('Permanently delete this member? This cannot be undone.');">
                                         Delete
                                     </button>
                                 </form>
+                                {% endif %}
                             </div>
                         </td>
                         {% endif %}
