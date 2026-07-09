@@ -7,8 +7,13 @@
     </p>
 
     <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:1rem 0;">
+        {% if member.email_verified %}
+        <span style="padding:0.25rem 0.6rem; border-radius:999px; background:#2ecc71; color:#000; font-size:0.85rem;">Email verified</span>
+        {% else %}
+        <span style="padding:0.25rem 0.6rem; border-radius:999px; background:#ff9944; color:#000; font-size:0.85rem;">Email NOT verified (login blocked if verification required)</span>
+        {% endif %}
         {% if member.is_shadow_banned %}
-        <span style="padding:0.25rem 0.6rem; border-radius:999px; background:#ffcc00; color:#000; font-size:0.85rem;"> Shadow banned</span>
+        <span style="padding:0.25rem 0.6rem; border-radius:999px; background:#ffcc00; color:#000; font-size:0.85rem;">Shadow banned</span>
         {% endif %}
         {% if member.role == 'banned' %}
         <span style="padding:0.25rem 0.6rem; border-radius:999px; background:#ff6b6b; color:#fff; font-size:0.85rem;">Banned</span>
@@ -80,6 +85,33 @@
             <p class="help-text" style="margin:0.5rem 0;">Blocks login completely.</p>
             <button type="submit" class="btn-secondary btn-small" style="background:#ff6b6b;" onclick="return confirm('Ban this account? They cannot log in.');">Ban Account</button>
         </form>
+        {% endif %}
+
+        {% if not member.email_verified %}
+        <form method="POST" action="{{ url_for('members.member_admin_action', member_id=member.id) }}" class="styled-form" style="padding:0.75rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="resend_verification">
+            <strong>Resend email verification</strong>
+            <p class="help-text" style="margin:0.5rem 0;">
+                Sends a new verification link to <code>{{ member.email or 'no email' }}</code>.
+                Works for Admin accounts too. SMTP must be configured.
+            </p>
+            <button type="submit" class="btn-primary btn-small">Resend verification email</button>
+        </form>
+        {% if session.get('user_role') == 'Owner' %}
+        <form method="POST" action="{{ url_for('members.member_admin_action', member_id=member.id) }}" class="styled-form" style="padding:0.75rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="mark_email_verified">
+            <strong>Mark email verified (Owner)</strong>
+            <p class="help-text" style="margin:0.5rem 0;">
+                Unblocks login without email delivery. Use when SMTP is down or the user cannot receive mail.
+            </p>
+            <button type="submit" class="btn-secondary btn-small"
+                    onclick="return confirm('Mark this email as verified so they can log in?');">
+                Mark email verified
+            </button>
+        </form>
+        {% endif %}
         {% endif %}
     </div>
 

@@ -538,6 +538,61 @@ def member_admin_action(member_id):
             unban_user(member_id, actor_id)
             flash('Ban removed; user restored as Member.', 'success')
 
+        elif action == 'resend_verification':
+            # Owner/Admin: resend verification for any unverified account they can moderate
+            # (includes stuck Admins when actor is Owner).
+            from app.routes.auth.queries import set_verification_token
+            from app.utils.email_notifications import (
+                generate_verification_token,
+                send_email_verification,
+            )
+            if target.get('email_verified'):
+                flash('This account is already email-verified.', 'info')
+            elif not (target.get('email') or '').strip():
+                flash('This account has no email address on file.', 'error')
+            else:
+                token = generate_verification_token()
+                set_verification_token(member_id, token)
+                sent = send_email_verification(
+                    member_id,
+                    target['email'].strip(),
+                    token,
+                    target.get('username') or target['email'],
+                )
+                if sent:
+                    flash(f'Verification email sent to {target["email"]}.', 'success')
+                    log_change(
+                        actor_id,
+                        'resend_verification',
+                        change_details=f'Resent verification for user {member_id}',
+                    )
+                else:
+                    flash(
+                        'Could not send verification email. Check SMTP under Settings → Email, '
+                        'or use "Mark email verified" as Owner.',
+                        'error',
+                    )
+
+        elif action == 'mark_email_verified':
+            # Owner only: unblock a stuck account without waiting on email delivery
+            from app.routes.auth.queries import mark_email_verified
+            if actor_role != 'Owner':
+                flash('Only the Owner can manually mark an email as verified.', 'error')
+            elif target.get('email_verified'):
+                flash('This account is already email-verified.', 'info')
+            else:
+                mark_email_verified(member_id)
+                flash(
+                    f'Email marked verified for {target.get("username")}. They can log in now '
+                    f'(if not pending approval / banned).',
+                    'success',
+                )
+                log_change(
+                    actor_id,
+                    'mark_email_verified',
+                    change_details=f'Manually verified email for user {member_id}',
+                )
+
         else:
             flash('Unknown action.', 'error')
     except Exception as e:
