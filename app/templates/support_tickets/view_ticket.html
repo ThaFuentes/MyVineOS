@@ -7,7 +7,7 @@
    - Full description + conversation thread (staff replies clearly visible).
    - Simple "Add an Update" box at the bottom.
    - One-click "I figured it out" option to close the ticket.
-   - No manager controls — only what a regular member needs.
+   - No manager controls - only what a regular member needs.
    - 100% unified with the rest of the site styling. -->
 
 {% extends "base.html" %}
@@ -16,13 +16,13 @@
 <div class="glass-panel" style="padding:1rem;">
 
         <div style="margin-bottom:0.5rem;">
-            <a href="{{ url_for('support_tickets.dashboard') }}" class="btn btn-secondary" style="padding:0.3rem 0.6rem; font-size:0.85rem;">← Back to My Tickets</a>
+            <a href="{{ url_for('support_tickets.dashboard') }}" class="btn btn-secondary" style="padding:0.3rem 0.6rem; font-size:0.85rem;"><- Back to My Tickets</a>
         </div>
 
         <!-- Ticket Header -->
         <div class="event-header-flex">
             <div class="event-title-info">
-                <h2 class="page-title">#{{ ticket.id }} – {{ ticket.title }}</h2>
+                <h2 class="page-title">#{{ ticket.id }} - {{ ticket.title }}</h2>
                 <p class="event-key-info">
                     Category: <strong>{{ ticket.category_name }}</strong> -
                     Priority: <strong class="{{ 'priority-' + ticket.priority }}">{{ ticket.priority|capitalize }}</strong> -
@@ -47,7 +47,7 @@
             {% if comments %}
                 {% for c in comments %}
                 <div class="item-card" style="margin-bottom:0.5rem;">
-                    <strong>{{ c.username }}</strong> – {{ c.formatted_date }}<br>
+                    <strong>{{ c.username }}</strong> - {{ c.formatted_date }}<br>
                     {{ c.comment | nl2br }}
                 </div>
                 {% endfor %}
@@ -69,7 +69,7 @@
                     <!-- Quick Close Option -->
                     <button type="submit" name="close_ticket" value="yes" class="btn-secondary"
                             onclick="return confirm('Close this ticket as resolved?')">
-                        I figured it out – Close Ticket
+                        I figured it out - Close Ticket
                     </button>
                 </div>
             </form>

@@ -3,7 +3,7 @@
 {% block page_title %}Export Donations{% endblock %}
 
 {% block page_description %}
-Generate professional DOCX contribution receipts for tax purposes. Files are saved to disk — not emailed.
+Generate professional DOCX contribution receipts for tax purposes. Files are saved to disk - not emailed.
 {% endblock %}
 
 {% block donations_content %}
@@ -91,7 +91,7 @@ Generate professional DOCX contribution receipts for tax purposes. Files are sav
       hint.textContent = 'Select a year to load members.';
       return;
     }
-    box.innerHTML = '<p class="help-text">Loading…</p>';
+    box.innerHTML = '<p class="help-text">Loading...</p>';
     fetch(`${membersUrl}?year=${encodeURIComponent(year)}`)
       .then(r => r.json())
       .then(renderMembers)

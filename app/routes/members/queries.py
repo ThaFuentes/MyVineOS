@@ -2,7 +2,7 @@
 # Full path: MyVineChurch/app/routes/members/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Members module.
-# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Pure data-access layer - no Flask routes, no templates, no flash messages.
 # - Every SELECT/INSERT/UPDATE/DELETE from the original members.py is now here.
 # - 100% original behavior preserved (directory with family relations, add/edit, delete, export, email roster, group assignment, role checks).
 # - 100% MariaDB/pymysql compatible (%s placeholders, DictCursor).
@@ -137,7 +137,7 @@ def _reassign_or_null_user_refs(cur, member_id: int, reassign_to: int | None):
         if row:
             fallback = row[0] if not isinstance(row, dict) else row['id']
 
-    # Rows that only exist as membership/session data — safe to delete
+    # Rows that only exist as membership/session data - safe to delete
     for sql in (
         "DELETE FROM user_groups WHERE user_id = %s",
         "DELETE FROM user_widgets WHERE user_id = %s",
@@ -186,7 +186,7 @@ def _reassign_or_null_user_refs(cur, member_id: int, reassign_to: int | None):
             except Exception:
                 pass
 
-    # Nullable audit / author fields — SET NULL when possible
+    # Nullable audit / author fields - SET NULL when possible
     for table, col in (
         ('donations', 'user_id'),
         ('inventory_transactions', 'user_id'),
@@ -209,7 +209,7 @@ def _reassign_or_null_user_refs(cur, member_id: int, reassign_to: int | None):
         try:
             cur.execute(f"UPDATE {table} SET {col} = NULL WHERE {col} = %s", (uid,))
         except Exception:
-            # NOT NULL column — try reassign
+            # NOT NULL column - try reassign
             if fallback:
                 try:
                     cur.execute(

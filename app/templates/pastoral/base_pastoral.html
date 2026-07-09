@@ -7,7 +7,7 @@
 #     - Pastoral Dashboard
 #     - Planning
 #     - Sermon Library (list for selection/editing)
-#     - Podium Mode → sermon selection list (today's linked sermon highlighted)
+#     - Podium Mode -> sermon selection list (today's linked sermon highlighted)
 #     - Main Dashboard (back to public/private main)
 #   - Maintains consistent dark/cyan theme (#00FFFF accents)
 #   - Child pages control content below header via {% block pastoral_content %}
@@ -30,7 +30,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
-  <title>{% block title %}Pastoral Command Center{% endblock %} – MyVineChurch.Online OS</title>
+  <title>{% block title %}Pastoral Command Center{% endblock %} - MyVineChurch.Online OS</title>
 
   <!-- THEME + OVERHAUL (mobile first, no more Bootstrap primary for layout) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">

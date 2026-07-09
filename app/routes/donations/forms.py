@@ -1,4 +1,4 @@
-# app/routes/donations/forms.py — validation for add/edit donation forms.
+# app/routes/donations/forms.py - validation for add/edit donation forms.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

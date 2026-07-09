@@ -2,7 +2,7 @@
 # Full path: myvinechurchonline/app/routes/log.py
 # File name: log.py
 # Brief, detailed purpose: Blueprint for viewing change audit records.
-# Route /log/change_records – TEMPORARILY open to any logged-in user (for debugging).
+# Route /log/change_records - TEMPORARILY open to any logged-in user (for debugging).
 # Displays all audit entries from the change_records table (table name aligned exactly with your builddb).
 # Searchable by username/action/details. Simple pagination.
 # Template: log/change_records.html (consistent with folder structure).

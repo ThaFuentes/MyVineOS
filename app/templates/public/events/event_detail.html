@@ -43,7 +43,7 @@
     </section>
     {% endif %}
 
-    <!-- People & Theme – HORIZONTAL (two-column grid) -->
+    <!-- People & Theme - HORIZONTAL (two-column grid) -->
     {% set people_fields = [
         ('Speaker/Host', event.speaker_host),
         ('Special Guests', event.special_guests),
@@ -64,7 +64,7 @@
     </section>
     {% endif %}
 
-    <!-- Logistics – HORIZONTAL (two-column grid) -->
+    <!-- Logistics - HORIZONTAL (two-column grid) -->
     {% set logistics_fields = [
         ('Agenda', event.agenda),
         ('Registration Info', event.registration_info),
@@ -94,7 +94,7 @@
     </section>
     {% endif %}
 
-    <!-- Communication & Media – HORIZONTAL (two-column grid) -->
+    <!-- Communication & Media - HORIZONTAL (two-column grid) -->
     {% set comm_fields = [
         ('Contact Info', event.contact_info),
         ('Social Media Hashtag', event.social_media_hashtag),
@@ -122,7 +122,7 @@
     </section>
     {% endif %}
 
-    <!-- Additional Details – HORIZONTAL (two-column grid) -->
+    <!-- Additional Details - HORIZONTAL (two-column grid) -->
     {% set additional_fields = [
         ('Volunteer Opportunities', event.volunteer_opportunities),
         ('Donation Info', event.donation_info),
@@ -143,7 +143,7 @@
     </section>
     {% endif %}
 
-    <!-- Potluck – collapsed by default (completely untouched) -->
+    <!-- Potluck - collapsed by default (completely untouched) -->
     {% if event.potluck_enabled %}
     <section class="content-section">
         <details class="collapsible glass">
@@ -281,7 +281,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="no-data">No comments yet – be the first to comment!</p>
+        <p class="no-data">No comments yet - be the first to comment!</p>
         {% endif %}
 
         {% if comments_enabled %}
@@ -315,7 +315,7 @@
 
 <!-- Back to Events -->
 <div class="form-actions" style="margin-top:3rem;">
-    <a href="{{ url_for('public.public_events.public_events') }}" class="btn-secondary">← Back to Upcoming Events</a>
+    <a href="{{ url_for('public.public_events.public_events') }}" class="btn-secondary"><- Back to Upcoming Events</a>
 </div>
 
 <script>

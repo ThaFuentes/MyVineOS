@@ -1,7 +1,7 @@
 # app/routes/events/events_dashboard.py
 # Full path: MyVineChurch/app/routes/events/events_dashboard.py
 # File name: events_dashboard.py
-# Brief, detailed purpose: Private Events Dashboard (/events) – login required.
+# Brief, detailed purpose: Private Events Dashboard (/events) - login required.
 # Shows ALL events (public + private) for logged-in users only.
 # Full summary cards, filters, Add Event button (for authorized roles).
 # Renders events/events_dashboard.html with private context.
@@ -16,7 +16,7 @@ import pymysql
 
 def register_dashboard_routes(bp):
     @bp.route('/')
-    @login_required  # Private dashboard – forces login
+    @login_required  # Private dashboard - forces login
     def events():
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)

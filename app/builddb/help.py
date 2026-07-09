@@ -16,11 +16,11 @@ WELCOME_ARTICLE = {
     'summary': 'How to find answers, pin guides you use often, and (for editors) manage help content.',
     'body_md': """## What this is for
 
-The Help section is your church's own instruction library. Look up how to do everyday tasks — check in, submit a prayer, record a donation, and more.
+The Help section is your church's own instruction library. Look up how to do everyday tasks - check in, submit a prayer, record a donation, and more.
 
 ## Find a guide
 
-1. Open **My Stuff → Help** from the top menu.
+1. Open **My Stuff -> Help** from the top menu.
 2. Use **Browse** to explore by category.
 3. Use **Search** and type a keyword (for example: `password`, `event`, `donation`).
 4. Open any guide to read the full steps.

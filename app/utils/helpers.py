@@ -8,10 +8,10 @@
 #   - Flash message helper for uniform user feedback.
 #   - All functions are lightweight, safe (handle None/invalid input gracefully), and avoid circular imports.
 #   FULL REBUILD: Preserved all original date helpers exactly.
-#   Censored words are now 100% DB-driven (no defaults, no JSON – plain \n-separated TEXT).
+#   Censored words are now 100% DB-driven (no defaults, no JSON - plain \n-separated TEXT).
 #   contains_censored_word() for server-side validation (fresh DB query each call).
-#   censor_text() for display – fresh DB query each call (reflects changes immediately, no restart needed).
-#   Completely silent on all DB errors (no console spam) – returns [] if anything wrong (column missing, no row, connection issue).
+#   censor_text() for display - fresh DB query each call (reflects changes immediately, no restart needed).
+#   Completely silent on all DB errors (no console spam) - returns [] if anything wrong (column missing, no row, connection issue).
 #   Uses DictCursor + safe .get() for maximum robustness.
 
 import re
@@ -63,7 +63,7 @@ def get_censored_words() -> List[str]:
     """
     Load the admin-defined censored words/phrases from the settings table.
     - Stored as plain TEXT with one entry per line (\n-separated).
-    - Returns empty list if no row, column missing, NULL, empty, or any DB error → censoring disabled silently.
+    - Returns empty list if no row, column missing, NULL, empty, or any DB error -> censoring disabled silently.
     - Returns stripped words (original case preserved for replacement).
     """
     try:
@@ -73,13 +73,13 @@ def get_censored_words() -> List[str]:
         row = cur.fetchone()
         cur.close()
 
-        # Safe access – handles missing row, missing column, NULL value
+        # Safe access - handles missing row, missing column, NULL value
         text = row.get('censored_words', '') if row else ''
         text = (text or '').strip()
         if text:
             return [w.strip() for w in text.split('\n') if w.strip()]
     except Exception:
-        # Completely silent – any issue → no censoring, no logs, no spam
+        # Completely silent - any issue -> no censoring, no logs, no spam
         pass
 
     return []  # Empty list = censoring disabled
@@ -106,10 +106,10 @@ def contains_censored_word(text: Optional[str]) -> bool:
         if not word:
             continue
         lower_word = word.lower()
-        if ' ' in lower_word:  # Phrase – exact match
+        if ' ' in lower_word:  # Phrase - exact match
             if lower_word in text_lower:
                 return True
-        else:  # Single word – word boundaries
+        else:  # Single word - word boundaries
             pattern = r"\b" + re.escape(lower_word) + r"\b"
             if re.search(pattern, text_lower):
                 return True
@@ -120,7 +120,7 @@ def censor_text(text: Optional[str]) -> str:
     """
     Replace any censored words/phrases in text with '*****'.
     Returns original text unchanged if no censored words are configured.
-    Fresh DB query each call – always reflects current settings.
+    Fresh DB query each call - always reflects current settings.
     Registered as Jinja filter 'censor' in app/__init__.py.
     """
     if not text:
@@ -135,9 +135,9 @@ def censor_text(text: Optional[str]) -> str:
     for word in words:
         if not word:
             continue
-        if ' ' in word:  # Phrase – exact match
+        if ' ' in word:  # Phrase - exact match
             pattern = re.compile(re.escape(word), re.IGNORECASE)
-        else:  # Single word – word boundaries
+        else:  # Single word - word boundaries
             pattern = re.compile(r"\b" + re.escape(word) + r"\b", re.IGNORECASE)
         censored = pattern.sub("*****", censored)
     return censored

@@ -5,7 +5,7 @@
 #   Pure database layer for the Illustration Library.
 #   Handles fetching, CRUD, search, and tag parsing.
 #   Visibility: 'private' (user_id = owner), 'pastoral_group' (user_id IS NULL).
-#   NO Flask imports — models must remain independent of routes.
+#   NO Flask imports - models must remain independent of routes.
 
 import pymysql
 import json

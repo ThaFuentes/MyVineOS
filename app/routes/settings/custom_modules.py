@@ -34,7 +34,7 @@ def _parse_module_form(form):
         flash('Name or description contains a prohibited word.', 'error')
         return None
     if not validate_slug(slug):
-        flash('URL slug must be 2–64 lowercase letters, numbers, and hyphens.', 'error')
+        flash('URL slug must be 2-64 lowercase letters, numbers, and hyphens.', 'error')
         return None
     if theme not in MODULE_THEMES:
         theme = 'ocean'
@@ -99,9 +99,9 @@ def custom_modules_create():
                 mid = create_module(data, session['user_id'])
                 log_change(session['user_id'], 'create', target_id=mid,
                            change_details=f'Created custom module "{data["name"]}"')
-                msg = f'App "{data["name"]}" installed — visit /modules/{data["slug"]}/'
+                msg = f'App "{data["name"]}" installed - visit /modules/{data["slug"]}/'
                 if data.get('create_group') and data.get('group_id'):
-                    msg += f' A permission group was created — add members at Groups → Edit.'
+                    msg += f' A permission group was created - add members at Groups -> Edit.'
                 flash(msg, 'success')
                 if data.get('group_id'):
                     return redirect(url_for('groups.edit_group', group_id=data['group_id']))

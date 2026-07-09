@@ -5,7 +5,7 @@
 # - REQUIRED_ROLES constant for consistency
 # - Email validation and formatting helpers
 # - Designed for easy future growth (bulk sending, templates, scheduled emails, etc.)
-# - 100% professional and secure – no partials, no placeholders.
+# - 100% professional and secure - no partials, no placeholders.
 
 import re
 

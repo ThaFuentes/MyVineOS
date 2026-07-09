@@ -15,11 +15,11 @@
 #   - Auto-pre-selects next upcoming Sunday for new sermons
 #   - Save fully functional with inline JS in template
 #   - All existing logic preserved exactly
-#   - source_url renamed to source (free text – books, conversations, etc., NO URL REQUIRED)
+#   - source_url renamed to source (free text - books, conversations, etc., NO URL REQUIRED)
 #   - Private notes per section (personal, matches illustrations)
 #   - Vault integration ready
 #   - AUTO-SAVE: Sections only every 30s (no reload, status update)
-#   - FULL REPLACE in save_sermon_sections → no extra/blank sections ever
+#   - FULL REPLACE in save_sermon_sections -> no extra/blank sections ever
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from datetime import datetime, timedelta

@@ -1,14 +1,14 @@
 <!-- app/templates/events/add_event.html -->
 <!-- Full path: WebChurchMan/app/templates/events/add_event.html -->
 <!-- File name: add_event.html -->
-<!-- Brief, detailed purpose: Add New Event form – extends base_events.html for full consistency.
+<!-- Brief, detailed purpose: Add New Event form - extends base_events.html for full consistency.
    Spacious single-column layout, global form classes only.
    All fields preserved.
    FULL REBUILD: Logical grouping into collapsible <details> sections.
    Sections remember open/closed state via localStorage (persists per browser).
-   Basic Info open by default, others closed – fast access to required fields and Create button.
+   Basic Info open by default, others closed - fast access to required fields and Create button.
    Duplicate Create/Cancel buttons at top and bottom for speed.
-   Form repopulation on error using request.form.get(..., '') – never shows "None".
+   Form repopulation on error using request.form.get(..., '') - never shows "None".
    Server-side censorship handled in route POST (contains_censored_word on all text fields).
    Client-side not needed (admin-only page). -->
 
@@ -25,7 +25,7 @@ Record a new church event. Required fields marked with <span class="required">*<
 <section class="content-section">
     <h2 class="section-title">Record Event</h2>
 
-    <!-- Top Actions – immediate access to submit/cancel -->
+    <!-- Top Actions - immediate access to submit/cancel -->
     <div class="form-actions" style="margin-bottom:2rem; text-align:center;">
         <button type="submit" form="event-form" class="btn-primary">Create Event</button>
         <a href="{{ url_for('events.events') }}" class="btn-secondary">Cancel</a>
@@ -34,7 +34,7 @@ Record a new church event. Required fields marked with <span class="required">*<
     <form id="event-form" method="POST" action="{{ url_for('events.add_event') }}" class="styled-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
-        <!-- Basic Info – open by default -->
+        <!-- Basic Info - open by default -->
         <details open id="section-basic" class="collapsible-section glass">
             <summary class="collapsible-summary section-subtitle">Basic Information (required fields)</summary>
             <div class="collapsible-content">
@@ -253,7 +253,7 @@ Record a new church event. Required fields marked with <span class="required">*<
             </div>
         </details>
 
-        <!-- Bottom Actions – duplicate for convenience -->
+        <!-- Bottom Actions - duplicate for convenience -->
         <div class="form-actions" style="margin-top:3rem; text-align:center;">
             <button type="submit" class="btn-primary">Create Event</button>
             <a href="{{ url_for('events.events') }}" class="btn-secondary">Cancel</a>

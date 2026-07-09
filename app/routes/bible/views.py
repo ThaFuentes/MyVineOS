@@ -1,4 +1,4 @@
-# Member Bible study — read, search, copy, Strong's lookup (shared translation DB with pastoral).
+# Member Bible study - read, search, copy, Strong's lookup (shared translation DB with pastoral).
 
 from flask import render_template, request, jsonify, abort
 

@@ -2,7 +2,7 @@
 # Full path: MyVineChurch/app/routes/prayers/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Prayers module.
-# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Pure data-access layer - no Flask routes, no templates, no flash messages.
 # - Every SELECT/INSERT/UPDATE/DELETE from the original prayers.py is now here.
 # - Supports public/private visibility enforcement at query level.
 # - 100% MariaDB/pymysql compatible, parameterized, reusable functions.

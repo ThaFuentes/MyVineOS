@@ -19,9 +19,9 @@ import importlib
 # Load environment variables from project root
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
-# ──────────────────────────────────────────────────────────────────────────────
+# 
 # Core model & utility imports
-# ──────────────────────────────────────────────────────────────────────────────
+# 
 from app.builddb.builddb import build_all
 from .models.db import close_db
 from .models.owner import owner_exists
@@ -264,10 +264,10 @@ def create_app():
             notification_settings=notif_settings,
             pending_registration_count=pending_count,
         )
-    # ──────────────────────────────────────────────────────────────────────────────
-    # BLUEPRINT REGISTRATION – PRIVATE FIRST (logged-in users always win)
-    # ──────────────────────────────────────────────────────────────────────────────
-    # Private blueprints (flat structure – no nesting)
+    # 
+    # BLUEPRINT REGISTRATION - PRIVATE FIRST (logged-in users always win)
+    # 
+    # Private blueprints (flat structure - no nesting)
     private_blueprints = [
         'auth',
         'dashboard',
@@ -305,18 +305,18 @@ def create_app():
             print(f"Skipped private blueprint: {name} ({e})")
         except Exception as e:
             print(f"ERROR registering private blueprint {name}: {e}")
-    # ──────────────────────────────────────────────────────────────────────────────
+    # 
     # EXPLICIT REGISTRATION FOR the_gathering (nested dashboard)
-    # ──────────────────────────────────────────────────────────────────────────────
+    # 
     try:
         from app.routes.the_gathering import the_gathering_bp
         app.register_blueprint(the_gathering_bp)
         print("Explicitly registered the_gathering blueprint (nested dashboard active)")
     except Exception as e:
         print(f"FAILED to register the_gathering blueprint: {e}")
-    # ──────────────────────────────────────────────────────────────────────────────
-    # PUBLIC PARENT BLUEPRINT – LAST
-    # ──────────────────────────────────────────────────────────────────────────────
+    # 
+    # PUBLIC PARENT BLUEPRINT - LAST
+    # 
     # Public lives under /public (parent url_prefix) with sub-blueprints:
     #   /public/ (dashboard feed), /public/dreams, /public/events, /public/prayers,
     #   /public/prophecies, /public/announcements, /public/sermons, /public/donate
@@ -326,18 +326,18 @@ def create_app():
     try:
         from app.routes.public import public_bp
         app.register_blueprint(public_bp)
-        print("Registered public parent blueprint (nested sub-blueprints active – homepage + comments fixed)")
+        print("Registered public parent blueprint (nested sub-blueprints active - homepage + comments fixed)")
     except Exception as e:
         print(f"FAILED to register public blueprint: {e}")
-    # ──────────────────────────────────────────────────────────────────────────────
+    # 
     # Root Route
-    # ──────────────────────────────────────────────────────────────────────────────
+    # 
     @app.route('/')
     def index():
         if session.get('user_id'):
             return redirect(url_for('dashboard.dashboard'))
         if not owner_exists():
-            flash('Initial setup required – please register the first Owner.', 'info')
+            flash('Initial setup required - please register the first Owner.', 'info')
             return redirect(url_for('auth.register'))
         return redirect(url_for('public.public_dashboard.public_dashboard'))
     # OWNER ENFORCEMENT
@@ -349,7 +349,7 @@ def create_app():
             (request.endpoint and request.endpoint.startswith('auth.'))):
             return
         if not owner_exists():
-            flash('Initial setup required – please register the first Owner.', 'info')
+            flash('Initial setup required - please register the first Owner.', 'info')
             return redirect(url_for('auth.register'))
     # Error Handlers
     @app.errorhandler(404)

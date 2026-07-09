@@ -1,7 +1,7 @@
 <!-- app/templates/announcements/announcements_dashboard.html -->
 <!-- Full path: WebChurchMan/app/templates/announcements/announcements_dashboard.html -->
 <!-- File name: announcements_dashboard.html -->
-<!-- Brief, detailed purpose: Announcements Dashboard / Main Listing page – now extends base_announcements.html for perfect consistency with Events/Donations.
+<!-- Brief, detailed purpose: Announcements Dashboard / Main Listing page - now extends base_announcements.html for perfect consistency with Events/Donations.
    Glassmorphism layout, summary cards, collapsible search/filters, expandable details (content + comments.html).
    Email button sends THAT specific announcement only (loads content in backend, pre-fills subject with title).
    All global classes only. Date display safe (no custom filters). -->
@@ -170,7 +170,7 @@ Use the Email button on any announcement to send it to selected members (or all 
     </div>
 </section>
 
-<!-- Email Modal – sends ONLY the selected announcement -->
+<!-- Email Modal - sends ONLY the selected announcement -->
 {% if members %}
 <div id="emailModal" class="modal">
     <div class="modal-content card glass">
@@ -210,7 +210,7 @@ Use the Email button on any announcement to send it to selected members (or all 
 {% endif %}
 
 <script>
-  /* Toggle details, modal open/close, member list toggle, search/filter – unchanged from previous version */
+  /* Toggle details, modal open/close, member list toggle, search/filter - unchanged from previous version */
   function toggleDetails(id) {
     const row = document.getElementById(id);
     if (!row) return;

@@ -2,7 +2,7 @@
 <!-- Full path: WebChurchMan/app/templates/settings/online_giving.html -->
 <!-- File name: online_giving.html -->
 <!-- Brief, detailed purpose: Dedicated Settings page for Online Giving configuration.
-   Extends base_settings.html → inherits glass wrapper, internal .menu navigation, flash messages.
+   Extends base_settings.html -> inherits glass wrapper, internal .menu navigation, flash messages.
    Contains ONLY the online giving global controls + full repeater (add/edit/delete/reorder + image upload/cleanup).
    All original fields, help text, forms, table layout, collapsible inline edits, and image handling preserved 100%.
    Uses only global CSS classes. -->
@@ -126,8 +126,8 @@
                         <form method="POST" style="display:inline;">
         {% include 'partials/csrf_field.html' %}
                             <input type="hidden" name="option_id" value="{{ opt.id }}">
-                            <button type="submit" name="action" value="move_up" class="btn-small" {% if loop.first %}disabled{% endif %}>↑</button>
-                            <button type="submit" name="action" value="move_down" class="btn-small" {% if loop.last %}disabled{% endif %}>↓</button>
+                            <button type="submit" name="action" value="move_up" class="btn-small" {% if loop.first %}disabled{% endif %}>^</button>
+                            <button type="submit" name="action" value="move_down" class="btn-small" {% if loop.last %}disabled{% endif %}>v</button>
                         </form>
                     </td>
                     <td>

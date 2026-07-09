@@ -5,7 +5,7 @@
 # Stores AI service API keys (service unique, api_key encrypted in app before storage, enabled flag).
 # Owner/Admin management via future settings page.
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # Safe to run repeatedly.
 
 def create_tables(cursor):
@@ -44,4 +44,4 @@ def create_tables(cursor):
             print(f"Migration: Adding missing column '{col_name}' to api_keys table.")
             cursor.execute(f"ALTER TABLE api_keys ADD COLUMN {col_name} {col_def}")
 
-    # Index on service is implicit due to UNIQUE constraint – no additional indexes needed
+    # Index on service is implicit due to UNIQUE constraint - no additional indexes needed

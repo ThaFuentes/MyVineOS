@@ -4,9 +4,9 @@
 {# Brief, detailed purpose:
 #   Create or edit a recurring master template.
 #   FULL REBUILD: Weekday selection only on new (required); fixed/read-only on edit.
-#   Added "Forced Notes" – critical lines prepended to EVERY plan (plain weeks auto, dated overrides optional safe append).
+#   Added "Forced Notes" - critical lines prepended to EVERY plan (plain weeks auto, dated overrides optional safe append).
 #   Propagation checkbox with preview of affected dated plans (append-only missing lines).
-#   Strong, repeated global impact messaging – changes affect ALL future weeks indefinitely.
+#   Strong, repeated global impact messaging - changes affect ALL future weeks indefinitely.
 #   Title optional override in dated plans (protected).
 #   Roles/notes changes instant on plain weeks; safe optional propagation.
 #   Future-proof for worship team (roles free-text). #}
@@ -26,9 +26,9 @@
             </h1>
 
             <div class="alert alert-success border border-cyan shadow-lg mb-4">
-                <h4 class="text-cyan mb-2"><i class="fas fa-exclamation-triangle me-2"></i>MASTER TEMPLATE – GLOBAL IMPACT</h4>
+                <h4 class="text-cyan mb-2"><i class="fas fa-exclamation-triangle me-2"></i>MASTER TEMPLATE - GLOBAL IMPACT</h4>
                 <p class="mb-0">
-                    <strong>Any change saved here instantly applies to EVERY future week</strong> using this template — forever, until edited again or overridden.<br><br>
+                    <strong>Any change saved here instantly applies to EVERY future week</strong> using this template - forever, until edited again or overridden.<br><br>
                     This is the central control for all recurring "{{ template.title if not is_new else 'this service type' }}" weeks.<br>
                     Use dated plan editor only for one-off special events.
                 </p>
@@ -96,14 +96,14 @@
                             <label class="form-label text-cyan fs-5">Regular Notes / Order of Service</label>
                             <div id="notes-editor" class="quill-wrapper">{{ template.notes|safe }}</div>
                             <input type="hidden" name="notes" id="notes-hidden">
-                            <small class="text-muted">Standard notes – appear in all weeks (overridable on dated plans).</small>
+                            <small class="text-muted">Standard notes - appear in all weeks (overridable on dated plans).</small>
                         </div>
 
                         <div class="mb-5">
-                            <h5 class="text-cyan">Forced Notes – Critical (appear in EVERY plan)</h5>
+                            <h5 class="text-cyan">Forced Notes - Critical (appear in EVERY plan)</h5>
                             <p class="text-muted mb-3">
                                 These lines are <strong>forced into every plan</strong> (prepended automatically on plain weeks).<br>
-                                Use for ongoing critical info: e.g., "KITCHEN SINK DOESNT WORK – contact maintenance".
+                                Use for ongoing critical info: e.g., "KITCHEN SINK DOESNT WORK - contact maintenance".
                             </p>
                             <textarea name="forced_notes" class="form-control form-control-dark" rows="6"
                                       placeholder="One critical line per row...">{{ template.forced_notes }}</textarea>
@@ -139,7 +139,7 @@
                                 </div>
                                 <small class="text-muted d-block mt-2">
                                     Affected future dated plans: {{ affected_plans|join(', ') }}<br>
-                                    Only missing lines added – custom content preserved.
+                                    Only missing lines added - custom content preserved.
                                 </small>
                             </div>
                         </div>
@@ -151,7 +151,7 @@
                             Cancel
                         </a>
                         <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-save me-2"></i>Save Master Template → Affects ALL Future Weeks
+                            <i class="fas fa-save me-2"></i>Save Master Template -> Affects ALL Future Weeks
                         </button>
                     </div>
                 </div>

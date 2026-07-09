@@ -5,7 +5,7 @@
 #   Dedicated blueprint for sermon export functionality (single & bulk DOCX).
 #   - Export list view with selectable sermons
 #   - Single sermon DOCX download
-#   - Bulk export → ZIP of multiple DOCX files
+#   - Bulk export -> ZIP of multiple DOCX files
 #   - Clean formatting with python-docx (title, passage, sections, notes)
 #   - Respects existing visibility enforcement
 #   - Audit-logged single and bulk exports

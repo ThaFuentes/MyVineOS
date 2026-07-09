@@ -6,7 +6,7 @@
 # confirmation_number (TEXT) and goods_services_provided (INTEGER flag).
 # No user_id foreign key in this table (donations may be recorded anonymously or linked separately).
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 
 def create_tables(cursor):
     """

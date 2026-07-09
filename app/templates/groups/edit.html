@@ -32,8 +32,8 @@
         <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
             <strong>Two roles within every group</strong>
             <ul class="help-text" style="margin:0.5rem 0 0; padding-left:1.25rem;">
-                <li><strong>Member</strong> — gets this group's site permissions only.</li>
-                <li><strong>Group Manager</strong> — can add/remove members and edit this group's name, description, visibility, and permissions.</li>
+                <li><strong>Member</strong> - gets this group's site permissions only.</li>
+                <li><strong>Group Manager</strong> - can add/remove members and edit this group's name, description, visibility, and permissions.</li>
             </ul>
             {% if not group.can_change_roles %}
             <p class="help-text" style="margin:0.5rem 0 0;">Only site Owner, Admin, or Staff can change someone between Member and Group Manager.</p>
@@ -72,8 +72,8 @@
                 <div class="form-group">
                     <label for="visibility">Visibility</label>
                     <select id="visibility" name="visibility" class="form-input">
-                        <option value="private" {% if group.visibility == 'private' %}selected{% endif %}>Private – visible only to logged-in members</option>
-                        <option value="public" {% if group.visibility == 'public' %}selected{% endif %}>Public – visible to all visitors</option>
+                        <option value="private" {% if group.visibility == 'private' %}selected{% endif %}>Private - visible only to logged-in members</option>
+                        <option value="public" {% if group.visibility == 'public' %}selected{% endif %}>Public - visible to all visitors</option>
                     </select>
                 </div>
 
@@ -104,7 +104,7 @@
                         {% for member in group.members %}
                             <li>
                                 <strong>{{ member.first_name }} {{ member.last_name }} (@{{ member.username }})</strong>
-                                – {{ group_role_label(member.role_in_group) }}
+                                - {{ group_role_label(member.role_in_group) }}
                                 {% if group.can_manage_members %}
                                     <div class="member-actions">
                                         {% if group.can_change_roles %}
@@ -255,7 +255,7 @@
           resultsDiv.style.display = 'block';
         })
         .catch(() => {
-          resultsBody.innerHTML = '<tr><td colspan="2" class="no-data">Search error — try the username/email form below</td></tr>';
+          resultsBody.innerHTML = '<tr><td colspan="2" class="no-data">Search error - try the username/email form below</td></tr>';
           resultsDiv.style.display = 'block';
         });
     }, 300);

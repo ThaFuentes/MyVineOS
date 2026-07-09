@@ -22,7 +22,7 @@ Update an existing donation record. Changes are reflected in reports and exporte
                 <span class="badge {% if (donation.donor_type or 'guest') == 'member' %}bg-success{% elif donation.donor_type == 'business' %}bg-info{% else %}bg-secondary{% endif %}">
                     {{ (donation.donor_type or 'guest')|capitalize }}
                 </span>
-                {% if donation.username %} — linked to @{{ donation.username }}{% elif donation.user_id %} — member #{{ donation.user_id }}{% endif %}
+                {% if donation.username %} - linked to @{{ donation.username }}{% elif donation.user_id %} - member #{{ donation.user_id }}{% endif %}
             </p>
         </div>
 

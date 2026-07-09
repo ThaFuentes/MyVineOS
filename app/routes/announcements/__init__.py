@@ -4,7 +4,7 @@
 # Brief, detailed purpose: Announcements Blueprint Package Initializer
 # - Creates the exact same Blueprint(name='announcements', url_prefix='/announcements')
 # - Automatically imports all modular files so every route registers instantly
-# - Zero functional change today – 100% compatible with your current main.py / app factory
+# - Zero functional change today - 100% compatible with your current main.py / app factory
 # - Designed purely for future scaling (add api.py, tasks.py, admin.py later with zero breakage)
 
 from flask import Blueprint
@@ -19,7 +19,7 @@ announcements_bp = Blueprint(
 )
 
 # ----------------------------------------------------------------------
-# Import all modules – routes register automatically when imported
+# Import all modules - routes register automatically when imported
 # ----------------------------------------------------------------------
 from . import views
 from . import queries

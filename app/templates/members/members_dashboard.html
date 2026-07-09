@@ -1,8 +1,8 @@
 <!-- myvinechurchonline/app/templates/members/members_dashboard.html -->
 <!-- Full path: myvinechurchonline/app/templates/members/members_dashboard.html -->
 <!-- File name: members_dashboard.html -->
-<!-- Brief, detailed purpose: Members Dashboard – main directory page.
-   Extends base_members.html → perfect match with Events/Announcements.
+<!-- Brief, detailed purpose: Members Dashboard - main directory page.
+   Extends base_members.html -> perfect match with Events/Announcements.
    Fixed BuildError: Edit uses 'members.add_member' with member_id (combined add/edit route).
    Delete uses 'members.delete_member' (assumed correct; adjust if different).
    Pure global CSS, glass cards/table, collapsible search/filters, expandable family/details. -->
@@ -143,7 +143,7 @@ Admin/Owner: add members, export DOCX, email roster.
                                                 <li>
                                                     <strong>{{ rel.related_first_name }} {{ rel.related_last_name }}</strong>
                                                     ({{ rel.relation_type|capitalize }}
-                                                    {% if rel.status == 'pending' %} – Pending Approval{% endif %})
+                                                    {% if rel.status == 'pending' %} - Pending Approval{% endif %})
                                                 </li>
                                                 {% endfor %}
                                             </ul>

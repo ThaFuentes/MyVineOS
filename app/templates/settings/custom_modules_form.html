@@ -7,11 +7,11 @@
     <div class="glass-panel" style="padding:1rem; margin-bottom:1rem; max-width:760px;">
         <strong>What is this?</strong>
         <p class="help-text" style="margin:0.5rem 0 0;">
-            A <em>one-way bulletin board</em> — managers post entries (bus stops, youth events, etc.) and members read them.
+            A <em>one-way bulletin board</em> - managers post entries (bus stops, youth events, etc.) and members read them.
             This is <strong>not</strong> a forum: no comments, replies, or member posts unless you make them a Group Manager.
         </p>
         <p class="help-text" style="margin:0.5rem 0 0;">
-            <strong>Recommended:</strong> check “Create a permission group” below. That creates a group in
+            <strong>Recommended:</strong> check "Create a permission group" below. That creates a group in
             <a href="{{ url_for('groups.list_groups') }}">Permission Groups</a> where you add viewers and managers.
         </p>
     </div>
@@ -25,7 +25,7 @@
                 {% for t in types %}
                 <option value="{{ t.type_key }}" data-theme="{{ t.default_theme }}"
                     {% if module and module.type_key == t.type_key %}selected{% elif not module and loop.first %}selected{% endif %}>
-                    {{ t.icon }} {{ t.name }} — {{ t.description[:60] }}{% if t.description|length > 60 %}…{% endif %}
+                    {{ t.icon }} {{ t.name }} - {{ t.description[:60] }}{% if t.description|length > 60 %}...{% endif %}
                 </option>
                 {% endfor %}
             </select>
@@ -38,8 +38,8 @@
             <label for="name">Display Name <span class="required">*</span></label>
             <input type="text" id="name" name="name" class="form-input" required
                    value="{{ module.name if module else '' }}"
-                   placeholder="e.g. Sunday Bus – North Route">
-            <p class="help-text">Shown on dashboard and page header — your church chooses the name.</p>
+                   placeholder="e.g. Sunday Bus - North Route">
+            <p class="help-text">Shown on dashboard and page header - your church chooses the name.</p>
         </div>
 
         <div class="form-group">
@@ -83,7 +83,7 @@
         <p class="help-text">
             Permission group:
             <a href="{{ url_for('groups.edit_group', group_id=module.group_id) }}">{{ module.group_name or 'View group' }}</a>
-            — add members and managers there.
+            - add members and managers there.
         </p>
         {% endif %}
 
@@ -94,13 +94,13 @@
                 <option value="public" {% if module and module.visibility == 'public' %}selected{% endif %}>Public (anyone)</option>
                 <option value="group" {% if module and module.visibility == 'group' %}selected{% endif %}>Specific group only</option>
             </select>
-            <p class="help-text" id="visibility-hint">If you created a permission group, leave this on “Specific group only”.</p>
+            <p class="help-text" id="visibility-hint">If you created a permission group, leave this on "Specific group only".</p>
         </div>
 
         <div class="form-group" id="group-access-row">
             <label for="group_id">Access Group</label>
             <select id="group_id" name="group_id" class="form-input">
-                <option value="">— Select group —</option>
+                <option value="">- Select group -</option>
                 {% for g in groups %}
                 <option value="{{ g.id }}" {% if module and module.group_id == g.id %}selected{% endif %}>{{ g.name }}</option>
                 {% endfor %}

@@ -32,7 +32,7 @@
         <div class="form-group">
             <label for="category_id">Category</label>
             <select id="category_id" name="category_id">
-                <option value="">— Uncategorized —</option>
+                <option value="">- Uncategorized -</option>
                 {% for cat in categories %}
                 <option value="{{ cat.id }}"
                     {% if (article and article.category_id == cat.id) or (form and (form.get('category_id') or form.category_id)|string == cat.id|string) %}selected{% endif %}>

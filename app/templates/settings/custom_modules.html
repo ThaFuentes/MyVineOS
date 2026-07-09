@@ -13,8 +13,8 @@
             Use <strong>Permission Groups</strong> to control who sees the app and who can add/edit entries (Group Manager role).
         </p>
         <p class="help-text" style="margin:0;">
-            <strong>Start with:</strong> Bus Routes or Youth Group. “Equipment & Rooms” and “Ministry Calendar” are optional extras
-            if you need an inventory list or a weekly “what meets when” board.
+            <strong>Start with:</strong> Bus Routes or Youth Group. "Equipment & Rooms" and "Ministry Calendar" are optional extras
+            if you need an inventory list or a weekly "what meets when" board.
         </p>
     </div>
 
@@ -37,7 +37,7 @@
                 <tr>
                     <td>
                         <strong>{{ m.type_icon }} {{ m.name }}</strong>
-                        {% if m.description %}<br><small>{{ m.description[:80] }}{% if m.description|length > 80 %}…{% endif %}</small>{% endif %}
+                        {% if m.description %}<br><small>{{ m.description[:80] }}{% if m.description|length > 80 %}...{% endif %}</small>{% endif %}
                     </td>
                     <td>{{ m.type_name }}</td>
                     <td>{{ themes[m.theme].label if m.theme in themes else m.theme }}</td>

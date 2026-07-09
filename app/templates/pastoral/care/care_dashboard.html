@@ -63,7 +63,7 @@
         <div style="font-weight:600; font-size:1.02rem;">{{ req.member_name }}</div>
         <div style="opacity:0.75; font-size:0.82rem;">{{ req.request_type|capitalize }} - {{ req.created_at|relative_time }}</div>
         <div style="margin:0.35rem 0 0.25rem;">
-          {% if req.title %}<strong>{{ req.title }}</strong>{% else %}<em style="opacity:0.6;">No title – see details</em>{% endif %}
+          {% if req.title %}<strong>{{ req.title }}</strong>{% else %}<em style="opacity:0.6;">No title - see details</em>{% endif %}
         </div>
         <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.25rem;">
           <span style="font-size:0.72rem; padding:0.1rem 0.45rem; border-radius:999px; background:rgba(255,255,255,0.08);">{{ req.status|replace('_',' ')|capitalize }}</span>
@@ -71,7 +71,7 @@
         </div>
         <div style="font-size:0.8rem; margin-top:0.3rem; opacity:0.75;">Assigned: {{ req.assigned_pastors or 'Unassigned' }}</div>
       </div>
-      <a href="{{ url_for('pastoral.care.care_request_detail', request_id=req.id) }}" class="btn btn-primary" style="min-height:40px; font-size:0.85rem; padding:0.35rem 0.8rem; white-space:nowrap;">View →</a>
+      <a href="{{ url_for('pastoral.care.care_request_detail', request_id=req.id) }}" class="btn btn-primary" style="min-height:40px; font-size:0.85rem; padding:0.35rem 0.8rem; white-space:nowrap;">View -></a>
     </div>
   </div>
   {% endfor %}
@@ -84,6 +84,6 @@
 {% endif %}
 
 <div style="margin-top:1rem; text-align:center;">
-  <a href="{{ url_for('pastoral.dashboard_pastoral') }}" style="font-size:0.8rem; opacity:0.6;">← Back to Pastoral Command Center</a>
+  <a href="{{ url_for('pastoral.dashboard_pastoral') }}" style="font-size:0.8rem; opacity:0.6;"><- Back to Pastoral Command Center</a>
 </div>
 {% endblock %}

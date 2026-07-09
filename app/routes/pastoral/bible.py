@@ -1,4 +1,4 @@
-# app/routes/pastoral/bible.py — Bible study, upload, search, Strong's integration.
+# app/routes/pastoral/bible.py - Bible study, upload, search, Strong's integration.
 
 from flask import (
     Blueprint, render_template, request, jsonify, abort, flash, redirect, url_for, session,
@@ -246,7 +246,7 @@ def quick_sermon():
     reference = (data.get('reference') or data.get('primary_passage') or '').strip()
     title = (data.get('title') or '').strip()
     if not title:
-        title = f"Sermon — {reference}" if reference else "New Sermon from Bible Study"
+        title = f"Sermon - {reference}" if reference else "New Sermon from Bible Study"
     sermon_id = create_sermon({
         'title': title,
         'primary_passage': reference or None,

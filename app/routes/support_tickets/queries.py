@@ -129,20 +129,20 @@ def get_staff_emails():
         for row in cur.fetchall():
             if row[0]:
                 emails.add(row[0].strip())
-    except Exception as e:
-#         print(f" [DEBUG] Error getting ticket_managers emails: {e}")
+    except Exception:
+        pass
 
     try:
         cur.execute("""
             SELECT email FROM users 
-            WHERE role IN ('admin', 'owner')
+            WHERE role IN ('admin', 'owner', 'Admin', 'Owner')
               AND email IS NOT NULL AND email != ''
         """)
         for row in cur.fetchall():
             if row[0]:
                 emails.add(row[0].strip())
-    except Exception as e:
-#         print(f" [DEBUG] Error getting admin/owner emails: {e}")
+    except Exception:
+        pass
 
     cur.close()
     return list(emails)

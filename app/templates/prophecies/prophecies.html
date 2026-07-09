@@ -2,14 +2,14 @@
 <!-- Full path: WebChurchMan/app/templates/prophecies/prophecies.html -->
 <!-- File name: prophecies.html -->
 <!-- Brief, detailed purpose: Prophecies Dashboard / Main Listing page.
-   Extends base_prophecies.html → identical glass wrapper, menu, flash handling.
+   Extends base_prophecies.html -> identical glass wrapper, menu, flash handling.
    Summary cards (total/public/private/personal counts for logged-in).
    Top + Add Prophecy button (logged-in only).
    Collapsible search/filters (visibility: all/public/private/personal for logged-in).
    Glass table with client-side live search.
    Title links to detail view (/prophecies/<id>).
    Actions column (edit/delete) for owner/admin.
-   Uses ONLY global classes – no prophecies-specific CSS.
+   Uses ONLY global classes - no prophecies-specific CSS.
    Date display uses strftime (safe datetime handling). -->
 
 {% extends "prophecies/base_prophecies.html" %}
@@ -52,7 +52,7 @@ Browse and search all prophetic words.<br>
   </div>
 </div>
 
-<!-- Add Prophecy Button – logged-in only -->
+<!-- Add Prophecy Button - logged-in only -->
 {% if is_logged_in %}
 <div class="form-actions add-event-top">
     <a href="{{ url_for('prophecies.add_prophecy') }}" class="btn-primary">+ Add Prophecy</a>

@@ -1,4 +1,4 @@
-# Central email notification dispatcher — all system emails flow through here.
+# Central email notification dispatcher - all system emails flow through here.
 
 from typing import Optional, List
 import os
@@ -18,7 +18,7 @@ def external_url(endpoint: str, **values) -> str:
     return url_for(endpoint, _external=True, **values)
 
 
-# Catalog of email use cases (shown in Settings → Notifications)
+# Catalog of email use cases (shown in Settings -> Notifications)
 EMAIL_USAGE_CATALOG = [
     {'key': 'registration_admin_alert', 'label': 'New registration alert', 'audience': 'Admins who opt in', 'trigger': 'Someone registers'},
     {'key': 'registration_verify', 'label': 'Email verification', 'audience': 'New registrant', 'trigger': 'Registration when verification required'},
@@ -32,7 +32,7 @@ EMAIL_USAGE_CATALOG = [
     {'key': 'event_invite', 'label': 'Event invitation', 'audience': 'Selected members', 'trigger': 'Events email tool'},
     {'key': 'announcement_blast', 'label': 'Announcement email', 'audience': 'Selected members', 'trigger': 'Announcements email tool'},
     {'key': 'support_ticket', 'label': 'Support ticket alert', 'audience': 'Staff', 'trigger': 'New support ticket'},
-    {'key': 'member_roster', 'label': 'Member roster / broadcast', 'audience': 'External address, all members, or roster-to-all', 'trigger': 'Members → Member Emails (3 send modes)'},
+    {'key': 'member_roster', 'label': 'Member roster / broadcast', 'audience': 'External address, all members, or roster-to-all', 'trigger': 'Members -> Member Emails (3 send modes)'},
 ]
 
 
@@ -97,7 +97,7 @@ Username: {user.get('username')}
 Email: {user.get('email')}
 Status: {user.get('role', 'pending')}
 
-Review pending registrations in Members → Pending Registrations.
+Review pending registrations in Members -> Pending Registrations.
 """
     sent = 0
     for email in get_admin_registration_recipients():
@@ -129,7 +129,7 @@ Need a new link? Use "Resend email verification" on the login page.
 
 def send_registration_approved(email: str, username: str) -> bool:
     login_url = external_url('auth.login')
-    subject = f"Your account has been approved — {_church_name()}"
+    subject = f"Your account has been approved - {_church_name()}"
     body = f"""Hello {username},
 
 Your account on {_church_name()} has been approved. You can now log in:
@@ -161,7 +161,7 @@ def send_donation_receipt(donation: dict, church_info: dict) -> bool:
     if not get_notification_settings()['email_send_donation_receipts']:
         return False
     church = church_info.get('church_name') or _church_name()
-    subject = f"Donation receipt — {church}"
+    subject = f"Donation receipt - {church}"
     body = f"""Thank you for your generous gift to {church}.
 
 Donor: {donation.get('name', 'Donor')}

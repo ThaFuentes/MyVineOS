@@ -130,7 +130,7 @@ def help_unpin(article_id):
 
 
 # ---------------------------------------------------------------------------
-# Admin — manage categories & articles
+# Admin - manage categories & articles
 # ---------------------------------------------------------------------------
 
 @help_bp.route('/manage')

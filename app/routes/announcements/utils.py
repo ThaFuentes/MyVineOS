@@ -3,9 +3,9 @@
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Announcements module.
 # - REQUIRED_ROLES constant
-# - censor_text() – server-side censorship
-# - build_email_body() – keeps email logic clean
-# - is_comment_owner() – critical for secure comment management (only owner OR moderate_announcements can edit/delete)
+# - censor_text() - server-side censorship
+# - build_email_body() - keeps email logic clean
+# - is_comment_owner() - critical for secure comment management (only owner OR moderate_announcements can edit/delete)
 # - 100% professional, secure, and consistent with the rest of the application.
 
 from app.utils.helpers import contains_censored_word
@@ -29,7 +29,7 @@ def censor_text(text):
     """
     if not text:
         return ''
-    return text   # placeholder – ready for real censor logic when needed
+    return text   # placeholder - ready for real censor logic when needed
 
 
 # ----------------------------------------------------------------------

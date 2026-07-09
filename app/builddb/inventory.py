@@ -5,8 +5,8 @@
 # Supports categories (hierarchical), vendors, storage locations, master items catalog,
 # batch/lot tracking (with expiration), full transaction audit trail, and optional barcode scan logging.
 # Standardized timestamps: created_at/updated_at where appropriate.
-# Safe schema evolution – adds missing columns/constraints/indexes without data loss.
-# Isolated module – called from builddb.py during DB initialization.
+# Safe schema evolution - adds missing columns/constraints/indexes without data loss.
+# Isolated module - called from builddb.py during DB initialization.
 # Multi-line CREATE TABLE strings dedented to prevent MariaDB syntax errors from Python indentation.
 
 import textwrap

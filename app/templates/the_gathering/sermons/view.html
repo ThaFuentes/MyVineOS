@@ -22,7 +22,7 @@
         <div style="display:flex; gap:0.5rem;">
             <!-- Back to Sermons Manager -->
             <a href="{{ url_for('the_gathering.sermons.sermons_dashboard') }}" class="btn btn-secondary">
-                ← Back to Sermons
+                <- Back to Sermons
             </a>
 
             <!-- Edit Sermon -->
@@ -65,7 +65,7 @@
                 <strong>Created:</strong> {{ sermon.created_at | format_manager_datetime }}
             </div>
             <div class="col-md-3">
-                <strong>Scripture:</strong> {{ sermon.scripture or '—' }}
+                <strong>Scripture:</strong> {{ sermon.scripture or '-' }}
             </div>
         </div>
 

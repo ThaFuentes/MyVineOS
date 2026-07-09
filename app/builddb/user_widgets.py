@@ -5,7 +5,7 @@
 # Enables per-user dashboard widget customization (enable/disable specific widgets).
 # Unique constraint prevents duplicate widget entries per user.
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # All user-related FKs use UNSIGNED INT to match users.id type and fix errno 150 FK mismatch.
 
 def create_tables(cursor):

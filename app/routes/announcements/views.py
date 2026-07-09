@@ -5,7 +5,7 @@
 # - Every single @announcements_bp.route from the old flat file lives here.
 # - 100% original behavior preserved: public/private visibility, family-ready templates, audit logging, censorship, comments.html, email tools, dashboard vs public view.
 # - Group permissions integrated: comment owner OR anyone with 'moderate_announcements' permission OR Admin/Owner can edit/delete comments.html.
-# - This is the “HTTP layer” only – thin, readable, easy to grow.
+# - This is the "HTTP layer" only - thin, readable, easy to grow.
 
 from flask import render_template, request, redirect, url_for, flash, session
 import pymysql
@@ -21,7 +21,7 @@ from app.models.log import log_change
 from app.utils.emailer import send_email
 from app.utils.time_utils import format_church
 
-# Temporary helper – will be moved to utils.py later
+# Temporary helper - will be moved to utils.py later
 def censor_text(text):
     """Server-side text censorship."""
     if not text:
@@ -32,7 +32,7 @@ REQUIRED_ROLES = ['Staff', 'Admin', 'Owner']
 
 
 # ----------------------------------------------------------------------
-# Main Listing – /announcements
+# Main Listing - /announcements
 # ----------------------------------------------------------------------
 @announcements_bp.route('/')
 def announcements():
@@ -153,7 +153,7 @@ def view_announcement(ann_id):
 
     # Visibility enforcement
     if announcement['visibility'] == 'private' and not is_logged_in:
-        flash('This is a private announcement – login required.', 'error')
+        flash('This is a private announcement - login required.', 'error')
         return redirect(url_for('announcements.announcements'))
 
     # Server-side censorship
@@ -342,7 +342,7 @@ def add_comment(ann_id):
 
 
 # ----------------------------------------------------------------------
-# Update Comment – ONLY comment owner OR moderate_announcements permission
+# Update Comment - ONLY comment owner OR moderate_announcements permission
 # ----------------------------------------------------------------------
 @announcements_bp.route('/comment/update/<int:ann_id>/<int:comment_id>', methods=['POST'])
 @login_required
@@ -376,7 +376,7 @@ def update_comment(ann_id, comment_id):
 
 
 # ----------------------------------------------------------------------
-# Delete Comment – ONLY comment owner OR moderate_announcements permission
+# Delete Comment - ONLY comment owner OR moderate_announcements permission
 # ----------------------------------------------------------------------
 @announcements_bp.route('/comment/delete/<int:ann_id>/<int:comment_id>', methods=['POST'])
 @login_required

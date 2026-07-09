@@ -1,17 +1,17 @@
 <!-- app/templates/auth/base_auth.html -->
 <!-- Full path: myvinechurchonline/app/templates/auth/base_auth.html -->
 <!-- File name: base_auth.html -->
-<!-- Brief, detailed purpose: FULL REBUILD – Standalone base template for ALL public and authentication pages (login, register, forgot password, public dashboard, public events/sermons/announcements/prayers/dreams/prophecies views, etc.).
-   Does NOT extend base.html – fully independent to avoid any conflict with logged-in pages.
+<!-- Brief, detailed purpose: FULL REBUILD - Standalone base template for ALL public and authentication pages (login, register, forgot password, public dashboard, public events/sermons/announcements/prayers/dreams/prophecies views, etc.).
+   Does NOT extend base.html - fully independent to avoid any conflict with logged-in pages.
    Header layout matches base_public.html exactly:
-     - Left: "Browsing as Guest – Click to Login" button (styled identically to original Continue as Guest – same glow, border, hover)
+     - Left: "Browsing as Guest - Click to Login" button (styled identically to original Continue as Guest - same glow, border, hover)
      - Center: Site title
      - Right: Register button (primary style, same as old Login button) + clock
-   Navigation: FULL public navigation (Home, Events, Sermons, Prayers, Announcements, Dreams, Prophecies + conditional Donate) – identical to base_public.html.
-   All styling uses the exact same modular global CSS files and --primary variable as logged-in pages → perfect color/glow matching.
+   Navigation: FULL public navigation (Home, Events, Sermons, Prayers, Announcements, Dreams, Prophecies + conditional Donate) - identical to base_public.html.
+   All styling uses the exact same modular global CSS files and --primary variable as logged-in pages -> perfect color/glow matching.
    Includes full head (themes, dynamic settings, favicon), flash messages, footer, clock script.
    Active state highlighting works correctly for both public views and auth pages.
-   This base is now identical to base_public.html – use it for all public/auth pages to eliminate duplication. -->
+   This base is now identical to base_public.html - use it for all public/auth pages to eliminate duplication. -->
 
 <!DOCTYPE html>
 <html lang="en" data-theme="{% if session.user_theme %}{{ session.user_theme }}{% else %}cyan-glow{% endif %}">
@@ -31,7 +31,7 @@
 
   <title>{% block title %}{% endblock %} | {{ s.get('church_name', 'MyVineChurch.Online') }}</title>
 
-  <!-- Global CSS – identical to base_public.html -->
+  <!-- Global CSS - identical to base_public.html -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260115">
   <!-- COMPLETE GUI OVERHAUL -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202606">
@@ -46,7 +46,7 @@
   {% set fav = s.get('favicon_path') %}
   <link rel="icon" href="{{ url_for('static', filename='images/' ~ fav if fav else 'favicon.ico') }}">
 
-  <!-- Dynamic branding overrides – identical to base_public.html -->
+  <!-- Dynamic branding overrides - identical to base_public.html -->
   <style>
     :root {
       --primary: {{ s.get('primary_color', '#00FFFF') }};
@@ -123,7 +123,7 @@
 
   <!-- ==================== FOOTER ==================== -->
   <footer class="footer">
-    © {{ g.get('current_year', '2026') }} {{ s.get('church_name', 'MyVineChurch.Online') }} |
+    (c) {{ g.get('current_year', '2026') }} {{ s.get('church_name', 'MyVineChurch.Online') }} |
     <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="footer-link">Public Home</a>
   </footer>
 

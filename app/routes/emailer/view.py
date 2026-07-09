@@ -20,7 +20,7 @@ from app.utils.emailer import send_email
 
 
 # ----------------------------------------------------------------------
-# Manual Email Send Form – /emailer/send
+# Manual Email Send Form - /emailer/send
 # ----------------------------------------------------------------------
 @emailer_bp.route('/send', methods=['GET', 'POST'])
 @login_required

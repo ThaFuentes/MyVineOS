@@ -15,7 +15,7 @@ Complete donation ledger grouped by donor. Search by name, username, email, or p
         <div class="form-group search-group" style="flex:2;">
             <label for="search-term" class="control-label">Search Donors</label>
             <input type="text" id="search-term" class="search-input"
-                   placeholder="Name, username, email, phone, check #, notes…"
+                   placeholder="Name, username, email, phone, check #, notes..."
                    value="{{ search_term|default('') }}" autocomplete="off">
         </div>
 
@@ -76,7 +76,7 @@ Complete donation ledger grouped by donor. Search by name, username, email, or p
                             <td style="font-size:0.85rem;">
                                 {% if donation.contact_email %}{{ donation.contact_email }}<br>{% endif %}
                                 {% if donation.contact_phone %}{{ donation.contact_phone }}{% endif %}
-                                {% if not donation.contact_email and not donation.contact_phone %}—{% endif %}
+                                {% if not donation.contact_email and not donation.contact_phone %}-{% endif %}
                             </td>
                             <td>${{ "%.2f"|format(donation.total_donations) }}</td>
                             <td>{{ donation.number_of_donations }}</td>
@@ -102,11 +102,11 @@ Complete donation ledger grouped by donor. Search by name, username, email, or p
                                         <tbody>
                                             {% for detail in detailed_donations[donation.donor_key] %}
                                             <tr>
-                                                <td>{{ detail.date[:10] if detail.date else '—' }}</td>
+                                                <td>{{ detail.date[:10] if detail.date else '-' }}</td>
                                                 <td>${{ "%.2f"|format(detail.amount) }}</td>
                                                 <td>{{ detail.method }}</td>
-                                                <td>{{ detail.confirmation_number or '—' }}</td>
-                                                <td>{% if detail.notes %}<span title="{{ detail.notes }}">{{ detail.notes[:60] }}{% if detail.notes|length > 60 %}…{% endif %}</span>{% else %}—{% endif %}</td>
+                                                <td>{{ detail.confirmation_number or '-' }}</td>
+                                                <td>{% if detail.notes %}<span title="{{ detail.notes }}">{{ detail.notes[:60] }}{% if detail.notes|length > 60 %}...{% endif %}</span>{% else %}-{% endif %}</td>
                                                 <td>{% if detail.goods_services_provided %}Yes{% else %}No{% endif %}</td>
                                                 {% if session.user_role in ['Admin', 'Owner'] %}
                                                 <td class="actions-cell">

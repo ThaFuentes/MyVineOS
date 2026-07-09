@@ -28,7 +28,7 @@ def validate_kiosk_checkin_form(form_data):
 def validate_self_checkin_form(form_data):
     """
     Validate self-checkin form (client timestamp).
-    Returns client_iso string (or None) – always succeeds unless malformed.
+    Returns client_iso string (or None) - always succeeds unless malformed.
     """
     client_iso = form_data.get('client_checkin')
     return client_iso

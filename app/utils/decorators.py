@@ -6,16 +6,16 @@
 #                          and integrate with existing models (users, groups, log).
 # Features:
 #   - login_required: Redirects to login if not authenticated.
-#   - role_required: Flexible – accepts *roles or list, Owner bypasses all role checks.
+#   - role_required: Flexible - accepts *roles or list, Owner bypasses all role checks.
 #   - group_required: Requires membership in ALL specified groups (single or list).
 #   - permission_required: Group-permission gate (any-of by default; Staff/Admin/Owner bypass).
 #   - user_has_permission: Re-exported from app.utils.permissions for route/template checks.
 #   - Unauthorized attempts logged via log_change() for audit trail.
-#   - No bloat – focused, reusable, consistent with project standards.
+#   - No bloat - focused, reusable, consistent with project standards.
 
 from functools import wraps
 from flask import session, flash, redirect, url_for, request, abort
-from app.models.users import get_user_by_id   # ← FIXED: users (plural)
+from app.models.users import get_user_by_id   # <- FIXED: users (plural)
 from app.models.groups import check_user_in_group
 from app.models.log import log_change
 

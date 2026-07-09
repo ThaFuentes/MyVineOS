@@ -3,7 +3,7 @@
 # File name: queries.py
 # Brief, detailed purpose: Reusable database query functions specifically for the public Dreams & Visions section.
 # Returns ONLY public + approved records (with creator_name via LEFT JOIN).
-# 100% rebuilt to match the public/events/queries.py gold standard – uses d.* so all columns are available to views and templates.
+# 100% rebuilt to match the public/events/queries.py gold standard - uses d.* so all columns are available to views and templates.
 
 from app.models.db import get_db
 import pymysql.cursors

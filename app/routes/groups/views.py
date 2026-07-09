@@ -123,7 +123,7 @@ def create_group():
 
 
 # ----------------------------------------------------------------------
-# Edit Group (global OR group leader) — IMPROVED
+# Edit Group (global OR group leader) - IMPROVED
 # ----------------------------------------------------------------------
 @groups_bp.route('/edit/<int:group_id>', methods=['GET', 'POST'])
 @login_required

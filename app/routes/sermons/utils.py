@@ -6,7 +6,7 @@
 # - Upload folder path resolution
 # - File extension validation
 # - Staff role constant (used in decorators & permission checks)
-# 100% identical behavior to original — only extracted and centralized.
+# 100% identical behavior to original - only extracted and centralized.
 
 import os
 

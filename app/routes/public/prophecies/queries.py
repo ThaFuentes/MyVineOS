@@ -2,8 +2,8 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/prophecies/queries.py
 # File name: queries.py
 # Brief, detailed purpose: Reusable database query functions specifically for the public Prophecies section.
-# Returns ONLY public records (with creator_name via LEFT JOIN). Clean, efficient, and feature-specific – no generic table-name passing.
-# 100% rebuilt to match the public/events/queries.py and public/dreams/queries.py gold standard – uses p.* so all columns are available to views and templates.
+# Returns ONLY public records (with creator_name via LEFT JOIN). Clean, efficient, and feature-specific - no generic table-name passing.
+# 100% rebuilt to match the public/events/queries.py and public/dreams/queries.py gold standard - uses p.* so all columns are available to views and templates.
 
 from app.models.db import get_db
 import pymysql.cursors

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ setlist.title }} — Prompter</title>
+  <title>{{ setlist.title }} - Prompter</title>
   <style>
     * { box-sizing: border-box; }
     body { margin:0; background:#0a0a0f; color:#f0f0f0; font-family: system-ui, sans-serif; overflow:hidden; }
@@ -37,11 +37,11 @@
         {% for sec in secs %}
           {% if sec.content %}
           <div class="slide" data-index="{{ slide_idx.n }}">
-            <h2>{{ item.title }}{% if item.artist %} — {{ item.artist }}{% endif %}</h2>
+            <h2>{{ item.title }}{% if item.artist %} - {{ item.artist }}{% endif %}</h2>
             {% if sec.label %}<div class="section-label">{{ sec.label }}</div>{% endif %}
             <div class="section-body">{{ sec.content }}</div>
             {% if loop.last and (item.copyright_line or item.ccli_song_number) %}
-            <div class="copyright">{{ item.copyright_line or '' }}{% if item.ccli_song_number %} · CCLI {{ item.ccli_song_number }}{% endif %}</div>
+            <div class="copyright">{{ item.copyright_line or '' }}{% if item.ccli_song_number %} - CCLI {{ item.ccli_song_number }}{% endif %}</div>
             {% endif %}
           </div>
           {% set slide_idx.n = slide_idx.n + 1 %}

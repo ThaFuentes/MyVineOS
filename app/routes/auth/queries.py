@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/auth/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Auth module.
-# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Pure data-access layer - no Flask routes, no templates, no flash messages.
 # - Every SELECT/INSERT/UPDATE from the original auth.py is now here.
 # - 100% MariaDB/pymysql compatible, parameterized, reusable functions.
-# - Designed for easy growth – add new query functions anytime without touching views.
+# - Designed for easy growth - add new query functions anytime without touching views.
 
 import pymysql
 from app.models.db import get_db

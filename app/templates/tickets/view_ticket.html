@@ -6,13 +6,13 @@
    - FIXED: All date displays now use the pre-formatted strings that views.py already creates (formatted_created and formatted_date).
      This eliminates the TypeError: 'datetime.datetime' object is not subscriptable.
    - Uses can_manage (passed from views.py) instead of is_manager.
-   - Removed broken link to the now-removed 'tickets.submit_ticket' endpoint (edit button deleted – managers use inline status/priority/assign controls).
+   - Removed broken link to the now-removed 'tickets.submit_ticket' endpoint (edit button deleted - managers use inline status/priority/assign controls).
    - All comment, status, assign, priority, and delete functionality preserved exactly.
    - Navigation and forms now point only to valid Ticket Manager endpoints. -->
 
 {% extends "tickets/base_tickets.html" %}
 
-{% block page_title %}Ticket #{{ ticket.id }} – {{ ticket.title }}{% endblock %}
+{% block page_title %}Ticket #{{ ticket.id }} - {{ ticket.title }}{% endblock %}
 
 {% block page_description %}
 Category: {{ ticket.category_name }} - Priority: {{ ticket.priority|capitalize }} - Status: {{ ticket.status.replace('_', ' ')|title }}
@@ -21,7 +21,7 @@ Category: {{ ticket.category_name }} - Priority: {{ ticket.priority|capitalize }
 {% block tickets_content %}
 
 <div style="margin-bottom:0.5rem;">
-    <a href="{{ url_for('tickets.manager_dashboard') }}" class="btn btn-secondary" style="padding:0.3rem 0.6rem; font-size:0.85rem;">← Back to All Tickets</a>
+    <a href="{{ url_for('tickets.manager_dashboard') }}" class="btn btn-secondary" style="padding:0.3rem 0.6rem; font-size:0.85rem;"><- Back to All Tickets</a>
 </div>
 
 <section class="content-section">
@@ -29,7 +29,7 @@ Category: {{ ticket.category_name }} - Priority: {{ ticket.priority|capitalize }
     <!-- Ticket Header -->
     <div class="event-header-flex">
         <div class="event-title-info">
-            <h2 class="page-title">#{{ ticket.id }} – {{ ticket.title }}</h2>
+            <h2 class="page-title">#{{ ticket.id }} - {{ ticket.title }}</h2>
             <p class="event-key-info">
                 Category: <strong>{{ ticket.category_name }}</strong> -
                 Priority: <strong class="{{ 'priority-' + ticket.priority }}">{{ ticket.priority|capitalize }}</strong> -
@@ -92,12 +92,12 @@ Category: {{ ticket.category_name }} - Priority: {{ ticket.priority|capitalize }
       {% if comments %}
         {% for c in comments %}
         <div class="item-card" style="margin-bottom:0.5rem;">
-          <div><strong>{{ c.username }}</strong> <span style="opacity:0.6; font-size:0.8rem;">– {{ c.formatted_date }}</span></div>
+          <div><strong>{{ c.username }}</strong> <span style="opacity:0.6; font-size:0.8rem;">- {{ c.formatted_date }}</span></div>
           <div style="margin-top:0.2rem; white-space:pre-wrap;">{{ c.comment | nl2br }}</div>
         </div>
         {% endfor %}
       {% else %}
-        <p style="opacity:0.6;">No updates yet – add the first comment below.</p>
+        <p style="opacity:0.6;">No updates yet - add the first comment below.</p>
       {% endif %}
 
         <!-- Add Comment Form -->

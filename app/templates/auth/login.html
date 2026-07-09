@@ -5,7 +5,7 @@
 {% block content %}
 <section style="padding:3rem 1.5rem 5rem; max-width:640px; margin:0 auto;">
   <h1 style="font-size:clamp(2rem, 5vw, 2.8rem); color:var(--primary); text-align:center; margin:0 0 0.75rem;">
-    Login – Register
+    Login - Register
   </h1>
   <p style="text-align:center; color:#bbb; margin:0 0 2.5rem; font-size:1.05rem; line-height:1.6;">
     Sign in to access your account, member directory, events, prayers, sermons, and more.
@@ -16,7 +16,7 @@
   </div>
 
   <p style="text-align:center; margin-top:2rem; color:var(--text-muted); font-size:0.95rem;">
-    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" style="color:var(--primary);">← Back to welcome page</a>
+    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" style="color:var(--primary);"><- Back to welcome page</a>
   </p>
 </section>
 {% if request.args.get('tab') == 'register' %}

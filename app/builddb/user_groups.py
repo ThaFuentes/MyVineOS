@@ -6,7 +6,7 @@
 # joined_at timestamp for membership duration, assigned_by for audit trail.
 # Enforces uniqueness to prevent duplicates; cascades deletions safely.
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # All ID/FK columns use UNSIGNED INT to match parent tables and fix errno 150.
 
 def create_tables(cursor):

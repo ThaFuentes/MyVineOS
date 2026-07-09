@@ -4,7 +4,7 @@
 <!-- Brief, detailed purpose: Permission Groups management dashboard (main listing page).
    Fixed BuildError by using correct existing endpoints: 'groups.create_group', 'groups.edit_group', 'groups.delete_group'.
    All other routes (assign_user, remove_user, update_role) kept as-is (they match your backend).
-   Fully uses GLOBAL CSS – identical layout/structure to Events/Announcements/Donations dashboards.
+   Fully uses GLOBAL CSS - identical layout/structure to Events/Announcements/Donations dashboards.
    Glass summary card, manual menu, top Add button (Staff+ only), collapsible client-side search,
    glass table with expandable rows (details use same pattern as Announcements).
    Member management via simple reliable POST forms. -->
@@ -28,7 +28,7 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Manual menu – matches other admin modules (but base now provides main one; this is secondary if needed) -->
+        <!-- Manual menu - matches other admin modules (but base now provides main one; this is secondary if needed) -->
                 <a href="{{ url_for('groups.create_group') }}">Create Group</a>
             {% endif %}
         </div>
@@ -127,7 +127,7 @@
                                                         {% for m in group.members %}
                                                             <li>
                                                                 <strong>{{ m.username|default(m.first_name ~ ' ' ~ m.last_name) }}</strong>
-                                                                — {{ group_role_label(m.role_in_group|default('member')) }}
+                                                                - {{ group_role_label(m.role_in_group|default('member')) }}
                                                                 {% if group.can_manage %}
                                                                     {% if group.can_change_roles %}
                                                                     <form action="{{ url_for('groups.update_role', group_id=group.id, user_id=m.user_id) }}" method="POST" class="inline-form" style="display:inline-flex; gap:0.35rem; align-items:center; flex-wrap:wrap;">

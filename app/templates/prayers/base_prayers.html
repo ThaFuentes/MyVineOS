@@ -2,16 +2,16 @@
 <!-- Full path: WebChurchMan/app/templates/prayers/base_prayers.html -->
 <!-- File name: base_prayers.html -->
 <!-- Brief, detailed purpose: Common base template for ALL Prayers module pages (dashboard, add, edit, view).
-   Exact mirror of base_events.html → identical glassmorphism wrapper, menu, flash handling.
-   Menu: Prayers Dashboard (always) + Add Prayer Request (always visible – guests can submit public requests).
+   Exact mirror of base_events.html -> identical glassmorphism wrapper, menu, flash handling.
+   Menu: Prayers Dashboard (always) + Add Prayer Request (always visible - guests can submit public requests).
    Active highlighting works for dashboard, add, and edit pages.
-   NO module-specific CSS – uses only global classes.
+   NO module-specific CSS - uses only global classes.
    Provides blocks: page_title, page_description, prayers_content. -->
 
 {% extends "base.html" %}
 
 {% block extra_css %}
-{# Global CSS only – no prayers-specific files #}
+{# Global CSS only - no prayers-specific files #}
 {% block prayers_page_css %}{% endblock %}
 {% endblock %}
 

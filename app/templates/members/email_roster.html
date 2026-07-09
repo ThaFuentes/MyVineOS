@@ -2,7 +2,7 @@
 
 {% block page_title %}Member Emails{% endblock %}
 {% block page_description %}
-Send the member roster or a custom message. Pick one option below — each does something different.
+Send the member roster or a custom message. Pick one option below - each does something different.
 Currently <strong>{{ roster_count }}</strong> active member(s) accept church emails and appear in the roster.
 {% endblock %}
 
@@ -21,7 +21,7 @@ Currently <strong>{{ roster_count }}</strong> active member(s) accept church ema
           {% if (form and form.get('send_mode') == 'roster_to_address') or not form %}checked{% endif %}>
         <strong>1. Send roster to someone</strong>
         <p class="help-text" style="margin:0.35rem 0 0 1.4rem;">
-          Email the full member list (name, phone, email) to one or more <em>specific addresses</em> — e.g. treasurer, pastor, external bookkeeper. Members are <strong>not</strong> emailed.
+          Email the full member list (name, phone, email) to one or more <em>specific addresses</em> - e.g. treasurer, pastor, external bookkeeper. Members are <strong>not</strong> emailed.
         </p>
       </label>
 
@@ -30,7 +30,7 @@ Currently <strong>{{ roster_count }}</strong> active member(s) accept church ema
           {% if form and form.get('send_mode') == 'message_all_members' %}checked{% endif %}>
         <strong>2. Message all members</strong>
         <p class="help-text" style="margin:0.35rem 0 0 1.4rem;">
-          Send <em>your custom message</em> to every member who accepts church emails. No roster attached — just your note.
+          Send <em>your custom message</em> to every member who accepts church emails. No roster attached - just your note.
         </p>
       </label>
 
@@ -39,7 +39,7 @@ Currently <strong>{{ roster_count }}</strong> active member(s) accept church ema
           {% if form and form.get('send_mode') == 'roster_to_all_members' %}checked{% endif %}>
         <strong>3. Send roster to all members</strong>
         <p class="help-text" style="margin:0.35rem 0 0 1.4rem;">
-          Email the <em>full roster</em> to every member who accepts church emails — each person gets the directory list.
+          Email the <em>full roster</em> to every member who accepts church emails - each person gets the directory list.
         </p>
       </label>
     </div>

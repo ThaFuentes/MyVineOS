@@ -8,14 +8,14 @@
      - Menu currently only has "Change Records" (active class applied)
      - Flash messages at top
      - Extends base.html for global nav consistency
-   NO module-specific CSS – uses only global classes. -->
+   NO module-specific CSS - uses only global classes. -->
 
 {% extends "base.html" %}
 
 {% block content %}
 <!-- Overhauled -->
 <h1 class="page-title">Audit Log</h1>
-<p class="page-description">View system change history – Staff, Admin & Owner access only.</p>
+<p class="page-description">View system change history - Staff, Admin & Owner access only.</p>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}

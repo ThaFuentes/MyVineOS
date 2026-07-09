@@ -3,7 +3,7 @@
 # File name: views.py
 # Brief, detailed purpose: Public Dreams & Visions routes for unauthenticated guests only.
 # - 100% rebuilt to match the working public/events/views.py gold standard exactly.
-# - FIXED: dream['comments.html'] → dream['comments'] so the template can see the comments.
+# - FIXED: dream['comments.html'] -> dream['comments'] so the template can see the comments.
 # - Listing shows only public + approved dreams with creator_name.
 # - Detail page supports guest comments/replies (one-level).
 # - Logged-in users are redirected to private dreams.
@@ -30,7 +30,7 @@ from app.utils.comment_moderation import (
 # ----------------------------------------------------------------------
 @dreams_bp.route('/')
 def public_dreams():
-    """Public dreams listing – logged-in users are redirected to the private dreams dashboard."""
+    """Public dreams listing - logged-in users are redirected to the private dreams dashboard."""
     if 'user_id' in session:
         return redirect(url_for('dreams.dreams'))
 
@@ -38,7 +38,7 @@ def public_dreams():
     dreams = get_public_dreams()
     dreams = censor_public_content(dreams)
 
-    # Prepare data for template – SAFE date formatting + creator_name fallback
+    # Prepare data for template - SAFE date formatting + creator_name fallback
     for d in dreams:
         # Safe date formatting (handles both datetime objects and strings)
         posted = d.get('date_posted')

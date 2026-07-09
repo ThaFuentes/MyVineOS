@@ -15,7 +15,7 @@ logger.setLevel(logging.INFO)
 
 # ====================== CONFIG FALLBACKS (from Flask config or env) ======================
 def _get_db_config():
-    """Central config – easy to override in settings.py later"""
+    """Central config - easy to override in settings.py later"""
     return {
         "host": current_app.config.get('MYSQL_HOST') or os.getenv('MYSQL_HOST', '127.0.0.1'),
         "user": current_app.config.get('MYSQL_USER') or os.getenv('MYSQL_USER', 'churchuser'),
@@ -40,7 +40,7 @@ def get_security_db():
     - Graceful total failure fallback
     """
     if not has_request_context():
-        logger.warning("[DB] Called outside request context → skipping (safe)")
+        logger.warning("[DB] Called outside request context -> skipping (safe)")
         return None
 
     # Reuse existing connection if healthy
@@ -73,13 +73,13 @@ def get_security_db():
 
     except Exception as e:
         logger.error(f"[DB] CRITICAL CONNECTION FAILURE: {str(e)}")
-        logger.error(f"[DB] Config used → Host={config.get('host')} | DB={config.get('database')}")
+        logger.error(f"[DB] Config used -> Host={config.get('host')} | DB={config.get('database')}")
         return None
 
 
 # ====================== CLEANUP HANDLER (register this in your app) ======================
 def close_security_db(e=None):
-    """Flask teardown_request / teardown_appcontext handler – prevents leaks.
+    """Flask teardown_request / teardown_appcontext handler - prevents leaks.
     Always safe to call; handles missing request context.
     """
     db = g.pop('pbt_db', None)
@@ -100,7 +100,7 @@ def close_security_db(e=None):
 
 # ====================== TABLE ENSURE HELPER (used by reputation etc.) ======================
 def ensure_table_exists(table_name: str, create_sql: str):
-    """One-liner safe table creator – call from any module. Robust to re-runs."""
+    """One-liner safe table creator - call from any module. Robust to re-runs."""
     db = get_security_db()
     if db is None:
         return False

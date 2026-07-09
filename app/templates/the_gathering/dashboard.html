@@ -19,7 +19,7 @@
         Gathering Place Manager
     </h1>
     <p style="text-align:center; opacity:0.8; margin-bottom:1.25rem; max-width:640px; margin-left:auto; margin-right:auto;">
-        Full moderation control — view, edit, delete, and approve all public content, comments, and visitor submissions.
+        Full moderation control - view, edit, delete, and approve all public content, comments, and visitor submissions.
     </p>
     {% if pending.total_pending > 0 %}
     <div style="text-align:center; margin-bottom:1rem;">
@@ -84,7 +84,7 @@
                 <h4 style="color:var(--primary); margin-bottom:1rem;"> Comments Overview</h4>
                 <p style="margin:0 0 0.75rem; opacity:0.85;">
                     <strong>{{ cs.all_total }}</strong> total comments
-                    {% if cs.all_shadowed %} · <span style="color:#ffcc00;">{{ cs.all_shadowed }} shadowed</span>{% endif %}
+                    {% if cs.all_shadowed %} - <span style="color:#ffcc00;">{{ cs.all_shadowed }} shadowed</span>{% endif %}
                 </p>
                 {% if pending.pending_prayers > 0 %}
                     <div class="alert alert-warning glass mb-3" style="margin:0 0 0.75rem;">
@@ -155,7 +155,7 @@
                         <div style="flex-grow:1;">
                             <strong>{{ item.title }}</strong>
                             <small class="text-muted" style="display:block;">
-                                {{ item.author or '—' }} - {{ item.created_at }}
+                                {{ item.author or '-' }} - {{ item.created_at }}
                             </small>
                             <span style="background: {% if item.visibility == 'public' %}#0a0;{% else %}#333;{% endif %}; color:#fff; padding:0.1rem 0.3rem; border-radius:3px; font-size:0.7rem;">
                                 {{ item.visibility|upper }}

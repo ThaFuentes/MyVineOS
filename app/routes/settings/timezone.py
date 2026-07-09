@@ -8,7 +8,7 @@
 # Saves to settings.timezone column (TEXT).
 # Protected by admin/owner + granular permission check.
 # All changes audit-logged.
-# Default: 'America/Chicago' (Central Time – matches church location in Odessa, TX).
+# Default: 'America/Chicago' (Central Time - matches church location in Odessa, TX).
 
 from flask import render_template, request, redirect, url_for, flash, session
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -19,10 +19,10 @@ from . import settings_bp, has_section_permission, load_settings
 from app.utils.time_utils import now_church  # For consistent preview with fallback
 import pymysql
 
-# Curated list of common timezones – US-heavy + major global (America/Chicago first after UTC)
+# Curated list of common timezones - US-heavy + major global (America/Chicago first after UTC)
 COMMON_TIMEZONES = sorted([
     'UTC',
-    'America/Chicago',              # Central Time – default for Odessa, TX
+    'America/Chicago',              # Central Time - default for Odessa, TX
     'America/New_York',
     'America/Denver',
     'America/Phoenix',
@@ -57,7 +57,7 @@ def timezone():
     server_now = datetime.now()
     server_tz_name = str(datetime.now().astimezone().tzinfo) or 'System Local'
 
-    # Church time preview – uses time_utils fallback if zoneinfo/tzdata unavailable
+    # Church time preview - uses time_utils fallback if zoneinfo/tzdata unavailable
     church_now = now_church()
     church_time_str = church_now.strftime('%Y-%m-%d %H:%M:%S %Z')
 
@@ -72,7 +72,7 @@ def timezone():
             return redirect(url_for('settings.timezone'))
 
         if new_tz == current_tz_name:
-            flash('No change – timezone already set to this value.', 'info')
+            flash('No change - timezone already set to this value.', 'info')
             return redirect(url_for('settings.timezone'))
 
         # Save to DB

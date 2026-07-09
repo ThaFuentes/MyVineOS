@@ -4,7 +4,7 @@
 <!-- Brief, detailed purpose: Permission Groups management dashboard (main listing page).
    Fixed UndefinedError by replacing current_user.role with session.get('user_role') to match original code pattern.
    All endpoints correct (groups.create_group, groups.edit_group, groups.delete_group).
-   Fully uses GLOBAL CSS – identical layout to Events/Announcements/Donations.
+   Fully uses GLOBAL CSS - identical layout to Events/Announcements/Donations.
    Glass summary card, manual menu, top Add button (Staff+), collapsible client-side search,
    glass table with expandable rows showing description + full member management.
    Simple reliable POST forms for member actions. -->
@@ -109,7 +109,7 @@
                                                         {% for m in group.members %}
                                                             <li>
                                                                 <strong>{{ m.username|default(m.first_name ~ ' ' ~ m.last_name) }}</strong>
-                                                                — {{ group_role_label(m.role_in_group|default('member')) }}
+                                                                - {{ group_role_label(m.role_in_group|default('member')) }}
                                                                 {% if group.can_manage %}
                                                                     {% if group.can_change_roles %}
                                                                     <form action="{{ url_for('groups.update_role', group_id=group.id, user_id=m.user_id) }}" method="POST" class="inline-form" style="display:inline-flex; gap:0.35rem; align-items:center; flex-wrap:wrap;">

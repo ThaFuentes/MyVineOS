@@ -30,7 +30,7 @@ sermons_bp = Blueprint('sermons', __name__, url_prefix='/sermons')
 
 
 # ----------------------------------------------------------------------
-# Main Sermons List – /sermons
+# Main Sermons List - /sermons
 # ----------------------------------------------------------------------
 @sermons_bp.route('/')
 def sermons():
@@ -77,12 +77,12 @@ def sermons():
 
 
 # ----------------------------------------------------------------------
-# Single Sermon View – /sermons/view/<int:sermon_id>
+# Single Sermon View - /sermons/view/<int:sermon_id>
 # Guests are redirected to public view
 # ----------------------------------------------------------------------
 @sermons_bp.route('/view/<int:sermon_id>')
 def view_sermon(sermon_id):
-    """Private sermon view – guests are redirected to public view."""
+    """Private sermon view - guests are redirected to public view."""
     if 'user_id' not in session:
         return redirect(url_for('public.public_sermons.public_sermon_detail', sermon_id=sermon_id))
 

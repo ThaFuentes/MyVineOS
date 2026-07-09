@@ -102,7 +102,7 @@ def get_recent_activity(limit=10):
 def get_pending_moderation():
     """
     Prayer submissions awaiting approval plus total/shadowed comment counts.
-    Comments publish immediately — dashboard shows totals, not a false pending queue.
+    Comments publish immediately - dashboard shows totals, not a false pending queue.
     """
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
@@ -142,7 +142,7 @@ def get_pending_prayer_submissions(limit=50):
 
 
 def get_pending_comments_queue(limit=100):
-    """All unmoderated comments across every public content type — unified moderator inbox."""
+    """All unmoderated comments across every public content type - unified moderator inbox."""
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     queue = []
@@ -219,4 +219,4 @@ def get_pending_comments_queue(limit=100):
     return queue[:limit]
 
 
-#print(" MYVINECHURCH.ONLINE the_gathering/dashboard/queries.py loaded successfully (public-style rebuilt – fully parameterized and consistent)")
+#print(" MYVINECHURCH.ONLINE the_gathering/dashboard/queries.py loaded successfully (public-style rebuilt - fully parameterized and consistent)")

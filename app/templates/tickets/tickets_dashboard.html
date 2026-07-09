@@ -6,7 +6,7 @@
    - "Ticket Manager" button now correctly links to the full all-tickets manager view (/tickets/manage).
    - Shows Open/In Progress count + My Tickets count + your recent tickets only.
    - Owner/Staff see the "Ticket Manager" button and can click it to manage ALL tickets.
-   - Uses only global CSS classes – no inline styles except for the exact layout you see in the screenshot. -->
+   - Uses only global CSS classes - no inline styles except for the exact layout you see in the screenshot. -->
 
 {% extends "tickets/base_tickets.html" %}
 
@@ -46,7 +46,7 @@ Staff can assign, update status, and respond.
     </a>
 
     {% if can_manage %}
-    <!-- THIS IS THE FIXED LINK – now correctly goes to the full Ticket Manager view -->
+    <!-- THIS IS THE FIXED LINK - now correctly goes to the full Ticket Manager view -->
     <a href="{{ url_for('tickets.manager_dashboard') }}" class="btn-secondary" style="padding: 1rem 2.5rem; font-size: 1.2rem;">
         Ticket Manager
     </a>

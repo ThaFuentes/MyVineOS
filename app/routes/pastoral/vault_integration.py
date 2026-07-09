@@ -2,10 +2,10 @@
 # Full path: WebChurchMan/app/routes/pastoral/vault_integration.py
 # File name: vault_integration.py
 # Brief, detailed purpose:
-#   Dedicated blueprint for seamless sermon section ↔ Vault integration endpoints.
+#   Dedicated blueprint for seamless sermon section  Vault integration endpoints.
 #   Provides:
-#     - POST /vault/integration/quick_save   → Quick-save current sermon section as a new Vault item (private or shared)
-#     - GET  /vault/integration/search       → Live search across visible Vault items (My Vault / Shared / All tabs)
+#     - POST /vault/integration/quick_save   -> Quick-save current sermon section as a new Vault item (private or shared)
+#     - GET  /vault/integration/search       -> Live search across visible Vault items (My Vault / Shared / All tabs)
 #   All routes require membership in the Pastoral Group (@pastoral_required).
 #   Enforces censorship checks on all text fields.
 #   Audit-logs quick-save actions.
@@ -67,7 +67,7 @@ def quick_save():
     if not data.get('title') or not data.get('content'):
         return jsonify({'status': 'error', 'message': 'Title and content are required'}), 400
 
-    # Censorship check – block prohibited words/phrases
+    # Censorship check - block prohibited words/phrases
     if contains_censored_word(_collect_all_text(data)):
         return jsonify({'status': 'error', 'message': 'Prohibited content detected'}), 400
 
@@ -112,9 +112,9 @@ def search():
     """
     Live search for the Insert from Vault modal.
     Query params:
-        q            → search term (across title, content, tags, scripture_reference, source_url)
-        visibility   → 'my' | 'shared' | 'all' (defaults to 'all')
-        limit        → max results (default 50)
+        q            -> search term (across title, content, tags, scripture_reference, source_url)
+        visibility   -> 'my' | 'shared' | 'all' (defaults to 'all')
+        limit        -> max results (default 50)
     Returns JSON list of matching Vault items formatted for the modal grid.
     """
     user_id = session['user_id']

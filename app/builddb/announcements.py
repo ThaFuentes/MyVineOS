@@ -2,7 +2,7 @@
 # Full path: MYVINECHURCH.ONLINE/app/builddb/announcements.py
 # File name: announcements.py
 # Brief, detailed purpose: Creates/updates the announcements and announcement_comments tables for MariaDB.
-# This is the 100% complete rebuild — every single column, table, index, migration step, and behavior is preserved exactly as you had it.
+# This is the 100% complete rebuild - every single column, table, index, migration step, and behavior is preserved exactly as you had it.
 # The only updates are: much clearer comments.html, better code organization, and explicit documentation around the created_by column (this powers "Created by: [Name]" on the public announcements page, just like events, dreams, and prophecies).
 # No new columns, no new tables, no behavior changes.
 
@@ -37,7 +37,7 @@ def create_tables(cursor):
             visibility         VARCHAR(20) NOT NULL DEFAULT 'private'
                                CHECK(visibility IN ('public', 'private')),
             user_id            INT UNSIGNED,
-            created_by         INT UNSIGNED,           -- ← This column shows WHO created the announcement
+            created_by         INT UNSIGNED,           -- <- This column shows WHO created the announcement
             updated_by         INT UNSIGNED,
             FOREIGN KEY(user_id)    REFERENCES users(id) ON DELETE SET NULL,
             FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL,
@@ -107,7 +107,7 @@ def create_tables(cursor):
             print(f"Migration: Adding missing column '{col_name}' to announcements table.")
             cursor.execute(f"ALTER TABLE announcements ADD COLUMN {col_name} {col_def}")
 
-    # Indexes for announcements (safe — will not fail if they already exist)
+    # Indexes for announcements (safe - will not fail if they already exist)
     try:
         cursor.execute("CREATE INDEX idx_announcements_visibility ON announcements(visibility)")
     except: pass

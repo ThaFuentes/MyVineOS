@@ -5,7 +5,7 @@
 #   Centralized console for all recurring master templates.
 #   Displays weekday, title, times, linked sermon title, override count.
 #   Actions: Edit, Delete.
-#   NEW: "Refresh plain weeks" button per template (deletes identical dated overrides after today – safe cleanup of legacy rows).
+#   NEW: "Refresh plain weeks" button per template (deletes identical dated overrides after today - safe cleanup of legacy rows).
 #   Strong messaging: master templates control all future weeks.
 #   Polished dark/cyan theme, responsive table, empty state guidance.
 #   Fully rebuilt for clarity, smoothness, and new cleanup feature. #}
@@ -20,8 +20,8 @@
         <h1 class="text-cyan">Recurring Master Templates</h1>
         <p class="text-muted lead">
             <strong>One master template per weekday</strong> sets your standard service time (shown on the public welcome page).<br>
-            Edit a template once → instantly affects <strong>every future week</strong> unless you create a <strong>dated override</strong> for a specific Sunday/week.<br>
-            Use <a href="{{ url_for('pastoral.planning.index') }}">Service Planning</a> → Edit on a date to customize that week only.
+            Edit a template once -> instantly affects <strong>every future week</strong> unless you create a <strong>dated override</strong> for a specific Sunday/week.<br>
+            Use <a href="{{ url_for('pastoral.planning.index') }}">Service Planning</a> -> Edit on a date to customize that week only.
         </p>
         <a href="{{ url_for('pastoral.planning.template_edit') }}" class="btn btn-success btn-lg shadow">
             <i class="fas fa-plus me-2"></i>New Master Template
@@ -48,15 +48,15 @@
                     <tr>
                         <td class="fw-bold text-cyan">{{ weekday_names[t.weekday] }}</td>
                         <td>{{ t.title }}</td>
-                        <td>{{ t.start_time.strftime('%I:%M %p')|lower if t.start_time else '—' }}</td>
-                        <td>{{ t.worship_start_time.strftime('%I:%M %p')|lower if t.worship_start_time else '—' }}</td>
+                        <td>{{ t.start_time.strftime('%I:%M %p')|lower if t.start_time else '-' }}</td>
+                        <td>{{ t.worship_start_time.strftime('%I:%M %p')|lower if t.worship_start_time else '-' }}</td>
                         <td>
                             {% if t.linked_sermon_title %}
                                 <a href="{{ url_for('pastoral.sermons.edit', sermon_id=t.pastoral_sermon_id) }}" class="text-cyan text-decoration-underline">
                                     {{ t.linked_sermon_title }}
                                 </a>
                             {% else %}
-                                —
+                                -
                             {% endif %}
                         </td>
                         <td>

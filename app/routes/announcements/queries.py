@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/announcements/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Announcements module.
-# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Pure data-access layer - no Flask routes, no templates, no flash messages.
 # - Every SELECT/INSERT/UPDATE/DELETE from the original announcements.py is now here.
 # - 100% MariaDB/pymysql compatible, parameterized queries (secure), reusable functions.
-# - Designed for easy growth – add new query functions anytime without touching views.
+# - Designed for easy growth - add new query functions anytime without touching views.
 
 import pymysql
 from app.models.db import get_db
@@ -105,7 +105,7 @@ def get_announcement_summary_counts():
 
 
 def get_members_for_email(member_ids=None):
-    """Return email list – all members or specific ones."""
+    """Return email list - all members or specific ones."""
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 

@@ -3,7 +3,7 @@
 {% block content %}
 <div class="glass-panel" style="padding:1rem; max-width:720px;">
     <h1 class="page-title">Security & Notifications</h1>
-    <p><a href="{{ url_for('profile.profile') }}">← Back to profile</a></p>
+    <p><a href="{{ url_for('profile.profile') }}"><- Back to profile</a></p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

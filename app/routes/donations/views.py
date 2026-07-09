@@ -5,7 +5,7 @@
 # - All database work moved to queries.py
 # - All form validation + censorship moved to forms.py
 # - All helpers moved to utils.py
-# - 100% original behavior preserved – dashboard, add/edit/delete, view all, reports, DOCX exports, censored word checks, church local time, audit logging, member selector, etc.
+# - 100% original behavior preserved - dashboard, add/edit/delete, view all, reports, DOCX exports, censored word checks, church local time, audit logging, member selector, etc.
 # - Now super short, readable, and ready for future growth.
 
 from flask import render_template, redirect, url_for, request, flash, session, current_app, jsonify
@@ -37,7 +37,7 @@ from docx import Document
 
 
 # ----------------------------------------------------------------------
-# Force guests to public dashboard – donations are private only
+# Force guests to public dashboard - donations are private only
 # ----------------------------------------------------------------------
 @donations_bp.before_request
 def require_login_for_donations():
@@ -88,7 +88,7 @@ def add_donation():
         donation_id = save_donation(**clean_data)
 
         log_change(session['user_id'], action='create',
-                   change_details=f'Added donation for {clean_data["name"]} – ${clean_data["amount"]:.2f}')
+                   change_details=f'Added donation for {clean_data["name"]} - ${clean_data["amount"]:.2f}')
         try:
             from app.utils.email_notifications import send_donation_receipt
             donation = get_donation_by_id(donation_id)
@@ -144,7 +144,7 @@ def delete_donation_route(donation_id):
     donation = delete_donation(donation_id)
     if donation:
         log_change(session['user_id'], action='delete',
-                   change_details=f'Deleted donation ID {donation_id} for {donation["name"]} – ${donation["amount"]:.2f}')
+                   change_details=f'Deleted donation ID {donation_id} for {donation["name"]} - ${donation["amount"]:.2f}')
         flash('Donation deleted successfully.', 'success')
 
     return redirect(url_for('donations.view_all_donations'))
@@ -244,7 +244,7 @@ def export_individual():
         if church_info.get('tax_status'):
             doc.add_paragraph(f"Tax ID / EIN: {church_info.get('tax_status')}")
 
-        doc.add_heading(f"Contribution Receipt – {year}", level=1)
+        doc.add_heading(f"Contribution Receipt - {year}", level=1)
         doc.add_paragraph(f"Dear {name},")
         if user.get('address'):
             doc.add_paragraph(f"Address: {user['address']}")
@@ -312,7 +312,7 @@ def export_yearly():
     if church_info.get('tax_status'):
         doc.add_paragraph(f"Tax ID / EIN: {church_info.get('tax_status')}")
 
-    doc.add_heading(f"Yearly Contribution Summary – {year}", level=1)
+    doc.add_heading(f"Yearly Contribution Summary - {year}", level=1)
 
     for name in names:
         dons = get_donations_for_export(name, year, user_id=int(mid))

@@ -6,7 +6,7 @@
 # Dedicated ticket_managers junction table for explicit management permission (no role auto-access).
 # Priority and status tracking.
 # Safe schema evolution using INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # All ID/FK columns use UNSIGNED INT.
 # FULL REBUILD: Added missing ticket_managers table, consistent %s placeholders for MariaDB/PyMySQL,
 # improved migration safety, default categories with realistic church use cases.
@@ -15,7 +15,7 @@ def create_tables(cursor):
     """
     Creates/updates the tickets-related tables.
     Designed for both fresh DB creation and safe migration of existing databases.
-    Order: categories → managers → tickets → comments.html (to satisfy FK constraints).
+    Order: categories -> managers -> tickets -> comments.html (to satisfy FK constraints).
     """
 
     # ----- TICKET_CATEGORIES TABLE -----
@@ -75,7 +75,7 @@ def create_tables(cursor):
             VALUES (%s, %s, %s, %s, %s)
         """, (name, desc, guest, pri, order))
 
-    # ----- TICKET_MANAGERS TABLE (junction – explicit management permission) -----
+    # ----- TICKET_MANAGERS TABLE (junction - explicit management permission) -----
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS ticket_managers (
             user_id INT UNSIGNED PRIMARY KEY,

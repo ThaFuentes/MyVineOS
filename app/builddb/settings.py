@@ -6,9 +6,9 @@
 # - NEW email_accounts table supports MULTIPLE email configurations (outgoing + optional incoming).
 #   - Allows professional addresses like groups@myvinechurch.online, events@, pastors@, etc.
 #   - Each account has a name, full SMTP/IMAP details, and is_default flag (only one default recommended).
-#   - Passwords stored encrypted in routes (Fernet) – schema stores as TEXT.
+#   - Passwords stored encrypted in routes (Fernet) - schema stores as TEXT.
 #   - Safe migration: adds table/columns if missing, migrates legacy single email from settings to new table as "Main Account".
-# - Isolated module – called from builddb.py during DB initialization.
+# - Isolated module - called from builddb.py during DB initialization.
 
 def create_tables(cursor):
     """
@@ -16,7 +16,7 @@ def create_tables(cursor):
     Designed for both fresh DB creation and safe migration of existing databases.
     """
 
-    # ----- SETTINGS TABLE (single-row globals – email fields REMOVED, migrated below) -----
+    # ----- SETTINGS TABLE (single-row globals - email fields REMOVED, migrated below) -----
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS settings (
             id                          INT PRIMARY KEY AUTO_INCREMENT,

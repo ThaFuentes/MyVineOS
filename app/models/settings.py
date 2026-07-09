@@ -23,7 +23,7 @@ def get_settings():
         'favicon_path': None,
         'logo_path': None,
         'background_image': None,
-        # Existing branding / paths – add new ones here as created in DB
+        # Existing branding / paths - add new ones here as created in DB
 
         # ----- NEW ONLINE GIVING GLOBAL SETTINGS -----
         'online_donations_enabled': 0,                                      # 0 = Donate tab hidden from public nav

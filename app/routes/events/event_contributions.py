@@ -4,7 +4,7 @@
 # Brief, detailed purpose: Contains only the potluck contribution deletion route.
 # Restricted to Admin/Owner only. Deletes a single signup row.
 # Logs the deletion and flashes success/error. Redirects back to the event detail view.
-# No other routes or logic – pure extraction from the original monolithic events.py.
+# No other routes or logic - pure extraction from the original monolithic events.py.
 
 from flask import redirect, url_for, flash, session
 from app.utils.decorators import login_required, role_required

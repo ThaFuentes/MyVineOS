@@ -5,9 +5,9 @@
 <div style="display:grid; gap:0.6rem;">
   {% for a in assignments %}
   <label style="display:block;">
-    <span style="font-weight:600;">{{ a.role_name }} — {{ a.user_full_name or a.username }}</span>
+    <span style="font-weight:600;">{{ a.role_name }} - {{ a.user_full_name or a.username }}</span>
     <input type="hidden" name="note_user_id[]" value="{{ a.user_id }}">
-    <textarea name="note_text[]" rows="2" style="width:100%; margin-top:0.25rem;" placeholder="e.g. You're on acoustic this week, capo 2…">{% if member_notes.get(a.user_id) %}{{ member_notes[a.user_id].note_text }}{% endif %}</textarea>
+    <textarea name="note_text[]" rows="2" style="width:100%; margin-top:0.25rem;" placeholder="e.g. You're on acoustic this week, capo 2...">{% if member_notes.get(a.user_id) %}{{ member_notes[a.user_id].note_text }}{% endif %}</textarea>
   </label>
   {% endfor %}
 </div>

@@ -2,7 +2,7 @@
 <!-- Full path: myvinechurchonline/app/templates/settings/email.html -->
 <!-- File name: email.html -->
 <!-- Brief, detailed purpose: Dedicated Settings page for managing MULTIPLE email accounts.
-   Extends base_settings.html → glass wrapper, menu, flash.
+   Extends base_settings.html -> glass wrapper, menu, flash.
    - Test send from selected account.
    - Add new account form.
    - Table list with collapsible inline edit (like online_giving).
@@ -36,7 +36,7 @@
                     <label for="test_account">From Account</label>
                     <select name="test_account" id="test_account" required>
                         {% for acc in accounts %}
-                        <option value="{{ acc.id }}" {% if acc.is_default %}selected{% endif %}>{{ acc.name }} ({{ acc.outgoing_server }}){% if acc.is_default %} – Default{% endif %}</option>
+                        <option value="{{ acc.id }}" {% if acc.is_default %}selected{% endif %}>{{ acc.name }} ({{ acc.outgoing_server }}){% if acc.is_default %} - Default{% endif %}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -122,7 +122,7 @@ The MyVineChurch.Online System</textarea>
                 </div>
             </div>
 
-            <!-- Incoming optional – collapsible -->
+            <!-- Incoming optional - collapsible -->
             <details class="collapsible-controls">
                 <summary class="collapsible-summary">Incoming Mail Settings (Optional)<span class="arrow">v</span></summary>
                 <div class="potluck-content">

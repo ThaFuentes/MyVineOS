@@ -15,7 +15,7 @@ import random
 import string
 from docx import Document
 import traceback
-import pymysql   # ← Added this import to fix NameError
+import pymysql   # <- Added this import to fix NameError
 
 from . import members_bp
 from .queries import (
@@ -68,7 +68,7 @@ def members_root():
 
 
 # ----------------------------------------------------------------------
-# Members Directory – searchable with summary cards and expandable family rows
+# Members Directory - searchable with summary cards and expandable family rows
 # ----------------------------------------------------------------------
 @members_bp.route('/directory')
 @permission_required(MEMBERS_VIEW_PERMISSIONS)
@@ -101,7 +101,7 @@ def members_directory():
 
 
 # ----------------------------------------------------------------------
-# Add / Edit Member – combined route (endpoint name restored to original 'add_member')
+# Add / Edit Member - combined route (endpoint name restored to original 'add_member')
 # ----------------------------------------------------------------------
 @members_bp.route('/add', methods=['GET', 'POST'])
 @members_bp.route('/add/<int:member_id>', methods=['GET', 'POST'])
@@ -212,7 +212,7 @@ Please log in and change your password.
 
         return redirect(url_for('members.members_directory'))
 
-    # GET – render form
+    # GET - render form
     return render_template(
         'members/member_form.html',
         member=member,
@@ -315,7 +315,7 @@ def export_directory():
 
 
 # ----------------------------------------------------------------------
-# Member email tools (Admin/Owner only) — 3 clear send modes
+# Member email tools (Admin/Owner only) - 3 clear send modes
 # ----------------------------------------------------------------------
 @members_bp.route('/email_roster', methods=['GET', 'POST'])
 @permission_required('manage_users')
@@ -499,7 +499,7 @@ def member_admin_action(member_id):
             if request.form.get('email_password') == '1' and target.get('email'):
                 send_email(
                     target['email'],
-                    'MyVineChurch — Password Reset',
+                    'MyVineChurch - Password Reset',
                     f"An administrator reset your password.\n\nUsername: {target['username']}\n"
                     f"Temporary password: {temp_pass}\n\nPlease log in and change it immediately.",
                 )
@@ -573,7 +573,7 @@ def member_admin_action(member_id):
                     )
                 else:
                     flash(
-                        'Could not send verification email. Check SMTP under Settings → Email, '
+                        'Could not send verification email. Check SMTP under Settings -> Email, '
                         'or use "Mark email verified" as Owner.',
                         'error',
                     )

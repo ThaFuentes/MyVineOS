@@ -22,7 +22,7 @@
 <div class="glass-panel" style="margin-bottom:1rem; border-left:3px solid var(--primary);">
   <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.25rem;">
     NEXT SERVICE
-    {% if upcoming.source == 'template' %}<span style="color:#f0c040;"> — weekly default</span>{% elif upcoming.source == 'override' %}<span> — date override</span>{% endif %}
+    {% if upcoming.source == 'template' %}<span style="color:#f0c040;"> - weekly default</span>{% elif upcoming.source == 'override' %}<span> - date override</span>{% endif %}
   </div>
   <h2 style="margin:0.2rem 0; font-size:1.2rem;">{{ upcoming.title }}</h2>
   {% if upcoming.service_date %}
@@ -32,7 +32,7 @@
   {% endif %}
   {% if upcoming.assignments %}
   <p style="font-size:0.88rem; margin:0.5rem 0 0; opacity:0.8;">
-    {% for a in upcoming.assignments[:4] %}{{ a.role_name }}: {{ a.user_full_name }}{% if not loop.last %} · {% endif %}{% endfor %}
+    {% for a in upcoming.assignments[:4] %}{{ a.role_name }}: {{ a.user_full_name }}{% if not loop.last %} - {% endif %}{% endfor %}
   </p>
   {% endif %}
   <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.75rem;">

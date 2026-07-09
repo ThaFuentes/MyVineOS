@@ -2,17 +2,17 @@
 <!-- Full path: MyVineChurch/app/templates/events/view_event.html -->
 <!-- File name: view_event.html -->
 <!-- Brief, detailed purpose: Private/internal single event detail view for logged-in users.
-   Extends base_events.html → glass wrapper, internal menu, flash messages.
+   Extends base_events.html -> glass wrapper, internal menu, flash messages.
    Header: title + key info left, Edit/Delete event buttons right (UNIFIED STYLING: both full-size btn-primary / btn-danger).
    All detail sections open/linear (grouped cards using global classes).
    Potluck (if enabled): COLLAPSIBLE and COLLAPSED by default via <details>.
    Inside collapse: full contributions table (Name, Bringing, Quantity, Note, Actions).
    Actions column: Delete button for Admin/Owner only (btn-danger btn-small, unified with other buttons).
-   Member contribution form below table – POSTS TO CURRENT VIEW ROUTE (no separate add_potluck_contribution endpoint).
+   Member contribution form below table - POSTS TO CURRENT VIEW ROUTE (no separate add_potluck_contribution endpoint).
    Delete contribution uses correct endpoint 'events.delete_contribution'.
    All text fields censored via global 'censor' filter.
    ALL BUTTONS UNIFIED: consistent btn-primary / btn-danger classes (full size for main actions, btn-small for inline table deletes).
-   Uses ONLY global classes – minimal inline for layout only (flex/gap). -->
+   Uses ONLY global classes - minimal inline for layout only (flex/gap). -->
 
 {% extends "events/base_events.html" %}
 
@@ -53,7 +53,7 @@ Detailed view of {{ event.event_name|title }}.
         {% endif %}
     </div>
 
-    <!-- Potluck Section – COLLAPSIBLE and COLLAPSED by default -->
+    <!-- Potluck Section - COLLAPSIBLE and COLLAPSED by default -->
     {% if event.potluck_enabled %}
     <details class="collapsible-section glass">
         <summary class="collapsible-summary section-title">
@@ -97,7 +97,7 @@ Detailed view of {{ event.event_name|title }}.
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="5" class="no-data">No contributions yet – be the first!</td>
+                                <td colspan="5" class="no-data">No contributions yet - be the first!</td>
                             </tr>
                         {% endif %}
                     </tbody>
@@ -114,7 +114,7 @@ Detailed view of {{ event.event_name|title }}.
                     <div class="form-group">
                         <label class="control-label">Your Name <span class="required">*</span></label>
                         <input type="text" name="name" class="form-input" required placeholder="How you want your name to appear">
-                        <p class="help-text">You may use your real name, a nickname, or “The Smith Family”, etc.</p>
+                        <p class="help-text">You may use your real name, a nickname, or "The Smith Family", etc.</p>
                     </div>
 
                     <div class="form-group">
@@ -280,7 +280,7 @@ Detailed view of {{ event.event_name|title }}.
             {% endfor %}
         </div>
         {% else %}
-        <p class="no-data">No comments yet – be the first to comment!</p>
+        <p class="no-data">No comments yet - be the first to comment!</p>
         {% endif %}
 
         <!-- Add New Comment Form -->

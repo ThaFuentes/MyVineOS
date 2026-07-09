@@ -6,7 +6,7 @@
    Collapsible sections with localStorage persistence (like add_event.html).
    Duplicate Save/Cancel buttons top & bottom.
    Pre-filled on edit.
-   NO JSON INPUT – Additional Links now use repeatable normal input fields (label + URL) with Add/Remove buttons.
+   NO JSON INPUT - Additional Links now use repeatable normal input fields (label + URL) with Add/Remove buttons.
    All fields use global classes.
    Frequency affects due_day/due_month visibility via simple JS. -->
 
@@ -94,7 +94,7 @@
                     <input type="text" id="reminder_email" name="reminder_email" class="form-input"
                            placeholder="billing@church.org or email1@x.com, email2@x.com"
                            value="{{ bill.reminder_email if bill else request.form.get('reminder_email', '') }}">
-                    <p class="help-text">Always notified on reminders, in addition to assigned users who opt in under Profile → Security.</p>
+                    <p class="help-text">Always notified on reminders, in addition to assigned users who opt in under Profile -> Security.</p>
                 </div>
                 <div class="form-group">
                     <label for="next_due_date" class="control-label">Next Due Date</label>
@@ -214,7 +214,7 @@
 </section>
 
 <script>
-  // Frequency → due field visibility
+  // Frequency -> due field visibility
   function updateDueFields() {
     const freq = document.getElementById('frequency').value;
     document.getElementById('due_day_group').style.display = (freq === 'daily') ? 'none' : 'block';
@@ -236,7 +236,7 @@
     });
   });
 
-  // Additional Links – Add/Remove rows
+  // Additional Links - Add/Remove rows
   const linksContainer = document.getElementById('links-container');
   const addLinkBtn = document.getElementById('add-link-btn');
 

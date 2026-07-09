@@ -7,14 +7,14 @@
 # - Root '/' route redirects to the nested dashboard endpoint using the full correct name.
 # - Template and static paths match your templates/the_gathering/ folder structure.
 # - 100% rebuilt to match the exact public modular pattern you already have working.
-# - All original behavior preserved — only registration and route attachment fixed.
+# - All original behavior preserved - only registration and route attachment fixed.
 
 from flask import Blueprint, redirect, url_for, request
 import re
 
-# ──────────────────────────────────────────────────────────────
+# 
 # Main The Gathering Place Manager Blueprint (Parent)
-# ──────────────────────────────────────────────────────────────
+# 
 the_gathering_bp = Blueprint(
     'the_gathering',
     __name__,
@@ -23,9 +23,9 @@ the_gathering_bp = Blueprint(
     static_folder='../../../static'
 )
 
-# ──────────────────────────────────────────────────────────────
+# 
 # Register the Dashboard Sub-Blueprint
-# ──────────────────────────────────────────────────────────────
+# 
 from .dashboard import dashboard_bp
 the_gathering_bp.register_blueprint(dashboard_bp)
 
@@ -113,9 +113,9 @@ def inject_manager_breadcrumb():
     }
 
 
-# ──────────────────────────────────────────────────────────────
+# 
 # Root Route (keeps original user experience)
-# ──────────────────────────────────────────────────────────────
+# 
 @the_gathering_bp.route('/')
 def index():
     """Root of /the_gathering redirects to the main Gathering Place Manager dashboard.

@@ -5,7 +5,7 @@
 #   Blueprint for sermon export functionality (single & bulk DOCX).
 #   - Export list view with selectable sermons
 #   - Single sermon DOCX download
-#   - Bulk export → ZIP of multiple DOCX files
+#   - Bulk export -> ZIP of multiple DOCX files
 #   - Clean formatting with python-docx
 #   - Respects visibility enforcement
 #   - Audit-logged exports
@@ -33,7 +33,7 @@ export_bp = Blueprint('sermons_export', __name__, url_prefix='/sermons/export')
 def _generate_sermon_docx(sermon: dict, sections: list) -> Document:
     doc = Document()
 
-    # Title (use heading — built-in 'Title' style is character-only in some templates)
+    # Title (use heading - built-in 'Title' style is character-only in some templates)
     title_para = doc.add_heading(sermon['title'], level=0)
     title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     if title_para.runs:

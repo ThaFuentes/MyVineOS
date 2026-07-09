@@ -2,14 +2,14 @@
 {# Full path: WebChurchMan/app/templates/pastoral/sermon_editor.html #}
 {# File name: sermon_editor.html #}
 {# Brief, detailed purpose:
-#   Full sermon editor – FINAL FULL REBUILD (COMPLETE & STABLE).
+#   Full sermon editor - FINAL FULL REBUILD (COMPLETE & STABLE).
 #   - Auto-save every 30 seconds (existing sermons: full metadata + sections).
 #   - Manual save = full form submit (includes collaborators).
 #   - Save status with timestamp.
 #   - Skips blank sections on save.
 #   - Unified section builder: one form for inline cards, New Section modal, and 1-click Vault save (no duplicate modal).
 #   - Vault quick-save on sections (no insert-from-vault modal on this page).
-#   - Collaborators, reorder, delete, dynamic headers — all stable.
+#   - Collaborators, reorder, delete, dynamic headers - all stable.
 #   - Fixed Jinja syntax error (proper endblock matching).
 #}
 
@@ -24,7 +24,7 @@
       {{ 'Create New Sermon' if not sermon else 'Edit Sermon: ' + sermon.title }}
     </h2>
     <div>
-      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="font-size:0.85rem;">← Cancel</a>
+      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="font-size:0.85rem;"><- Cancel</a>
     </div>
   </div>
 </div>
@@ -330,7 +330,7 @@
                 const result = await resp.json();
                 if (result.status === 'success') {
                     if (!options.suppressToast) {
-                        showToast('Saved to Vault — reusable in any sermon.', true);
+                        showToast('Saved to Vault - reusable in any sermon.', true);
                     }
                     return true;
                 }
@@ -351,7 +351,7 @@
                 showToast('Saved to Vault and added to this sermon.', true);
             } else {
                 markDirty();
-                showToast('Saved to Vault — section remains in this sermon.', true);
+                showToast('Saved to Vault - section remains in this sermon.', true);
             }
             return true;
         }
@@ -610,10 +610,10 @@
             }, 400);
         }
 
-        /** First empty section → scroll there; otherwise append and scroll. */
+        /** First empty section -> scroll there; otherwise append and scroll. */
         function focusOrAddSection() {
             if (!container) {
-                showToast('Sections area not ready — refresh the page.', false);
+                showToast('Sections area not ready - refresh the page.', false);
                 return;
             }
             const cards = getSectionCards();
@@ -1121,7 +1121,7 @@
                 showToast('Allow pop-ups to open the preview window.', false);
                 return;
             }
-            win.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(title)} — Preview</title>
+            win.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(title)} - Preview</title>
 <style>
 body{font-family:Georgia,serif;background:#111;color:#e8e8e8;margin:0;padding:2rem 2.5rem;line-height:1.6;}
 .preview-title{color:#00d4ff;font-size:1.75rem;margin:0 0 0.5rem;}

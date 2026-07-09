@@ -1,4 +1,4 @@
-# Gathering Place Managers — system group identified by stable system_key (name may be edited in UI).
+# Gathering Place Managers - system group identified by stable system_key (name may be edited in UI).
 
 from typing import Optional
 import pymysql

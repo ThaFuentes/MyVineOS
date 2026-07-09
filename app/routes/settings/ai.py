@@ -1,4 +1,4 @@
-# AI provider configuration — per-provider keys and enable toggles.
+# AI provider configuration - per-provider keys and enable toggles.
 
 from flask import render_template, request, redirect, url_for, flash, session
 from app.models.db import get_db

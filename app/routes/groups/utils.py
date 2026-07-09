@@ -13,7 +13,7 @@ from app.models.db import get_db
 
 
 # ----------------------------------------------------------------------
-# Known Permissions – FULLY EXPANDED
+# Known Permissions - FULLY EXPANDED
 # ----------------------------------------------------------------------
 KNOWN_PERMISSIONS = {
     # Core Content Creation/Moderation
@@ -30,10 +30,10 @@ KNOWN_PERMISSIONS = {
 
     # Financial & Operational
     'view_donations': 'View donation records and reports (no editing)',
-    'manage_donations': 'Full donation management (record, edit, delete – sensitive)',
+    'manage_donations': 'Full donation management (record, edit, delete - sensitive)',
     'manage_bills': 'Access and manage Recurring Bills (/bills/)',
     'manage_inventory': 'Access and manage church inventory (items, stock, audits)',
-    'manage_tickets': 'Full Ticket Manager access (/tickets/manage – create, assign, resolve any ticket)',
+    'manage_tickets': 'Full Ticket Manager access (/tickets/manage - create, assign, resolve any ticket)',
     'submit_tickets': 'Submit and view own support/event tickets (/tickets/)',
 
     # Member & Attendance Management
@@ -70,7 +70,7 @@ GROUP_ROLES = {
         'short': 'Manage this group',
         'description': (
             'Can add/remove members and edit this group\'s settings. '
-            'May grant permissions only up to what they already have — not above their own level.'
+            'May grant permissions only up to what they already have - not above their own level.'
         ),
     },
 }

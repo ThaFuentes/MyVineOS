@@ -34,18 +34,18 @@ Choose visibility: Public (everyone), Private (members only), or Personal (only 
             <label for="visibility">Visibility <span class="required">*</span></label>
             <select id="visibility" name="visibility" class="form-input" required>
                 <option value="public" {% if request.form.get('visibility') == 'public' %}selected{% endif %}>
-                    Public – visible to everyone (including guests)
+                    Public - visible to everyone (including guests)
                 </option>
                 <option value="private" {% if request.form.get('visibility', 'private') == 'private' %}selected{% endif %}>
-                    Private – visible to logged-in members only (default)
+                    Private - visible to logged-in members only (default)
                 </option>
                 <option value="personal" {% if request.form.get('visibility') == 'personal' %}selected{% endif %}>
-                    Personal – visible ONLY to you (the uploader)
+                    Personal - visible ONLY to you (the uploader)
                 </option>
             </select>
             <p class="help-text">
                 Private is recommended for member review.<br>
-                Personal sermons are hidden from everyone except you – great for drafts or personal study.
+                Personal sermons are hidden from everyone except you - great for drafts or personal study.
             </p>
         </div>
 
@@ -67,21 +67,21 @@ Choose visibility: Public (everyone), Private (members only), or Personal (only 
             <label for="sermon_notes">Sermon Notes (PDF, DOCX, TXT)</label>
             <input type="file" id="sermon_notes" name="sermon_notes" class="form-input"
                    accept=".pdf,.docx,.txt">
-            <p class="help-text">Optional – upload written notes or outline</p>
+            <p class="help-text">Optional - upload written notes or outline</p>
         </div>
 
         <div class="form-group">
             <label for="sermon_file">Sermon Media (MP3, MP4, JPG, PNG, etc.)</label>
             <input type="file" id="sermon_file" name="sermon_file" class="form-input"
                    accept=".mp3,.mp4,.jpg,.jpeg,.png,.pdf,.docx,.txt">
-            <p class="help-text">Optional – audio/video recording or slides</p>
+            <p class="help-text">Optional - audio/video recording or slides</p>
         </div>
 
         <div class="form-group">
             <label for="external_link">External Link (YouTube, Vimeo, Google Drive, etc.)</label>
             <input type="url" id="external_link" name="external_link" class="form-input"
                    value="{{ request.form.get('external_link', '') }}" placeholder="https://...">
-            <p class="help-text">Optional – link to externally hosted sermon</p>
+            <p class="help-text">Optional - link to externally hosted sermon</p>
         </div>
 
         <div class="form-actions">

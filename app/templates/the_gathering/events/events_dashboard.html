@@ -67,8 +67,8 @@
                     <td><strong>#{{ event.id }}</strong></td>
                     <td>{{ title_preview(event.event_name, event.description) }}</td>
                     <td>{{ event.event_date }}</td>
-                    <td>{{ event.event_time or '—' }}</td>
-                    <td>{{ event.location or '—' }}</td>
+                    <td>{{ event.event_time or '-' }}</td>
+                    <td>{{ event.location or '-' }}</td>
                     <td>
                         <span class="badge {% if event.visibility == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
                             {{ event.visibility|upper }}
@@ -80,7 +80,7 @@
                             <span class="badge bg-info">Enabled</span>
                             <small class="d-block text-muted">{{ event.potluck_count or 0 }} signups</small>
                         {% else %}
-                            —
+                            -
                         {% endif %}
                     </td>
                     <td>

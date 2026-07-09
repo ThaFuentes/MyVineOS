@@ -1,8 +1,8 @@
 <!-- app/templates/prophecies/add_prophecy.html -->
 <!-- Full path: WebChurchMan/app/templates/prophecies/add_prophecy.html -->
 <!-- File name: add_prophecy.html -->
-<!-- Brief, detailed purpose: Submit Prophecy form – logged-in users only.
-   Extends base_prophecies.html → consistent wrapper, menu with "Prophecies Dashboard" + "Add Prophecy" (active here).
+<!-- Brief, detailed purpose: Submit Prophecy form - logged-in users only.
+   Extends base_prophecies.html -> consistent wrapper, menu with "Prophecies Dashboard" + "Add Prophecy" (active here).
    Uses ONLY global CSS classes.
    Visibility dropdown with three options: Public (everyone), Private (members only), Personal (only you).
    Default = Private (recommended).
@@ -44,18 +44,18 @@ Choose visibility: Public (everyone), Private (members only), or Personal (only 
             <label for="visibility" class="control-label">Visibility <span class="required">*</span></label>
             <select id="visibility" name="visibility" class="form-input" required>
                 <option value="public" {% if request.form.get('visibility') == 'public' %}selected{% endif %}>
-                    Public – visible to everyone (including guests)
+                    Public - visible to everyone (including guests)
                 </option>
                 <option value="private" {% if request.form.get('visibility', 'private') == 'private' %}selected{% endif %}>
-                    Private – visible to logged-in members only (default)
+                    Private - visible to logged-in members only (default)
                 </option>
                 <option value="personal" {% if request.form.get('visibility') == 'personal' %}selected{% endif %}>
-                    Personal – visible ONLY to you (the submitter)
+                    Personal - visible ONLY to you (the submitter)
                 </option>
             </select>
             <p class="help-text">
                 Private is recommended for most prophecies due to their sensitive nature.<br>
-                Personal prophecies are hidden from everyone except you – perfect for private reflection or drafts.
+                Personal prophecies are hidden from everyone except you - perfect for private reflection or drafts.
             </p>
         </div>
 

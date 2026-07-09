@@ -2,12 +2,12 @@
 {# Full path: WebChurchMan/app/templates/pastoral/dashboard_pastoral.html #}
 {# File name: dashboard_pastoral.html #}
 {# Brief, detailed purpose:
-#   Pastoral Command Center – main hub for all pastoral tools.
+#   Pastoral Command Center - main hub for all pastoral tools.
 #   Features a prominent "Next Upcoming Service" card at the top (with date, times, title, linked sermon, and edit/create link).
 #   Below: responsive grid of quick-access hero cards for Sermon Builder, Illustration Library, Service Planning (with sub-link to Defaults), Podium Mode, Sermon Export.
-#   NEW: Dedicated hero card for Global Default Role Assignments – quick access to set recurring roles (Preacher, Worship Leader, Greeters, etc.) that auto-fill every new plan.
+#   NEW: Dedicated hero card for Global Default Role Assignments - quick access to set recurring roles (Preacher, Worship Leader, Greeters, etc.) that auto-fill every new plan.
 #   Dark/cyan theme consistent, fully responsive, slightly slimmer cards (reduced padding, smaller images/text).
-#   Uses get_upcoming_service() data for the top card – safely handles missing times (None). #}
+#   Uses get_upcoming_service() data for the top card - safely handles missing times (None). #}
 
 {% extends "pastoral/base_pastoral.html" %}
 
@@ -19,7 +19,7 @@
   <p style="margin:0; opacity:0.7; font-size:0.9rem;">Tools for planning, preaching, care &amp; creative prep</p>
 </div>
 
-<!-- Next Upcoming Service – Prominent app-style card -->
+<!-- Next Upcoming Service - Prominent app-style card -->
 <div class="glass-panel" style="border:1px solid var(--primary-border); margin-bottom:1.25rem;">
   <div style="text-align:center; padding:0.25rem 0;">
     <div style="font-size:0.8rem; opacity:0.7; margin-bottom:0.25rem;">NEXT UPCOMING SERVICE</div>
@@ -49,7 +49,7 @@
     {% endif %}
 
     {% if upcoming_service.get('is_recurring_default') %}
-      <small style="opacity:0.6; display:block; margin-bottom:0.5rem;">Recurring default – customize in a plan</small>
+      <small style="opacity:0.6; display:block; margin-bottom:0.5rem;">Recurring default - customize in a plan</small>
     {% endif %}
 
     <a href="{{ url_for('pastoral.planning.edit', date_str=upcoming_service.service_date.strftime('%Y-%m-%d')) }}"
@@ -59,7 +59,7 @@
   </div>
 </div>
 
-<!-- Quick Access Grid – phone friendly large tap targets, no bunch -->
+<!-- Quick Access Grid - phone friendly large tap targets, no bunch -->
 <div class="glass-panel">
   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:0.75rem;">
     <!-- Sermon Builder -->
@@ -69,7 +69,7 @@
       <small style="opacity:0.7;">Create, edit &amp; export</small>
     </a>
 
-    <!-- Illustrations Library (written stories, analogies, sermon sections — not images) -->
+    <!-- Illustrations Library (written stories, analogies, sermon sections - not images) -->
     <a href="{{ url_for('pastoral.illustrations.library') }}" class="item-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:118px; text-decoration:none;">
       <span style="font-size:1.8rem; margin-bottom:0.2rem;"></span>
       <div style="font-weight:600;">Illustrations Library</div>

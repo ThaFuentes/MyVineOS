@@ -2,22 +2,22 @@
 # Full path: WebChurchMan/app/models/pastoral/service_plans.py
 # File name: service_plans.py
 # Brief, detailed purpose:
-#   All database operations related to Service Planning module – FULL REBUILD for permanent recurring templates + forced notes + override count.
+#   All database operations related to Service Planning module - FULL REBUILD for permanent recurring templates + forced notes + override count.
 #   NEW SIMPLE & CLEAN STRUCTURE:
 #     - service_templates: Central permanent recurring masters (Sunday Morning, Wednesday Night, etc.)
 #       - One row per recurring service type
-#       - No service_date – applies to all matching weekdays unless overridden
+#       - No service_date - applies to all matching weekdays unless overridden
 #       - Title, notes (regular Quill HTML), forced_notes (critical plain text lines), times, linked sermon, role assignments
-#       - Change once → instantly affects every future display of that weekday
+#       - Change once -> instantly affects every future display of that weekday
 #     - service_plans: Individual dated overrides/special events only (much fewer rows)
 #     - get_plan_for_date(date_str): Returns dated override if exists, ELSE matching template
 #       - For template plans: forced_notes prepended to notes (as highlighted HTML block)
-#     - Templates matched by weekday (0-6) only – simple, no complex recurrence rules
-#     - Global defaults still exist – pre-fill when creating new templates or dated overrides
-#     - Removed old 52-week seeding – now seeds one default Sunday template if none exists
+#     - Templates matched by weekday (0-6) only - simple, no complex recurrence rules
+#     - Global defaults still exist - pre-fill when creating new templates or dated overrides
+#     - Removed old 52-week seeding - now seeds one default Sunday template if none exists
 #     - get_upcoming_service(): Safe wrapper using get_plan_for_date for next date (plan or template)
 #     - get_all_templates(): Now includes override_count (future dated plans on this weekday)
-#   This gives true "central place – change once, updates all" for recurring services.
+#   This gives true "central place - change once, updates all" for recurring services.
 #   Overrides still possible via dated plans.
 #   Delete template anytime.
 #   Uses DictCursor for consistent dict results.
@@ -48,7 +48,7 @@ def _normalize_time(value):
 
 
 # ----------------------------------------------------------------------
-# Templates – Central permanent recurring masters (one canonical per weekday)
+# Templates - Central permanent recurring masters (one canonical per weekday)
 # ----------------------------------------------------------------------
 def _hydrate_template_row(template: dict) -> dict:
     """Attach normalized times and role assignments to a template row."""
@@ -104,7 +104,7 @@ def dedupe_service_templates():
             delete_template(dup_id)
             removed += 1
     if removed:
-        print(f"Removed {removed} duplicate service template(s) — one master per weekday.")
+        print(f"Removed {removed} duplicate service template(s) - one master per weekday.")
     return removed
 
 
@@ -156,7 +156,7 @@ def _plan_to_public_service(plan: dict, *, is_recurring: bool = False) -> dict:
 def get_weekly_schedule_display():
     """
     Public-facing recurring schedule: exactly one entry per weekday that has a template.
-    Sorted with Sunday first, then Monday–Saturday.
+    Sorted with Sunday first, then Monday-Saturday.
     """
     display_order = [6, 0, 1, 2, 3, 4, 5]
     schedule = []
@@ -329,7 +329,7 @@ def save_template_assignments(template_id: int, assignments: list):
 
 
 # ----------------------------------------------------------------------
-# Dated Plans – Overrides / special events only
+# Dated Plans - Overrides / special events only
 # ----------------------------------------------------------------------
 def get_all_service_plans():
     """Fetch all dated override/special plans (for list view)."""
@@ -430,7 +430,7 @@ def save_service_plan_assignments(plan_id: int, assignments: list):
 
 
 # ----------------------------------------------------------------------
-# Unified Plan Retrieval – Prepend forced_notes for template plans
+# Unified Plan Retrieval - Prepend forced_notes for template plans
 # ----------------------------------------------------------------------
 def get_plan_for_date(date_str: str):
     """
@@ -470,7 +470,7 @@ def get_plan_for_date(date_str: str):
 
 
 # ----------------------------------------------------------------------
-# get_upcoming_service – Safe for migration
+# get_upcoming_service - Safe for migration
 # ----------------------------------------------------------------------
 def get_upcoming_service():
     """Return the next upcoming service (plan or template fallback). Safe during schema migration."""
@@ -492,11 +492,11 @@ def get_upcoming_service():
             return get_plan_for_date(row['service_date'].strftime('%Y-%m-%d'))
     except pymysql.err.ProgrammingError as e:
         if "doesn't exist" in str(e):
-            print("service_plans table not created yet – using template fallback only.")
+            print("service_plans table not created yet - using template fallback only.")
         else:
             raise
 
-    # No dated plan – find next date with template
+    # No dated plan - find next date with template
     for days_ahead in range(0, 30):
         check_date = today + timedelta(days=days_ahead)
         plan = get_plan_for_date(check_date.strftime('%Y-%m-%d'))
@@ -516,7 +516,7 @@ def get_upcoming_service():
 
 
 # ----------------------------------------------------------------------
-# Global Default Role Assignments – pre-fill new templates & overrides
+# Global Default Role Assignments - pre-fill new templates & overrides
 # ----------------------------------------------------------------------
 def get_default_assignments():
     db = get_db()
@@ -548,7 +548,7 @@ def save_default_assignments(assignments: list):
 
 
 # ----------------------------------------------------------------------
-# Initial Setup – Seed default Sunday template if none exists
+# Initial Setup - Seed default Sunday template if none exists
 # ----------------------------------------------------------------------
 def seed_default_sunday_template():
     """Seed a basic Sunday template if no Sunday master exists yet."""
@@ -561,7 +561,7 @@ def seed_default_sunday_template():
     cur.execute("SELECT id FROM users WHERE role = 'Owner' LIMIT 1")
     owner = cur.fetchone()
     if not owner:
-#        print("Warning: No Owner – cannot seed default template.")
+#        print("Warning: No Owner - cannot seed default template.")
         return
     creator_id = owner['id']
 

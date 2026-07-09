@@ -2,24 +2,24 @@
 # Full path: WebChurchMan/app/routes/pastoral/planning.py
 # File name: planning.py
 # Brief, detailed purpose:
-#   Blueprint for Service Planning within the Pastoral Area – FULL REBUILD for template-based recurring system + forced notes + safe refresh.
+#   Blueprint for Service Planning within the Pastoral Area - FULL REBUILD for template-based recurring system + forced notes + safe refresh.
 #   Routes:
-#     - /planning/ → Overview with upcoming effective services (template fallback + overrides), calendar, links to templates & defaults
-#     - /planning/edit/<date_str> → Create/edit dated override/special event
-#     - /planning/templates → Centralized recurring templates console (list)
-#     - /planning/templates/new → Create new recurring template (weekday required, starts empty)
-#     - /planning/templates/edit/<template_id> → Edit recurring template (weekday fixed)
-#     - /planning/templates/delete/<template_id> → Delete recurring template
-#     - /planning/templates/refresh/<template_id> → Safe refresh: delete future identical overrides (manual edits preserved)
-#     - /planning/defaults → Manage global default role assignments (pre-fill NEW DATED OVERRIDES ONLY)
-#     - /planning/assignments/<plan_id> → AJAX for dated plan assignments
-#     - /planning/delete/<date_str> → Delete dated override
+#     - /planning/ -> Overview with upcoming effective services (template fallback + overrides), calendar, links to templates & defaults
+#     - /planning/edit/<date_str> -> Create/edit dated override/special event
+#     - /planning/templates -> Centralized recurring templates console (list)
+#     - /planning/templates/new -> Create new recurring template (weekday required, starts empty)
+#     - /planning/templates/edit/<template_id> -> Edit recurring template (weekday fixed)
+#     - /planning/templates/delete/<template_id> -> Delete recurring template
+#     - /planning/templates/refresh/<template_id> -> Safe refresh: delete future identical overrides (manual edits preserved)
+#     - /planning/defaults -> Manage global default role assignments (pre-fill NEW DATED OVERRIDES ONLY)
+#     - /planning/assignments/<plan_id> -> AJAX for dated plan assignments
+#     - /planning/delete/<date_str> -> Delete dated override
 #   All routes protected by @pastoral_required().
-#   NEW: Index shows upcoming effective services (next year) — master changes visible immediately for plain weeks.
-#   NEW: New dated overrides copy from matching master template (roles, times, notes, sermon) — title blank for override.
-#   NEW: forced_notes support – critical lines prepended for template plans.
-#   NEW: template_refresh route – safe cleanup of legacy identical overrides (fixed _normalize_time import).
-#   Global defaults pre-fill NEW DATED OVERRIDES ONLY if no template – master templates start empty for precise control.
+#   NEW: Index shows upcoming effective services (next year) - master changes visible immediately for plain weeks.
+#   NEW: New dated overrides copy from matching master template (roles, times, notes, sermon) - title blank for override.
+#   NEW: forced_notes support - critical lines prepended for template plans.
+#   NEW: template_refresh route - safe cleanup of legacy identical overrides (fixed _normalize_time import).
+#   Global defaults pre-fill NEW DATED OVERRIDES ONLY if no template - master templates start empty for precise control.
 #   Compatibility preserved for old planning_edit.html (dummy recurrence vars).
 #   FIXED: plan always has 'service_date' (even for new) to avoid UndefinedError in template.
 
@@ -45,7 +45,7 @@ planning_bp = Blueprint('planning', __name__, url_prefix='/planning')
 
 
 # ----------------------------------------------------------------------
-# Overview – Upcoming Effective Services + Calendar
+# Overview - Upcoming Effective Services + Calendar
 # ----------------------------------------------------------------------
 @planning_bp.route('/')
 @pastoral_required()
@@ -145,7 +145,7 @@ def edit(date_str):
             plan = {
                 'id': None,
                 'service_date': service_date_obj,
-                'title': '',  # optional override – start blank
+                'title': '',  # optional override - start blank
                 'notes': template_plan.get('notes') or '',
                 'start_time': template_plan.get('start_time'),
                 'worship_start_time': template_plan.get('worship_start_time'),
@@ -193,7 +193,7 @@ def edit(date_str):
         flash('Plan saved.', 'success')
         return redirect(url_for('pastoral.planning.edit', date_str=date_str))
 
-    # GET – compatibility
+    # GET - compatibility
     if not plan:
         plan = {}
 
@@ -213,7 +213,7 @@ def edit(date_str):
 
 
 # ----------------------------------------------------------------------
-# Recurring Templates Console – List
+# Recurring Templates Console - List
 # ----------------------------------------------------------------------
 @planning_bp.route('/templates')
 @pastoral_required()
@@ -228,7 +228,7 @@ def templates_list():
 
 
 # ----------------------------------------------------------------------
-# Recurring Template – Create / Edit (with forced_notes)
+# Recurring Template - Create / Edit (with forced_notes)
 # ----------------------------------------------------------------------
 @planning_bp.route('/templates/new', methods=['GET', 'POST'])
 @planning_bp.route('/templates/edit/<int:template_id>', methods=['GET', 'POST'])
@@ -275,7 +275,7 @@ def template_edit(template_id=None):
             'pastoral_sermon_id': None,
             'weekday': None
         }
-        assignments = []  # Start empty – precise control
+        assignments = []  # Start empty - precise control
 
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
@@ -320,7 +320,7 @@ def template_edit(template_id=None):
                     return redirect(url_for('pastoral.planning.templates_list'))
 
                 log_change(session['user_id'], 'template_save', template_id or new_id, title, 'Saved master recurring template')
-                flash('Master template saved – affects all future weeks.', 'success')
+                flash('Master template saved - affects all future weeks.', 'success')
                 return redirect(url_for('pastoral.planning.templates_list'))
 
     weekday_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -337,7 +337,7 @@ def template_edit(template_id=None):
 
 
 # ----------------------------------------------------------------------
-# Recurring Template – Delete
+# Recurring Template - Delete
 # ----------------------------------------------------------------------
 @planning_bp.route('/templates/delete/<int:template_id>', methods=['POST'])
 @pastoral_required()
@@ -353,7 +353,7 @@ def template_delete(template_id):
 
 
 # ----------------------------------------------------------------------
-# Recurring Template – Refresh plain weeks (safe cleanup of legacy identical overrides)
+# Recurring Template - Refresh plain weeks (safe cleanup of legacy identical overrides)
 # ----------------------------------------------------------------------
 @planning_bp.route('/templates/refresh/<int:template_id>', methods=['POST'])
 @pastoral_required()
@@ -397,7 +397,7 @@ def template_refresh(template_id):
             p_worship == t_worship and
             p['pastoral_sermon_id'] == template['pastoral_sermon_id'] and
             plan_roles == template_roles):
-            # Identical or title blank – safe to delete
+            # Identical or title blank - safe to delete
             cur.execute("DELETE FROM service_plan_assignments WHERE service_plan_id = %s", (p['id'],))
             cur.execute("DELETE FROM service_plans WHERE id = %s", (p['id'],))
             deleted_count += 1

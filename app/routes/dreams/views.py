@@ -50,7 +50,7 @@ def dreams():
 
 
 # ----------------------------------------------------------------------
-# Single Dream Detail – EXACT SAME FIX AS PROPHECIES
+# Single Dream Detail - EXACT SAME FIX AS PROPHECIES
 # ----------------------------------------------------------------------
 @dreams_bp.route('/<int:dream_id>')
 def view_dream(dream_id):
@@ -59,7 +59,7 @@ def view_dream(dream_id):
 
     # FORCE guests to the public view (exact pattern that fixed prophecies)
     if 'user_id' not in session:
-        print("[DREAMS PRIVATE VIEW] Guest detected → REDIRECTING to PUBLIC public_dream_detail")
+        print("[DREAMS PRIVATE VIEW] Guest detected -> REDIRECTING to PUBLIC public_dream_detail")
         return redirect(url_for('public.public_dreams.public_dream_detail', dream_id=dream_id))
 
     # Logged-in user continues with private view
@@ -73,10 +73,10 @@ def view_dream(dream_id):
 
     # Visibility enforcement
     if dream['visibility'] == 'personal' and dream['user_id'] != user_id:
-        flash('This is a personal dream – visible only to the submitter.', 'error')
+        flash('This is a personal dream - visible only to the submitter.', 'error')
         return redirect(url_for('dreams.dreams'))
     if dream['visibility'] == 'private' and not is_logged_in:
-        flash('This is a private dream – login required.', 'error')
+        flash('This is a private dream - login required.', 'error')
         return redirect(url_for('dreams.dreams'))
 
     dream['title'] = censor_text(dream['title'])

@@ -29,7 +29,7 @@ from app.utils.comment_moderation import (
 # ----------------------------------------------------------------------
 @prayers_bp.route('/', methods=['GET', 'POST'])
 def public_prayers():
-    """Public prayers listing — approved requests plus guest submission form."""
+    """Public prayers listing - approved requests plus guest submission form."""
     if 'user_id' in session and request.method == 'GET':
         return redirect(url_for('prayers.prayers'))
 
@@ -44,7 +44,7 @@ def public_prayers():
                     request.remote_addr,
                 )
                 flash(
-                    'Thank you — your prayer request was received and will appear after a brief review.',
+                    'Thank you - your prayer request was received and will appear after a brief review.',
                     'success',
                 )
             except Exception:

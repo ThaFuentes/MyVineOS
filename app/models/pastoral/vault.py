@@ -83,7 +83,7 @@ def add_vault_item(data: dict, owner_id: int | None):
 
 
 def update_vault_item(item_id: int, data: dict, current_user_id: int):
-    """Update an existing vault item – allows edit of both private and shared items."""
+    """Update an existing vault item - allows edit of both private and shared items."""
     db = get_db()
     cur = db.cursor()
 
@@ -124,7 +124,7 @@ def update_vault_item(item_id: int, data: dict, current_user_id: int):
 
 
 def delete_vault_item(item_id: int, current_user_id: int):
-    """Delete a vault item – allowed for owned private items or any shared item."""
+    """Delete a vault item - allowed for owned private items or any shared item."""
     db = get_db()
     cur = db.cursor()
     cur.execute("""

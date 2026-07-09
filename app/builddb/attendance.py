@@ -10,10 +10,10 @@
 # UNIQUE constraint prevents duplicate check-in for same user on same date.
 # Searchable via members directory (per member history) and groups (group attendance reports).
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # All user/group FKs use UNSIGNED INT to match users.id/groups.id and fix errno 150.
 # FULL REBUILD: Removed unnecessary import (check_password_hash belongs in routes, not migration).
-# No Werkzeug imports – pure schema creation.
+# No Werkzeug imports - pure schema creation.
 
 def create_tables(cursor):
     """

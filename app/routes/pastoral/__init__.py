@@ -6,11 +6,11 @@
 #   - Defines pastoral_required decorator (login + Pastoral Group membership)
 #   - Registers root dashboard route (/pastoral/) with upcoming_service context for the "Next Upcoming Service" card
 #   - Explicitly imports and registers all sub-module blueprints
-#   - Uses explicit imports → fully compatible with Python 3.14+
+#   - Uses explicit imports -> fully compatible with Python 3.14+
 #   - Core sub-modules fail loud if missing; optional ones fail silently
 #   - All pastoral routes protected by @pastoral_required
 #   UPDATED: Dashboard route now fetches and passes upcoming_service to template (fixes UndefinedError)
-#   UPDATED: Added registration for vault_integration blueprint (seamless sermon ↔ vault quick-save & search)
+#   UPDATED: Added registration for vault_integration blueprint (seamless sermon  vault quick-save & search)
 
 from flask import Blueprint, flash, redirect, render_template, session, url_for
 from typing import Callable, Optional
@@ -72,7 +72,7 @@ def pastoral_required(permission: Optional[str] = None) -> Callable:
 
 
 # --------------------------------------------------------------------------
-# Root Route – Pastoral Command Center
+# Root Route - Pastoral Command Center
 # --------------------------------------------------------------------------
 @pastoral_bp.route('/')
 @pastoral_required()
@@ -92,9 +92,9 @@ def dashboard_pastoral():
 
 # --------------------------------------------------------------------------
 # Explicit Sub-Module Blueprint Registration
-#   → Explicit imports only – no __import__ or package= keyword
-#   → Core modules fail loud if missing (raise ImportError)
-#   → Optional modules fail silently
+#   -> Explicit imports only - no __import__ or package= keyword
+#   -> Core modules fail loud if missing (raise ImportError)
+#   -> Optional modules fail silently
 # --------------------------------------------------------------------------
 
 # Core / required pastoral sub-modules
@@ -146,16 +146,16 @@ try:
 except (ImportError, AttributeError) as e:
     raise ImportError(f"Critical: Failed to load vault sub-module: {e}")
 
-# NEW: Vault ↔ Sermon integration endpoints (quick-save & search)
+# NEW: Vault  Sermon integration endpoints (quick-save & search)
 try:
     from .vault_integration import vault_integration_bp
     pastoral_bp.register_blueprint(vault_integration_bp)
 except (ImportError, AttributeError):
-    pass  # Optional – graceful if file not yet created
+    pass  # Optional - graceful if file not yet created
 
 # Optional / newer modules (silent fail if not yet implemented)
 try:
-    from . import ai_assistant  # noqa: F401 — registers routes on pastoral_bp
+    from . import ai_assistant  # noqa: F401 - registers routes on pastoral_bp
 except (ImportError, AttributeError):
     pass
 

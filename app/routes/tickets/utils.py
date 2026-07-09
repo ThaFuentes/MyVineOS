@@ -2,7 +2,7 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/tickets/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Helper functions for the **Ticket Manager** blueprint ONLY (routes/tickets/).
-# 100% rebuilt clean version – exact same behavior as before, but now can_manage_tickets() properly checks:
+# 100% rebuilt clean version - exact same behavior as before, but now can_manage_tickets() properly checks:
 #   - Owner / Admin role (via session)
 #   - Explicit membership in the ticket_managers table (your dedicated ticket group admin)
 #   - Old group-based 'manage_tickets' permission (for backward compatibility)

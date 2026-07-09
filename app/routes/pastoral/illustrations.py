@@ -145,7 +145,7 @@ def library():
     for item in items:
         item['is_docked'] = item['id'] in docked_ids
 
-    # Edit handling – both types
+    # Edit handling - both types
     edit_item = None
     if edit_id:
         try:
@@ -202,7 +202,7 @@ def library():
                         'tags': tags_json,
                         'visibility': visibility,
                     }
-                    # Assume update_vault_item exists – add if not
+                    # Assume update_vault_item exists - add if not
                     # update_vault_item(edit_id, data, owner_id)
                     cur.execute("""
                         UPDATE pastoral_vault
@@ -337,7 +337,7 @@ def insert_into_sermon(sermon_id: int):
     if not item_id:
         return jsonify({'status': 'error', 'message': 'No item selected'}), 400
 
-    # Unified – try illustration, then vault
+    # Unified - try illustration, then vault
     item = get_illustration_by_id(item_id, user_id)
     if not item:
         # Try vault

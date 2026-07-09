@@ -1,11 +1,11 @@
 <!-- myvinechurchonline/app/templates/members/members_dashboard.html -->
 <!-- Full path: myvinechurchonline/app/templates/members/members_dashboard.html -->
 <!-- File name: members_dashboard.html -->
-<!-- Brief, detailed purpose: Members Dashboard – main directory page.
+<!-- Brief, detailed purpose: Members Dashboard - main directory page.
    Fully rebuilt: pure global CSS, glassmorphism wrapper via base_members.html.
    Summary cards, top admin buttons, collapsible search + role filters.
    Glass table with expandable rows (family + details).
-   Actions buttons: compact, side-by-side, right-aligned, wrap on mobile – no layout overflow.
+   Actions buttons: compact, side-by-side, right-aligned, wrap on mobile - no layout overflow.
    All inline tweaks removed where possible; button size fixed via targeted classes/styles. -->
 
 {% extends "members/base_members.html" %}
@@ -183,7 +183,7 @@ Granted permissions control who can view, edit, or fully manage accounts.
                                                 <li>
                                                     <strong>{{ rel.related_first_name }} {{ rel.related_last_name }}</strong>
                                                     ({{ rel.relation_type|capitalize }}
-                                                    {% if rel.status == 'pending' %} – Pending Approval{% endif %})
+                                                    {% if rel.status == 'pending' %} - Pending Approval{% endif %})
                                                 </li>
                                                 {% endfor %}
                                             </ul>

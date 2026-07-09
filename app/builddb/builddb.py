@@ -12,7 +12,7 @@
 #   5. family_relations.py
 #   6. member_roles.py
 #   7. user_widgets.py
-#   8. timezone_setting.py (runs last – ALTER on settings table, safe anytime after settings exists)
+#   8. timezone_setting.py (runs last - ALTER on settings table, safe anytime after settings exists)
 #   9. Any remaining modules alphabetically
 # Added robust retry logic with exponential backoff for connection/initialization issues.
 # Verbose mode (default True when run directly) for debugging; quiet success message otherwise.
@@ -87,14 +87,14 @@ def build_all(verbose: bool = False) -> None:
 
     # Explicit safe order (critical dependencies first)
     ordered_names = [
-        'users',           # Base table – all user FKs depend on this
+        'users',           # Base table - all user FKs depend on this
         'groups',          # Needed for user_groups and attendance.group_id
         'user_groups',     # Junction table
         'attendance',      # References users and groups
         'family_relations',
         'member_roles',
         'user_widgets',
-        'timezone_setting',  # ← ADDED: Runs last – safe ALTER on settings table
+        'timezone_setting',  # <- ADDED: Runs last - safe ALTER on settings table
         'comment_moderation',  # After all comment tables exist
     ]
 
@@ -123,7 +123,7 @@ def build_all(verbose: bool = False) -> None:
         module_name = module.__name__.split('.')[-1]
         if hasattr(module, 'create_tables'):
             if verbose:
-                print(f"  → Running create_tables from {module_name}.py")
+                print(f"  -> Running create_tables from {module_name}.py")
             try:
                 module.create_tables(cursor)
             except Exception as e:
@@ -131,7 +131,7 @@ def build_all(verbose: bool = False) -> None:
                 raise
         else:
             if verbose:
-                print(f"  → Skipping {module_name}.py (no create_tables function)")
+                print(f"  -> Skipping {module_name}.py (no create_tables function)")
 
     conn.commit()
     conn.close()

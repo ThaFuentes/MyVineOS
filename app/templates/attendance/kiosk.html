@@ -3,7 +3,7 @@
 <!-- File name: kiosk.html -->
 <!-- Brief, detailed purpose: Standalone public kiosk with LIVE AJAX search + LOCALSTORAGE TOKEN BACKUP.
    LAYOUT FIXED: Search box always at top, success flash appears BELOW search (centered, prominent).
-   Live search (no reload) – token 100% safe.
+   Live search (no reload) - token 100% safe.
    Auto-populate as you type.
    Check-in flashes success below search, results stay visible.
    Full-screen friendly, global dark/cyan theme. -->
@@ -19,13 +19,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <title>Attendance Check-In – {{ g.settings.church_name or 'MyVineChurch.Online' }}</title>
+    <title>Attendance Check-In - {{ g.settings.church_name or 'MyVineChurch.Online' }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global/base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global/forms.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202606">
     <style>
-      /* Kiosk is special full-touch device UI — never show the member bottom nav */
+      /* Kiosk is special full-touch device UI - never show the member bottom nav */
       .bottom-nav { display: none !important; }
       .top-bar { display: none !important; } /* kiosk has its own huge header */
     </style>
@@ -145,7 +145,7 @@
                             resultsBody.innerHTML = '';
 
                             if (data.error) {
-                                noResults.textContent = 'Kiosk session invalid – please reopen kiosk.';
+                                noResults.textContent = 'Kiosk session invalid - please reopen kiosk.';
                                 noResults.style.display = 'block';
                                 localStorage.removeItem('kiosk_token');
                                 return;
@@ -177,7 +177,7 @@
                         })
                         .catch(() => {
                             loading.style.display = 'none';
-                            noResults.textContent = 'Search error – check connection.';
+                            noResults.textContent = 'Search error - check connection.';
                             noResults.style.display = 'block';
                         });
                 }, 300);

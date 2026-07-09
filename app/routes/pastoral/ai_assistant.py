@@ -55,7 +55,7 @@ def load_ai_config(preferred_provider=None):
 def call_ai(prompt, model=None):
     config = load_ai_config()
     if not config:
-        return None, "AI not configured. Enable a provider in Settings → AI."
+        return None, "AI not configured. Enable a provider in Settings -> AI."
     if config['provider'] != 'ollama' and not config['api_key']:
         return None, "AI provider enabled but API key missing."
     model = model or config.get('model')
@@ -101,7 +101,7 @@ def call_ai(prompt, model=None):
             return None, "Unsupported AI provider."
 
         if response.status_code != 200:
-            return None, f"AI API error: {response.status_code} – {response.text}"
+            return None, f"AI API error: {response.status_code} - {response.text}"
 
         result = response.json()
         if config['provider'] == 'gemini':
@@ -159,7 +159,7 @@ def ai_generate_outline(sermon_id):
         return jsonify({'status': 'error', 'message': error}), 500
 
     if contains_censored_word(output):
-        output = "[Redacted – generated content contained prohibited terms]"
+        output = "[Redacted - generated content contained prohibited terms]"
 
     log_change(user_id, 'ai', sermon_id, title or passage, 'AI generated outline')
 
@@ -199,7 +199,7 @@ def ai_suggest_questions(sermon_id):
         return jsonify({'status': 'error', 'message': error}), 500
 
     if contains_censored_word(output):
-        output = "[Redacted – generated content contained prohibited terms]"
+        output = "[Redacted - generated content contained prohibited terms]"
 
     log_change(user_id, 'ai', sermon_id, None, 'AI suggested discussion questions')
 
@@ -234,7 +234,7 @@ def ai_expand_point(sermon_id):
         return jsonify({'status': 'error', 'message': error}), 500
 
     if contains_censored_word(output):
-        output = "[Redacted – generated content contained prohibited terms]"
+        output = "[Redacted - generated content contained prohibited terms]"
 
     log_change(user_id, 'ai', sermon_id, None, 'AI expanded point')
 

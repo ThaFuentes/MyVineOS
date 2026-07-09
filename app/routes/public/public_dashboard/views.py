@@ -1,7 +1,7 @@
 # MYVINECHURCH.ONLINE/app/routes/public/public_dashboard/views.py
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/public_dashboard/views.py
 # File name: views.py
-# Brief, detailed purpose: Public Dashboard routes – rich social-media style feed on the home page (/ and /public).
+# Brief, detailed purpose: Public Dashboard routes - rich social-media style feed on the home page (/ and /public).
 # - Reuses ALL existing public queries with smart priority ordering (upcoming events first, newest sermons, recent announcements, dreams, prophecies, prayers).
 # - Easy click-to-detail cards with recent comment previews (loaded via queries.py).
 # - 100% rebuilt clean production version - identical structure to the working public/events/views.py gold standard.
@@ -22,7 +22,7 @@ def _build_public_feed():
     """Prepare the community feed cards for rendering."""
     feed = get_public_dashboard_feed()
 
-    # Censor the entire feed (main content only — comments are censored in queries.py)
+    # Censor the entire feed (main content only - comments are censored in queries.py)
     feed = censor_public_content(feed)
 
     for item in feed:
@@ -77,7 +77,7 @@ def _build_public_feed():
 
 @dashboard_bp.route('/')
 def public_dashboard():
-    """Guest home at /public/ — church overview, events, schedule, and sign-in."""
+    """Guest home at /public/ - church overview, events, schedule, and sign-in."""
     if not session.get('user_id'):
         return render_welcome_page()
     return redirect(url_for('public.public_dashboard.public_community'))

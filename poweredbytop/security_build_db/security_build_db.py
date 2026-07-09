@@ -77,7 +77,7 @@ def build_all(verbose: bool = False, cursor=None) -> None:
                 modules.append((name, module))
             except Exception as e:
                 if verbose:
-                    print(f"  ⚠️ Could not import {name}.py: {e}")
+                    print(f"   Could not import {name}.py: {e}")
 
     # Explicit safe order (reputation first as it's core)
     ordered_names = [
@@ -108,15 +108,15 @@ def build_all(verbose: bool = False, cursor=None) -> None:
         module_name = module.__name__.split('.')[-1]
         if hasattr(module, 'create_tables'):
             if verbose:
-                print(f"  → Running create_tables from {module_name}.py")
+                print(f"  -> Running create_tables from {module_name}.py")
             try:
                 module.create_tables(cursor)
             except Exception as e:
-                print(f"  ⚠️ Error in {module_name}.py (non-fatal for other tables): {e}")
+                print(f"   Error in {module_name}.py (non-fatal for other tables): {e}")
                 # do not raise - allow partial success, tables may exist
         else:
             if verbose:
-                print(f"  → Skipping {module_name}.py (no create_tables)")
+                print(f"  -> Skipping {module_name}.py (no create_tables)")
 
     if own_conn:
         conn.commit()

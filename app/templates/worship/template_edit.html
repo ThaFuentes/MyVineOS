@@ -3,11 +3,11 @@
 {% from "worship/_member_notes.html" import member_notes_block %}
 {% from "worship/_public_links.html" import public_links %}
 
-{% block worship_title %}{{ template.title }} — Weekly Default{% endblock %}
+{% block worship_title %}{{ template.title }} - Weekly Default{% endblock %}
 
 {% block worship_content %}
 <div class="glass-panel" style="padding:0.75rem 1rem; margin-bottom:1rem; border-left:3px solid var(--primary);">
-  <strong>Permanent {{ template.weekday_name }} template</strong> — applies every {{ template.weekday_name }} until a specific date is customized.
+  <strong>Permanent {{ template.weekday_name }} template</strong> - applies every {{ template.weekday_name }} until a specific date is customized.
 </div>
 
 <h1 style="margin:0 0 1rem; font-size:1.35rem; color:var(--primary);">{{ template.weekday_name }} Worship</h1>
@@ -48,9 +48,9 @@
     <form method="post" style="display:flex; gap:0.5rem; align-items:center;">
       <input type="hidden" name="action" value="add_song">
       <select name="song_id" required>
-        <option value="">Add song…</option>
+        <option value="">Add song...</option>
         {% for s in all_songs %}
-        <option value="{{ s.id }}">{{ s.title }}{% if s.artist %} — {{ s.artist }}{% endif %}</option>
+        <option value="{{ s.id }}">{{ s.title }}{% if s.artist %} - {{ s.artist }}{% endif %}</option>
         {% endfor %}
       </select>
       <button type="submit" class="btn btn-primary">Add</button>
@@ -60,7 +60,7 @@
   <ol style="margin:0; padding-left:1.25rem;">
     {% for item in songs %}
     <li style="margin-bottom:0.5rem; display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
-      <span><strong>{{ item.title }}</strong>{% if item.artist %} — {{ item.artist }}{% endif %}</span>
+      <span><strong>{{ item.title }}</strong>{% if item.artist %} - {{ item.artist }}{% endif %}</span>
       <form method="post" style="margin:0;">
         <input type="hidden" name="action" value="remove_song">
         <input type="hidden" name="item_id" value="{{ item.id }}">

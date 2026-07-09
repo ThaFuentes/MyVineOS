@@ -5,7 +5,7 @@
 # Stores encrypted SMTP/email configuration (server, port, credentials, mode) separately for app-wide and church-specific settings.
 # No foreign keys; independent tables.
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 
 def create_tables(cursor):
     """

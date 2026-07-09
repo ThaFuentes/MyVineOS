@@ -9,7 +9,7 @@
 
 {% extends "members/base_members.html" %}
 
-{% block page_title %}{{ 'Edit Member – ' + member.first_name + ' ' + member.last_name if member else 'Add New Member' }}{% endblock %}
+{% block page_title %}{{ 'Edit Member - ' + member.first_name + ' ' + member.last_name if member else 'Add New Member' }}{% endblock %}
 
 {% block page_description %}
 {{ 'Update member details' if member else 'Add a new church member' }}.<br>
@@ -23,7 +23,7 @@ A temporary password will be generated and emailed on creation.
     {% if not member %}
     <div class="compliance-info">
         <p><strong>Note:</strong> A temporary password will be automatically generated and emailed to the member.</p>
-        <p>Username will be automatically set from the email address (e.g., john@example.com → john).</p>
+        <p>Username will be automatically set from the email address (e.g., john@example.com -> john).</p>
     </div>
     {% endif %}
 

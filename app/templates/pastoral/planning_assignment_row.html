@@ -4,9 +4,9 @@
 {# Brief, detailed purpose:
 #   Partial template for a single role assignment row.
 #   Used dynamically in:
-#     - planning_edit.html      – per-service-plan assignments (new or existing dated plans)
-#     - planning_defaults.html  – global default role assignments (pre-fill every new plan)
-#     - planning_template_edit.html – master recurring template role assignments
+#     - planning_edit.html      - per-service-plan assignments (new or existing dated plans)
+#     - planning_defaults.html  - global default role assignments (pre-fill every new plan)
+#     - planning_template_edit.html - master recurring template role assignments
 #   FULLY REBUILT & POLISHED:
 #     - Accessibility: proper labels, aria attributes, clear remove button with screen-reader text
 #     - Responsive: input-group flex layout works perfectly on mobile
@@ -17,7 +17,7 @@
 #     - Dropdown populated exclusively with Pastoral Group members (assignable_users)
 #     - No 'required' attribute: empty role_name rows are skipped on save (allows blank rows without blocking submit)
 #     - Handles assignment=none gracefully for hidden template row (dynamic add)
-#   No inline styles – relies entirely on global pastoral.css for smoothness. #}
+#   No inline styles - relies entirely on global pastoral.css for smoothness. #}
 
 <div class="input-group mb-3 assignment-row" role="group" aria-label="Role assignment row">
     <input type="text"

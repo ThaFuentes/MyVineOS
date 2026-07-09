@@ -13,7 +13,7 @@ from app.models.settings import get_settings  # Matches your current loader
 
 # Fixed timezones (used when zoneinfo is unavailable)
 UTC_TZ = timezone.utc
-CENTRAL_TZ_FIXED = timezone(timedelta(hours=-6))  # Central Standard Time – matches your 6-hour offset issue
+CENTRAL_TZ_FIXED = timezone(timedelta(hours=-6))  # Central Standard Time - matches your 6-hour offset issue
 
 def get_church_tz():
     """
@@ -25,7 +25,7 @@ def get_church_tz():
     settings = get_settings()
     tz_name = (settings.get('timezone') or 'America/Chicago').strip()
 
-    # Try proper IANA zoneinfo (best case – handles DST automatically)
+    # Try proper IANA zoneinfo (best case - handles DST automatically)
     try:
         from zoneinfo import ZoneInfo
         return ZoneInfo(tz_name)

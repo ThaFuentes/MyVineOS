@@ -7,10 +7,10 @@
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
         <h1 style="color:var(--primary); margin:0; font-size:1.4rem;">Moderation Hub</h1>
-        <a href="{{ url_for('the_gathering.dashboard.dashboard') }}" class="btn btn-secondary">← Manager Dashboard</a>
+        <a href="{{ url_for('the_gathering.dashboard.dashboard') }}" class="btn btn-secondary"><- Manager Dashboard</a>
     </div>
     <p style="opacity:0.8; margin-bottom:1.25rem;">
-        Review visitor prayer requests and moderate all public comments — edit, shadow, or delete inline without leaving this page.
+        Review visitor prayer requests and moderate all public comments - edit, shadow, or delete inline without leaving this page.
         Hover titles to preview full content.
     </p>
 
@@ -32,7 +32,7 @@
                     {% for p in pending_prayers %}
                     <tr>
                         <td><strong>{{ title_preview(p.title, p.description) }}</strong></td>
-                        <td style="max-width:320px; font-size:0.88rem; opacity:0.9; white-space:pre-wrap;">{{ (p.description or '')|truncate(200, True, '…') }}</td>
+                        <td style="max-width:320px; font-size:0.88rem; opacity:0.9; white-space:pre-wrap;">{{ (p.description or '')|truncate(200, True, '...') }}</td>
                         <td>{{ p.contributor_name or 'Guest' }}</td>
                         <td>{{ p.posted_at_nice or p.date_posted }}</td>
                         <td>
@@ -66,7 +66,7 @@
             <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end;">
                 <div style="flex:2 1 220px; min-width:180px;">
                     <label style="display:block; font-size:0.8rem; margin-bottom:0.25rem; opacity:0.85;">Search</label>
-                    <input type="text" name="search" class="form-control" placeholder="Author, comment, or parent title…" value="{{ search }}" style="width:100%;">
+                    <input type="text" name="search" class="form-control" placeholder="Author, comment, or parent title..." value="{{ search }}" style="width:100%;">
                 </div>
                 <div style="flex:1 1 140px; min-width:120px;">
                     <label style="display:block; font-size:0.8rem; margin-bottom:0.25rem; opacity:0.85;">Filter</label>

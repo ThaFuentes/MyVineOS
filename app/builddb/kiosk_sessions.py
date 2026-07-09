@@ -4,10 +4,10 @@
 # Brief, detailed purpose: Creates the kiosk_sessions table for MariaDB.
 # Tracks active attendance kiosk sessions (token-based, secure, expirable).
 # Core fields: token (UNIQUE), created_by, created_at, expires_at, active.
-# Used for public kiosk access – token required, no login.
+# Used for public kiosk access - token required, no login.
 # Tokens auto-expire or manual close.
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # FK to users.id for creator.
 
 def create_tables(cursor):

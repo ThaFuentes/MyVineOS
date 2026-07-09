@@ -6,9 +6,9 @@
 # - Provides listing with filters/search (all/public/private), single prophecy fetch,
 #   and comment queries for moderation.
 # - All queries are safe, efficient, and use LEFT JOINs for creator names.
-# - Designed to be called only from prophecies/views.py — keeps views clean.
+# - Designed to be called only from prophecies/views.py - keeps views clean.
 # - 100% consistent with the_gathering/events/queries.py, dreams/queries.py, prayers/queries.py and announcements/queries.py patterns.
-# - Only this file was rebuilt — everything else on the site remains untouched and secure.
+# - Only this file was rebuilt - everything else on the site remains untouched and secure.
 
 from app.models.db import get_db
 from app.utils.comment_moderation import comment_count_subquery, fetch_manager_comments

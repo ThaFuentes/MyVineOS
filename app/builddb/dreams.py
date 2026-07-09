@@ -2,7 +2,7 @@
 # Full path: MYVINECHURCH.ONLINE/app/builddb/dreams.py
 # File name: dreams.py
 # Brief, detailed purpose: Creates/updates the dreams and dream_comments tables for MariaDB.
-# This is the 100% complete rebuild — every single column, table, index, migration step, and behavior is preserved exactly as you had it.
+# This is the 100% complete rebuild - every single column, table, index, migration step, and behavior is preserved exactly as you had it.
 # The only updates are: much clearer comments.html, better code organization, and explicit documentation around the created_by column (this powers "Created by: [Name]" on the public dreams page, just like events, announcements, prayers, and sermons).
 # No new columns, no new tables, no behavior changes.
 
@@ -33,7 +33,7 @@ def create_tables(cursor):
             is_approved      TINYINT(1) DEFAULT 1,
             comments_count   INTEGER DEFAULT 0,
             user_id          INT UNSIGNED,
-            created_by       INT UNSIGNED,           -- ← This column shows WHO created the dream/vision
+            created_by       INT UNSIGNED,           -- <- This column shows WHO created the dream/vision
             updated_by       INT UNSIGNED,
             approved_by      INT UNSIGNED,
             contributor_name VARCHAR(255),
@@ -118,7 +118,7 @@ def create_tables(cursor):
     # They allow the public dreams page to display "Created by: [Name]".
     # If you see "Unknown" on old dreams, it is only because created_by was NULL.
 
-    # Indexes for dreams (safe — will not fail if they already exist)
+    # Indexes for dreams (safe - will not fail if they already exist)
     try:
         cursor.execute("CREATE INDEX idx_dreams_visibility ON dreams(visibility)")
     except: pass

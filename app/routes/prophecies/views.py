@@ -21,12 +21,12 @@ REQUIRED_ROLES = ['Admin', 'Owner']
 
 
 # ----------------------------------------------------------------------
-# Main Listing – /prophecies
+# Main Listing - /prophecies
 # ----------------------------------------------------------------------
 @prophecies_bp.route('/')
 def list_prophecies():
     if 'user_id' not in session:
-        # Guest → go to public page (FULL CORRECT NAME)
+        # Guest -> go to public page (FULL CORRECT NAME)
         return redirect(url_for('public.public_prophecies.public_prophecies'))
 
     is_logged_in = True
@@ -83,7 +83,7 @@ def list_prophecies():
 @prophecies_bp.route('/<int:prophecy_id>')
 def view_prophecy(prophecy_id):
     if 'user_id' not in session:
-        # Guest → go to public detail page (FULL CORRECT NAME)
+        # Guest -> go to public detail page (FULL CORRECT NAME)
         return redirect(url_for('public.public_prophecies.public_prophecy_detail', prophecy_id=prophecy_id))
 
     is_logged_in = True
@@ -109,7 +109,7 @@ def view_prophecy(prophecy_id):
     # Visibility enforcement for logged-in users
     visibility = prophecy.get('visibility')
     if visibility == 'personal' and prophecy['user_id'] != user_id:
-        flash('This is a personal prophecy – visible only to the submitter.', 'error')
+        flash('This is a personal prophecy - visible only to the submitter.', 'error')
         return redirect(url_for('prophecies.list_prophecies'))
 
     # Server-side censorship

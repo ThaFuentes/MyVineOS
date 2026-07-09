@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/dashboard/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Dashboard module.
-# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Pure data-access layer - no Flask routes, no templates, no flash messages.
 # - Every SELECT from the original dashboard.py is now here (birthdays, prayers, dreams, prophecies, sermons, announcements, events, widgets).
 # - 100% MariaDB/pymysql compatible, parameterized, reusable functions.
-# - Designed for easy growth – add new dashboard sections anytime without touching views.
+# - Designed for easy growth - add new dashboard sections anytime without touching views.
 
 import pymysql
 from app.models.db import get_db

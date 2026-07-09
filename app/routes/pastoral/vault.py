@@ -3,11 +3,11 @@
 # File name: vault.py
 # Brief, detailed purpose:
 #   Blueprint for the Pastoral Vault module (saved sermon sections, reusable content).
-#   - Unified library view (private + shared) — mirrors illustrations library style
+#   - Unified library view (private + shared) - mirrors illustrations library style
 #   - Manual add/edit/delete (with ownership enforcement)
 #   - AJAX quick-save from sermon editor (/save_section_ajax)
-#   - AJAX search for "Insert from Vault" modal (/search_ajax) — loads recent on empty query
-#   - Safe tags parsing — no JSONDecodeError crash on bad DB data
+#   - AJAX search for "Insert from Vault" modal (/search_ajax) - loads recent on empty query
+#   - Safe tags parsing - no JSONDecodeError crash on bad DB data
 #   - All routes require Pastoral Group membership (@pastoral_required)
 #   - Consistent with illustrations.py: direct DB access, safe helpers, audit logging
 
@@ -24,7 +24,7 @@ vault_bp = Blueprint('vault', __name__, url_prefix='/vault')
 
 
 def _safe_load_tags(tags_raw) -> list:
-    """Safe parse tags — same helper used in illustrations.py."""
+    """Safe parse tags - same helper used in illustrations.py."""
     if tags_raw is None:
         return []
     if isinstance(tags_raw, list):
@@ -57,7 +57,7 @@ def _collect_text_for_censor(data: dict) -> str:
 @vault_bp.route('/')
 @pastoral_required()
 def library():
-    """Main Vault library — private + shared items, with optional search (mirrors illustrations)."""
+    """Main Vault library - private + shared items, with optional search (mirrors illustrations)."""
     user_id = session['user_id']
     q = request.args.get('q', '').strip()
 
@@ -233,7 +233,7 @@ def save_section_ajax():
 @vault_bp.route('/search_ajax')
 @pastoral_required()
 def search_ajax():
-    """AJAX search for Insert from Vault modal — only vault items, safe on empty query."""
+    """AJAX search for Insert from Vault modal - only vault items, safe on empty query."""
     user_id = session['user_id']
     query = request.args.get('q', '').strip()
     limit = int(request.args.get('limit', 50))

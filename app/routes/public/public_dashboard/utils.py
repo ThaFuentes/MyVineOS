@@ -4,7 +4,7 @@
 # Brief, detailed purpose: Feature-specific utility functions for the Public Dashboard (rich social-media style feed).
 # - Exact same censor_public_content and format_public_datetime logic from the original shared public/utils.py
 # - Tailored keys for the mixed feed items (title, body, content, event_name, location, description, notes, etc.)
-# - No functionality lost – all censoring and date formatting remain identical for the homepage feed.
+# - No functionality lost - all censoring and date formatting remain identical for the homepage feed.
 # - 100% rebuilt to match the exact style of public/events/utils.py and public/dreams/utils.py gold standard.
 
 from app.utils.helpers import censor_text

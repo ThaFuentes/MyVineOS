@@ -34,7 +34,7 @@ def init_security(app: Flask) -> Flask:
         try:
             build_pbt_tables(verbose=DEBUG_MODE)
         except Exception as build_err:
-            logger("⚠️ PoweredByTop pbt table build warning (tables may already exist or DB unavailable): " + str(build_err))
+            logger(" PoweredByTop pbt table build warning (tables may already exist or DB unavailable): " + str(build_err))
     else:
         logger("[pbt] Skipping pbt table build due to SKIP_* / TESTING env.")
 

@@ -3,7 +3,7 @@
 # File name: views.py
 # Brief, detailed purpose: Public Sermons routes for unauthenticated guests only.
 # - 100% rebuilt to match the working public/events/views.py gold standard exactly.
-# - FIXED: sermon['comments.html'] → sermon['comments'] so the template can see the comments.
+# - FIXED: sermon['comments.html'] -> sermon['comments'] so the template can see the comments.
 # - Listing safely formats uploaded_at and sets posted_by/creator_name.
 # - Detail page now correctly loads and passes comments (guest comments + replies + admin delete).
 # - All url_for calls use correct nested blueprint endpoint 'public.public_sermons.public_sermon_detail'.
@@ -29,7 +29,7 @@ from app.utils.comment_moderation import (
 # ----------------------------------------------------------------------
 @sermons_bp.route('/')
 def public_sermons():
-    """Public sermons listing – logged-in users are redirected to private dashboard."""
+    """Public sermons listing - logged-in users are redirected to private dashboard."""
     if 'user_id' in session:
         return redirect(url_for('sermons.sermons'))
 
@@ -37,7 +37,7 @@ def public_sermons():
     sermons = get_public_sermons()
     sermons = censor_public_content(sermons)
 
-    # Prepare data for template – SAFE date formatting + creator_name fallback
+    # Prepare data for template - SAFE date formatting + creator_name fallback
     for s in sermons:
         # Safe date formatting (handles both datetime objects and strings)
         uploaded_at = s.get('uploaded_at')
@@ -50,7 +50,7 @@ def public_sermons():
         else:
             s['datetime'] = 'Unknown'
 
-        # Creator name – use creator_name first, then fallback
+        # Creator name - use creator_name first, then fallback
         s['posted_by'] = s.get('creator_name') or 'Anonymous'
 
     return render_template('public/sermons/sermons.html', sermons=sermons)

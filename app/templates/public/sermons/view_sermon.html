@@ -1,7 +1,7 @@
 <!-- MYVINECHURCH.ONLINE/app/templates/public/sermons/view_sermon.html -->
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/public/sermons/view_sermon.html -->
 <!-- File name: view_sermon.html -->
-<!-- Brief, detailed purpose: Public single sermon detail page – 100% rebuilt to match the current Events gold standard exactly. -->
+<!-- Brief, detailed purpose: Public single sermon detail page - 100% rebuilt to match the current Events gold standard exactly. -->
 <!-- Media & Downloads section is now collapsible (collapsed by default when unavailable) with clear notice. -->
 
 {% extends "base_public.html" %}
@@ -14,7 +14,7 @@
 <section class="content-section event-header">
     <h1 class="page-title">{{ sermon.title|title }}</h1>
 
-    <!-- HORIZONTAL META – exactly like Events -->
+    <!-- HORIZONTAL META - exactly like Events -->
     <div class="event-meta" style="display: flex; flex-wrap: wrap; gap: 1.8rem 2.5rem; align-items: baseline; justify-content: center; font-size: 1.15rem; color: #ddd; margin-top: 0.8rem;">
         <div><strong>Uploaded on:</strong> {{ sermon.uploaded_at.strftime('%B %d, %Y') if sermon.uploaded_at else 'Unknown' }}</div>
         <div><strong>By:</strong> {{ sermon.posted_by or sermon.creator_name or 'Anonymous' }}</div>
@@ -35,7 +35,7 @@
     </section>
     {% endif %}
 
-    <!-- Media & Downloads – NOW COLLAPSIBLE (exactly like Potluck in Events) -->
+    <!-- Media & Downloads - NOW COLLAPSIBLE (exactly like Potluck in Events) -->
     <section class="content-section">
         <details class="collapsible glass">
             <summary class="section-title">
@@ -124,7 +124,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="no-data">No comments yet – be the first to comment!</p>
+        <p class="no-data">No comments yet - be the first to comment!</p>
         {% endif %}
 
         {% if comments_enabled %}
@@ -157,7 +157,7 @@
 
 <!-- Back to Sermons -->
 <div class="form-actions" style="margin-top:3rem;">
-    <a href="{{ url_for('public.public_sermons.public_sermons') }}" class="btn-secondary">← Back to Sermons</a>
+    <a href="{{ url_for('public.public_sermons.public_sermons') }}" class="btn-secondary"><- Back to Sermons</a>
 </div>
 
 <script>

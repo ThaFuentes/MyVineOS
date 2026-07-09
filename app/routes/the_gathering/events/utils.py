@@ -6,7 +6,7 @@
 # - Light censorship for manager display (flags prohibited words).
 # - Date/time formatting using church timezone helper.
 # - 100% consistent with the_gathering/dreams/utils.py and announcements/utils.py.
-# - Only this file was rebuilt — everything else on the site remains untouched.
+# - Only this file was rebuilt - everything else on the site remains untouched.
 
 from app.utils.helpers import censor_text
 from app.utils.time_utils import format_church
@@ -46,7 +46,7 @@ def safe_truncate(text, length=180):
         return ''
     text = html.escape(str(text))
     if len(text) > length:
-        return text[:length].rsplit(' ', 1)[0] + '…'
+        return text[:length].rsplit(' ', 1)[0] + '...'
     return text
 
 

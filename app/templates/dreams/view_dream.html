@@ -1,10 +1,10 @@
 <!-- app/templates/dreams/view_dream.html -->
 <!-- Full path: WebChurchMan/app/templates/dreams/view_dream.html -->
 <!-- File name: view_dream.html -->
-<!-- Brief, detailed purpose: Single Dream/Vision detail view – mirrors view_event.html structure.
+<!-- Brief, detailed purpose: Single Dream/Vision detail view - mirrors view_event.html structure.
    Full description + collapsible comments.html section (collapsed by default).
    Extends base_dreams.html for menu consistency.
-   Uses ONLY global classes – glass cards, collapsible-section.
+   Uses ONLY global classes - glass cards, collapsible-section.
    Shows title, type, approximate date, description, visibility.
    Edit/Delete buttons only for owner or admin.
    Add comment form for logged-in users.
@@ -18,7 +18,7 @@
 {% block page_title %}{{ dream.title|title|censor }}{% endblock %}
 
 {% block page_description %}
-{{ dream.type|capitalize if dream.type else 'Dream/Vision' }} by {{ dream.poster_name or 'Anonymous' }} – {{ dream.visibility|capitalize }}
+{{ dream.type|capitalize if dream.type else 'Dream/Vision' }} by {{ dream.poster_name or 'Anonymous' }} - {{ dream.visibility|capitalize }}
 {% endblock %}
 
 {% block dreams_content %}
@@ -74,7 +74,7 @@
     </section>
     {% endif %}
 
-    <!-- Comments – COLLAPSIBLE and COLLAPSED by default -->
+    <!-- Comments - COLLAPSIBLE and COLLAPSED by default -->
     <details class="collapsible-section glass">
         <summary class="collapsible-summary section-title">
             Comments {% if dream.comments %}({{ dream.comments|length }}){% endif %}
@@ -116,11 +116,11 @@
             </div>
             {% else %}
             <div class="card glass">
-                <p><em>No comments yet – be the first to share!</em></p>
+                <p><em>No comments yet - be the first to share!</em></p>
             </div>
             {% endif %}
 
-            <!-- Add Comment Form – logged-in only -->
+            <!-- Add Comment Form - logged-in only -->
             {% if is_logged_in %}
             <section class="content-section" style="margin-top:2rem;">
                 <h3 class="section-subtitle">Add Your Comment</h3>
@@ -146,7 +146,7 @@
 
     <!-- Back to Dashboard -->
     <div class="form-actions" style="margin-top:3rem;">
-        <a href="{{ url_for('dreams.dreams') }}" class="btn-secondary">← Back to Dreams & Visions</a>
+        <a href="{{ url_for('dreams.dreams') }}" class="btn-secondary"><- Back to Dreams & Visions</a>
     </div>
 
 </section>

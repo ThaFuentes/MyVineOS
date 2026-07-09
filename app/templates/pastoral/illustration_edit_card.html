@@ -3,10 +3,10 @@
 {# File name: illustration_edit_card.html #}
 {# Brief, detailed purpose:
 #   Reusable full-size editable card for creating or editing a single illustration.
-#   Source/Reference is now a multi-line textarea – completely free text.
-#   Accepts books, conversations, people, notes, anything – NO URL REQUIRED EVER.
-#   No type="url", no pattern, no client validation – saves exactly what you type.
-#   Route already treats it as plain string – no server validation. #}
+#   Source/Reference is now a multi-line textarea - completely free text.
+#   Accepts books, conversations, people, notes, anything - NO URL REQUIRED EVER.
+#   No type="url", no pattern, no client validation - saves exactly what you type.
+#   Route already treats it as plain string - no server validation. #}
 
 <div class="card glass-card mb-5" id="illustration-edit-card" style="display: none;">
     <div class="card-header bg-dark d-flex align-items-center justify-content-between">
@@ -54,7 +54,7 @@
                 <small class="text-muted">Separate tags with commas</small>
             </div>
 
-            <!-- Source / Reference – multi-line textarea, completely free text -->
+            <!-- Source / Reference - multi-line textarea, completely free text -->
             <div class="mb-3">
                 <label class="form-label text-cyan">Source / Reference</label>
                 <textarea name="source"
@@ -63,11 +63,11 @@
                           placeholder="e.g. Experiencing God by Henry Blackaby (p. 132)
 Conversation with Pastor Mike on Jan 15, 2026
 Overheard at coffee shop
-Personal journal entry – March 2025">{{ illustration.source if illustration else '' }}</textarea>
-                <small class="text-muted">Any text you want – book & page, person & date, conversation, journal, etc. NO URL REQUIRED EVER.</small>
+Personal journal entry - March 2025">{{ illustration.source if illustration else '' }}</textarea>
+                <small class="text-muted">Any text you want - book & page, person & date, conversation, journal, etc. NO URL REQUIRED EVER.</small>
             </div>
 
-            <!-- Visibility – defaults to Private for new -->
+            <!-- Visibility - defaults to Private for new -->
             <div class="mb-3">
                 <label class="form-label text-cyan">Visibility</label>
                 <select name="visibility" class="form-select form-control-dark">

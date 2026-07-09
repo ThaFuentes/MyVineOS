@@ -76,7 +76,7 @@ def get_public_dashboard_feed(limit=30):
         feed.sort(key=lambda x: str(x.get('datetime') or '0000-00-00'), reverse=True)
 
     except Exception:
-        pass  # Silent fail – feed will still render
+        pass  # Silent fail - feed will still render
 
     cur.close()
     return feed[:limit]
@@ -113,11 +113,11 @@ def get_recent_comments(content_type, content_id, limit=3):
             'comment_col': 'comment',
             'date_col': 'date_posted'
         },
-        'prophecy': {                                      # ← THIS WAS THE LAST BUG
+        'prophecy': {                                      # <- THIS WAS THE LAST BUG
             'table': 'prophecy_comments',
             'name_col': 'contributor_name',
             'comment_col': 'comment',
-            'date_col': 'date_added'                       # ← Fixed to match views.py
+            'date_col': 'date_added'                       # <- Fixed to match views.py
         }
     }
 

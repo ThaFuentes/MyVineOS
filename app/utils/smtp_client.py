@@ -1,4 +1,4 @@
-# Robust SMTP connection helper — handles port/encryption mismatches (e.g. 465+SSL vs 587+TLS).
+# Robust SMTP connection helper - handles port/encryption mismatches (e.g. 465+SSL vs 587+TLS).
 
 import smtplib
 from typing import Tuple

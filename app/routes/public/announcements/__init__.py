@@ -2,8 +2,8 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/announcements/__init__.py
 # File name: __init__.py
 # Brief, detailed purpose: Public Announcements sub-blueprint initializer.
-# url_prefix='/announcements' under parent public_bp (/public) → /public/announcements
-# Uses 'public_announcements' name → full endpoints public.public_announcements.* for reliable url_for.
+# url_prefix='/announcements' under parent public_bp (/public) -> /public/announcements
+# Uses 'public_announcements' name -> full endpoints public.public_announcements.* for reliable url_for.
 
 from flask import Blueprint
 

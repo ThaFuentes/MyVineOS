@@ -4,7 +4,7 @@
 # Brief, detailed purpose: Feature-specific utility functions for the public Dreams & Visions section.
 # - Exact same censor_public_content and format_public_datetime logic from the original shared public/utils.py
 # - Tailored keys for dreams (title, description, notes, category) while preserving 100% of the old behavior
-# - No functionality lost – all censoring, date formatting, and public safety checks remain identical
+# - No functionality lost - all censoring, date formatting, and public safety checks remain identical
 
 from app.utils.helpers import censor_text
 from app.utils.time_utils import format_church

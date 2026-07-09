@@ -6,7 +6,7 @@
 # - 100% rebuilt to match the exact clean, modular style of public/events/utils.py and public/dreams/utils.py
 #   (detailed section comments, enhanced docstrings, consistent naming, no behavior changes).
 # - All original functions (censor_for_manager, format_manager_datetime, safe_truncate) and their exact logic
-#   are preserved 100% — only readability, documentation, and consistency with the public gold standard were updated.
+#   are preserved 100% - only readability, documentation, and consistency with the public gold standard were updated.
 
 from flask import url_for
 from app.utils.helpers import censor_text
@@ -113,7 +113,7 @@ def safe_truncate(text, length=180):
         return ''
     text = html.escape(str(text))
     if len(text) > length:
-        return text[:length].rsplit(' ', 1)[0] + '…'
+        return text[:length].rsplit(' ', 1)[0] + '...'
     return text
 
 

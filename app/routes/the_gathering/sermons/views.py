@@ -6,7 +6,7 @@
 # - Uses sermons/forms.py, queries.py, and utils.py for clean separation.
 # - Protected by the exact same session + DB role check pattern used everywhere else.
 # - All url_for calls use the correct nested blueprint: 'the_gathering.sermons.*'
-# - 100% rebuilt entire file — only this script was touched.
+# - 100% rebuilt entire file - only this script was touched.
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql

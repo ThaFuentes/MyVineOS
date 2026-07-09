@@ -1,4 +1,4 @@
-{# Unified sermon section fields — modal + inline cards (same layout). #}
+{# Unified sermon section fields - modal + inline cards (same layout). #}
 {% set section = section|default({
     'title': '', 'section_type': 'point', 'scripture_reference': '', 'source': '',
     'content': '', 'notes': '', 'vault_tags': '', 'vault_visibility': 'private'
@@ -7,7 +7,7 @@
 {% set show_optional_hint = show_optional_hint|default(false) %}
 
 <div class="sermon-section-fields">
-  {# Type | Title | Visibility — one row on desktop #}
+  {# Type | Title | Visibility - one row on desktop #}
   <div class="row g-3 section-row-meta">
     <div class="col-12 col-md-4 col-lg-3">
       <div class="input-group">
@@ -42,17 +42,17 @@
     </div>
   </div>
 
-  {# Full-width scripture — pastors often list multiple passages #}
+  {# Full-width scripture - pastors often list multiple passages #}
   <div class="input-group">
     <label class="fw-bold text-cyan small">Scripture Reference</label>
     <textarea class="form-control form-control-dark section-scripture section-field-wide" rows="3"
-              placeholder="e.g. John 3:16–18; Romans 8:28–30; Psalm 23 — list every passage for this section">{{ section.scripture_reference }}</textarea>
+              placeholder="e.g. John 3:16-18; Romans 8:28-30; Psalm 23 - list every passage for this section">{{ section.scripture_reference }}</textarea>
   </div>
 
   <div class="input-group">
     <label class="fw-bold text-cyan small">Source / Reference</label>
     <textarea class="form-control form-control-dark section-source section-field-source section-field-wide" rows="4"
-              placeholder="Books, articles, conversations, stories — paste everything you want to keep visible while you write">{{ section.source }}</textarea>
+              placeholder="Books, articles, conversations, stories - paste everything you want to keep visible while you write">{{ section.source }}</textarea>
   </div>
 
   <div class="input-group">
@@ -64,7 +64,7 @@
 
   <div class="input-group section-content-group">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
-      <label class="fw-bold text-cyan small mb-0">Sermon Content{% if show_optional_hint %} <span class="text-muted fw-normal">(optional — drafts OK)</span>{% endif %}</label>
+      <label class="fw-bold text-cyan small mb-0">Sermon Content{% if show_optional_hint %} <span class="text-muted fw-normal">(optional - drafts OK)</span>{% endif %}</label>
       <div class="section-content-undo-bar d-flex align-items-center gap-1" title="Undo/redo while writing this section">
         <button type="button" class="btn btn-sm btn-outline-secondary section-undo-btn" disabled aria-label="Undo">
           <i class="fas fa-undo"></i>
@@ -72,7 +72,7 @@
         <button type="button" class="btn btn-sm btn-outline-secondary section-redo-btn" disabled aria-label="Redo">
           <i class="fas fa-redo"></i>
         </button>
-        <span class="text-muted small">Ctrl+Z · Ctrl+Y</span>
+        <span class="text-muted small">Ctrl+Z - Ctrl+Y</span>
       </div>
     </div>
     <div class="quill-wrapper section-quill-wrap">
@@ -85,8 +85,8 @@
   </div>
 
   <div class="input-group mb-0">
-    <label class="fw-bold text-cyan small">Private Notes <span class="text-muted fw-normal">(preaching cues — not stored in Vault body)</span></label>
+    <label class="fw-bold text-cyan small">Private Notes <span class="text-muted fw-normal">(preaching cues - not stored in Vault body)</span></label>
     <textarea class="form-control form-control-dark section-notes section-field-notes section-field-wide" rows="5"
-              placeholder="Delivery reminders, timing, emphasis, stage directions — full width for your prep">{{ section.notes }}</textarea>
+              placeholder="Delivery reminders, timing, emphasis, stage directions - full width for your prep">{{ section.notes }}</textarea>
   </div>
 </div>

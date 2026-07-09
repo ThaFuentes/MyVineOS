@@ -536,14 +536,14 @@ def seed_sample_bible_and_strongs(cursor):
         """, (verse, text))
 
     strongs_entries = [
-        ("G26", "greek", "ἀγάπη", "agape", "love, i.e. affection or benevolence; specially a love-feast"),
-        ("G2316", "greek", "θεός", "theos", "a deity, especially the supreme Divinity; God"),
-        ("G2889", "greek", "κόσμος", "kosmos", "orderly arrangement, i.e. decoration; by implication the world"),
-        ("G5207", "greek", "υἱός", "huios", "a son; rarely used for other close male kin"),
-        ("G4100", "greek", "πιστεύω", "pisteuo", "to have faith in, upon, or with respect to, a person or thing"),
-        ("G622", "greek", "ἀπόλλυμι", "apollumi", "to destroy fully, to perish, or lose"),
-        ("G2222", "greek", "ζωή", "zoe", "life, literally or figuratively"),
-        ("H2617", "hebrew", "חֶסֶד", "chesed", "kindness, piety, mercy, love, lovingkindness"),
+        ("G26", "greek", "", "agape", "love, i.e. affection or benevolence; specially a love-feast"),
+        ("G2316", "greek", "", "theos", "a deity, especially the supreme Divinity; God"),
+        ("G2889", "greek", "", "kosmos", "orderly arrangement, i.e. decoration; by implication the world"),
+        ("G5207", "greek", "", "huios", "a son; rarely used for other close male kin"),
+        ("G4100", "greek", "", "pisteuo", "to have faith in, upon, or with respect to, a person or thing"),
+        ("G622", "greek", "", "apollumi", "to destroy fully, to perish, or lose"),
+        ("G2222", "greek", "", "zoe", "life, literally or figuratively"),
+        ("H2617", "hebrew", "", "chesed", "kindness, piety, mercy, love, lovingkindness"),
     ]
     for number, language, lemma, translit, definition in strongs_entries:
         cursor.execute("""

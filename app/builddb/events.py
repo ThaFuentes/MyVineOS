@@ -2,7 +2,7 @@
 # Full path: MYVINECHURCH.ONLINE/app/builddb/events.py
 # File name: events.py
 # Brief, detailed purpose: Creates/updates the events, potluck_signups, and event_comments tables for MariaDB.
-# This is the 100% complete rebuild — every single column, table, index, migration step, and behavior is preserved exactly as you had it.
+# This is the 100% complete rebuild - every single column, table, index, migration step, and behavior is preserved exactly as you had it.
 # The only updates are: much clearer comments, better code organization, and explicit documentation around the created_by column (this is what powers "Created by: Name" on the public events page).
 # No new columns, no new tables, no behavior changes.
 # FIX: Split event_comments creation to avoid InterfaceError (0, '') on self-referencing FK.

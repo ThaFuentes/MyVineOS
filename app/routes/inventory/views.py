@@ -34,7 +34,7 @@ from app.utils.time_utils import utc_now, format_church
 
 
 # ----------------------------------------------------------------------
-# Dashboard – /inventory/
+# Dashboard - /inventory/
 # ----------------------------------------------------------------------
 @inventory_bp.route('/')
 @login_required
@@ -53,7 +53,7 @@ def inventory_dashboard():
 
 
 # ----------------------------------------------------------------------
-# AJAX Barcode Lookup – /inventory/barcode_lookup?code=XXXX
+# AJAX Barcode Lookup - /inventory/barcode_lookup?code=XXXX
 # ----------------------------------------------------------------------
 @inventory_bp.route('/barcode_lookup')
 @login_required
@@ -75,7 +75,7 @@ def barcode_lookup():
 
 
 # ----------------------------------------------------------------------
-# Items Catalog – /inventory/items
+# Items Catalog - /inventory/items
 # ----------------------------------------------------------------------
 @inventory_bp.route('/items')
 @login_required
@@ -89,7 +89,7 @@ def items_list():
 
 
 # ----------------------------------------------------------------------
-# Add / Edit Item – /inventory/items/add and /inventory/items/edit/<int:item_id>
+# Add / Edit Item - /inventory/items/add and /inventory/items/edit/<int:item_id>
 # ----------------------------------------------------------------------
 @inventory_bp.route('/items/add', methods=['GET', 'POST'])
 @inventory_bp.route('/items/edit/<int:item_id>', methods=['GET', 'POST'])
@@ -131,7 +131,7 @@ def item_manage(item_id=None):
 
 
 # ----------------------------------------------------------------------
-# Receive Stock – /inventory/receive
+# Receive Stock - /inventory/receive
 # ----------------------------------------------------------------------
 @inventory_bp.route('/receive', methods=['GET', 'POST'])
 @login_required
@@ -158,7 +158,7 @@ def receive_stock():
 
 
 # ----------------------------------------------------------------------
-# Add Categories & Locations – /inventory/cat-location
+# Add Categories & Locations - /inventory/cat-location
 # ----------------------------------------------------------------------
 @inventory_bp.route('/cat-location', methods=['GET', 'POST'])
 @login_required
@@ -192,7 +192,7 @@ def cat_location():
 
 
 # ----------------------------------------------------------------------
-# Barcode Scan – full screen scanner /audit mode
+# Barcode Scan - full screen scanner /audit mode
 # ----------------------------------------------------------------------
 @inventory_bp.route('/scan')
 @login_required

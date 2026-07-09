@@ -4,7 +4,7 @@
 # Brief, detailed purpose: Public Dashboard sub-blueprint initializer (rich feed on the public homepage).
 # Registered under public parent (url_prefix='/public'), so this sub's '/' route serves /public/
 # (the main guest landing page / public community hub feed).
-# 'public_dashboard' bp name → endpoint 'public.public_dashboard.public_dashboard'
+# 'public_dashboard' bp name -> endpoint 'public.public_dashboard.public_dashboard'
 # Uses dedicated public templates.
 
 from flask import Blueprint

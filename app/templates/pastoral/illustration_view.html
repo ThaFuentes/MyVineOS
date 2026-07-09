@@ -8,7 +8,7 @@
 #   Private notes visible only to creator (user_id match) or Admin/Owner.
 #   Back button to library.
 #   Dark/cyan theme consistent.
-#   FULL REBUILD – supports both illustration and vault section types, uses 'item' variable.
+#   FULL REBUILD - supports both illustration and vault section types, uses 'item' variable.
 #}
 
 {% extends "pastoral/base_pastoral.html" %}
@@ -54,7 +54,7 @@
                         </div>
                     {% endif %}
 
-                    <!-- Source / Reference – multi-line preserved -->
+                    <!-- Source / Reference - multi-line preserved -->
                     {% if item.source_url or item.source %}
                         <div class="mb-4">
                             <strong class="text-cyan">Source / Reference:</strong>
@@ -70,7 +70,7 @@
                         </div>
                     </div>
 
-                    <!-- Private Notes – only show to creator or Admin/Owner -->
+                    <!-- Private Notes - only show to creator or Admin/Owner -->
                     {% if current_user_id == item.user_id or current_user_role in ['Admin', 'Owner'] %}
                         {% if item.notes %}
                             <div class="mb-4 p-4 bg-secondary rounded">

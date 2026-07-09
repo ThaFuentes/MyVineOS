@@ -2,15 +2,15 @@
 <!-- Full path: WebChurchMan/app/templates/donations/base_donations.html -->
 <!-- File name: base_donations.html -->
 <!-- Brief, detailed purpose: Common base template for ALL Donations module pages (dashboard, add, view all, reports, export).
-   Exact mirror of base_events.html → identical glassmorphism wrapper, flash handling, menu structure.
-   NO module-specific CSS – uses only global classes.
+   Exact mirror of base_events.html -> identical glassmorphism wrapper, flash handling, menu structure.
+   NO module-specific CSS - uses only global classes.
    Menu: Dashboard (always, route restricted to Staff+) + Add Donation/View All (Staff+) + Reports/Export (Admin/Owner).
    Active highlighting for all endpoints. -->
 
 {% extends "base.html" %}
 
 {% block extra_css %}
-{# Global CSS only – no donations-specific files #}
+{# Global CSS only - no donations-specific files #}
 {% block donations_page_css %}{% endblock %}
 {% endblock %}
 

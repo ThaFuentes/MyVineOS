@@ -8,7 +8,7 @@ CATEGORY_STARTER_TEMPLATES = {
 - Treat others with kindness, humility, and respect
 - Share content that edifies and builds up the body of Christ
 - Avoid harassment, hate speech, profanity, or personal attacks
-- Respect privacy — do not share others' personal information without consent
+- Respect privacy - do not share others' personal information without consent
 - Stay on topic and contribute meaningfully to discussions
 
 Content that violates these guidelines may be removed. Repeat violations may result in restricted access to commenting features.""",

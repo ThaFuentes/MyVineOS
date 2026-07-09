@@ -1,7 +1,7 @@
 <!-- WebChurchMan/app/templates/prophecies/edit_prophecy.html -->
 <!-- Full path: WebChurchMan/app/templates/prophecies/edit_prophecy.html -->
 <!-- File name: edit_prophecy.html -->
-<!-- Brief, detailed purpose: Edit existing Prophecy (private side – for logged-in users/admins) -->
+<!-- Brief, detailed purpose: Edit existing Prophecy (private side - for logged-in users/admins) -->
 
 {% extends "prophecies/base_prophecies.html" %}
 
@@ -35,9 +35,9 @@ Edit your prophecy below. You can change the title, content, or visibility.
         <div class="form-group">
             <label for="visibility" class="control-label">Visibility <span class="required">*</span></label>
             <select id="visibility" name="visibility" class="form-input" required>
-                <option value="public"  {% if prophecy.visibility == 'public' %}selected{% endif %}>Public – visible to everyone</option>
-                <option value="private" {% if prophecy.visibility == 'private' %}selected{% endif %}>Private – visible to logged-in members only</option>
-                <option value="personal"{% if prophecy.visibility == 'personal' %}selected{% endif %}>Personal – visible only to you</option>
+                <option value="public"  {% if prophecy.visibility == 'public' %}selected{% endif %}>Public - visible to everyone</option>
+                <option value="private" {% if prophecy.visibility == 'private' %}selected{% endif %}>Private - visible to logged-in members only</option>
+                <option value="personal"{% if prophecy.visibility == 'personal' %}selected{% endif %}>Personal - visible only to you</option>
             </select>
         </div>
 

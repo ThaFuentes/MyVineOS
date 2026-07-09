@@ -3,7 +3,7 @@
 {% block page_title %}Manage Legal Notices{% endblock %}
 {% block page_description %}
 {{ published_count }} of {{ total_categories }} categories are live publicly.
-{{ total_notices }} notice{{ 's' if total_notices != 1 else '' }} total — edit, publish, or delete any of them below.
+{{ total_notices }} notice{{ 's' if total_notices != 1 else '' }} total - edit, publish, or delete any of them below.
 {% endblock %}
 
 {% block legal_content %}
@@ -60,7 +60,7 @@
                             <span class="legal-status legal-status--draft">Draft</span>
                             {% endif %}
                         </td>
-                        <td>{% if n.updated_at %}{{ n.updated_at.strftime('%b %d, %Y') }}{% else %}—{% endif %}</td>
+                        <td>{% if n.updated_at %}{{ n.updated_at.strftime('%b %d, %Y') }}{% else %}-{% endif %}</td>
                         <td class="legal-manage-actions-cell">
                             <a href="{{ url_for('legal.edit_notice', notice_id=n.id) }}" class="btn-small">Edit</a>
                             {% if n.is_active %}
@@ -75,7 +75,7 @@
                                 <button type="submit" class="btn-small btn-primary">Publish</button>
                             </form>
                             {% endif %}
-                            <form method="post" action="{{ url_for('legal.delete_notice', notice_id=n.id) }}" class="inline-form" onsubmit="return confirm('Delete “{{ n.title }}”? This cannot be undone.');">
+                            <form method="post" action="{{ url_for('legal.delete_notice', notice_id=n.id) }}" class="inline-form" onsubmit="return confirm('Delete "{{ n.title }}"? This cannot be undone.');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn-small btn-danger">Delete</button>
                             </form>

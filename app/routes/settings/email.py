@@ -2,7 +2,7 @@
 # Full path: myvinechurchonline/app/routes/settings/email.py
 # File name: email.py
 # Brief, detailed purpose: Multi-account email configuration + test send.
-# FIXED: Imports changed to package-relative (from .) – loads shared items from settings/__init__.py.
+# FIXED: Imports changed to package-relative (from .) - loads shared items from settings/__init__.py.
 # Added missing pymysql import for DictCursor.
 
 from flask import render_template, request, redirect, url_for, flash, session
@@ -204,7 +204,7 @@ def email():
                                     f'Test email sent to {test_to} via {smtp_mode_label(acc["outgoing_port"], acc.get("outgoing_encryption"))}.'
                                 )
                                 if int(acc['outgoing_port'] or 0) == 465 and stored_enc == 'TLS':
-                                    success += ' (Port 465 uses SSL — update Encryption to SSL in account settings to match.)'
+                                    success += ' (Port 465 uses SSL - update Encryption to SSL in account settings to match.)'
                                 flash(success, 'success')
                         except smtplib.SMTPAuthenticationError:
                             flash('Test failed: SMTP authentication rejected. Check username and password.', 'error')

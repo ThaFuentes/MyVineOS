@@ -94,7 +94,7 @@
     </div>
   </header>
 
-  <!-- Desktop top nav — grouped dropdowns when signed in (mobile uses bottom nav) -->
+  <!-- Desktop top nav - grouped dropdowns when signed in (mobile uses bottom nav) -->
   <nav class="top-nav">
     {% if session.get('user_id') %}
       {% include 'partials/nav_private_groups.html' %}
@@ -150,7 +150,7 @@
 
   <footer style="text-align:center; padding:0.6rem 0.5rem 4.75rem; font-size:0.65rem; color:var(--text-muted); opacity:0.45;">
     <a href="{{ url_for('legal.legal_index') }}" style="color:inherit; text-decoration:none; margin-right:0.75rem;">Legal & Policies</a>
-    © {{ g.get('current_year', '2026') }} {{ s.get('church_name') or 'Church Portal' }}
+    (c) {{ g.get('current_year', '2026') }} {{ s.get('church_name') or 'Church Portal' }}
   </footer>
 
   {% block scripts %}

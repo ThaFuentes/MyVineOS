@@ -4,11 +4,11 @@
 # Brief, detailed purpose: Blueprint and routes for the Pastoral Care module.
 #   Handles confidential care requests (hospital visits, counseling, prayer needs, bereavement, etc.),
 #   assignment to pastors/staff, and private chronological notes.
-#   All routes require pastoral_required() decorator → only Pastoral Group members can access.
+#   All routes require pastoral_required() decorator -> only Pastoral Group members can access.
 #   Enforces confidentiality: notes are private by default, only visible to pastoral team.
 #   Audit-logged actions (create/update/assign/note).
 #   Uses centralized models.pastoral functions for DB access.
-#   FIXED: Removed circular import (from .. import pastoral_bp) → uses relative import from .
+#   FIXED: Removed circular import (from .. import pastoral_bp) -> uses relative import from .
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, abort
 from . import pastoral_required  # Relative import from __init__.py in same folder
@@ -63,7 +63,7 @@ def care_request_detail(request_id):
         assignments=assignments,
         notes=notes,
         pastoral_team=get_pastoral_team_members(),
-        page_title=f"Care Request – {request_data['title'] or request_data['request_type']}"
+        page_title=f"Care Request - {request_data['title'] or request_data['request_type']}"
     )
 
 # ----------------------------------------------------------------------
@@ -196,7 +196,7 @@ def care_add_note(request_id):
     return redirect(url_for('pastoral.care.care_request_detail', request_id=request_id))
 
 # ----------------------------------------------------------------------
-# Delete entire care request (admin/owner only – add role check later if needed)
+# Delete entire care request (admin/owner only - add role check later if needed)
 # ----------------------------------------------------------------------
 @care_bp.route('/<int:request_id>/delete', methods=['POST'])
 @pastoral_required()

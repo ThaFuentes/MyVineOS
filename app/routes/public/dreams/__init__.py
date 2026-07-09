@@ -2,7 +2,7 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/dreams/__init__.py
 # File name: __init__.py
 # Brief, detailed purpose: Public Dreams & Visions sub-blueprint initializer.
-# url_prefix='/dreams' under the parent public_bp (which has /public) → full path /public/dreams
+# url_prefix='/dreams' under the parent public_bp (which has /public) -> full path /public/dreams
 # Uses dedicated 'public_dreams' blueprint name for unambiguous url_for('public.public_dreams....')
 # Points to templates/public/dreams. Registered via public/__init__.py .
 

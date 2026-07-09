@@ -3,7 +3,7 @@
 # File name: views.py
 # Brief, detailed purpose: Main dashboard routes and permission logic for the Gathering Place Manager.
 # - Handles the primary dashboard view at /the_gathering/dashboard/ (overview, stats, recent activity).
-# - Includes the gathering_place_required decorator (kept exactly as original for now – will be centralized later).
+# - Includes the gathering_place_required decorator (kept exactly as original for now - will be centralized later).
 # - 100% rebuilt to match the exact clean, consistent style of public/events/views.py and public/dreams/views.py
 #   (detailed section comments, enhanced docstrings, route structure, flash handling, and template rendering).
 # - Original behavior, role checks, stats/recent queries, and template keys preserved 100%.
@@ -65,7 +65,7 @@ def dashboard():
 @dashboard_bp.route('/moderation', methods=['GET', 'POST'])
 @gathering_place_required
 def moderation_queue():
-    """Unified moderation hub — inline actions on all comments plus pending prayers."""
+    """Unified moderation hub - inline actions on all comments plus pending prayers."""
     status_filter = request.args.get('filter', 'all')
     search = request.args.get('search', '').strip() or None
 

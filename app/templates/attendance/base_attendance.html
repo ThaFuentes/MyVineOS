@@ -9,14 +9,14 @@
      - Active class applied correctly
      - Flash messages at top
      - Extends base.html for global navigation consistency
-   NO module-specific CSS – uses only global classes. -->
+   NO module-specific CSS - uses only global classes. -->
 
 {% extends "base.html" %}
 
 {% block content %}
 <!-- Overhauled -->
 <h1 class="page-title">Attendance</h1>
-<p class="page-description">Manage and view attendance records – Staff, Admin & Owner access only.</p>
+<p class="page-description">Manage and view attendance records - Staff, Admin & Owner access only.</p>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}

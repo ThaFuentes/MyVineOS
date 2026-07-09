@@ -25,10 +25,10 @@ def get_fernet():
     if not _valid_fernet_key(key):
         key = Fernet.generate_key().decode()
         print("\n" + "="*80)
-        print("FERNET_KEY was missing or invalid → Generated a new secure key:")
+        print("FERNET_KEY was missing or invalid -> Generated a new secure key:")
         print(key)
         print("This key has been automatically saved to your .env file.")
-        print("Keep this key safe — losing it will make all saved credentials unreadable!")
+        print("Keep this key safe - losing it will make all saved credentials unreadable!")
         print("="*80 + "\n")
 
         # Save to .env automatically

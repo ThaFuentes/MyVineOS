@@ -7,7 +7,7 @@
 {#   - Set urgency level #}
 {#   - Optional title + required description #}
 {#   - Inherits base_pastoral.html with dark theme, cyan accents #}
-{#   - Simple, clean layout – no bloat #}
+{#   - Simple, clean layout - no bloat #}
 
 {% extends "pastoral/base_pastoral.html" %}
 
@@ -15,7 +15,7 @@
 <div class="glass-panel">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.75rem;">
     <h2 style="margin:0;">New Pastoral Care Request</h2>
-    <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="font-size:0.85rem; min-height:38px;">← Back to Care</a>
+    <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="font-size:0.85rem; min-height:38px;"><- Back to Care</a>
   </div>
 
   <form method="POST" action="{{ url_for('pastoral.care.care_new') }}">
@@ -76,7 +76,7 @@
 </div>
 
 <div style="text-align:center; margin-top:0.75rem;">
-  <a href="{{ url_for('pastoral.care.care_dashboard') }}" style="font-size:0.8rem; opacity:0.6;">← Back to Care Dashboard</a>
+  <a href="{{ url_for('pastoral.care.care_dashboard') }}" style="font-size:0.8rem; opacity:0.6;"><- Back to Care Dashboard</a>
 </div>
 {% endblock %}
 

@@ -20,7 +20,7 @@ from werkzeug.security import generate_password_hash
 from app.models.db import get_db
 from app.models.log import log_change
 
-# Inverse relation mapping – used to display correct label from perspective user's view
+# Inverse relation mapping - used to display correct label from perspective user's view
 INVERSE_RELATIONS = {
     'spouse': 'spouse',
     'parent': 'child',
@@ -251,7 +251,7 @@ def set_shadow_ban(user_id: int, shadow_banned: bool, actor_id: int) -> None:
             (actor_id, user_id),
         )
         action = 'shadow_ban_user'
-        details = 'Account shadow banned — user can log in but only sees their own content; others cannot see theirs.'
+        details = 'Account shadow banned - user can log in but only sees their own content; others cannot see theirs.'
     else:
         cur.execute(
             """

@@ -47,7 +47,7 @@
         </table>
     </div>
     {% else %}
-    <p class="no-data">No categories yet. <a href="{{ url_for('help.manage_category') }}">Create one →</a></p>
+    <p class="no-data">No categories yet. <a href="{{ url_for('help.manage_category') }}">Create one -></a></p>
     {% endif %}
 </section>
 
@@ -72,7 +72,7 @@
                     <td>
                         <a href="{{ url_for('help.help_article', slug=art.slug) }}">{{ art.title }}</a>
                     </td>
-                    <td>{{ art.category_name or '—' }}</td>
+                    <td>{{ art.category_name or '-' }}</td>
                     <td>{{ art.sort_order }}</td>
                     <td>{% if art.permission_key %}<code>{{ art.permission_key }}</code>{% else %}Everyone{% endif %}</td>
                     <td>{% if art.is_published %}Published{% else %}Draft{% endif %}</td>
@@ -89,7 +89,7 @@
         </table>
     </div>
     {% else %}
-    <p class="no-data">No guides yet. <a href="{{ url_for('help.manage_article') }}">Write your first guide →</a></p>
+    <p class="no-data">No guides yet. <a href="{{ url_for('help.manage_article') }}">Write your first guide -></a></p>
     {% endif %}
 </section>
 {% endblock %}

@@ -12,7 +12,7 @@
     </p>
 
     <div style="margin:1rem 0;">
-        <a href="{{ url_for('members.members_directory') }}" class="btn-secondary">← Members Directory</a>
+        <a href="{{ url_for('members.members_directory') }}" class="btn-secondary"><- Members Directory</a>
         <form method="POST" action="{{ url_for('members.clear_all_lockouts') }}" style="display:inline;" onsubmit="return confirm('Clear ALL IP lockouts?');">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             <button type="submit" class="btn-secondary">Clear All</button>
@@ -36,8 +36,8 @@
             <tr>
                 <td><code>{{ row.ip }}</code></td>
                 <td>{{ row.failed_attempts }}</td>
-                <td>{{ row.locked_until or '—' }}</td>
-                <td>{{ row.last_attempt_at or '—' }}</td>
+                <td>{{ row.locked_until or '-' }}</td>
+                <td>{{ row.last_attempt_at or '-' }}</td>
                 <td>{% if row.is_active %}<span style="color:#ff9944;">Active</span>{% else %}Expired{% endif %}</td>
                 <td>
                     <form method="POST" action="{{ url_for('members.clear_lockout_ip') }}" style="display:inline;">

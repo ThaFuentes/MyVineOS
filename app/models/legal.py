@@ -94,12 +94,12 @@ def _category_status(active_count: int, draft_count: int):
     if active_count > 0:
         return 'published', 'Published'
     if draft_count > 0:
-        return 'draft', 'Draft — not public'
+        return 'draft', 'Draft - not public'
     return 'empty', 'No notice yet'
 
 
 def get_categories_for_manage():
-    """All categories with every notice listed — primary data for the manage screen."""
+    """All categories with every notice listed - primary data for the manage screen."""
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""

@@ -20,7 +20,7 @@ print(" [DEBUG] support_tickets/views.py LOADED SUCCESSFULLY")
 
 
 # ----------------------------------------------------------------------
-# Member Dashboard – "My Tickets"
+# Member Dashboard - "My Tickets"
 # ----------------------------------------------------------------------
 @support_tickets_bp.route('/', endpoint='dashboard')
 @login_required

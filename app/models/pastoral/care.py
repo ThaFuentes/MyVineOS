@@ -8,7 +8,7 @@
 #     - Requests CRUD (create, read, update, delete)
 #     - Pastor/staff assignments (add/remove)
 #     - Chronological private notes (team-only visibility)
-#   All data is confidential — visibility enforced by pastoral_required decorator in routes.
+#   All data is confidential - visibility enforced by pastoral_required decorator in routes.
 #   Routes handle audit logging (log_change) and censorship checks separately.
 #   Uses DictCursor for consistent dict results with human-readable names.
 #   Parameterized queries for MariaDB / PyMySQL safety.
@@ -18,7 +18,7 @@ from app.models.db import get_db
 
 
 # ----------------------------------------------------------------------
-# Pastoral Care Requests – Core CRUD
+# Pastoral Care Requests - Core CRUD
 # ----------------------------------------------------------------------
 def fetch_care_requests(*, status=None, urgency=None):
     """
@@ -70,7 +70,7 @@ def fetch_care_requests(*, status=None, urgency=None):
     return cur.fetchall()
 
 
-# Backward-compatible alias (old callers); keyword-only — avoids positional arg bugs
+# Backward-compatible alias (old callers); keyword-only - avoids positional arg bugs
 get_care_requests = fetch_care_requests
 
 

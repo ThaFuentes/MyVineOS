@@ -9,9 +9,9 @@
 
 from flask import Blueprint, flash, redirect, url_for
 
-# ──────────────────────────────────────────────────────────────
+# 
 # Main public blueprint (url_prefix='/public' for clean public community area)
-# ──────────────────────────────────────────────────────────────
+# 
 public_bp = Blueprint(
     'public',
     __name__,
@@ -20,36 +20,36 @@ public_bp = Blueprint(
     static_folder='../static'
 )
 
-# ──────────────────────────────────────────────────────────────
+# 
 # Register all public feature sub-blueprints
 # (Each sub-module defines its own bp in its __init__.py)
-# ──────────────────────────────────────────────────────────────
+# 
 
-# Public Dashboard (homepage feed) – becomes /public/ and /public/public
+# Public Dashboard (homepage feed) - becomes /public/ and /public/public
 from .public_dashboard import dashboard_bp
 public_bp.register_blueprint(dashboard_bp)
 
-# Announcements → /public/announcements
+# Announcements -> /public/announcements
 from .announcements import announcements_bp
 public_bp.register_blueprint(announcements_bp)
 
-# Dreams & Visions → /public/dreams
+# Dreams & Visions -> /public/dreams
 from .dreams import dreams_bp
 public_bp.register_blueprint(dreams_bp)
 
-# Events (potluck, signups, comments) → /public/events
+# Events (potluck, signups, comments) -> /public/events
 from .events import events_bp
 public_bp.register_blueprint(events_bp)
 
-# Prayers → /public/prayers
+# Prayers -> /public/prayers
 from .prayers import prayers_bp
 public_bp.register_blueprint(prayers_bp)
 
-# Prophecies → /public/prophecies
+# Prophecies -> /public/prophecies
 from .prophecies import prophecies_bp
 public_bp.register_blueprint(prophecies_bp)
 
-# Sermons → /public/sermons
+# Sermons -> /public/sermons
 from .sermons import sermons_bp
 public_bp.register_blueprint(sermons_bp)
 

@@ -4,7 +4,7 @@
 # Brief, detailed purpose: Utility functions and constants for the Dreams module.
 # - Group permission helpers using the central user_has_permission system
 # - ADMIN_ROLES kept for backward compatibility
-# - is_comment_owner() – critical for proper comment delete/update permissions
+# - is_comment_owner() - critical for proper comment delete/update permissions
 # - Clean and consistent with the rest of the app
 
 from app.utils.decorators import user_has_permission

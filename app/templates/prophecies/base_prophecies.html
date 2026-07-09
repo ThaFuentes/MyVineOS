@@ -2,17 +2,17 @@
 <!-- Full path: WebChurchMan/app/templates/prophecies/base_prophecies.html -->
 <!-- File name: base_prophecies.html -->
 <!-- Brief, detailed purpose: Common base template for ALL Prophecies module pages (dashboard, add, edit, view).
-   Exact mirror of base_events.html / base_dreams.html → identical glassmorphism wrapper, menu, flash handling.
-   Menu: Prophecies Dashboard (always) + Add Prophecy (always visible – guests see link but route protected).
+   Exact mirror of base_events.html / base_dreams.html -> identical glassmorphism wrapper, menu, flash handling.
+   Menu: Prophecies Dashboard (always) + Add Prophecy (always visible - guests see link but route protected).
    Active highlighting for dashboard, add, edit pages.
-   NO module-specific CSS – uses only global classes.
+   NO module-specific CSS - uses only global classes.
    Provides blocks: page_title, page_description, prophecies_content.
    Fixed to use correct endpoint 'prophecies.list_prophecies' for dashboard (matches existing route name). -->
 
 {% extends "base.html" %}
 
 {% block extra_css %}
-{# Global CSS only – no prophecies-specific files #}
+{# Global CSS only - no prophecies-specific files #}
 {% block prophecies_page_css %}{% endblock %}
 {% endblock %}
 

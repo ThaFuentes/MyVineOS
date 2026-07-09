@@ -32,21 +32,21 @@ from app.utils.time_utils import format_church
 
 
 # ----------------------------------------------------------------------
-# Prayers Listing – /prayers
+# Prayers Listing - /prayers
 # ----------------------------------------------------------------------
 @prayers_bp.route('/')
 def prayers():
     is_logged_in = 'user_id' in session
     user_id = session.get('user_id')
 
-#    print(f"[DEBUG] Prayers listing accessed – logged_in={is_logged_in}, user_id={user_id}")
+#    print(f"[DEBUG] Prayers listing accessed - logged_in={is_logged_in}, user_id={user_id}")
 
     try:
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
 
         if is_logged_in:
-#            print("[DEBUG] Logged-in view – fetching public + private prayers")
+#            print("[DEBUG] Logged-in view - fetching public + private prayers")
             cur.execute("""
                 SELECT p.id, p.title, p.description, p.date_posted, p.visibility,
                        COALESCE(p.status, 'approved') AS status,
@@ -60,7 +60,7 @@ def prayers():
             """)
             template = 'prayers/prayers_dashboard.html'
         else:
-            print("[DEBUG] Guest view – fetching public prayers only")
+            print("[DEBUG] Guest view - fetching public prayers only")
             cur.execute("""
                 SELECT p.id, p.title, p.description, p.date_posted,
                        COALESCE(p.contributor_name, 'Anonymous') AS creator_name,
@@ -118,14 +118,14 @@ def prayers():
 
 
 # ----------------------------------------------------------------------
-# Add New Prayer Request – /prayers/add
+# Add New Prayer Request - /prayers/add
 # ----------------------------------------------------------------------
 @prayers_bp.route('/add', methods=['GET', 'POST'])
 def add_prayer():
     is_logged_in = 'user_id' in session
     user_id = session.get('user_id')
 
-    print(f"[DEBUG] Add prayer accessed – logged_in={is_logged_in}, user_id={user_id}")
+    print(f"[DEBUG] Add prayer accessed - logged_in={is_logged_in}, user_id={user_id}")
 
     if request.method == 'POST':
         print("[DEBUG] POST data:", request.form.to_dict(flat=False))
@@ -167,7 +167,7 @@ def add_prayer():
                     flash('Prayer request submitted successfully!', 'success')
                 else:
                     flash(
-                        'Thank you — your prayer request was received and will appear after a brief review.',
+                        'Thank you - your prayer request was received and will appear after a brief review.',
                         'success',
                     )
                 return redirect(url_for('prayers.prayers'))
@@ -193,14 +193,14 @@ def add_prayer():
 
 
 # ----------------------------------------------------------------------
-# View Prayer + Add Response – /prayers/<int:prayer_id>
+# View Prayer + Add Response - /prayers/<int:prayer_id>
 # ----------------------------------------------------------------------
 @prayers_bp.route('/<int:prayer_id>', methods=['GET', 'POST'])
 def view_prayer(prayer_id):
     is_logged_in = 'user_id' in session
     user_id = session.get('user_id')
 
-    print(f"[DEBUG] View prayer ID {prayer_id} – logged_in={is_logged_in}")
+    print(f"[DEBUG] View prayer ID {prayer_id} - logged_in={is_logged_in}")
 
     try:
         db = get_db()
@@ -287,7 +287,7 @@ def view_prayer(prayer_id):
 
 
 # ----------------------------------------------------------------------
-# Edit Prayer Request – /prayers/<int:prayer_id>/edit
+# Edit Prayer Request - /prayers/<int:prayer_id>/edit
 # ----------------------------------------------------------------------
 @prayers_bp.route('/<int:prayer_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -344,7 +344,7 @@ def edit_prayer(prayer_id):
 
 
 # ----------------------------------------------------------------------
-# Approve / Reject visitor prayer – staff only
+# Approve / Reject visitor prayer - staff only
 # ----------------------------------------------------------------------
 @prayers_bp.route('/<int:prayer_id>/approve', methods=['POST'])
 @login_required
@@ -375,7 +375,7 @@ def reject_prayer(prayer_id):
 
 
 # ----------------------------------------------------------------------
-# Delete Prayer Request – /prayers/<int:prayer_id>/delete
+# Delete Prayer Request - /prayers/<int:prayer_id>/delete
 # ----------------------------------------------------------------------
 @prayers_bp.route('/<int:prayer_id>/delete', methods=['POST'])
 @login_required

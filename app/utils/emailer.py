@@ -1,4 +1,4 @@
-# Secure SMTP email sender — uses email_accounts table + shared crypto/SMTP helpers.
+# Secure SMTP email sender - uses email_accounts table + shared crypto/SMTP helpers.
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart

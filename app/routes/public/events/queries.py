@@ -2,7 +2,7 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/events/queries.py
 # File name: queries.py
 # Brief, detailed purpose: Reusable database query functions specifically for the public Events section.
-# Returns ONLY public + upcoming records (with creator_name via LEFT JOIN). Clean, efficient, and feature-specific – no generic table-name passing.
+# Returns ONLY public + upcoming records (with creator_name via LEFT JOIN). Clean, efficient, and feature-specific - no generic table-name passing.
 # Used by views.py for listing and single-event detail pages. 100% matches original public_events.py + shared queries.py logic for events.
 
 from app.models.db import get_db

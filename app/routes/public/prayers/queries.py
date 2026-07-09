@@ -8,7 +8,7 @@ _APPROVED_FILTER = "COALESCE(p.status, 'approved') = 'approved'"
 
 
 def get_public_prayers():
-    """Approved public prayers only — guest submissions stay hidden until reviewed."""
+    """Approved public prayers only - guest submissions stay hidden until reviewed."""
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 

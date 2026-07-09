@@ -3,7 +3,7 @@
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Announcements module.
 # - Takes raw request.form data, strips whitespace, sets defaults, checks required fields.
-# - Calls censorship check (from utils – we’ll connect it next).
+# - Calls censorship check (from utils - we'll connect it next).
 # - Returns a clean dict of values OR flashes error + returns None (keeps views.py super clean).
 # - 100% matches your original create/edit logic but now reusable and easy to grow (add more fields later).
 

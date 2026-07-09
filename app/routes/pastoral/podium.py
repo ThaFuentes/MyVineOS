@@ -4,8 +4,8 @@
 # Brief, detailed purpose:
 #   Blueprint for Podium / Teleprompter mode within the Pastoral Area.
 #   Provides:
-#     - /podium/ → sermon selection list (today's linked sermon highlighted at top)
-#     - /podium/view/<sermon_id> → full-screen teleprompter for selected sermon
+#     - /podium/ -> sermon selection list (today's linked sermon highlighted at top)
+#     - /podium/view/<sermon_id> -> full-screen teleprompter for selected sermon
 #   Features:
 #     - Large readable text with user-saved font size (localStorage)
 #     - Teleprompter controls: play/pause, speed, timer, reset, fullscreen
@@ -32,7 +32,7 @@ podium_bp = Blueprint('podium', __name__, url_prefix='/podium', template_folder=
 @podium_bp.route('/')
 @pastoral_required()
 def index():
-    """Sermon selection list for Podium Mode – today's linked sermon highlighted at top."""
+    """Sermon selection list for Podium Mode - today's linked sermon highlighted at top."""
     user_id = session['user_id']
     today_str = datetime.today().strftime('%A, %B %d, %Y')
     today_date_str = datetime.today().strftime('%Y-%m-%d')

@@ -3,7 +3,7 @@
 # File name: views.py
 # Brief, detailed purpose: Public Prophecies routes for unauthenticated guests only.
 # - 100% rebuilt to match the working public/events/views.py gold standard exactly.
-# - FIXED: prophecy['comments.html'] → prophecy['comments'] so the template can see the comments.
+# - FIXED: prophecy['comments.html'] -> prophecy['comments'] so the template can see the comments.
 # - Listing shows only public prophecies with creator_name.
 # - Detail page supports guest comments/replies (one-level).
 # - Logged-in users are redirected to private prophecies.
@@ -30,7 +30,7 @@ from app.utils.comment_moderation import (
 # ----------------------------------------------------------------------
 @prophecies_bp.route('/')
 def public_prophecies():
-    """Public prophecies listing – logged-in users are redirected to the private prophecies dashboard."""
+    """Public prophecies listing - logged-in users are redirected to the private prophecies dashboard."""
     if 'user_id' in session:
         return redirect(url_for('prophecies.list_prophecies'))
 
@@ -38,7 +38,7 @@ def public_prophecies():
     prophecies = get_public_prophecies()
     prophecies = censor_public_content(prophecies)
 
-    # Prepare data for template – SAFE date formatting + creator_name fallback
+    # Prepare data for template - SAFE date formatting + creator_name fallback
     for p in prophecies:
         # Safe date formatting (handles both datetime objects and strings)
         posted = p.get('created_at')

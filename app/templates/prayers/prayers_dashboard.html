@@ -1,12 +1,12 @@
 <!-- app/templates/prayers/prayers_dashboard.html -->
 <!-- Full path: myvinechurchonline/app/templates/prayers/prayers_dashboard.html -->
 <!-- File name: prayers_dashboard.html -->
-<!-- Brief, detailed purpose: Main prayers listing dashboard – identical structure and style to events_dashboard.html.
+<!-- Brief, detailed purpose: Main prayers listing dashboard - identical structure and style to events_dashboard.html.
    Single template serves both logged-in (all prayers + actions) and guest (public-only, read-only) views.
    Summary cards, always-visible Add button, collapsible search/filters, glass table with client-side live search.
    Title links to detail view (/prayers/<id>).
    Actions column shown only to logged-in users with proper permissions.
-   Uses ONLY global classes – no prayers-specific CSS. -->
+   Uses ONLY global classes - no prayers-specific CSS. -->
 
 {% extends "prayers/base_prayers.html" %}
 
@@ -55,7 +55,7 @@
     </div>
 </section>
 
-<!-- Add Prayer Request Button – always visible (guests can submit public) -->
+<!-- Add Prayer Request Button - always visible (guests can submit public) -->
 <div class="form-actions add-event-top">
     <a href="{{ url_for('prayers.add_prayer') }}" class="btn-primary">+ Add Prayer Request</a>
 </div>
@@ -118,7 +118,7 @@
                                 <strong>{{ p.title }}</strong>
                             </a>
                         </td>
-                        <td>{{ p.date_posted.strftime('%b %d, %Y') if p.date_posted else '—' }}</td>
+                        <td>{{ p.date_posted.strftime('%b %d, %Y') if p.date_posted else '-' }}</td>
                         <td>{{ p.creator_name }}</td>
                         {% if is_logged_in %}
                         <td>{{ p.visibility|capitalize }}</td>

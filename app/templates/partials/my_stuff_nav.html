@@ -1,4 +1,4 @@
-{# Shared sub-nav for Profile, Help, Settings — visible on mobile where bottom nav only lands on Profile #}
+{# Shared sub-nav for Profile, Help, Settings - visible on mobile where bottom nav only lands on Profile #}
 {% set ep = request.endpoint or '' %}
 <nav aria-label="My Stuff sections" style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
     <a href="{{ url_for('profile.profile') }}"

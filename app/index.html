@@ -8,7 +8,7 @@ Published policies for our online community.
 {% block legal_content %}
 {% if can_manage and category_overview %}
 <section class="glass-panel legal-admin-overview" aria-label="Publication status (managers only)">
-    <h3>Manager view — what visitors see</h3>
+    <h3>Manager view - what visitors see</h3>
     <p class="legal-admin-overview-intro">
         Only categories marked <strong>Published</strong> appear on this public page.
         {% set unpublished = category_overview | rejectattr('status', 'equalto', 'published') | list %}
@@ -37,7 +37,7 @@ Published policies for our online community.
         {% endfor %}
     </ul>
     <p class="legal-admin-overview-footer">
-        <a href="{{ url_for('legal.manage_list') }}">Open full manage screen →</a>
+        <a href="{{ url_for('legal.manage_list') }}">Open full manage screen -></a>
     </p>
 </section>
 {% endif %}
@@ -71,7 +71,7 @@ Published policies for our online community.
         <div class="legal-related-callout">
             <strong>Related:</strong>
             <a href="{{ url_for('legal.view_notice', slug=community_guidelines.slug) }}">{{ community_guidelines.title }}</a>
-            — moderation decisions usually reference these guidelines.
+            - moderation decisions usually reference these guidelines.
         </div>
         {% endif %}
     </section>

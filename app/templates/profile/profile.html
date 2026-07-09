@@ -9,7 +9,7 @@
    Tables use .table-wrapper + .data-table (consistent with listings).
    Buttons use .btn-primary / .btn-secondary / .btn-small / .btn-danger.
    Live member search preserved. No module-specific CSS loaded.
-   FULL REBUILD: Privacy preference checkboxes inline with labels (checkbox next to text – standard accessible pattern).
+   FULL REBUILD: Privacy preference checkboxes inline with labels (checkbox next to text - standard accessible pattern).
    Check-in PIN field below label (standard input).
    Privacy section grouped with subtitle.
    All fields repopulated from user object.
@@ -27,8 +27,8 @@
 
         <p class="page-description">
             Manage your personal information, privacy preferences, and family connections within the church community.
-            <a href="{{ url_for('profile.security') }}">Security & 2FA →</a>
-            <a href="{{ url_for('help.help_index') }}" style="margin-left:0.75rem;">Help & how-to guides →</a>
+            <a href="{{ url_for('profile.security') }}">Security & 2FA -></a>
+            <a href="{{ url_for('help.help_index') }}" style="margin-left:0.75rem;">Help & how-to guides -></a>
         </p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -41,7 +41,7 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Tabs – using global button styles for consistency -->
+        <!-- Tabs - using global button styles for consistency -->
         <div class="top-controls" style="margin-bottom: 2rem;">
             <div class="filter-buttons">
                 <button class="btn btn-primary filter-btn active" data-target="profile-tab">Profile</button>
@@ -121,7 +121,7 @@
                 <div class="form-group">
                     <label for="checkin_pin" class="control-label">Check-in PIN (optional, 4-6 digits)</label>
                     <input type="password" id="checkin_pin" name="checkin_pin" class="form-input" placeholder="Leave empty to keep current or clear">
-                    <p class="help-text">For kiosk self check-in. Hashed – never stored plain.</p>
+                    <p class="help-text">For kiosk self check-in. Hashed - never stored plain.</p>
                 </div>
 
                 <!-- Password Change -->
@@ -268,7 +268,7 @@
     </div>
 
 <script>
-  // Tab switching – uses global button classes
+  // Tab switching - uses global button classes
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => {

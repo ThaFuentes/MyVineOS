@@ -34,10 +34,10 @@ def log_change(
     """
     Record a significant user action in the change_records table.
 
-    Fully backward and forward compatible – accepts every parameter name ever used:
+    Fully backward and forward compatible - accepts every parameter name ever used:
         - Preferred: item_id, item_title, details
-        - Alias: description → maps to details
-        - Legacy: target_id → item_id, target_username → item_title, change_details → details
+        - Alias: description -> maps to details
+        - Legacy: target_id -> item_id, target_username -> item_title, change_details -> details
 
     The function resolves to the correct column values regardless of which name is used.
     Silently skips if user_id is falsy (anonymous actions).
@@ -45,13 +45,13 @@ def log_change(
     if not user_id:
         return  # Skip anonymous actions
 
-    # Resolve item_id (prefer modern → legacy)
+    # Resolve item_id (prefer modern -> legacy)
     resolved_item_id = item_id if item_id is not None else target_id
 
     # Resolve item_title/username
     resolved_item_title = item_title if item_title is not None else target_username
 
-    # Resolve details (prefer details → description → change_details)
+    # Resolve details (prefer details -> description -> change_details)
     resolved_details = details
     if resolved_details is None:
         resolved_details = description
@@ -92,6 +92,6 @@ def log_change(
 
 # Direct execution guard
 if __name__ == "__main__":
-    print("log.py – Audit logging module")
+    print("log.py - Audit logging module")
     print("Fully compatible with all existing calls (item_id, target_id, details, description, change_details, etc.).")
     print("Ready for use within the Flask application.")

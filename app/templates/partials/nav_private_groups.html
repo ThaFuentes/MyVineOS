@@ -1,4 +1,4 @@
-{# Grouped desktop nav for signed-in users — mirrors bottom nav: Home / Community / My Stuff / Admin #}
+{# Grouped desktop nav for signed-in users - mirrors bottom nav: Home / Community / My Stuff / Admin #}
 {% set ep = request.endpoint or '' %}
 
 {% set community_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'bible.')) %}

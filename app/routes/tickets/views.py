@@ -3,9 +3,9 @@
 # File name: views.py
 # Brief, detailed purpose: All the route functions (the @route decorators) for the **Ticket Manager** blueprint ONLY.
 # - FIXED: RecursionError when deleting a ticket.
-#   The view function was named `delete_ticket` and it was also importing `delete_ticket` from queries.py → Python name shadowing caused infinite recursion.
+#   The view function was named `delete_ticket` and it was also importing `delete_ticket` from queries.py -> Python name shadowing caused infinite recursion.
 #   Now the queries function is imported with an alias so it can never call itself.
-# - Manage Ticket Managers Group route and link have been completely removed (you confirmed you do not want it — use /groups/ instead).
+# - Manage Ticket Managers Group route and link have been completely removed (you confirmed you do not want it - use /groups/ instead).
 # - Everything else (dashboard, view ticket, status/priority/assign, comments.html, email notifications) is untouched and working.
 
 from flask import render_template, request, redirect, url_for, flash, session
@@ -19,7 +19,7 @@ from .queries import (
     get_ticket, get_ticket_comments,
     add_ticket_comment, update_ticket_status, assign_ticket,
     update_ticket_priority, get_ticket_title,
-    delete_ticket as delete_ticket_from_db   # ← ALIAS to prevent recursion
+    delete_ticket as delete_ticket_from_db   # <- ALIAS to prevent recursion
 )
 from .forms import (
     validate_ticket_comment, validate_status_update,
@@ -38,7 +38,7 @@ def tickets_root():
 
 
 # ----------------------------------------------------------------------
-# Manager view – "Ticket Manager" (Owners/Admins OR ticket_managers group – all tickets)
+# Manager view - "Ticket Manager" (Owners/Admins OR ticket_managers group - all tickets)
 # ----------------------------------------------------------------------
 @tickets_bp.route('/manage', endpoint='manager_dashboard')
 @login_required
@@ -151,7 +151,7 @@ def view_ticket(ticket_id):
                     updated = True
                     message = f"Status changed to {new_status.replace('_', ' ').title()}"
                     log_change(user_id, 'update', ticket_id,
-                               change_details=f'Status {old_status} → {new_status}')
+                               change_details=f'Status {old_status} -> {new_status}')
 
                     if new_status in ['resolved', 'closed']:
                         subject = f"Ticket #{ticket_id} {new_status.capitalize()}: {ticket['title']}"
@@ -180,7 +180,7 @@ def view_ticket(ticket_id):
                     updated = True
                     message = f"Priority changed to {new_pri.capitalize()}"
                     log_change(user_id, 'update', ticket_id,
-                               change_details=f'Priority → {new_pri}')
+                               change_details=f'Priority -> {new_pri}')
 
             if updated and ticket['status'] not in ['resolved', 'closed']:
                 subject = f"Update on Ticket #{ticket_id}: {ticket['title']}"
@@ -202,7 +202,7 @@ def view_ticket(ticket_id):
 
 
 # ----------------------------------------------------------------------
-# Delete Ticket – Admin/Owner only
+# Delete Ticket - Admin/Owner only
 # ----------------------------------------------------------------------
 @tickets_bp.route('/delete/<int:ticket_id>', methods=['POST'], endpoint='delete_ticket')
 @login_required

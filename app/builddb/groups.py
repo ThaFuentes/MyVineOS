@@ -5,7 +5,7 @@
 # Supports group name (unique), description, visibility (public/private), permissions (JSON stored as TEXT),
 # full audit trail (created_by/updated_by + timestamps).
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # FULL REBUILD: Expanded seeding to include all new Ticket groups (Ticket IT Group, Ticket Maintenance Group,
 # Ticket Memberships Group, Ticket General Group). Ticket Managers description updated for new design.
 # Pastoral Group and Worship Team Group left completely untouched as requested.
@@ -67,7 +67,7 @@ def create_tables(cursor):
         pass
 
     # ----- SEED ESSENTIAL SYSTEM GROUPS -----
-    # Using INSERT IGNORE – safe to run repeatedly (name is UNIQUE).
+    # Using INSERT IGNORE - safe to run repeatedly (name is UNIQUE).
     # All new Ticket groups added here. Pastoral and Worship left untouched.
     essential_groups = [
         (
@@ -114,7 +114,7 @@ def create_tables(cursor):
         ),
         (
             "Gathering Place Managers",
-            "Protected system group — access to The Gathering Place Manager (site-wide content moderation). "
+            "Protected system group - access to The Gathering Place Manager (site-wide content moderation). "
             "Only the Owner may add members; Admins already in this group may also add members. "
             "Regular group members cannot add others.",
             "private",
@@ -128,7 +128,7 @@ def create_tables(cursor):
         """, (name, desc, visibility, perms))
     print("Groups seeded/updated (if not already present): Ticket Managers, Ticket IT Group, Ticket Maintenance Group, Ticket Memberships Group, Ticket General Group, Pastoral Group, Worship Team Group, Gathering Place Managers.")
 
-    # Stable system identifier — survives group renames in the UI
+    # Stable system identifier - survives group renames in the UI
     try:
         cursor.execute("""
             UPDATE groups SET system_key = 'gathering_place'
@@ -137,7 +137,7 @@ def create_tables(cursor):
         cursor.execute("""
             UPDATE groups SET system_key = 'gathering_place'
             WHERE system_key IS NULL AND description LIKE %s
-        """, ('%Protected system group — access to The Gathering Place Manager%',))
+        """, ('%Protected system group - access to The Gathering Place Manager%',))
     except Exception as e:
         print(f"Gathering Place system_key note: {e}")
 

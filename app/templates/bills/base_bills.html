@@ -2,14 +2,14 @@
 <!-- Full path: WebChurchMan/app/templates/bills/base_bills.html -->
 <!-- File name: base_bills.html -->
 <!-- Brief, detailed purpose: Common base template for ALL Bills module pages (dashboard, add, edit, view, assign).
-   Exact mirror of base_events.html / base_prayers.html / base_donations.html → identical glassmorphism wrapper, menu, flash handling.
-   NO module-specific CSS – uses only global classes.
+   Exact mirror of base_events.html / base_prayers.html / base_donations.html -> identical glassmorphism wrapper, menu, flash handling.
+   NO module-specific CSS - uses only global classes.
    Menu: Bills Dashboard (always) + Add Bill (only with manage_bills permission). -->
 
 {% extends "base.html" %}
 
 {% block extra_css %}
-{# Global CSS only – no bills-specific files #}
+{# Global CSS only - no bills-specific files #}
 {% block bills_page_css %}{% endblock %}
 {% endblock %}
 

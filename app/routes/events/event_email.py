@@ -5,7 +5,7 @@
 # Restricted to Staff/Admin/Owner. Sends invitations to selected members or all who accept emails.
 # Builds simple email body with event name and detail link.
 # Logs the action and flashes success/error.
-# No other routes or logic – pure extraction from the original monolithic events.py.
+# No other routes or logic - pure extraction from the original monolithic events.py.
 
 from flask import request, redirect, url_for, flash, session
 from app.utils.decorators import login_required, role_required

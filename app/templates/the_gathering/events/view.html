@@ -22,7 +22,7 @@
         <div style="display:flex; gap:0.5rem;">
             <!-- Back to Events Manager -->
             <a href="{{ url_for('the_gathering.events.events_dashboard') }}" class="btn btn-secondary">
-                ← Back to Events
+                <- Back to Events
             </a>
 
             <!-- Edit Event -->
@@ -58,8 +58,8 @@
         <!-- Meta Row -->
         <div class="row mb-4" style="font-size:1.1rem;">
             <div class="col-md-3"><strong>Date:</strong> {{ event.event_date }}</div>
-            <div class="col-md-3"><strong>Time:</strong> {{ event.event_time or '—' }}</div>
-            <div class="col-md-3"><strong>Location:</strong> {{ event.location or '—' }}</div>
+            <div class="col-md-3"><strong>Time:</strong> {{ event.event_time or '-' }}</div>
+            <div class="col-md-3"><strong>Location:</strong> {{ event.location or '-' }}</div>
             <div class="col-md-3"><strong>Visibility:</strong>
                 <span class="badge {% if event.visibility == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
                     {{ event.visibility|upper }}
@@ -112,7 +112,7 @@
             <h5 class="text-light"> Potluck Enabled</h5>
             <p class="text-muted">There are <strong>{{ signup_count or 0 }}</strong> contributions.</p>
             <a href="{{ url_for('the_gathering.events.event_potluck', event_id=event.id) }}" class="btn btn-info">
-                Manage All Potluck Contributions →
+                Manage All Potluck Contributions ->
             </a>
         </div>
         {% endif %}

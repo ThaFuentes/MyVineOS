@@ -7,7 +7,7 @@
    Each section uses <details> (collapsible) with a glass summary card.
    Checkboxes remain in responsive .summary-cards grid inside each section.
    First section (Core Content) open by default; others closed for faster initial load.
-   Fully uses GLOBAL CSS only – identical wrapper/menu/layout to Events/Donations add/edit forms.
+   Fully uses GLOBAL CSS only - identical wrapper/menu/layout to Events/Donations add/edit forms.
    Manual simple menu preserved for consistency with current pattern.
    Visibility field unchanged. -->
 
@@ -30,7 +30,7 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Simple manual menu – matches Events/Donations pattern -->
+        <!-- Simple manual menu - matches Events/Donations pattern -->
         <!-- sub nav handled by base_groups; this secondary if needed -->
         <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin:0.25rem 0 0.75rem;">
             <a href="{{ url_for('groups.list_groups') }}" style="padding:0.3rem 0.7rem; border-radius:999px; background:rgba(255,255,255,0.06); text-decoration:none; font-size:0.85rem;">Groups List</a>
@@ -42,7 +42,7 @@
                 <div class="form-group">
                     <label for="name">Group Name <span class="required">*</span></label>
                     <input type="text" id="name" name="name" required placeholder="e.g., Announcement Team, Moderators, Pastors" autofocus>
-                    <p class="help-text">Unique name — used to identify the group in code and UI.</p>
+                    <p class="help-text">Unique name - used to identify the group in code and UI.</p>
                 </div>
 
                 <div class="form-group">
@@ -54,8 +54,8 @@
                 <div class="form-group">
                     <label for="visibility">Visibility</label>
                     <select id="visibility" name="visibility">
-                        <option value="private" selected>Private – visible only to logged-in members</option>
-                        <option value="public">Public – visible to all visitors</option>
+                        <option value="private" selected>Private - visible only to logged-in members</option>
+                        <option value="public">Public - visible to all visitors</option>
                     </select>
                     <p class="help-text">Public groups appear on the public dashboard (rare for permission groups).</p>
                 </div>

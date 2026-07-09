@@ -1,5 +1,5 @@
 # app/utils/help_render.py
-# Lightweight markdown → safe HTML for help articles.
+# Lightweight markdown -> safe HTML for help articles.
 
 import re
 

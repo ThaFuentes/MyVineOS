@@ -5,7 +5,7 @@
 # Stores multiple configurable giving methods (Stripe link, PayPal embed, Venmo, QR code, etc.).
 # Each row is one public giving option (repeater in Settings UI).
 # Safe schema evolution: creates table if missing, adds columns safely.
-# Isolated module – called from builddb.py during DB initialization (after old_settings.py).
+# Isolated module - called from builddb.py during DB initialization (after old_settings.py).
 # FIXED FOR MARIADB: Uses MySQL/MariaDB-compatible AUTO_INCREMENT syntax (no SQLite "INTEGER PRIMARY KEY AUTOINCREMENT").
 
 def create_tables(cursor):

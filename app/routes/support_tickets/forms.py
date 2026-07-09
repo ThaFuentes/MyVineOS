@@ -3,7 +3,7 @@
 # File name: forms.py
 # Brief, detailed purpose: Form validation + censored word checks for the **user-facing Support Tickets** blueprint (My Portal / View Tickets).
 # This is now 100% isolated for regular logged-in members only.
-# - No guest submission fields (contact_name / contact_email) — members are already logged in.
+# - No guest submission fields (contact_name / contact_email) - members are already logged in.
 # - Every validation block, flash message, and censored-word check preserved from the original.
 # - Returns clean data + error lists so views.py can keep identical logic and template repopulation.
 

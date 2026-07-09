@@ -1,4 +1,4 @@
-# Worship Team — songs, setlists, rehearsals, assignments, presentation.
+# Worship Team - songs, setlists, rehearsals, assignments, presentation.
 
 
 def create_tables(cursor):

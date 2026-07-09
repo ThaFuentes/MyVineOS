@@ -5,7 +5,7 @@
 # - All DB work moved to queries.py
 # - All form validation moved to forms.py
 # - All constants/helpers moved to utils.py
-# - 100% original behavior preserved – now super easy to maintain and grow.
+# - 100% original behavior preserved - now super easy to maintain and grow.
 
 from flask import render_template, request, redirect, url_for, flash, session, jsonify
 from datetime import date, datetime
@@ -84,7 +84,7 @@ def open_kiosk():
     try:
         create_kiosk_session(user_id, token, expires_at)
         log_change(user_id, 'create', change_details=f'Opened attendance kiosk (token: {token})')
-        flash('Kiosk opened – launch below or share URL.', 'success')
+        flash('Kiosk opened - launch below or share URL.', 'success')
         kiosk_url = url_for('attendance.kiosk', token=token, _external=True)
     except Exception as e:
         flash('Failed to open kiosk.', 'error')
@@ -181,12 +181,12 @@ def kiosk():
 
 
 # ----------------------------------------------------------------------
-# Self Check-In – Logged-in members only (My Portal)
+# Self Check-In - Logged-in members only (My Portal)
 # ----------------------------------------------------------------------
 @attendance_bp.route('/self_checkin', methods=['GET', 'POST'])
 @login_required
 def self_checkin():
-    """Self check-in for logged-in users only – accessed via My Portal dropdown."""
+    """Self check-in for logged-in users only - accessed via My Portal dropdown."""
     user_id = session['user_id']
     user = get_user_for_self_checkin(user_id)
     if not user:

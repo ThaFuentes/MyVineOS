@@ -3,14 +3,14 @@
 <!-- File name: scan.html -->
 <!-- Brief, detailed purpose: Standalone full-screen rapid barcode scanner for Registry & Audit modes.
    Continuous scanning with audio/haptics feedback, 2-second cooldown per code, modal for new item registration.
-   Local-first – no external API. -->
+   Local-first - no external API. -->
 
 <!DOCTYPE html>
 <html lang="en" data-theme="cyan-glow">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapid Inventory Scan – {{ g.settings.church_name or 'MyVineChurch.Online' }}</title>
+    <title>Rapid Inventory Scan - {{ g.settings.church_name or 'MyVineChurch.Online' }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global/base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global/forms.css') }}">
@@ -24,7 +24,7 @@
     </style>
 </head>
 <body>
-    <h1 style="text-align:center; margin:1rem;">Rapid Scan – {{ mode|capitalize }} Mode</h1>
+    <h1 style="text-align:center; margin:1rem;">Rapid Scan - {{ mode|capitalize }} Mode</h1>
     <div id="reader"></div>
     <div id="status"></div>
 
@@ -68,7 +68,7 @@
 
     <script>
         // JavaScript remains exactly as previously provided (beep, vibration, cooldown, modal handling, etc.)
-        // (omitted here for brevity – copy from previous version)
+        // (omitted here for brevity - copy from previous version)
     </script>
 </body>
 </html>

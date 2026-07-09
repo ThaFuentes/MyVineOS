@@ -8,7 +8,7 @@
 # - Includes moderation validation for comments.html (approve/delete).
 # - Returns clean dict on success or None + flash message on error.
 # - 100% consistent with the_gathering/forms.py and public/events/forms.py patterns.
-# - Only this file was rebuilt — everything else on the site remains untouched.
+# - Only this file was rebuilt - everything else on the site remains untouched.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

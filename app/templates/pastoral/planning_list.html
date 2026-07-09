@@ -2,15 +2,15 @@
 {# Full path: WebChurchMan/app/templates/pastoral/planning_list.html #}
 {# File name: planning_list.html #}
 {# Brief, detailed purpose:
-#   Service Planning overview – clean, responsive list of upcoming effective services (template fallback + overrides).
+#   Service Planning overview - clean, responsive list of upcoming effective services (template fallback + overrides).
 #   - Prominent links to manage Global Default Role Assignments and Recurring Templates console.
 #   - Date picker + full clickable calendar strip (current + next 11 months).
-#   - Table shows upcoming effective plans (next year) — master changes visible immediately for plain weeks.
+#   - Table shows upcoming effective plans (next year) - master changes visible immediately for plain weeks.
 #   - Source badge: Template (blue) or Override (green).
 #   - Calendar marks overrides (green badge).
 #   - Clear explanations: master templates control plain weeks.
 #   - Empty state if no templates/overrides.
-#   - FULL REBUILD: Matches new route with upcoming_plans — master changes show instantly.
+#   - FULL REBUILD: Matches new route with upcoming_plans - master changes show instantly.
 #   - Refresh button in templates list cleans legacy identical overrides. #}
 
 {% extends "pastoral/base_pastoral.html" %}
@@ -33,12 +33,12 @@
 
 <!-- System note -->
 <div class="glass-panel" style="margin-bottom:0.75rem; font-size:0.9rem; opacity:0.85;">
-  Regular weekly services are managed centrally in <strong>Recurring Templates</strong>. Edit once → affects every future plain week. Use dated overrides only for special events.
+  Regular weekly services are managed centrally in <strong>Recurring Templates</strong>. Edit once -> affects every future plain week. Use dated overrides only for special events.
 </div>
 
 <!-- Quick jump date -->
 <div class="glass-panel" style="margin-bottom:0.75rem;">
-  <div style="font-weight:600; margin-bottom:0.4rem;">Quick Access – Jump to Any Date</div>
+  <div style="font-weight:600; margin-bottom:0.4rem;">Quick Access - Jump to Any Date</div>
   <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
     <input type="date" id="custom-date-picker" value="{{ today.strftime('%Y-%m-%d') }}" style="padding:0.5rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
     <button type="button" class="btn btn-primary" onclick="let d=document.getElementById('custom-date-picker').value; if(d) window.location='/pastoral/planning/edit/'+d;">Edit / Create Plan</button>
@@ -48,7 +48,7 @@
 
 <!-- Calendar strip (kept interactive grid, wrapped clean) -->
 <div class="glass-panel" style="margin-bottom:0.75rem;">
-  <div style="font-weight:600; margin-bottom:0.5rem;">Clickable Calendar – Tap any date</div>
+  <div style="font-weight:600; margin-bottom:0.5rem;">Clickable Calendar - Tap any date</div>
   <div style="display:flex; overflow-x:auto; gap:0.75rem; padding-bottom:0.5rem;">
     {% for month in calendar_months %}
       <div style="min-width:168px; border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.5rem; background:rgba(0,0,0,0.3); flex-shrink:0;">
@@ -85,13 +85,13 @@
     <div class="item-card" style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
       <div>
         <div style="font-weight:600;">{{ plan.service_date.strftime('%A, %B %d') }}</div>
-        <div style="font-size:0.8rem; opacity:0.75;">{{ plan.start_time.strftime('%I:%M %p')|lower if plan.start_time else '—' }} - <span style="padding:0 0.3rem; background:rgba(255,255,255,0.08); border-radius:4px; font-size:0.7rem;">{{ plan.source_badge }}</span></div>
+        <div style="font-size:0.8rem; opacity:0.75;">{{ plan.start_time.strftime('%I:%M %p')|lower if plan.start_time else '-' }} - <span style="padding:0 0.3rem; background:rgba(255,255,255,0.08); border-radius:4px; font-size:0.7rem;">{{ plan.source_badge }}</span></div>
         <div style="margin-top:0.2rem;">{{ plan.title or 'Untitled' }}</div>
         {% if plan.linked_sermon_title %}
           <div style="font-size:0.8rem; margin-top:0.15rem;"><a href="{{ url_for('pastoral.sermons.edit', sermon_id=plan.pastoral_sermon_id) }}" style="color:var(--primary);">Sermon: {{ plan.linked_sermon_title }}</a></div>
         {% endif %}
       </div>
-      <a href="{{ url_for('pastoral.planning.edit', date_str=plan.service_date.strftime('%Y-%m-%d')) }}" class="btn btn-primary" style="min-height:40px; font-size:0.85rem; white-space:nowrap;">Edit / View →</a>
+      <a href="{{ url_for('pastoral.planning.edit', date_str=plan.service_date.strftime('%Y-%m-%d')) }}" class="btn btn-primary" style="min-height:40px; font-size:0.85rem; white-space:nowrap;">Edit / View -></a>
     </div>
     {% endfor %}
   {% else %}
@@ -103,6 +103,6 @@
 </div>
 
 <div style="text-align:center; margin-top:0.8rem;">
-  <a href="{{ url_for('pastoral.dashboard_pastoral') }}" style="font-size:0.8rem; opacity:0.55;">← Pastoral Command Center</a>
+  <a href="{{ url_for('pastoral.dashboard_pastoral') }}" style="font-size:0.8rem; opacity:0.55;"><- Pastoral Command Center</a>
 </div>
 {% endblock %}

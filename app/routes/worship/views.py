@@ -467,7 +467,7 @@ def setlist_email(setlist_id):
         abort(404)
 
     sent = skipped = 0
-    lines_base = [f"Worship Team — {setlist['title']}", '']
+    lines_base = [f"Worship Team - {setlist['title']}", '']
     if setlist.get('service_date'):
         lines_base.append(f"Service date: {setlist['service_date']}")
     if setlist.get('service_time'):
@@ -479,7 +479,7 @@ def setlist_email(setlist_id):
     lines_base.append('')
     lines_base.append('Setlist:')
     for i, s in enumerate(setlist.get('songs') or [], 1):
-        artist = f" — {s['artist']}" if s.get('artist') else ''
+        artist = f" - {s['artist']}" if s.get('artist') else ''
         lines_base.append(f"  {i}. {s['title']}{artist}")
 
     for a in setlist.get('assignments') or []:
@@ -555,7 +555,7 @@ def podium(setlist_id):
 
 @worship_bp.route('/screen/<token>')
 def public_screen(token):
-    """Public auditorium display — song titles only, no login."""
+    """Public auditorium display - song titles only, no login."""
     plan = template_model.get_by_public_token(token)
     if not plan:
         abort(404)
@@ -564,7 +564,7 @@ def public_screen(token):
 
 @worship_bp.route('/prompter/<token>')
 def public_prompter(token):
-    """Secret-link prompter with full lyrics — for sanctuary PC without login."""
+    """Secret-link prompter with full lyrics - for sanctuary PC without login."""
     plan = template_model.get_by_public_token(token)
     if not plan:
         abort(404)

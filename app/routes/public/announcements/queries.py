@@ -3,7 +3,7 @@
 # File name: queries.py
 # Brief, detailed purpose: Reusable database query functions specifically for the public Announcements section.
 # Returns ONLY public + active records (with rich creator_name via LEFT JOIN).
-# 100% rebuilt to match the public/events/queries.py and public/dreams/queries.py gold standard – uses a.* so all columns are available to views and templates.
+# 100% rebuilt to match the public/events/queries.py and public/dreams/queries.py gold standard - uses a.* so all columns are available to views and templates.
 
 from app.models.db import get_db
 import pymysql.cursors

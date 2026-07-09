@@ -4,7 +4,7 @@
 # Brief, detailed purpose: Feature-specific utility functions for the public Prophecies section.
 # - Exact same censor_public_content and format_public_datetime logic from the original shared public/utils.py
 # - Tailored keys for prophecies (title, description, notes, creator_name) while preserving 100% of the old behavior
-# - No functionality lost – all censoring, date formatting, and public safety checks remain identical
+# - No functionality lost - all censoring, date formatting, and public safety checks remain identical
 # - 100% rebuilt to match the exact style of public/events/utils.py and public/dreams/utils.py gold standard
 
 from app.utils.helpers import censor_text

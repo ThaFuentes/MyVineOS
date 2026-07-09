@@ -7,7 +7,7 @@
 #     - Fetching visible sermons (personal, collaborators, pastoral group)
 #     - Sermon CRUD (create, read, update, delete) with visibility enforcement
 #     - Sermon section management (structured, ordered content blocks)
-#       - FULL REPLACE PATTERN: Delete all old sections → insert new ones (prevents accumulation of blanks/extras)
+#       - FULL REPLACE PATTERN: Delete all old sections -> insert new ones (prevents accumulation of blanks/extras)
 #       - Safe sequential sort_order assignment if missing
 #       - All current fields preserved: title, section_type, scripture_reference, source (free text reference), content, notes
 #     - Collaborator management (add/remove users who can edit)
@@ -199,7 +199,7 @@ def delete_sermon(sermon_id):
 
 
 # ----------------------------------------------------------------------
-# Sermon Sections – FULL REPLACE + source field
+# Sermon Sections - FULL REPLACE + source field
 # ----------------------------------------------------------------------
 def get_sermon_sections(sermon_id):
     """
@@ -227,10 +227,10 @@ def get_sermon_sections(sermon_id):
 
 def save_sermon_sections(sermon_id, sections_list):
     """
-    FULL REPLACE: Delete all existing sections → insert new ones.
+    FULL REPLACE: Delete all existing sections -> insert new ones.
     Prevents accumulation of blank/extra sections forever.
     Assigns sequential sort_order if missing.
-    Includes source field (free text reference – books, conversations, etc.).
+    Includes source field (free text reference - books, conversations, etc.).
 
     Args:
         sermon_id (int): Sermon to update
@@ -239,7 +239,7 @@ def save_sermon_sections(sermon_id, sections_list):
     db = get_db()
     cur = db.cursor()
 
-    # CRITICAL: Delete ALL old sections first – fixes extra blanks permanently
+    # CRITICAL: Delete ALL old sections first - fixes extra blanks permanently
     cur.execute("DELETE FROM sermon_sections WHERE sermon_id = %s", (sermon_id,))
 
     # Insert new sections
@@ -258,7 +258,7 @@ def save_sermon_sections(sermon_id, sections_list):
             sec.get('title', ''),
             sec.get('content', ''),
             sec.get('scripture_reference', ''),
-            sec.get('source', ''),      # Free text source/reference – saved correctly
+            sec.get('source', ''),      # Free text source/reference - saved correctly
             sec.get('notes', '')
         ))
 

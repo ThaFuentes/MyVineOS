@@ -1,4 +1,4 @@
-# Custom church modules — schema-driven pages with themes and group permissions.
+# Custom church modules - schema-driven pages with themes and group permissions.
 
 import json
 

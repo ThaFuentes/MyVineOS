@@ -71,13 +71,13 @@ All fields can be updated. Visibility can be changed at any time.
             <label for="visibility" class="control-label">Visibility <span class="required">*</span></label>
             <select id="visibility" name="visibility" class="form-input" required>
                 <option value="public" {% if dream.visibility == 'public' or request.form.get('visibility') == 'public' %}selected{% endif %}>
-                    Public – visible to everyone
+                    Public - visible to everyone
                 </option>
                 <option value="private" {% if dream.visibility == 'private' or request.form.get('visibility') == 'private' %}selected{% endif %}>
-                    Private – visible to logged-in members only
+                    Private - visible to logged-in members only
                 </option>
                 <option value="personal" {% if dream.visibility == 'personal' or request.form.get('visibility') == 'personal' %}selected{% endif %}>
-                    Personal – visible ONLY to you
+                    Personal - visible ONLY to you
                 </option>
             </select>
         </div>

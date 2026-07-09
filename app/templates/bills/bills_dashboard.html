@@ -1,12 +1,12 @@
 <!-- app/templates/bills/bills_dashboard.html -->
 <!-- Full path: WebChurchMan/app/templates/bills/bills_dashboard.html -->
 <!-- File name: bills_dashboard.html -->
-<!-- Brief, detailed purpose: Bills Dashboard / Main Listing page – primary entry point for Recurring Bills module.
+<!-- Brief, detailed purpose: Bills Dashboard / Main Listing page - primary entry point for Recurring Bills module.
    Extends base_bills.html for consistent glass wrapper, menu, flash messages.
    Summary cards (.card.glass), collapsible search/filters, glass table.
    + Add New Bill at top (manage_bills only).
    Bill name links to view_bill.
-   Actions column (Edit/Delete/Assign) only for managers – buttons uniform size, side-by-side flex.
+   Actions column (Edit/Delete/Assign) only for managers - buttons uniform size, side-by-side flex.
    Status column color-coded (overdue: red, paid: green, pending: yellow, partial: orange).
    Client-side live search + status/due date filters preserved. Global classes only. -->
 
@@ -15,7 +15,7 @@
 {% block page_title %}Recurring Bills Dashboard{% endblock %}
 
 {% block page_description %}
-Secure billing vault and payment reminder hub — track due dates, payment history, and locked credentials (utility logins, software keys, account passwords).<br>
+Secure billing vault and payment reminder hub - track due dates, payment history, and locked credentials (utility logins, software keys, account passwords).<br>
 {% if is_manager %}
     You are viewing all bills (as Staff/Admin/Owner).
 {% else %}
@@ -25,7 +25,7 @@ Secure billing vault and payment reminder hub — track due dates, payment histo
 
 {% block bills_content %}
 
-<!-- App-style bills stats — counted from the same bills[] rows as the table below -->
+<!-- App-style bills stats - counted from the same bills[] rows as the table below -->
 <div style="margin-bottom:0.6rem;">
   <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.3rem; letter-spacing:0.5px;">BILLS SUMMARY</div>
   <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:0.55rem;">
@@ -53,7 +53,7 @@ Secure billing vault and payment reminder hub — track due dates, payment histo
 </div>
 
 <div class="glass-panel" style="margin-bottom:0.75rem; padding:0.85rem 1rem; border-left:3px solid var(--primary);">
-  <strong> Secure Vault</strong> — Each bill can store encrypted login credentials and internal notes.
+  <strong> Secure Vault</strong> - Each bill can store encrypted login credentials and internal notes.
   Open a bill and use <em>Unlock Credentials</em> (re-authentication required) to reveal utility passwords or software license keys.
 </div>
 

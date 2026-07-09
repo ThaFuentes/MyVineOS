@@ -14,11 +14,11 @@ from flask import Blueprint
 tickets_bp = Blueprint(
     'tickets',
     __name__,
-    url_prefix='/tickets',                    # ← kept for Ticket Manager
+    url_prefix='/tickets',                    # <- kept for Ticket Manager
     template_folder='../../../templates/tickets',
     static_folder='../../../static'
 )
 
-# Import views/routes (views.py will be rebuilt next – one file at a time)
+# Import views/routes (views.py will be rebuilt next - one file at a time)
 from . import views
 

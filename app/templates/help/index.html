@@ -7,7 +7,7 @@
     <div class="form-group">
         <label for="help-search">Search help guides</label>
         <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-            <input type="search" id="help-search" name="q" value="{{ query }}" placeholder="Try: password, event, donation, check in…" style="flex:1; min-width:200px;" autofocus>
+            <input type="search" id="help-search" name="q" value="{{ query }}" placeholder="Try: password, event, donation, check in..." style="flex:1; min-width:200px;" autofocus>
             <button type="submit" class="btn-primary">Search</button>
         </div>
     </div>
@@ -82,7 +82,7 @@
     </details>
     {% endfor %}
 {% else %}
-<p class="no-data">No help guides published yet.{% if can_manage %} <a href="{{ url_for('help.manage_index') }}">Add your first guide →</a>{% endif %}</p>
+<p class="no-data">No help guides published yet.{% if can_manage %} <a href="{{ url_for('help.manage_index') }}">Add your first guide -></a>{% endif %}</p>
 {% endif %}
 {% endif %}
 {% endblock %}

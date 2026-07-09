@@ -28,11 +28,11 @@ from app.utils.comment_moderation import (
 # ----------------------------------------------------------------------
 @events_bp.route('/')
 def public_events():
-    """Public events listing – upcoming public events only."""
+    """Public events listing - upcoming public events only."""
 #    print(" [PUBLIC EVENTS] Route /public/events/ hit (sub-blueprint)")
 
     if 'user_id' in session:
-#        print(" [PUBLIC EVENTS] Logged-in user → redirecting to private events")
+#        print(" [PUBLIC EVENTS] Logged-in user -> redirecting to private events")
         return redirect(url_for('events.events'))
 
     events = get_public_events()
@@ -66,7 +66,7 @@ def public_event_detail(event_id):
     print(f" [PUBLIC EVENT DETAIL] Route /public/events/{event_id} hit")
 
     if 'user_id' in session and request.method == 'GET':
-        print(" [PUBLIC EVENT DETAIL] Logged-in user → redirecting to private view")
+        print(" [PUBLIC EVENT DETAIL] Logged-in user -> redirecting to private view")
         return redirect(url_for('events.view_event', event_id=event_id))
 
     db = get_db()
@@ -115,7 +115,7 @@ def public_event_detail(event_id):
                 db.commit()
                 flash('Thank you for signing up!', 'success')
             except Exception:
-                flash('Signup failed – please try again.', 'error')
+                flash('Signup failed - please try again.', 'error')
 
         elif action in ('comment', 'reply'):
             if not comments_enabled:

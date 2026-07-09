@@ -133,7 +133,7 @@ def request_family():
     try:
         create_family_request(user_id, relative_id, relation)
         log_change(user_id, 'create', change_details=f'Sent family request ({relation}) to user {relative_id}')
-        flash('Family request sent—awaiting approval.', 'success')
+        flash('Family request sent-awaiting approval.', 'success')
 
     except Exception as e:
         flash('Failed to send request.', 'error')

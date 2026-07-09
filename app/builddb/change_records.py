@@ -5,7 +5,7 @@
 # Logs all significant actions (create/update/delete/view/email etc.) with user accountability.
 # Fields: user_id (FK to users), action, optional target_id/username, details, timestamp.
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # Updated user_id to INT UNSIGNED to match users.id and fix MariaDB Errno 150.
 
 def create_tables(cursor):

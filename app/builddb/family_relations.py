@@ -4,14 +4,14 @@
 # Brief, detailed purpose: Creates and safely migrates the family_relations table.
 #   Manages bidirectional family relationships between users with:
 #     - relation_type (spouse, parent, child, sibling, etc.)
-#     - status (pending → approved/rejected)
+#     - status (pending -> approved/rejected)
 #     - timestamps for request and response
 #     - optional admin override field (approved_by)
 #   Enforces uniqueness per user pair (prevents duplicate requests in either direction).
 #   Uses INT UNSIGNED for all FKs to match users.id and prevent errno 150 issues.
 #   Safe schema evolution: checks existing columns via INFORMATION_SCHEMA and adds missing ones.
 #   Idempotent indexes and CHECK constraints.
-#   Isolated module – called from builddb.py or scripts/init_db.py during DB initialization.
+#   Isolated module - called from builddb.py or scripts/init_db.py during DB initialization.
 #   Fully compatible with models/user.py family functions.
 
 def create_tables(cursor):
@@ -91,7 +91,7 @@ def create_tables(cursor):
     print("family_relations table setup complete.\n")
 
 
-# Helper – silently ignore duplicate/already-exists errors during ALTER/INDEX
+# Helper - silently ignore duplicate/already-exists errors during ALTER/INDEX
 def safe_exec(cursor, sql):
     try:
         cursor.execute(sql)

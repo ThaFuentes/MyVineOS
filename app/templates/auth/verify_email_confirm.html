@@ -3,7 +3,7 @@
 {% block content %}
 <div class="glass-panel" style="max-width:480px; margin:2rem auto; padding:1.5rem; text-align:center;">
     <h2>Confirm your email</h2>
-    <p>Hi <strong>{{ username }}</strong> — click the button below to verify this email address for your account.</p>
+    <p>Hi <strong>{{ username }}</strong> - click the button below to verify this email address for your account.</p>
     <p style="font-size:0.9rem; color:var(--text-muted); margin:1rem 0;">This extra step prevents automated email scanners from using your link before you do.</p>
     <form method="post" action="{{ url_for('auth.verify_email', token=token) }}" style="margin-top:1.25rem;">
         {% include 'partials/csrf_field.html' %}

@@ -1,13 +1,13 @@
-{# Simple role picker — Member vs Group Manager (leader in DB). #}
+{# Simple role picker - Member vs Group Manager (leader in DB). #}
 <select name="{{ role_field_name|default('role_in_group') }}"
         class="{{ css_class|default('form-input') }}"
         {% if input_id %}id="{{ input_id }}"{% endif %}>
     <option value="member" {% if selected_role|default('member') == 'member' %}selected{% endif %}>
-        Member — permissions only
+        Member - permissions only
     </option>
     {% if show_manager_role %}
     <option value="leader" {% if selected_role == 'leader' %}selected{% endif %}>
-        Group Manager — add/remove members &amp; edit group settings
+        Group Manager - add/remove members &amp; edit group settings
     </option>
     {% endif %}
 </select>

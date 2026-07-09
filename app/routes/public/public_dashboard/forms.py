@@ -4,7 +4,7 @@
 # Brief, detailed purpose: Form validation and data cleaning for the Public Dashboard module.
 # - The public dashboard is a read-only rich feed (no guest forms, no potluck, no comments.html on the homepage itself).
 # - This file exists for full structural consistency with every other public feature (dreams, events, announcements, prophecies, etc.).
-# - No validation functions are needed – kept minimal and clean so the modular layout remains identical across all sub-folders.
+# - No validation functions are needed - kept minimal and clean so the modular layout remains identical across all sub-folders.
 # - 100% rebuilt to match the exact style of events/forms.py, dreams/forms.py, etc.
 
 from flask import flash

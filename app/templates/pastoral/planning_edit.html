@@ -3,7 +3,7 @@
 {# File name: planning_edit.html #}
 {# Brief, detailed purpose:
 #   Editor for a SINGLE dated service plan (override or special event only).
-#   No recurrence UI – recurring services are centrally managed via master templates.
+#   No recurrence UI - recurring services are centrally managed via master templates.
 #   Jump to any date at top.
 #   Pre-fills roles from global defaults on new plans.
 #   Linked sermon dropdown.
@@ -52,7 +52,7 @@
             <!-- Header -->
             <div class="text-center mb-5">
                 <h1 class="text-cyan mb-3">
-                    Dated Plan{% if plan.id %} – Edit{% else %} – New{% endif %}
+                    Dated Plan{% if plan.id %} - Edit{% else %} - New{% endif %}
                 </h1>
                 <h2 class="display-5 fw-bold text-white">
                     {{ plan.service_date.strftime('%A, %B %d, %Y') }}
@@ -68,7 +68,7 @@
                     <a href="{{ url_for('pastoral.planning.templates_list') }}" class="text-cyan text-decoration-underline">
                         Master Templates console
                     </a>
-                    (edit once → affects all future weeks).
+                    (edit once -> affects all future weeks).
                 </p>
             </div>
 

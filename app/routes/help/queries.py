@@ -33,7 +33,7 @@ def _article_visible(article: dict) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Categories — public
+# Categories - public
 # ---------------------------------------------------------------------------
 
 def list_published_categories(cur) -> list[dict]:
@@ -62,7 +62,7 @@ def get_category_by_slug(cur, slug: str, *, published_only: bool = True) -> dict
 
 
 # ---------------------------------------------------------------------------
-# Categories — admin
+# Categories - admin
 # ---------------------------------------------------------------------------
 
 def list_all_categories(cur) -> list[dict]:
@@ -145,7 +145,7 @@ def category_slug_exists(cur, slug: str, exclude_id: int | None = None) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Articles — public
+# Articles - public
 # ---------------------------------------------------------------------------
 
 def _fetch_articles(cur, where_sql: str, params: tuple) -> list[dict]:
@@ -259,7 +259,7 @@ def get_related_articles(cur, article: dict, limit: int = 4) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Articles — admin
+# Articles - admin
 # ---------------------------------------------------------------------------
 
 def list_all_articles(cur, category_id: int | None = None) -> list[dict]:

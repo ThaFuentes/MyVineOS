@@ -2,11 +2,11 @@
 <!-- Full path: WebChurchMan/app/templates/dreams/dreams.html -->
 <!-- File name: dreams.html -->
 <!-- Brief, detailed purpose: Dreams & Visions Dashboard / Main Listing page.
-   Extends base_dreams.html → identical glass wrapper, menu, flash handling.
+   Extends base_dreams.html -> identical glass wrapper, menu, flash handling.
    Summary cards, top submit button (logged-in only), collapsible search/filters, glass table.
    Client-side live search + visibility filters.
    Title links to detail view (/dreams/<id>).
-   Uses ONLY global classes – no dreams-specific CSS.
+   Uses ONLY global classes - no dreams-specific CSS.
    Date display fixed to use strftime (no slicing on datetime objects). -->
 
 {% extends "dreams/base_dreams.html" %}
@@ -49,7 +49,7 @@ Browse and search all dreams & visions.<br>
     </div>
 </section>
 
-<!-- Submit Button – logged-in only -->
+<!-- Submit Button - logged-in only -->
 {% if is_logged_in %}
 <div class="form-actions add-event-top">
     <a href="{{ url_for('dreams.submit_dream') }}" class="btn-primary">+ Submit Dream / Vision</a>
@@ -111,8 +111,8 @@ Browse and search all dreams & visions.<br>
                                 <strong>{{ d.title }}</strong>
                             </a>
                         </td>
-                        <td>{{ d.type|capitalize if d.type else '—' }}</td>
-                        <td>{{ d.date_occurred_text or '—' }}</td>
+                        <td>{{ d.type|capitalize if d.type else '-' }}</td>
+                        <td>{{ d.date_occurred_text or '-' }}</td>
                         <td>{{ d.date_posted.strftime('%m/%d/%Y') }}</td>
                         <td>{{ d.poster_name or 'Anonymous' }}</td>
                         <td>{{ d.visibility|capitalize }}</td>

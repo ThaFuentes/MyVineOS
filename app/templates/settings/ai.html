@@ -35,14 +35,14 @@
             <div class="form-group full-width">
                 <label for="api_key_{{ p.provider }}">API Key</label>
                 <input type="password" name="api_key_{{ p.provider }}" id="api_key_{{ p.provider }}"
-                       placeholder="{% if p.has_key %}Configured — leave blank to keep{% else %}Enter API key{% endif %}"
+                       placeholder="{% if p.has_key %}Configured - leave blank to keep{% else %}Enter API key{% endif %}"
                        autocomplete="new-password">
             </div>
             {% else %}
             <div class="form-group full-width">
                 <label for="base_url_ollama">Ollama Base URL</label>
                 <input type="text" name="base_url_ollama" id="base_url_ollama" value="{{ p.base_url }}">
-                <p class="help-text">Local Ollama — no API key required when enabled.</p>
+                <p class="help-text">Local Ollama - no API key required when enabled.</p>
             </div>
             {% endif %}
 

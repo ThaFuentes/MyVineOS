@@ -5,7 +5,7 @@
 {% if notice %}
 Update this notice. Uncheck Active to keep it as a draft hidden from the public page.
 {% else %}
-Create a new notice. Starter text is provided when available — edit it to match your church.
+Create a new notice. Starter text is provided when available - edit it to match your church.
 {% endif %}
 {% endblock %}
 
@@ -59,7 +59,7 @@ Create a new notice. Starter text is provided when available — edit it to matc
             <label>
                 <input type="checkbox" name="is_active" value="1"
                     {% if not notice or notice.is_active %}checked{% endif %}>
-                Active — show on public legal page
+                Active - show on public legal page
             </label>
         </div>
     </div>

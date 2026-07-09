@@ -1,7 +1,7 @@
 <!-- myvinechurchonline/app/templates/prayers/prayers.html -->
 <!-- Full path: myvinechurchonline/app/templates/prayers/prayers.html -->
 <!-- File name: prayers.html -->
-<!-- Brief, detailed purpose: Prayers Dashboard / Overview page – main entry point and summary wall for the Prayers module.
+<!-- Brief, detailed purpose: Prayers Dashboard / Overview page - main entry point and summary wall for the Prayers module.
    Extends base_prayers.html for consistent wrapper, flash messages, sub-navigation menu, and active highlighting.
    Displays summary cards, optional quick-add shortcut button, collapsible search/filters, glass table with date grouping,
    expandable rows (description + responses + add response form), and client-side filtering/search.
@@ -13,7 +13,7 @@
 {% block page_title %}Prayers{% endblock %}
 
 {% block page_description %}
-Community prayer wall – view, respond to, and support prayer requests.<br>
+Community prayer wall - view, respond to, and support prayer requests.<br>
 Public requests are visible to all; private requests require login.
 {% endblock %}
 
@@ -38,7 +38,7 @@ Public requests are visible to all; private requests require login.
     </div>
 </section>
 
-<!-- Quick shortcut button (in addition to menu link) – always visible -->
+<!-- Quick shortcut button (in addition to menu link) - always visible -->
 <div class="form-actions add-event-top">
     <a href="{{ url_for('prayers.submit_prayer') }}" class="btn-primary">+ Add Prayer Request</a>
 </div>
@@ -93,7 +93,7 @@ Public requests are visible to all; private requests require login.
                     <tr class="data-row" data-responses="{{ 'with' if p.response_count > 0 else 'without' }}"
                         onclick="toggleDetails('details-{{ p.id }}')" style="cursor:pointer;">
                         <td><strong>{{ p.title }}</strong></td>
-                        <td>{{ p.date_posted.strftime('%b %d, %Y') if p.date_posted else '—' }}</td>
+                        <td>{{ p.date_posted.strftime('%b %d, %Y') if p.date_posted else '-' }}</td>
                         <td>
                             {% if p.contributor_name %}
                                 {{ p.contributor_name }}
@@ -108,7 +108,7 @@ Public requests are visible to all; private requests require login.
                             {% if p.last_responder %}
                                 {{ p.last_responder.first_name }} {{ p.last_responder.last_name or '' }}
                             {% else %}
-                                —
+                                -
                             {% endif %}
                         </td>
                         {% if is_logged_in %}
@@ -165,7 +165,7 @@ Public requests are visible to all; private requests require login.
                                         <form action="{{ url_for('prayers.add_prayer_to_request', prayer_request_id=p.id) }}" method="POST" class="styled-form potluck-add-form">
                                             {% if not is_logged_in %}
                                             <div class="form-group">
-                                                <label>Your Name (optional – leave blank for Anonymous)</label>
+                                                <label>Your Name (optional - leave blank for Anonymous)</label>
                                                 <input type="text" name="contributor_name" placeholder="Your name">
                                             </div>
                                             {% endif %}

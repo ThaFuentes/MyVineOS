@@ -1,5 +1,5 @@
 # app/routes/bills/utils.py
-# Permission helpers for recurring bills — group-based with Staff/Admin/Owner global override.
+# Permission helpers for recurring bills - group-based with Staff/Admin/Owner global override.
 
 from app.utils.permissions import user_has_permission
 

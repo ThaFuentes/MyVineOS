@@ -59,7 +59,7 @@ Share a prayer need with the community. Required fields marked with <span class=
         {% else %}
         <input type="hidden" name="visibility" value="public">
         <div class="form-group">
-            <label for="contributor_name" class="control-label">Your Name (optional – "Anonymous" if blank)</label>
+            <label for="contributor_name" class="control-label">Your Name (optional - "Anonymous" if blank)</label>
             <input type="text" id="contributor_name" name="contributor_name" class="form-input"
                    value="{{ request.form.get('contributor_name', '') }}" placeholder="Your name">
             <p class="help-text">Guest submissions are always public.</p>

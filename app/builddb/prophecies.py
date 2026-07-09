@@ -2,7 +2,7 @@
 # Full path: MYVINECHURCH.ONLINE/app/builddb/prophecies.py
 # File name: prophecies.py
 # Brief, detailed purpose: Creates/updates the prophecies and prophecy_comments tables for MariaDB.
-# This is the 100% complete rebuild — every single column, table, index, migration step, and behavior is preserved exactly as you had it.
+# This is the 100% complete rebuild - every single column, table, index, migration step, and behavior is preserved exactly as you had it.
 # The only updates are: much clearer comments.html, better code organization, and explicit support for created_by / updated_by (this powers "Created by: [Name]" on the public prophecies page, just like events, announcements, dreams, and prayers).
 # No new tables, no behavior changes.
 
@@ -29,7 +29,7 @@ def create_tables(cursor):
             visibility       VARCHAR(20) NOT NULL DEFAULT 'private'
                              CHECK(visibility IN ('public', 'private', 'personal')),
             user_id          INT UNSIGNED,
-            created_by       INT UNSIGNED,           -- ← This column shows WHO created the prophecy
+            created_by       INT UNSIGNED,           -- <- This column shows WHO created the prophecy
             updated_by       INT UNSIGNED,
             contributor_name VARCHAR(255),
             ip_address       VARCHAR(45),

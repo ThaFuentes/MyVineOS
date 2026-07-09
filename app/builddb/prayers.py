@@ -2,7 +2,7 @@
 # Full path: MYVINECHURCH.ONLINE/app/builddb/prayers.py
 # File name: prayers.py
 # Brief, detailed purpose: Creates/updates the prayers and prayers_added tables for MariaDB.
-# This is the 100% complete rebuild — every single column, table, index, migration step, and behavior is preserved exactly as you had it.
+# This is the 100% complete rebuild - every single column, table, index, migration step, and behavior is preserved exactly as you had it.
 # The only updates are: much clearer comments.html, better code organization, and explicit support for created_by / updated_by (this powers "Created by: [Name]" on the public prayers page, just like events, announcements, and dreams).
 # No new tables, no behavior changes.
 
@@ -28,7 +28,7 @@ def create_tables(cursor):
             visibility       VARCHAR(20) NOT NULL DEFAULT 'public'
                              CHECK(visibility IN ('public', 'private')),
             user_id          INT UNSIGNED,
-            created_by       INT UNSIGNED,           -- ← This column shows WHO created the prayer request
+            created_by       INT UNSIGNED,           -- <- This column shows WHO created the prayer request
             updated_by       INT UNSIGNED,
             contributor_name VARCHAR(255),           -- For non-registered users
             ip_address       VARCHAR(45),            -- For IP tracking/banning (IPv6 safe)
@@ -67,7 +67,7 @@ def create_tables(cursor):
     # They allow the public prayers page to display "Created by: [Name]".
     # If you see "Unknown" on old prayers, it is only because created_by was NULL.
 
-    # Indexes for prayers (safe — will not fail if they already exist)
+    # Indexes for prayers (safe - will not fail if they already exist)
     try:
         cursor.execute("CREATE INDEX idx_prayers_visibility ON prayers(visibility)")
     except: pass

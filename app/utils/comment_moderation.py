@@ -390,7 +390,7 @@ def apply_moderation_action(content_type, parent_id, moderator_id, moderator_use
                 item_title=f"{content_type}:{parent_id}",
                 details=f"{detail_prefix} shadowed by {moderator_username} (visible only to poster).",
             )
-            flash('Comment shadowed — only the original poster can see it.', 'success')
+            flash('Comment shadowed - only the original poster can see it.', 'success')
 
         elif action == 'unshadow':
             cur.execute(f"""

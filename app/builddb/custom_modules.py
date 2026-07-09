@@ -1,4 +1,4 @@
-# Custom church modules — schema-driven pages with themes and group permissions.
+# Custom church modules - schema-driven pages with themes and group permissions.
 
 import json
 
@@ -118,7 +118,7 @@ def _seed_module_types(cursor):
         (
             'resource_list',
             'Equipment & Rooms',
-            'Optional — track what the church owns or lends out (sound board, van keys, Room 3). Not a chat or reservation system; just a shared list managers update.',
+            'Optional - track what the church owns or lends out (sound board, van keys, Room 3). Not a chat or reservation system; just a shared list managers update.',
             '',
             'slate',
             {
@@ -139,7 +139,7 @@ def _seed_module_types(cursor):
         (
             'weekly_schedule',
             'Ministry Calendar',
-            'Optional — post when ministries meet (e.g. "Wednesday Youth 7pm, Room B"). One-way bulletin, not a signup or forum.',
+            'Optional - post when ministries meet (e.g. "Wednesday Youth 7pm, Room B"). One-way bulletin, not a signup or forum.',
             '',
             'royal',
             {
@@ -170,13 +170,13 @@ def _seed_module_types(cursor):
     # Refresh labels/help text on existing installs
     for type_key, name, desc in (
         ('resource_list', 'Equipment & Rooms',
-         'Optional — track church equipment and rooms (sound board, van, Room 3). Managers update the list; members read it.'),
+         'Optional - track church equipment and rooms (sound board, van, Room 3). Managers update the list; members read it.'),
         ('weekly_schedule', 'Ministry Calendar',
-         'Optional — when ministries meet (e.g. Wednesday Youth 7pm). Bulletin-style, not chat or signups.'),
+         'Optional - when ministries meet (e.g. Wednesday Youth 7pm). Bulletin-style, not chat or signups.'),
         ('bus_routes', 'Bus Routes',
          'Pickup stops, times, and drivers for church transportation.'),
         ('youth_group', 'Youth Group',
-         'Youth events and meetings — dates, locations, leaders.'),
+         'Youth events and meetings - dates, locations, leaders.'),
     ):
         cursor.execute("""
             UPDATE custom_module_types SET name = %s, description = %s WHERE type_key = %s

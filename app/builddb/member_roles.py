@@ -5,7 +5,7 @@
 # Enables many-to-many assignment of roles to users (multiple roles per user).
 # Supports future flexible permission systems beyond the single 'role' column in users table.
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # Fixes MariaDB Errno 150 by using UNSIGNED INT and VARCHAR for indexing.
 
 def create_tables(cursor):

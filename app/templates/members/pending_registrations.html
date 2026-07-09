@@ -21,7 +21,7 @@
                 <td>{{ u.first_name }} {{ u.last_name }}</td>
                 <td>{{ u.username }}</td>
                 <td>{{ u.email }}</td>
-                <td>{% if u.created_at %}{{ u.created_at.strftime('%b %d, %Y') }}{% else %}—{% endif %}</td>
+                <td>{% if u.created_at %}{{ u.created_at.strftime('%b %d, %Y') }}{% else %}-{% endif %}</td>
                 <td>{% if u.email_verified %}Yes{% else %}No{% endif %}</td>
                 <td>
                     <form method="post" action="{{ url_for('members.approve_registration', user_id=u.id) }}" class="inline-form">

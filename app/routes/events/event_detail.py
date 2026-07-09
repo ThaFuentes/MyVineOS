@@ -18,7 +18,7 @@ import pymysql
 def register_detail_routes(bp):
     @bp.route('/view/<int:event_id>', methods=['GET', 'POST'])
     def view_event(event_id):
-        """Public event detail – guests and members can comment."""
+        """Public event detail - guests and members can comment."""
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
 
@@ -46,7 +46,7 @@ def register_detail_routes(bp):
                 for s in signups:
                     s['created_at_nice'] = format_church(s['created_at_utc'])
             except Exception:
-                pass  # Old DB without table – ignore
+                pass  # Old DB without table - ignore
 
         # ---------- POST: Potluck contribution (your original logic kept 100%) ----------
         if request.method == 'POST' and request.form.get('action') == 'potluck':
@@ -172,7 +172,7 @@ def register_detail_routes(bp):
     # ==================================================================
     @bp.route('/view/<int:event_id>/delete_comment/<int:comment_id>', methods=['POST'])
     def delete_comment(event_id, comment_id):
-        """Delete a comment – owner or moderate_events permission only."""
+        """Delete a comment - owner or moderate_events permission only."""
         if 'user_id' not in session:
             flash('You must be logged in to delete comments.html.', 'error')
             return redirect(url_for('events.view_event', event_id=event_id))
@@ -206,7 +206,7 @@ def register_detail_routes(bp):
     # ==================================================================
     @bp.route('/view/<int:event_id>/edit_comment/<int:comment_id>', methods=['POST'])
     def edit_comment(event_id, comment_id):
-        """Edit a comment – owner or moderate_events permission only."""
+        """Edit a comment - owner or moderate_events permission only."""
         if 'user_id' not in session:
             flash('You must be logged in to edit comments.html.', 'error')
             return redirect(url_for('events.view_event', event_id=event_id))

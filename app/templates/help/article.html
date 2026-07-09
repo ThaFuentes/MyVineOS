@@ -7,7 +7,7 @@
 <div style="font-size:0.85rem; opacity:0.7; margin-bottom:0.75rem;">
     <a href="{{ url_for('help.help_index', tab='browse') }}" style="color:var(--primary);">Help</a>
     {% if article.category_name %}
-    → {{ article.category_name }}
+    -> {{ article.category_name }}
     {% endif %}
 </div>
 
@@ -15,7 +15,7 @@
     {% if is_pinned %}
     <form method="POST" action="{{ url_for('help.help_unpin', article_id=article.id) }}" style="margin:0;">
         {% include 'partials/csrf_field.html' %}
-        <button type="submit" class="btn-secondary"> Pinned — click to remove</button>
+        <button type="submit" class="btn-secondary"> Pinned - click to remove</button>
     </form>
     {% else %}
     <form method="POST" action="{{ url_for('help.help_pin', article_id=article.id) }}" style="margin:0;">

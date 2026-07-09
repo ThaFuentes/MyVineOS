@@ -18,7 +18,7 @@
 
             {% elif field.type == 'select' %}
             <select id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" {% if field.required %}required{% endif %}>
-                <option value="">— Select —</option>
+                <option value="">- Select -</option>
                 {% for opt in field.options or [] %}
                 <option value="{{ opt }}" {% if val == opt %}selected{% endif %}>{{ opt }}</option>
                 {% endfor %}

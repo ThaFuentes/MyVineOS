@@ -6,7 +6,7 @@
 # All database settings use MYSQL_* environment variables (standard for Docker/MariaDB).
 # Sensitive values (SECRET_KEY, MYSQL_PASSWORD) must come from environment in production.
 # Upload/export paths remain relative to project root for consistency.
-# Email settings are placeholders — actual encrypted credentials stored in settings table.
+# Email settings are placeholders - actual encrypted credentials stored in settings table.
 
 import os
 
@@ -14,7 +14,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    """Base configuration class — shared defaults."""
+    """Base configuration class - shared defaults."""
     # General
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'change-this-insecure-default-immediately-2026'
     DEBUG = False

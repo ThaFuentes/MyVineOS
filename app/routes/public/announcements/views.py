@@ -3,7 +3,7 @@
 # File name: views.py
 # Brief, detailed purpose: Public Announcements routes for unauthenticated guests only.
 # - 100% rebuilt to match the working public/events/views.py gold standard exactly.
-# - FIXED: announcement['comments.html'] → announcement['comments'] so the template can see the comments.
+# - FIXED: announcement['comments.html'] -> announcement['comments'] so the template can see the comments.
 # - Listing shows only public + active announcements with creator_name.
 # - Detail page supports guest comments/replies (one-level).
 # - Logged-in users are redirected to private announcements.
@@ -30,7 +30,7 @@ from app.utils.comment_moderation import (
 # ----------------------------------------------------------------------
 @announcements_bp.route('/')
 def public_announcements():
-    """Public announcements listing – logged-in users are redirected to the private announcements dashboard."""
+    """Public announcements listing - logged-in users are redirected to the private announcements dashboard."""
     if 'user_id' in session:
         return redirect(url_for('announcements.announcements'))
 
@@ -38,7 +38,7 @@ def public_announcements():
     announcements = get_public_announcements()
     announcements = censor_public_content(announcements)
 
-    # Prepare data for template – SAFE date formatting + creator_name fallback
+    # Prepare data for template - SAFE date formatting + creator_name fallback
     for a in announcements:
         # Safe date formatting (handles both datetime objects and strings)
         posted = a.get('created_at')

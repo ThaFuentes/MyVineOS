@@ -2,7 +2,7 @@
     <h2 class="section-title">Account Security &amp; Moderation</h2>
     <p class="help-text">
         Tools for admins: password reset, login lockouts, shadow ban, and full ban.
-        <strong>Shadow ban</strong> lets the user log in but only see their own content — others cannot see anything they post.
+        <strong>Shadow ban</strong> lets the user log in but only see their own content - others cannot see anything they post.
         <strong>Account lock</strong> blocks login until cleared. <strong>Ban</strong> blocks login entirely.
     </p>
 
@@ -48,7 +48,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             <input type="hidden" name="action" value="shadow_ban">
             <strong>Shadow ban</strong>
-            <p class="help-text" style="margin:0.5rem 0;">Silent moderation — user can log in but is isolated.</p>
+            <p class="help-text" style="margin:0.5rem 0;">Silent moderation - user can log in but is isolated.</p>
             <button type="submit" class="btn-secondary btn-small" onclick="return confirm('Apply shadow ban? User will not be notified.');">Apply Shadow Ban</button>
         </form>
         {% endif %}
@@ -115,9 +115,9 @@
         {% endif %}
     </div>
 
-    {% if can_manage_users() %}
+    {% if can_manage_users %}
     <p style="margin-top:1rem;">
-        <a href="{{ url_for('members.security_lockouts') }}">Manage IP brute-force lockouts →</a>
+        <a href="{{ url_for('members.security_lockouts') }}">Manage IP brute-force lockouts</a>
     </p>
     {% endif %}
 </section>

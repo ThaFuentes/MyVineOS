@@ -6,7 +6,7 @@
 # Full server-side censorship check on all text fields during create/update.
 # Preserves every field, logs all actions, flashes feedback.
 # Renders add_event.html (GET/POST) and edit_event.html (GET/POST).
-# No other routes or logic – pure extraction from the original monolithic events.py.
+# No other routes or logic - pure extraction from the original monolithic events.py.
 
 from flask import render_template, request, redirect, url_for, flash, session
 from app.utils.decorators import login_required, role_required

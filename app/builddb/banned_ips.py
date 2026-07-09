@@ -6,7 +6,7 @@
 # Primary key on ip_address (VARCHAR(45) to support IPv4/IPv6 and fix MariaDB TEXT PK limitation).
 # Audit fields for who banned and reason.
 # Safe schema evolution: adds missing columns via INFORMATION_SCHEMA.COLUMNS.
-# Isolated module – called from builddb.py during DB initialization.
+# Isolated module - called from builddb.py during DB initialization.
 # Fixes errno 150 by matching banned_by type (INT UNSIGNED) to users.id.
 
 def create_tables(cursor):

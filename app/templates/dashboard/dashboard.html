@@ -4,7 +4,7 @@
 <!-- Brief, detailed purpose: Renders the private dashboard for authenticated users.
    Displays uniform glassmorphism cards for today's birthdays, recent prayers, dreams & visions,
    prophecies, sermons, announcements, and upcoming events.
-   All inline styles removed – fully uses global glass card classes (.summary-cards + .card.glass).
+   All inline styles removed - fully uses global glass card classes (.summary-cards + .card.glass).
    Optional fields (poster_username, visibility) handled safely.
    "No data" messages preserved. Responsive grid adapts to screen size.
    Clean, premium look matching the rebuilt site-wide glassmorphism theme. -->
@@ -23,14 +23,14 @@
 {% if can_manage_users() and pending_registration_count > 0 %}
 <div class="glass-panel" style="margin-bottom:0.85rem; padding:0.85rem 1rem; border:1px solid rgba(255,200,80,0.35);">
   <strong>{{ pending_registration_count }} pending registration{{ 's' if pending_registration_count != 1 else '' }}</strong> awaiting review.
-  <a href="{{ url_for('members.pending_registrations') }}" style="margin-left:0.5rem; color:var(--primary);">Review now →</a>
+  <a href="{{ url_for('members.pending_registrations') }}" style="margin-left:0.5rem; color:var(--primary);">Review now -></a>
 </div>
 {% endif %}
 
 {% if session.get('user_role') in ['Admin', 'Owner'] %}
 <div class="glass-panel" style="margin-bottom:0.85rem; padding:0.65rem 1rem; font-size:0.88rem;">
-  <a href="{{ url_for('settings.notifications') }}" style="color:var(--primary);">Settings → Notifications</a>
-  — registration, verification, receipts, bill reminders
+  <a href="{{ url_for('settings.notifications') }}" style="color:var(--primary);">Settings -> Notifications</a>
+  - registration, verification, receipts, bill reminders
 </div>
 {% endif %}
 
@@ -133,7 +133,7 @@
                     <li>
                         {{ prayer.title }}
                         {% if prayer.poster_username %} (by {{ prayer.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ prayer.datetime }}{% if prayer.visibility %} – {{ prayer.visibility }}{% endif %}</small>
+                        <br><small style="opacity:0.7;">{{ prayer.datetime }}{% if prayer.visibility %} - {{ prayer.visibility }}{% endif %}</small>
                     </li>
                 {% endfor %}
             </ul>
@@ -151,7 +151,7 @@
                     <li>
                         {{ dream.title }}
                         {% if dream.poster_username %} (by {{ dream.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ dream.datetime }}{% if dream.visibility %} – {{ dream.visibility }}{% endif %}</small>
+                        <br><small style="opacity:0.7;">{{ dream.datetime }}{% if dream.visibility %} - {{ dream.visibility }}{% endif %}</small>
                     </li>
                 {% endfor %}
             </ul>
@@ -169,7 +169,7 @@
                     <li>
                         {{ prophecy.title }}
                         {% if prophecy.poster_username %} (by {{ prophecy.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ prophecy.datetime }}{% if prophecy.visibility %} – {{ prophecy.visibility }}{% endif %}</small>
+                        <br><small style="opacity:0.7;">{{ prophecy.datetime }}{% if prophecy.visibility %} - {{ prophecy.visibility }}{% endif %}</small>
                     </li>
                 {% endfor %}
             </ul>
@@ -187,7 +187,7 @@
                     <li>
                         {{ sermon.title }}
                         {% if sermon.poster_username %} (by {{ sermon.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ sermon.datetime }}{% if sermon.visibility %} – {{ sermon.visibility }}{% endif %}</small>
+                        <br><small style="opacity:0.7;">{{ sermon.datetime }}{% if sermon.visibility %} - {{ sermon.visibility }}{% endif %}</small>
                     </li>
                 {% endfor %}
             </ul>
@@ -205,7 +205,7 @@
                     <li>
                         {{ ann.title }}
                         {% if ann.poster_username %} (by {{ ann.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ ann.datetime }}{% if ann.visibility %} – {{ ann.visibility }}{% endif %}</small>
+                        <br><small style="opacity:0.7;">{{ ann.datetime }}{% if ann.visibility %} - {{ ann.visibility }}{% endif %}</small>
                     </li>
                 {% endfor %}
             </ul>
@@ -222,7 +222,7 @@
                 {% for event in events %}
                     <li>
                         {{ event.title }}
-                        <br><small style="opacity:0.7;">{{ event.formatted_full }}{% if event.visibility %} – {{ event.visibility }}{% endif %}</small>
+                        <br><small style="opacity:0.7;">{{ event.formatted_full }}{% if event.visibility %} - {{ event.visibility }}{% endif %}</small>
                     </li>
                 {% endfor %}
             </ul>

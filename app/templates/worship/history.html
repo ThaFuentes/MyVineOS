@@ -4,7 +4,7 @@
 
 {% block worship_content %}
 <h1 style="margin:0 0 1rem; font-size:1.35rem; color:var(--primary);">Service play history</h1>
-<p style="margin:0 0 1rem; opacity:0.75; font-size:0.9rem;">Logged when a manager confirms a service was played — rehearsals are not counted.</p>
+<p style="margin:0 0 1rem; opacity:0.75; font-size:0.9rem;">Logged when a manager confirms a service was played - rehearsals are not counted.</p>
 
 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem;">
   <div class="glass-panel" style="padding:1rem;">
@@ -12,7 +12,7 @@
     <ul style="margin:0; padding-left:1.1rem;">
       {% for s in stats %}
       <li style="margin-bottom:0.35rem;">
-        {{ s.title }}{% if s.artist %} — {{ s.artist }}{% endif %}
+        {{ s.title }}{% if s.artist %} - {{ s.artist }}{% endif %}
         <span style="opacity:0.6;">({{ s.play_count or 0 }}{% if s.last_played %}, last {{ s.last_played }}{% endif %})</span>
       </li>
       {% endfor %}
@@ -22,7 +22,7 @@
     <h3 style="margin:0 0 0.75rem;">Recent services</h3>
     <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem;">
       {% for p in history %}
-      <li style="margin-bottom:0.3rem;">{{ p.service_date }} — {{ p.title }}</li>
+      <li style="margin-bottom:0.3rem;">{{ p.service_date }} - {{ p.title }}</li>
       {% else %}
       <li style="list-style:none; opacity:0.6;">No plays logged yet. Confirm a service from a dated setlist.</li>
       {% endfor %}

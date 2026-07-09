@@ -13,11 +13,11 @@
   </p>
 </section>
 
-<!-- Upcoming services — directly below welcome -->
+<!-- Upcoming services - directly below welcome -->
 <div style="max-width:1100px; margin:0 auto; padding:0 1.5rem 2rem;">
   <div class="glow-card" style="padding:2rem; border-radius:16px; background:rgba(20,20,30,0.85); border:1px solid rgba(0,255,255,0.25);">
     <h2 style="color:var(--primary); margin:0 0 0.5rem; font-size:1.6rem;">Upcoming Services</h2>
-    <p style="color:#888; margin:0 0 1.25rem; font-size:0.9rem;">The next two Sundays — custom weeks from Pastoral Planning or your standard schedule.</p>
+    <p style="color:#888; margin:0 0 1.25rem; font-size:0.9rem;">The next two Sundays - custom weeks from Pastoral Planning or your standard schedule.</p>
     {% if upcoming_services %}
     <div style="display:grid; gap:1rem;">
       {% for service in upcoming_services %}
@@ -28,9 +28,9 @@
         </div>
         <p style="margin:0.5rem 0 0; color:#bbb; font-size:0.95rem;">
           {% if service.start_time %}Service: {{ service.start_time }}{% endif %}
-          {% if service.worship_start_time %}{% if service.start_time %} · {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
-          {% if service.preacher %} · {{ service.preacher }}{% endif %}
-          {% if service.is_override %} · <span style="color:#6f6;">Custom week</span>{% endif %}
+          {% if service.worship_start_time %}{% if service.start_time %} - {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
+          {% if service.preacher %} - {{ service.preacher }}{% endif %}
+          {% if service.is_override %} - <span style="color:#6f6;">Custom week</span>{% endif %}
         </p>
       </div>
       {% endfor %}
@@ -75,7 +75,7 @@
   <div class="glow-card" style="padding:2rem; border-radius:16px; background:rgba(20,20,30,0.85); border:1px solid rgba(0,255,255,0.25);">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.25rem;">
       <h2 style="color:var(--primary); margin:0; font-size:1.6rem;">Upcoming Events</h2>
-      <a href="{{ url_for('public.public_events.public_events') }}" style="color:var(--primary); text-decoration:none; font-weight:600;">View all events →</a>
+      <a href="{{ url_for('public.public_events.public_events') }}" style="color:var(--primary); text-decoration:none; font-weight:600;">View all events -></a>
     </div>
     {% if upcoming_events %}
     <div style="display:grid; gap:1rem;">
@@ -85,7 +85,7 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
           <strong style="color:#fff; font-size:1.15rem;">{{ event.event_name }}</strong>
           <span style="color:var(--primary); font-size:0.95rem;">
-            {{ event.formatted_date }}{% if event.formatted_time %} · {{ event.formatted_time }}{% endif %}
+            {{ event.formatted_date }}{% if event.formatted_time %} - {{ event.formatted_time }}{% endif %}
           </span>
         </div>
         {% if event.description %}
@@ -104,7 +104,7 @@
   </p>
 
   <p class="bible-verse" style="text-align:center; font-size:1.1rem; max-width:700px; margin:0 auto 2rem; font-style:italic; opacity:0.9; line-height:1.5;">
-    "I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit." — John 15:5
+    "I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit." - John 15:5
   </p>
 </div>
 

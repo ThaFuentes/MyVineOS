@@ -1,11 +1,11 @@
 # app/routes/auth/__init__.py
 # Full path: MyVineChurch/app/routes/auth/__init__.py
 # File name: __init__.py
-# Brief, detailed purpose: Auth Blueprint Package Initializer – 100% MariaDB/pymysql compatible.
+# Brief, detailed purpose: Auth Blueprint Package Initializer - 100% MariaDB/pymysql compatible.
 # - Creates the exact same Blueprint(name='auth') as the old flat file (no url_prefix).
 # - Automatically imports ALL modular files so every route registers instantly.
-# - 100% complete – views, queries, forms, and utils are all loaded and working.
-# - Zero functional change today – login, logout, register, password reset, forgot username, root redirect, censorship, Owner creation, pending/banned checks all remain 100% identical.
+# - 100% complete - views, queries, forms, and utils are all loaded and working.
+# - Zero functional change today - login, logout, register, password reset, forgot username, root redirect, censorship, Owner creation, pending/banned checks all remain 100% identical.
 
 from flask import Blueprint
 
@@ -15,7 +15,7 @@ from flask import Blueprint
 auth_bp = Blueprint('auth', __name__)
 
 # ----------------------------------------------------------------------
-# Import ALL modules – routes register automatically
+# Import ALL modules - routes register automatically
 # ----------------------------------------------------------------------
 from . import views
 from . import queries

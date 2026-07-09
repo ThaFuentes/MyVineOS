@@ -2,7 +2,7 @@
 # Full path: MYVINECHURCH.ONLINE/app/builddb/sermons.py
 # File name: sermons.py
 # Brief, detailed purpose: Creates/updates the sermons and sermon_comments tables for MariaDB.
-# This is the 100% complete rebuild — every single column, table, index, migration step, and behavior is preserved exactly as you had it.
+# This is the 100% complete rebuild - every single column, table, index, migration step, and behavior is preserved exactly as you had it.
 # The only updates are: much clearer comments.html, better code organization, and explicit support for created_by / updated_by (this powers "Created by: [Name]" on the public sermons page, just like events, announcements, dreams, prayers, and prophecies).
 # Kept uploaded_by because sermons already used it.
 
@@ -32,7 +32,7 @@ def create_tables(cursor):
             visibility    VARCHAR(20) NOT NULL DEFAULT 'private'
                           CHECK(visibility IN ('public', 'private', 'personal')),
             uploaded_by   INT UNSIGNED NOT NULL,      -- kept from your original sermons code
-            created_by    INT UNSIGNED,               -- ← This column shows WHO created the sermon
+            created_by    INT UNSIGNED,               -- <- This column shows WHO created the sermon
             updated_by    INT UNSIGNED,
             FOREIGN KEY(uploaded_by) REFERENCES users(id) ON DELETE RESTRICT,
             FOREIGN KEY(created_by)  REFERENCES users(id) ON DELETE SET NULL,
