@@ -9,8 +9,9 @@
 # - 100% original behavior preserved.
 
 from flask import render_template, request, redirect, url_for, flash, session
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 import traceback
+import pymysql
 
 from . import profile_bp
 from .queries import (
@@ -27,7 +28,7 @@ from .queries import (
     update_user_password
 )
 from .forms import validate_profile_form
-from .utils import REQUIRED_ROLES, current_user_id
+from .utils import REQUIRED_ROLES, current_user_id, hash_checkin_pin
 
 from app.utils.decorators import login_required
 from app.utils.helpers import contains_censored_word
@@ -59,30 +60,55 @@ def profile():
                 if not clean_data:
                     return redirect(url_for('profile.profile'))
 
-                # Password change
-                old_password = clean_data.pop('old_password', None)
-                new_password = clean_data.pop('new_password', None)
-                confirm_password = clean_data.pop('confirm_password', None)
+                # Password change fields
+                old_password = clean_data.pop('old_password', None) or None
+                new_password = clean_data.pop('new_password', None) or None
+                clean_data.pop('confirm_password', None)
+
+                # Birthday: empty string is invalid for MySQL DATE
+                if not clean_data.get('birthday'):
+                    clean_data['birthday'] = None
+
+                # Check-in PIN: hash if provided; keep existing if left blank
+                pin_raw = (clean_data.get('checkin_pin') or '').strip()
+                if pin_raw:
+                    clean_data['checkin_pin'] = hash_checkin_pin(pin_raw)
+                else:
+                    existing = get_user_profile(user_id) or {}
+                    clean_data['checkin_pin'] = existing.get('checkin_pin')
 
                 # Update basic profile + privacy preferences + PIN
                 update_user_profile(user_id, clean_data)
 
-                # Password update
-                if new_password and old_password:
+                # Password update (optional section of the same form)
+                if new_password:
+                    if not old_password:
+                        flash('Current password is required to set a new password.', 'error')
+                        return redirect(url_for('profile.profile'))
                     db = get_db()
                     cur = db.cursor(pymysql.cursors.DictCursor)
                     cur.execute('SELECT password FROM users WHERE id = %s', (user_id,))
-                    current_hash = cur.fetchone()['password']
-                    if check_password_hash(current_hash, old_password):
-                        hashed_new = generate_password_hash(new_password)
-                        update_user_password(user_id, hashed_new)
-                        flash('Password updated successfully.', 'success')
-                    else:
-                        flash('Old password is incorrect.', 'error')
+                    row = cur.fetchone()
+                    current_hash = (row or {}).get('password') or ''
+                    if not current_hash or not check_password_hash(current_hash, old_password):
+                        flash('Current password is incorrect.', 'error')
                         return redirect(url_for('profile.profile'))
+                    hashed_new = generate_password_hash(new_password)
+                    update_user_password(user_id, hashed_new)
+                    log_change(
+                        user_id, 'change_password',
+                        target_id=user_id,
+                        change_details='User changed password from profile',
+                    )
+                    flash('Password updated successfully.', 'success')
 
                 flash('Profile updated successfully.', 'success')
-                log_change(user_id, 'update', target_id=user_id, change_details='Updated personal profile and privacy preferences')
+                log_change(
+                    user_id, 'update',
+                    target_id=user_id,
+                    change_details='Updated personal profile and privacy preferences',
+                )
+                return redirect(url_for('profile.profile'))
 
         # Load current user (including new fields)
         user = get_user_profile(user_id)
@@ -97,9 +123,13 @@ def profile():
         suggested_users = get_suggested_family(user_id)
 
     except Exception as e:
-        flash('Database error occurred.', 'error')
+        # Show a useful message instead of a generic "Database error"
+        err = str(e).strip() or e.__class__.__name__
+        if len(err) > 160:
+            err = err[:157] + '...'
+        flash(f'Could not save profile: {err}', 'error')
         print(f"Profile error: {e}\n{traceback.format_exc()}")
-        return redirect(url_for('dashboard.dashboard'))
+        return redirect(url_for('profile.profile'))
 
     return render_template(
         'profile/profile.html',

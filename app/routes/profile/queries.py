@@ -176,6 +176,10 @@ def update_user_profile(user_id, data):
     """Update user profile including new privacy preferences and optional PIN."""
     db = get_db()
     cur = db.cursor()
+    # Normalize birthday for MySQL DATE (empty string is invalid)
+    birthday = data.get('birthday') or None
+    if isinstance(birthday, str) and not birthday.strip():
+        birthday = None
     try:
         cur.execute('''
             UPDATE users
@@ -185,9 +189,9 @@ def update_user_profile(user_id, data):
                 checkin_pin = %s
             WHERE id = %s
         ''', (data['first_name'], data['last_name'], data['email'], data['phone'],
-              data['address'], data['birthday'], data['show_birthday'],
+              data['address'], birthday, data['show_birthday'],
               data['allow_proxy_checkin'], data['allow_group_add'], data['allow_family_search'],
-              data['checkin_pin'], user_id))
+              data.get('checkin_pin'), user_id))
         db.commit()
         return True
     except Exception:
@@ -196,11 +200,26 @@ def update_user_profile(user_id, data):
 
 
 def update_user_password(user_id, new_hashed_password):
-    """Update user password."""
+    """Update user password hash. Ensures column can store modern Werkzeug hashes."""
     db = get_db()
     cur = db.cursor()
     try:
+        # Some older DBs used VARCHAR(64)/VARCHAR(128) which truncates scrypt/pbkdf2 hashes
+        try:
+            cur.execute("SHOW COLUMNS FROM users LIKE 'password'")
+            col = cur.fetchone()
+            col_type = ''
+            if col:
+                # tuple or dict
+                col_type = (col[1] if not isinstance(col, dict) else col.get('Type') or '').lower()
+            if col_type.startswith('varchar') and 'text' not in col_type:
+                cur.execute("ALTER TABLE users MODIFY COLUMN password TEXT NOT NULL")
+        except Exception:
+            pass
+
         cur.execute('UPDATE users SET password = %s WHERE id = %s', (new_hashed_password, user_id))
+        if cur.rowcount < 0:
+            pass
         db.commit()
         return True
     except Exception:
