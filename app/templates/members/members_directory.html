@@ -117,8 +117,8 @@ Granted permissions control who can view, edit, or fully manage accounts.
                             {% if not member.email_verified %}
                             <span title="Email not verified" style="margin-left:0.35rem; padding:0.1rem 0.4rem; border-radius:999px; background:#ff9944; color:#000; font-size:0.75rem;">Unverified</span>
                             {% endif %}
-                            {% if member.is_shadow_banned %}<span title="Shadow banned" style="margin-left:0.25rem;"></span>{% endif %}
-                            {% if member.login_locked_until %}<span title="Login locked" style="margin-left:0.25rem;"></span>{% endif %}
+                            {% if member.is_shadow_banned %}<span title="Shadow banned" style="margin-left:0.25rem;"><i class="fa-solid fa-user-slash" aria-hidden="true"></i></span>{% endif %}
+                            {% if member.login_locked_until %}<span title="Login locked" style="margin-left:0.25rem;"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>{% endif %}
                         </td>
                         <td>{{ member.family_count or 0 }}</td>
                         {% if can_edit_members %}

@@ -1,12 +1,12 @@
 {% extends "the_gathering/base.html" %}
 
-{% block title %}Comments - {{ parent_title or 'Content' }}{% endblock %}
+{% block title %}Comments • {{ parent_title or 'Content' }}{% endblock %}
 
 {% block content %}
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <div>
-            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> {{ section_label or 'Comments' }}</h1>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"><i class="fa-solid fa-comment" aria-hidden="true"></i> {{ section_label or 'Comments' }}</h1>
             <h4 class="text-muted">{{ parent_title or 'Item #' ~ parent_id }}</h4>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
@@ -14,7 +14,7 @@
             <a href="{{ item_view_url }}" class="btn btn-secondary"><- Item Detail</a>
             {% endif %}
             {% if public_url %}
-            <a href="{{ public_url }}" target="_blank" class="btn btn-outline-light"> Public Site</a>
+            <a href="{{ public_url }}" target="_blank" class="btn btn-outline-light"><i class="fa-solid fa-eye" aria-hidden="true"></i> Public Site</a>
             {% endif %}
         </div>
     </div>
@@ -63,7 +63,7 @@
                     <td style="max-width:400px;">
                         <span id="comment-text-{{ comment.id }}">{{ comment.comment_text | nl2br | censor }}</span>
                         {% if comment.edited_by_moderator %}
-                            <br><small class="text-warning"> Edited by moderator</small>
+                            <br><small class="text-warning"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edited by moderator</small>
                         {% endif %}
                     </td>
                     <td>{{ comment.created_at_nice }}</td>
@@ -76,14 +76,14 @@
                     </td>
                     <td>
                         {% if comment.shadowed %}
-                            <span class="badge bg-warning text-dark"> Shadowed</span>
+                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-user-slash" aria-hidden="true"></i> Shadowed</span>
                         {% else %}
                             <span class="badge bg-success">Visible</span>
                         {% endif %}
                     </td>
                     <td>
                         <button type="button" class="btn btn-sm btn-primary me-1"
-                                onclick="toggleEdit({{ comment.id }})"> Edit</button>
+                                onclick="toggleEdit({{ comment.id }})"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit</button>
 
                         {% if comment.shadowed %}
                         <form method="POST" action="{{ comments_url }}" style="display:inline;"
@@ -91,7 +91,7 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                             <input type="hidden" name="action" value="unshadow">
                             <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                            <button type="submit" class="btn btn-sm btn-info me-1"> Unshadow</button>
+                            <button type="submit" class="btn btn-sm btn-info me-1"><i class="fa-solid fa-eye" aria-hidden="true"></i> Unshadow</button>
                         </form>
                         {% else %}
                         <form method="POST" action="{{ comments_url }}" style="display:inline;"
@@ -99,7 +99,7 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                             <input type="hidden" name="action" value="shadow">
                             <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                            <button type="submit" class="btn btn-sm btn-warning me-1"> Shadow</button>
+                            <button type="submit" class="btn btn-sm btn-warning me-1"><i class="fa-solid fa-user-slash" aria-hidden="true"></i> Shadow</button>
                         </form>
                         {% endif %}
 
@@ -108,7 +108,7 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                            <button type="submit" class="btn btn-sm btn-danger"></button>
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
                         </form>
 
                         <div id="edit-form-{{ comment.id }}" style="display:none; margin-top:0.5rem;">

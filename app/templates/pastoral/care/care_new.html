@@ -2,12 +2,12 @@
 {# Full path: WebChurchMan/app/templates/pastoral/care/care_new.html #}
 {# File name: care_new.html #}
 {# Brief, detailed purpose: Form to create a new pastoral care request. #}
-{#   - Select member receiving care (dropdown of active users) #}
-{#   - Choose request type (e.g., hospital visit, counseling, prayer need) #}
-{#   - Set urgency level #}
-{#   - Optional title + required description #}
-{#   - Inherits base_pastoral.html with dark theme, cyan accents #}
-{#   - Simple, clean layout - no bloat #}
+{#   • Select member receiving care (dropdown of active users) #}
+{#   • Choose request type (e.g., hospital visit, counseling, prayer need) #}
+{#   • Set urgency level #}
+{#   • Optional title + required description #}
+{#   • Inherits base_pastoral.html with dark theme, cyan accents #}
+{#   • Simple, clean layout - no bloat #}
 
 {% extends "pastoral/base_pastoral.html" %}
 
@@ -70,7 +70,7 @@
     </div>
 
     <div style="text-align:right; margin-top:0.5rem;">
-      <button type="submit" class="btn btn-primary" style="min-height:46px; padding:0 1.4rem;"> Create Request</button>
+      <button type="submit" class="btn btn-primary" style="min-height:46px; padding:0 1.4rem;"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Create Request</button>
     </div>
   </form>
 </div>

@@ -3,15 +3,15 @@
 {# File name: illustrations_library.html #}
 {# Brief, detailed purpose:
 #   Unified Reusable Content Library - COMPLETE PRODUCTION REBUILD.
-#   - Single page showing ALL reusable content: manual Illustrations + saved sermon Sections from Vault (auto-included).
-#   - Pastors have one stop - everything reusable for sermons in one place.
-#   - Type badge: "Illustration" (manual) vs "Section" (saved from sermon builder).
-#   - Search across all fields.
-#   - Buttons under card: Insert into Sermon, View, Edit, Delete - all visible (permission enforced in backend).
-#   - Dock checkbox.
-#   - Add New: manual illustration.
-#   - Inline edit card.
-#   - Vault sections appear with full View/Edit/Delete.
+#   • Single page showing ALL reusable content: manual Illustrations + saved sermon Sections from Vault (auto-included).
+#   • Pastors have one stop - everything reusable for sermons in one place.
+#   • Type badge: "Illustration" (manual) vs "Section" (saved from sermon builder).
+#   • Search across all fields.
+#   • Buttons under card: Insert into Sermon, View, Edit, Delete - all visible (permission enforced in backend).
+#   • Dock checkbox.
+#   • Add New: manual illustration.
+#   • Inline edit card.
+#   • Vault sections appear with full View/Edit/Delete.
 #}
 
 {% extends "pastoral/base_pastoral.html" %}
@@ -20,8 +20,8 @@
 
 {% block pastoral_content %}
 <div class="glass-panel" style="text-align:center; margin-bottom:0.75rem;">
-  <h2 style="margin:0 0 0.2rem;"> Illustrations Library</h2>
-  <div style="opacity:0.7; font-size:0.85rem;">Written stories, analogies, memories &amp; saved sermon sections - not images - {{ total_count }} items</div>
+  <h2 style="margin:0 0 0.2rem;"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Illustrations Library</h2>
+  <div style="opacity:0.7; font-size:0.85rem;">Written stories, analogies, memories &amp; saved sermon sections - not images • {{ total_count }} items</div>
   {% if session.docked_items|default([])|length > 0 %}
     <div style="color:#0ff; font-size:0.8rem; margin-top:0.25rem;">Docked for next sermon: {{ session.docked_items|length }}</div>
   {% endif %}
@@ -127,7 +127,7 @@
                                     <form method="POST" action="{{ url_for('pastoral.illustrations.delete', item_id=item.id) }}"
                                           onsubmit="return confirm('Permanently delete this {{ item.type }}?');" class="d-inline" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                                        <button type="submit" class="btn btn-secondary" style="min-height:32px; padding:0 0.5rem; font-size:0.75rem; background:#522;"></button>
+                                        <button type="submit" class="btn btn-secondary" style="min-height:32px; padding:0 0.5rem; font-size:0.75rem; background:#522;"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
                                     </form>
                                 </div>
                             </div>

@@ -1,41 +1,41 @@
 {% extends "the_gathering/base.html" %}
 
-{% block title %}View Prayer - {{ prayer.title }}{% endblock %}
+{% block title %}View Prayer • {{ prayer.title }}{% endblock %}
 
 {% block content %}
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <div>
-            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> Prayer Detail</h1>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"><i class="fa-solid fa-hands-praying" aria-hidden="true"></i> Prayer Detail</h1>
             <h2 class="text-light">{{ prayer.title }}</h2>
         </div>
 
         <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
             <a href="{{ url_for('the_gathering.prayers.edit_prayer', prayer_id=prayer.id) }}" class="btn btn-primary">
-                 Edit
+                <i class="fa-solid fa-pen" aria-hidden="true"></i> Edit
             </a>
             <a href="{{ url_for('the_gathering.prayers.prayer_comments', prayer_id=prayer.id) }}" class="btn btn-warning">
-                 Responses ({{ comment_count or 0 }})
+                <i class="fa-solid fa-comment" aria-hidden="true"></i> Responses ({{ comment_count or 0 }})
             </a>
             <a href="{{ url_for('public.public_prayers.public_prayer_detail', prayer_id=prayer.id) }}"
                target="_blank" class="btn btn-outline-light">
-                 Public
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> Public
             </a>
             {% if prayer.status == 'pending' %}
             <form method="POST" action="{{ url_for('the_gathering.prayers.approve_prayer', prayer_id=prayer.id) }}" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                <button type="submit" class="btn btn-success"> Approve</button>
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve</button>
             </form>
             <form method="POST" action="{{ url_for('the_gathering.prayers.reject_prayer', prayer_id=prayer.id) }}" style="display:inline;"
                   onsubmit="return confirm('Reject this prayer request?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                <button type="submit" class="btn btn-warning"> Reject</button>
+                <button type="submit" class="btn btn-warning"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Reject</button>
             </form>
             {% endif %}
             <form method="POST" action="{{ url_for('the_gathering.prayers.delete_prayer', prayer_id=prayer.id) }}" style="display:inline;"
                   onsubmit="return confirm('Permanently delete this prayer and all responses?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                <button type="submit" class="btn btn-danger"></button>
+                <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
             </form>
         </div>
     </div>

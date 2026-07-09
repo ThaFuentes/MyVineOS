@@ -2,10 +2,10 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/sermons/sermons_dashboard.html -->
 <!-- File name: sermons_dashboard.html -->
 <!-- Brief, detailed purpose: Dedicated Sermons Management Dashboard for the Gathering Place Manager. -->
-<!-- - Full list of all sermons with search + filters (All / Public / Private). -->
-<!-- - Per-sermon actions: Edit, View, Delete, Manage Comments, View Public. -->
-<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.sermons.* -->
-<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events_dashboard.html styling. -->
+<!-- • Full list of all sermons with search + filters (All / Public / Private). -->
+<!-- • Per-sermon actions: Edit, View, Delete, Manage Comments, View Public. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.sermons.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events_dashboard.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 {% from 'the_gathering/partials/title_preview.html' import title_preview %}
@@ -16,7 +16,7 @@
 
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
-        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> Sermons Manager</h1>
+        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Sermons Manager</h1>
         <a href="{{ url_for('the_gathering.sermons.edit_sermon') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.5rem 0.9rem; font-size:0.9rem;">
             + New Sermon
         </a>
@@ -77,26 +77,26 @@
                         <!-- View on Public -->
                         <a href="{{ url_for('public.public_sermons.public_sermon_detail', sermon_id=s.id) }}"
                            target="_blank" class="btn btn-sm btn-outline-light me-1" title="View Public">
-                            
+                            <i class="fa-solid fa-eye" aria-hidden="true"></i>
                         </a>
 
                         <!-- Edit Sermon -->
                         <a href="{{ url_for('the_gathering.sermons.edit_sermon', sermon_id=s.id) }}"
-                           class="btn btn-sm btn-primary me-1" title="Edit"></a>
+                           class="btn btn-sm btn-primary me-1" title="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></a>
 
                         <!-- View Sermon -->
                         <a href="{{ url_for('the_gathering.sermons.view_sermon', sermon_id=s.id) }}"
-                           class="btn btn-sm btn-info me-1" title="View"></a>
+                           class="btn btn-sm btn-info me-1" title="View"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></a>
 
                         <!-- Delete Sermon -->
                         <form method="POST" action="{{ url_for('the_gathering.sermons.delete_sermon', sermon_id=s.id) }}" style="display:inline;"
                               onsubmit="return confirm('Delete this sermon and ALL its comments?')">
-                            <button type="submit" class="btn btn-sm btn-danger" title="Delete"></button>
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
                         </form>
 
                         <!-- Manage Comments -->
                         <a href="{{ url_for('the_gathering.sermons.sermon_comments', sermon_id=s.id) }}"
-                           class="btn btn-sm btn-warning" title="Manage Comments"></a>
+                           class="btn btn-sm btn-warning" title="Manage Comments"><i class="fa-solid fa-comment" aria-hidden="true"></i></a>
                     </td>
                 </tr>
                 {% endfor %}

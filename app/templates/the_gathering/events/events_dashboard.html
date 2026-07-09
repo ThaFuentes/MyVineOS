@@ -2,10 +2,10 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/events/events_dashboard.html -->
 <!-- File name: events_dashboard.html -->
 <!-- Brief, detailed purpose: Dedicated Events Management Dashboard for the Gathering Place Manager. -->
-<!-- - Full list of all events with search + filters. -->
-<!-- - Per-event actions: Edit, Delete, Manage Potluck, Manage Comments, View Public. -->
-<!-- - Updated ALL url_for calls to the new nested blueprint: the_gathering.events.* -->
-<!-- - 100% rebuilt entire file with correct new routes. -->
+<!-- • Full list of all events with search + filters. -->
+<!-- • Per-event actions: Edit, Delete, Manage Potluck, Manage Comments, View Public. -->
+<!-- • Updated ALL url_for calls to the new nested blueprint: the_gathering.events.* -->
+<!-- • 100% rebuilt entire file with correct new routes. -->
 
 {% extends "the_gathering/base.html" %}
 {% from 'the_gathering/partials/title_preview.html' import title_preview %}
@@ -90,30 +90,30 @@
                         <!-- View on Public -->
                         <a href="{{ url_for('public.public_events.public_event_detail', event_id=event.id) }}"
                            target="_blank" class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="View Public">
-                            
+                            <i class="fa-solid fa-eye" aria-hidden="true"></i>
                         </a>
 
                         <!-- Edit Event -->
                         <a href="{{ url_for('the_gathering.events.edit_event', event_id=event.id) }}"
-                           class="btn btn-primary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="Edit Event"></a>
+                           class="btn btn-primary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="Edit Event"><i class="fa-solid fa-pen" aria-hidden="true"></i></a>
 
                         <!-- View Event -->
                         <a href="{{ url_for('the_gathering.events.view_event', event_id=event.id) }}"
-                           class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="View Event"></a>
+                           class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="View Event"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></a>
 
                         <!-- Delete Event -->
                         <form method="POST" action="{{ url_for('the_gathering.events.delete_event', event_id=event.id) }}" style="display:inline;"
                               onsubmit="return confirm('Delete this event and ALL its potluck items + comments?')">
-                            <button type="submit" class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem; background:#c33; color:#fff;" title="Delete Event"></button>
+                            <button type="submit" class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem; background:#c33; color:#fff;" title="Delete Event"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
                         </form>
 
                         <!-- Manage Potluck -->
                         <a href="{{ url_for('the_gathering.events.event_potluck', event_id=event.id) }}"
-                           class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="Manage Potluck Items"></a>
+                           class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="Manage Potluck Items"><i class="fa-solid fa-utensils" aria-hidden="true"></i></a>
 
                         <!-- Manage Comments -->
                         <a href="{{ url_for('the_gathering.events.event_comments', event_id=event.id) }}"
-                           class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem; background:#c90; color:#000;" title="Manage Comments"></a>
+                           class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem; background:#c90; color:#000;" title="Manage Comments"><i class="fa-solid fa-comment" aria-hidden="true"></i></a>
                     </td>
                 </tr>
                 {% endfor %}

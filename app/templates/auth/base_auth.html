@@ -30,6 +30,7 @@
   {% set s = g.settings %}
 
   <title>{% block title %}{% endblock %} | {{ s.get('church_name', 'MyVineChurch.Online') }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
   <!-- Global CSS - identical to base_public.html -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260115">

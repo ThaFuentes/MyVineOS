@@ -2,20 +2,20 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prophecies/view.html -->
 <!-- File name: view.html -->
 <!-- Brief, detailed purpose: Read-only detailed view of a single prophecy inside the Gathering Place Manager. -->
-<!-- - Shows every field from the prophecies table in a clean layout. -->
-<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.prophecies.* -->
-<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
+<!-- • Shows every field from the prophecies table in a clean layout. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prophecies.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 
-{% block title %}View Prophecy - {{ prophecy.title }}{% endblock %}
+{% block title %}View Prophecy • {{ prophecy.title }}{% endblock %}
 
 {% block content %}
 
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <div>
-            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> Prophecy Detail</h1>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Prophecy Detail</h1>
             <h2 class="text-light">{{ prophecy.title }}</h2>
         </div>
 
@@ -27,24 +27,24 @@
 
             <!-- Edit Prophecy -->
             <a href="{{ url_for('the_gathering.prophecies.edit_prophecy', prophecy_id=prophecy.id) }}" class="btn btn-primary">
-                 Edit Prophecy
+                <i class="fa-solid fa-pen" aria-hidden="true"></i> Edit Prophecy
             </a>
 
             <!-- Manage Comments -->
             <a href="{{ url_for('the_gathering.prophecies.prophecy_comments', prophecy_id=prophecy.id) }}" class="btn btn-warning">
-                 Manage Comments ({{ comment_count or 0 }})
+                <i class="fa-solid fa-comment" aria-hidden="true"></i> Manage Comments ({{ comment_count or 0 }})
             </a>
 
             <!-- View on Public Site -->
             <a href="{{ url_for('public.public_prophecies.public_prophecy_detail', prophecy_id=prophecy.id) }}"
                target="_blank" class="btn btn-outline-light">
-                 View Public
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> View Public
             </a>
 
             <!-- Delete Prophecy -->
             <form method="POST" action="{{ url_for('the_gathering.prophecies.delete_prophecy', prophecy_id=prophecy.id) }}" style="display:inline;"
                   onsubmit="return confirm('PERMANENTLY DELETE this prophecy and ALL its comments?')">
-                <button type="submit" class="btn btn-danger"> Delete</button>
+                <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
             </form>
         </div>
     </div>
@@ -81,7 +81,7 @@
 </div>
 
 <script>
-    console.log(' Prophecy View loaded for prophecy #{{ prophecy.id }}');
+    console.log('<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Prophecy View loaded for prophecy #{{ prophecy.id }}');
 </script>
 
 {% endblock %}

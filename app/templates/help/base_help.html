@@ -21,7 +21,7 @@
     <a href="{{ url_for('help.help_index', tab='search') }}"
        style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if request.endpoint == 'help.help_index' and request.args.get('tab') == 'search' %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Search</a>
     <a href="{{ url_for('help.help_index', tab='pinned') }}"
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if request.endpoint == 'help.help_index' and request.args.get('tab') == 'pinned' %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}"> Pinned</a>
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if request.endpoint == 'help.help_index' and request.args.get('tab') == 'pinned' %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}"><i class="fa-solid fa-star" aria-hidden="true"></i> Pinned</a>
     {% if can_manage_help() %}
     <a href="{{ url_for('help.manage_index') }}"
        style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; margin-left:auto; {% if request.endpoint and request.endpoint.startswith('help.manage') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,200,80,0.15); color:var(--text-primary); border:1px solid rgba(255,200,80,0.35);{% endif %}">Manage Help Content</a>

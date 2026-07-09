@@ -2,9 +2,9 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/public/public_dashboard.html -->
 <!-- File name: public_dashboard.html -->
 <!-- Brief, detailed purpose: Public homepage - rich social-media style unified feed. -->
-<!-- - Shows main content + 2-3 latest comments preview for EVERY card (including Prophecies). -->
-<!-- - Inline quick comment box (no redirect). -->
-<!-- - 100% rebuilt clean version - identical structure and behavior to the working Events gold standard. -->
+<!-- • Shows main content + 2-3 latest comments preview for EVERY card (including Prophecies). -->
+<!-- • Inline quick comment box (no redirect). -->
+<!-- • 100% rebuilt clean version - identical structure and behavior to the working Events gold standard. -->
 
 {% extends "base_public.html" %}
 
@@ -33,7 +33,7 @@
                     {{ item.type|upper }}
                 </span>
                 <small style="color:#aaa;">
-                    {{ item.formatted_date }} - {{ item.formatted_time }}
+                    {{ item.formatted_date }} • {{ item.formatted_time }}
                 </small>
                 <small style="color:#0ff;">
                     By: {{ item.creator_name or item.posted_by or 'Anonymous' }}
@@ -55,7 +55,7 @@
             <!-- Recent Comments Preview -->
             {% if item.comments and item.comments|length > 0 %}
             <div style="background:#2a2a2a; border-radius:12px; padding:1rem; margin-bottom:1.5rem;">
-                <p style="color:#00FFFF; font-size:1rem; margin-bottom:0.8rem;"> Recent Comments</p>
+                <p style="color:#00FFFF; font-size:1rem; margin-bottom:0.8rem;"><i class="fa-solid fa-comment" aria-hidden="true"></i> Recent Comments</p>
                 {% for c in item.comments[:2] %}
                 <div style="margin-bottom:0.8rem; padding-bottom:0.8rem; border-bottom:1px solid rgba(0,255,255,0.1);">
                     <strong style="color:#aaa;">{{ c.name or 'Guest' }}</strong>
@@ -125,7 +125,7 @@
         if (text.includes('success') || response.ok) {
           const successDiv = document.createElement('div');
           successDiv.style.cssText = 'background:#00FF00; color:#000; padding:1rem; border-radius:12px; margin-top:1rem; text-align:center; font-weight:bold;';
-          successDiv.textContent = ' Comment posted successfully!';
+          successDiv.textContent = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Comment posted successfully!';
           this.parentNode.insertBefore(successDiv, this.nextSibling);
           this.reset();
           setTimeout(() => successDiv.remove(), 4000);

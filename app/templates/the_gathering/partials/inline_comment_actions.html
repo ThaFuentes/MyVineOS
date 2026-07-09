@@ -1,14 +1,14 @@
 {# Inline comment moderation - requires: c (comment row), post_url #}
 <div class="mgr-inline-actions" style="display:flex; flex-wrap:wrap; gap:0.25rem; align-items:center;">
     {% if c.shadowed %}
-    <span class="badge bg-warning text-dark" title="Shadowed"></span>
+    <span class="badge bg-warning text-dark" title="Shadowed"><i class="fa-solid fa-user-slash" aria-hidden="true"></i></span>
     {% endif %}
     {% if c.edited_by_moderator %}
-    <span class="badge bg-info" title="Edited by moderator"></span>
+    <span class="badge bg-info" title="Edited by moderator"><i class="fa-solid fa-pen" aria-hidden="true"></i></span>
     {% endif %}
 
     <button type="button" class="btn btn-sm btn-primary"
-            onclick="mgrOpenEdit({{ c.id }}, {{ c.body|tojson }}, {{ c.content_type|tojson }}, {{ c.parent_id }})" title="Edit"></button>
+            onclick="mgrOpenEdit({{ c.id }}, {{ c.body|tojson }}, {{ c.content_type|tojson }}, {{ c.parent_id }})" title="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
 
     {% if c.shadowed %}
     <form method="POST" action="{{ post_url }}" style="display:inline;"
@@ -18,7 +18,7 @@
         <input type="hidden" name="content_type" value="{{ c.content_type }}">
         <input type="hidden" name="parent_id" value="{{ c.parent_id }}">
         <input type="hidden" name="comment_id" value="{{ c.id }}">
-        <button type="submit" class="btn btn-sm btn-info" title="Unshadow"></button>
+        <button type="submit" class="btn btn-sm btn-info" title="Unshadow"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
     </form>
     {% else %}
     <form method="POST" action="{{ post_url }}" style="display:inline;"
@@ -28,7 +28,7 @@
         <input type="hidden" name="content_type" value="{{ c.content_type }}">
         <input type="hidden" name="parent_id" value="{{ c.parent_id }}">
         <input type="hidden" name="comment_id" value="{{ c.id }}">
-        <button type="submit" class="btn btn-sm btn-warning" title="Shadow"></button>
+        <button type="submit" class="btn btn-sm btn-warning" title="Shadow"><i class="fa-solid fa-user-slash" aria-hidden="true"></i></button>
     </form>
     {% endif %}
 
@@ -39,7 +39,7 @@
         <input type="hidden" name="content_type" value="{{ c.content_type }}">
         <input type="hidden" name="parent_id" value="{{ c.parent_id }}">
         <input type="hidden" name="comment_id" value="{{ c.id }}">
-        <button type="submit" class="btn btn-sm btn-danger" title="Delete"></button>
+        <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
     </form>
 
     {% if c.section_url %}

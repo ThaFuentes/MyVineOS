@@ -2,11 +2,11 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/dashboard.html -->
 <!-- File name: dashboard.html -->
 <!-- Brief, detailed purpose: Main dashboard for the Gathering Place Manager (management-only section). -->
-<!-- - Displays 6 quick stats cards, recent activity feed, pending moderation alerts, and quick jump buttons. -->
-<!-- - Extends the dedicated manager base.html (not the public base). -->
-<!-- - Uses glass/cyan theme consistent with your site and the new base.html. -->
-<!-- - All data comes from queries.py (stats, recent_activity, pending). -->
-<!-- - 100% ready to load at /the_gathering/ with zero changes to any other file. -->
+<!-- • Displays 6 quick stats cards, recent activity feed, pending moderation alerts, and quick jump buttons. -->
+<!-- • Extends the dedicated manager base.html (not the public base). -->
+<!-- • Uses glass/cyan theme consistent with your site and the new base.html. -->
+<!-- • All data comes from queries.py (stats, recent_activity, pending). -->
+<!-- • 100% ready to load at /the_gathering/ with zero changes to any other file. -->
 
 {% extends "the_gathering/base.html" %}
 
@@ -24,7 +24,7 @@
     {% if pending.total_pending > 0 %}
     <div style="text-align:center; margin-bottom:1rem;">
         <a href="{{ url_for('the_gathering.dashboard.moderation_queue') }}" class="btn btn-primary" style="background:#ffcc00; color:#000; font-weight:bold; padding:0.6rem 1.2rem;">
-             Open Moderation Queue ({{ pending.total_pending }} pending)
+            <i class="fa-solid fa-list-check" aria-hidden="true"></i> Open Moderation Queue ({{ pending.total_pending }} pending)
         </a>
     </div>
     {% endif %}
@@ -33,7 +33,7 @@
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; margin-bottom:1.5rem;">
         <div>
             <div class="glass-panel" style="text-align:center; padding:1rem;">
-                <div style="font-size:2rem; color:var(--primary);"></div>
+                <div style="font-size:2rem; color:var(--primary);"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></div>
                 <h4 style="margin:0.5rem 0 0.2rem;">Upcoming Events</h4>
                 <h2 style="margin:0; font-size:1.8rem;">{{ stats.upcoming_public_events }}</h2>
                 <small style="opacity:0.7;">Public &amp; visible</small>
@@ -41,35 +41,35 @@
         </div>
         <div>
             <div class="glass-panel" style="text-align:center; padding:1rem;">
-                <div style="font-size:2rem; color:var(--primary);"></div>
+                <div style="font-size:2rem; color:var(--primary);"><i class="fa-solid fa-hands-praying" aria-hidden="true"></i></div>
                 <h4 style="margin:0.5rem 0 0.2rem;">Public Prayers</h4>
                 <h2 style="margin:0; font-size:1.8rem;">{{ stats.total_public_prayers }}</h2>
             </div>
         </div>
         <div>
             <div class="glass-panel" style="text-align:center; padding:1rem;">
-                <div style="font-size:2rem; color:var(--primary);"></div>
+                <div style="font-size:2rem; color:var(--primary);"><i class="fa-solid fa-book-open" aria-hidden="true"></i></div>
                 <h4 style="margin:0.5rem 0 0.2rem;">Public Sermons</h4>
                 <h2 style="margin:0; font-size:1.8rem;">{{ stats.total_public_sermons }}</h2>
             </div>
         </div>
         <div>
             <div class="glass-panel" style="text-align:center; padding:1rem;">
-                <div style="font-size:2rem; color:var(--primary);"></div>
+                <div style="font-size:2rem; color:var(--primary);"><i class="fa-solid fa-star" aria-hidden="true"></i></div>
                 <h4 style="margin:0.5rem 0 0.2rem;">Dreams &amp; Visions</h4>
                 <h2 class="display-4 mb-0">{{ stats.dreams_and_visions }}</h2>
             </div>
         </div>
         <div>
             <div class="glass-panel" style="text-align:center; padding:1rem;">
-                <div style="font-size:2rem; color:var(--primary);"></div>
+                <div style="font-size:2rem; color:var(--primary);"><i class="fa-solid fa-scroll" aria-hidden="true"></i></div>
                 <h4 style="margin:0.5rem 0 0.2rem;">Prophecies</h4>
                 <h2 style="margin:0; font-size:1.8rem;">{{ stats.prophecies }}</h2>
             </div>
         </div>
         <div>
             <div class="glass-panel" style="text-align:center; padding:1rem;">
-                <div style="font-size:2rem; color:var(--primary);"></div>
+                <div style="font-size:2rem; color:var(--primary);"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></div>
                 <h4 style="margin:0.5rem 0 0.2rem;">Announcements</h4>
                 <h2 style="margin:0; font-size:1.8rem;">{{ stats.announcements }}</h2>
             </div>
@@ -81,10 +81,10 @@
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; margin-bottom:1.5rem;">
         <div>
             <div class="glass-panel">
-                <h4 style="color:var(--primary); margin-bottom:1rem;"> Comments Overview</h4>
+                <h4 style="color:var(--primary); margin-bottom:1rem;"><i class="fa-solid fa-comment" aria-hidden="true"></i> Comments Overview</h4>
                 <p style="margin:0 0 0.75rem; opacity:0.85;">
                     <strong>{{ cs.all_total }}</strong> total comments
-                    {% if cs.all_shadowed %} - <span style="color:#ffcc00;">{{ cs.all_shadowed }} shadowed</span>{% endif %}
+                    {% if cs.all_shadowed %} · <span style="color:#ffcc00;">{{ cs.all_shadowed }} shadowed</span>{% endif %}
                 </p>
                 {% if pending.pending_prayers > 0 %}
                     <div class="alert alert-warning glass mb-3" style="margin:0 0 0.75rem;">
@@ -97,46 +97,46 @@
                         <a href="{{ url_for('the_gathering.events.events_dashboard') }}" style="color:inherit; text-decoration:none;">Event Comments</a>
                         <span>
                             <span class="badge" style="background:var(--primary); color:#000; padding:0.1rem 0.4rem; border-radius:4px;">{{ cs.event_comments.total }}</span>
-                            {% if cs.event_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;" title="Shadowed">{{ cs.event_comments.shadowed }} </span>{% endif %}
+                            {% if cs.event_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;" title="Shadowed">{{ cs.event_comments.shadowed }} <i class="fa-solid fa-user-slash" aria-hidden="true"></i></span>{% endif %}
                         </span>
                     </li>
                     <li style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
                         <a href="{{ url_for('the_gathering.prayers.prayers_dashboard') }}" style="color:inherit; text-decoration:none;">Prayer Responses</a>
                         <span>
                             <span class="badge" style="background:var(--primary); color:#000; padding:0.1rem 0.4rem; border-radius:4px;">{{ cs.prayer_comments.total }}</span>
-                            {% if cs.prayer_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.prayer_comments.shadowed }} </span>{% endif %}
+                            {% if cs.prayer_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.prayer_comments.shadowed }} <i class="fa-solid fa-user-slash" aria-hidden="true"></i></span>{% endif %}
                         </span>
                     </li>
                     <li style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
                         <a href="{{ url_for('the_gathering.sermons.sermons_dashboard') }}" style="color:inherit; text-decoration:none;">Sermon Comments</a>
                         <span>
                             <span class="badge" style="background:var(--primary); color:#000; padding:0.1rem 0.4rem; border-radius:4px;">{{ cs.sermon_comments.total }}</span>
-                            {% if cs.sermon_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.sermon_comments.shadowed }} </span>{% endif %}
+                            {% if cs.sermon_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.sermon_comments.shadowed }} <i class="fa-solid fa-user-slash" aria-hidden="true"></i></span>{% endif %}
                         </span>
                     </li>
                     <li style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
                         <a href="{{ url_for('the_gathering.dreams.dreams_dashboard') }}" style="color:inherit; text-decoration:none;">Dream Comments</a>
                         <span>
                             <span class="badge" style="background:var(--primary); color:#000; padding:0.1rem 0.4rem; border-radius:4px;">{{ cs.dream_comments.total }}</span>
-                            {% if cs.dream_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.dream_comments.shadowed }} </span>{% endif %}
+                            {% if cs.dream_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.dream_comments.shadowed }} <i class="fa-solid fa-user-slash" aria-hidden="true"></i></span>{% endif %}
                         </span>
                     </li>
                     <li style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
                         <a href="{{ url_for('the_gathering.prophecies.prophecies_dashboard') }}" style="color:inherit; text-decoration:none;">Prophecy Comments</a>
                         <span>
                             <span class="badge" style="background:var(--primary); color:#000; padding:0.1rem 0.4rem; border-radius:4px;">{{ cs.prophecy_comments.total }}</span>
-                            {% if cs.prophecy_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.prophecy_comments.shadowed }} </span>{% endif %}
+                            {% if cs.prophecy_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.prophecy_comments.shadowed }} <i class="fa-solid fa-user-slash" aria-hidden="true"></i></span>{% endif %}
                         </span>
                     </li>
                     <li style="display:flex; justify-content:space-between;">
                         <a href="{{ url_for('the_gathering.announcements.announcements_dashboard') }}" style="color:inherit; text-decoration:none;">Announcement Comments</a>
                         <span>
                             <span class="badge" style="background:var(--primary); color:#000; padding:0.1rem 0.4rem; border-radius:4px;">{{ cs.announcement_comments.total }}</span>
-                            {% if cs.announcement_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.announcement_comments.shadowed }} </span>{% endif %}
+                            {% if cs.announcement_comments.shadowed %}<span class="badge" style="background:#ffcc00; color:#000; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.2rem;">{{ cs.announcement_comments.shadowed }} <i class="fa-solid fa-user-slash" aria-hidden="true"></i></span>{% endif %}
                         </span>
                     </li>
                 </ul>
-                <p style="margin:0.75rem 0 0; font-size:0.8rem; opacity:0.65;"> = shadowed (visible only to the poster)</p>
+                <p style="margin:0.75rem 0 0; font-size:0.8rem; opacity:0.65;"><i class="fa-solid fa-user-slash" aria-hidden="true"></i> = shadowed (visible only to the poster)</p>
             </div>
         </div>
 
@@ -150,12 +150,12 @@
                     {% for item in recent_activity %}
                     <div style="display:flex; align-items:flex-start; margin-bottom:0.75rem; border-bottom:1px solid #444; padding-bottom:0.75rem;">
                         <div style="font-size:1.4rem; margin-right:0.75rem;">
-                            {% if item.type == 'event' %}{% elif item.type == 'prayer' %}{% elif item.type == 'sermon' %}{% elif item.type == 'dream' %}{% elif item.type == 'prophecy' %}{% else %}{% endif %}
+                            {% if item.type == 'event' %}<i class="fa-solid fa-calendar-days" aria-hidden="true"></i>{% elif item.type == 'prayer' %}<i class="fa-solid fa-hands-praying" aria-hidden="true"></i>{% elif item.type == 'sermon' %}<i class="fa-solid fa-book-open" aria-hidden="true"></i>{% elif item.type == 'dream' %}<i class="fa-solid fa-star" aria-hidden="true"></i>{% elif item.type == 'prophecy' %}<i class="fa-solid fa-scroll" aria-hidden="true"></i>{% else %}<i class="fa-solid fa-bullhorn" aria-hidden="true"></i>{% endif %}
                         </div>
                         <div style="flex-grow:1;">
                             <strong>{{ item.title }}</strong>
                             <small class="text-muted" style="display:block;">
-                                {{ item.author or '-' }} - {{ item.created_at }}
+                                {{ item.author or '-' }} • {{ item.created_at }}
                             </small>
                             <span style="background: {% if item.visibility == 'public' %}#0a0;{% else %}#333;{% endif %}; color:#fff; padding:0.1rem 0.3rem; border-radius:3px; font-size:0.7rem;">
                                 {{ item.visibility|upper }}
@@ -177,13 +177,13 @@
     <div style="margin-top:1.5rem;">
         <h4 class="section-title" style="margin-bottom:1rem;">Quick Jump to Sections</h4>
         <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-            <a href="{{ url_for('the_gathering.dreams.dreams_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"> Dreams Manager</a>
-            <a href="{{ url_for('the_gathering.announcements.announcements_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"> Announcements Manager</a>
-            <a href="{{ url_for('the_gathering.prayers.prayers_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"> Prayers Manager</a>
-            <a href="{{ url_for('the_gathering.sermons.sermons_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"> Sermons Manager</a>
-            <a href="{{ url_for('the_gathering.events.events_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"> Events Manager</a>
-            <a href="{{ url_for('the_gathering.prophecies.prophecies_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"> Prophecies Manager</a>
-            <a href="{{ url_for('the_gathering.dashboard.moderation_queue') }}" class="btn btn-primary" style="background:#ffcc00; color:#000; font-weight:bold; padding:0.6rem 1rem;"> Moderation Queue</a>
+            <a href="{{ url_for('the_gathering.dreams.dreams_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"><i class="fa-solid fa-star" aria-hidden="true"></i> Dreams Manager</a>
+            <a href="{{ url_for('the_gathering.announcements.announcements_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Announcements Manager</a>
+            <a href="{{ url_for('the_gathering.prayers.prayers_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"><i class="fa-solid fa-hands-praying" aria-hidden="true"></i> Prayers Manager</a>
+            <a href="{{ url_for('the_gathering.sermons.sermons_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Sermons Manager</a>
+            <a href="{{ url_for('the_gathering.events.events_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Events Manager</a>
+            <a href="{{ url_for('the_gathering.prophecies.prophecies_dashboard') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.6rem 1rem;"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Prophecies Manager</a>
+            <a href="{{ url_for('the_gathering.dashboard.moderation_queue') }}" class="btn btn-primary" style="background:#ffcc00; color:#000; font-weight:bold; padding:0.6rem 1rem;"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Moderation Queue</a>
         </div>
     </div>
 </div>

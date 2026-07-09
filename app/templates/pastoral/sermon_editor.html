@@ -3,14 +3,14 @@
 {# File name: sermon_editor.html #}
 {# Brief, detailed purpose:
 #   Full sermon editor - FINAL FULL REBUILD (COMPLETE & STABLE).
-#   - Auto-save every 30 seconds (existing sermons: full metadata + sections).
-#   - Manual save = full form submit (includes collaborators).
-#   - Save status with timestamp.
-#   - Skips blank sections on save.
-#   - Unified section builder: one form for inline cards, New Section modal, and 1-click Vault save (no duplicate modal).
-#   - Vault quick-save on sections (no insert-from-vault modal on this page).
-#   - Collaborators, reorder, delete, dynamic headers - all stable.
-#   - Fixed Jinja syntax error (proper endblock matching).
+#   • Auto-save every 30 seconds (existing sermons: full metadata + sections).
+#   • Manual save = full form submit (includes collaborators).
+#   • Save status with timestamp.
+#   • Skips blank sections on save.
+#   • Unified section builder: one form for inline cards, New Section modal, and 1-click Vault save (no duplicate modal).
+#   • Vault quick-save on sections (no insert-from-vault modal on this page).
+#   • Collaborators, reorder, delete, dynamic headers - all stable.
+#   • Fixed Jinja syntax error (proper endblock matching).
 #}
 
 {% extends "pastoral/base_pastoral.html" %}
@@ -170,7 +170,7 @@
                                 {% for collab in collaborators %}
                                     <span class="badge bg-info text-dark">
                                         {{ collab.full_name or collab.username }}
-                                        <a href="#" class="text-dark ms-1 remove-collab" data-id="{{ collab.id }}">x</a>
+                                        <a href="#" class="text-dark ms-1 remove-collab" data-id="{{ collab.id }}">×</a>
                                     </span>
                                 {% endfor %}
                             </div>
@@ -180,7 +180,7 @@
                         <!-- Header Area - savable default, repopulates for new sermons (webpage style top) -->
                         <div class="glass-panel mb-4" style="border-left: 4px solid var(--primary);">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label text-cyan fw-bold mb-0"> Sermon Header (repeats at top of printed/exported sermon - save as your default)</label>
+                                <label class="form-label text-cyan fw-bold mb-0"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Sermon Header (repeats at top of printed/exported sermon - save as your default)</label>
                                 <div>
                                     <button type="button" id="save-default-header" class="btn btn-sm btn-outline-cyan">Save as My Default Header</button>
                                     <button type="button" id="load-default-header" class="btn btn-sm btn-outline-secondary">Load Default</button>
@@ -192,7 +192,7 @@
                         <!-- Footer Area (webpage style bottom, savable default) -->
                         <div class="glass-panel mb-4" style="border-left: 4px solid var(--primary);">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label text-cyan fw-bold mb-0"> Sermon Footer (repeats at end of sermon - save as your default)</label>
+                                <label class="form-label text-cyan fw-bold mb-0"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Sermon Footer (repeats at end of sermon - save as your default)</label>
                                 <div>
                                     <button type="button" id="save-default-footer" class="btn btn-sm btn-outline-cyan">Save as My Default Footer</button>
                                     <button type="button" id="load-default-footer" class="btn btn-sm btn-outline-secondary">Load Default</button>
@@ -203,7 +203,7 @@
 
                         <!-- Notes & References Area (prominent for pastor prep) -->
                         <div class="glass-panel mb-4">
-                            <label class="form-label text-cyan fw-bold"> Notes & References (personal prep, delivery tips, full scripture, research - not printed by default)</label>
+                            <label class="form-label text-cyan fw-bold"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Notes & References (personal prep, delivery tips, full scripture, research - not printed by default)</label>
                             <textarea name="notes" id="sermon-notes" class="form-control form-control-dark" rows="10" style="min-height:180px; font-size:1rem; line-height:1.5;" placeholder="Key points, full passages, personal reminders, full scripture text, delivery cues... (full prep area)">{{ sermon.notes if sermon else '' }}</textarea>
                         </div>
 
@@ -824,7 +824,7 @@
 
             const badge = document.createElement('span');
             badge.className = 'badge bg-info text-dark';
-            badge.innerHTML = `${userName} <a href="#" class="text-dark ms-1 remove-collab" data-id="${userId}">x</a>`;
+            badge.innerHTML = `${userName} <a href="#" class="text-dark ms-1 remove-collab" data-id="${userId}">×</a>`;
             document.getElementById('collaborators-list').appendChild(badge);
             select.value = '';
             markDirty();

@@ -2,19 +2,19 @@
 {# Full path: WebChurchMan/app/templates/pastoral/base_pastoral.html #}
 {# File name: base_pastoral.html #}
 {# Brief, detailed purpose: Standalone master layout for ALL Pastoral Area pages.
-#   - Fixed dark header with glowing "Pastoral Command Center" title
-#   - Compact, responsive navigation with key quick-links:
+#   • Fixed dark header with glowing "Pastoral Command Center" title
+#   • Compact, responsive navigation with key quick-links:
 #     - Pastoral Dashboard
 #     - Planning
 #     - Sermon Library (list for selection/editing)
 #     - Podium Mode -> sermon selection list (today's linked sermon highlighted)
 #     - Main Dashboard (back to public/private main)
-#   - Maintains consistent dark/cyan theme (#00FFFF accents)
-#   - Child pages control content below header via {% block pastoral_content %}
-#   - FIXED: Removed outdated Font Awesome integrity hash (prevents "Failed to find valid digest" error)
-#   - UPDATED: Font Awesome 6.6.0 (latest stable as of Jan 2026)
-#   - All inline styles extracted to static/css/global/pastoral/base_pastoral.css
-#   - Bootstrap 5.3.3 JS bundle included (required for modals, toasts, dropdowns)
+#   • Maintains consistent dark/cyan theme (#00FFFF accents)
+#   • Child pages control content below header via {% block pastoral_content %}
+#   • FIXED: Removed outdated Font Awesome integrity hash (prevents "Failed to find valid digest" error)
+#   • UPDATED: Font Awesome 6.6.0 (latest stable as of Jan 2026)
+#   • All inline styles extracted to static/css/global/pastoral/base_pastoral.css
+#   • Bootstrap 5.3.3 JS bundle included (required for modals, toasts, dropdowns)
 #}
 
 <!DOCTYPE html>
@@ -50,17 +50,17 @@
   <header class="top-bar">
     <div class="church-name" style="max-width:60%;">Pastoral Command Center</div>
     <div class="user-info" style="gap:0.35rem;">
-      <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"></a>
-      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"></a>
-      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"></a>
-      <a href="{{ url_for('pastoral.podium.index') }}" class="btn btn-primary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"> Podium</a>
-      <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"> Care</a>
-      <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"> Illustrations</a>
-      <a href="{{ url_for('pastoral.bible.bible_study') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"> Bible</a>
+      <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"><i class="fa-solid fa-book-open" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.podium.index') }}" class="btn btn-primary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"><i class="fa-solid fa-microphone" aria-hidden="true"></i> Podium</a>
+      <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"><i class="fa-solid fa-heart" aria-hidden="true"></i> Care</a>
+      <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Illustrations</a>
+      <a href="{{ url_for('pastoral.bible.bible_study') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Bible</a>
       {% if session.get('user_role') in ['Admin', 'Owner'] %}
-      <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Bible translations"></a>
+      <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Bible translations"><i class="fa-solid fa-download" aria-hidden="true"></i></a>
       {% endif %}
-      <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"> Main</a>
+      <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;"><i class="fa-solid fa-house" aria-hidden="true"></i> Main</a>
     </div>
   </header>
 

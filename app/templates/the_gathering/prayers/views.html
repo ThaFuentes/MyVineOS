@@ -2,20 +2,20 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prayers/view.html -->
 <!-- File name: view.html -->
 <!-- Brief, detailed purpose: Read-only detailed view of a single prayer inside the Gathering Place Manager. -->
-<!-- - Shows every field from the prayers table in a clean layout. -->
-<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.prayers.* -->
-<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
+<!-- • Shows every field from the prayers table in a clean layout. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prayers.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 
-{% block title %}View Prayer - {{ prayer.title }}{% endblock %}
+{% block title %}View Prayer • {{ prayer.title }}{% endblock %}
 
 {% block content %}
 
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <div>
-            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> Prayer Detail</h1>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"><i class="fa-solid fa-hands-praying" aria-hidden="true"></i> Prayer Detail</h1>
             <h2 class="text-light">{{ prayer.title }}</h2>
         </div>
 
@@ -27,24 +27,24 @@
 
             <!-- Edit Prayer -->
             <a href="{{ url_for('the_gathering.prayers.edit_prayer', prayer_id=prayer.id) }}" class="btn btn-primary">
-                 Edit Prayer
+                <i class="fa-solid fa-pen" aria-hidden="true"></i> Edit Prayer
             </a>
 
             <!-- Manage Comments -->
             <a href="{{ url_for('the_gathering.prayers.prayer_comments', prayer_id=prayer.id) }}" class="btn btn-warning">
-                 Manage Comments ({{ comment_count or 0 }})
+                <i class="fa-solid fa-comment" aria-hidden="true"></i> Manage Comments ({{ comment_count or 0 }})
             </a>
 
             <!-- View on Public Site -->
             <a href="{{ url_for('public.public_prayers.public_prayer_detail', prayer_id=prayer.id) }}"
                target="_blank" class="btn btn-outline-light">
-                 View Public
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> View Public
             </a>
 
             <!-- Delete Prayer -->
             <form method="POST" action="{{ url_for('the_gathering.prayers.delete_prayer', prayer_id=prayer.id) }}" style="display:inline;"
                   onsubmit="return confirm('PERMANENTLY DELETE this prayer and ALL its comments?')">
-                <button type="submit" class="btn btn-danger"> Delete</button>
+                <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
             </form>
         </div>
     </div>
@@ -77,7 +77,7 @@
 </div>
 
 <script>
-    console.log(' Prayer View loaded for prayer #{{ prayer.id }}');
+    console.log('<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Prayer View loaded for prayer #{{ prayer.id }}');
 </script>
 
 {% endblock %}

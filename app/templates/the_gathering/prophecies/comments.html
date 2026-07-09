@@ -2,21 +2,21 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prophecies/comments.html -->
 <!-- File name: comments.html -->
 <!-- Brief, detailed purpose: Comment moderation page for a specific prophecy inside the Gathering Place Manager. -->
-<!-- - Full table of all comments (top-level + replies). -->
-<!-- - Actions: Approve / Edit / Delete any comment. -->
-<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.prophecies.* -->
-<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events/comments.html styling. -->
+<!-- • Full table of all comments (top-level + replies). -->
+<!-- • Actions: Approve / Edit / Delete any comment. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prophecies.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/comments.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 
-{% block title %}Comments - {{ prophecy.title or 'Prophecy' }}{% endblock %}
+{% block title %}Comments • {{ prophecy.title or 'Prophecy' }}{% endblock %}
 
 {% block content %}
 
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <div>
-            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> Prophecy Comments</h1>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"><i class="fa-solid fa-comment" aria-hidden="true"></i> Prophecy Comments</h1>
             <h4 class="text-muted">{{ prophecy.title or 'Prophecy #' ~ prophecy_id }}</h4>
         </div>
 
@@ -29,7 +29,7 @@
             <!-- View on Public Site -->
             <a href="{{ url_for('public.public_prophecies.public_prophecy_detail', prophecy_id=prophecy_id) }}"
                target="_blank" class="btn btn-outline-light">
-                 View on Public Site
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> View on Public Site
             </a>
         </div>
     </div>
@@ -79,7 +79,7 @@
                     <td style="max-width:420px;">
                         {{ comment.comment_text | nl2br | censor }}
                         {% if comment.has_censored_content %}
-                            <span class="badge bg-warning ms-2"> Censored</span>
+                            <span class="badge bg-warning ms-2"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Censored</span>
                         {% endif %}
                     </td>
                     <td>{{ comment.created_at_nice }}</td>
@@ -105,13 +105,13 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                             <input type="hidden" name="action" value="approve">
                             <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                            <button type="submit" class="btn btn-sm btn-success me-1"> Approve</button>
+                            <button type="submit" class="btn btn-sm btn-success me-1"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve</button>
                         </form>
                         {% endif %}
 
                         <!-- Edit (placeholder) -->
                         <button onclick="alert('Edit comment coming in next update')"
-                                class="btn btn-sm btn-primary me-1"></button>
+                                class="btn btn-sm btn-primary me-1"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
 
                         <!-- Delete -->
                         <form method="POST" action="{{ url_for('the_gathering.prophecies.prophecy_comments', prophecy_id=prophecy_id) }}" style="display:inline;"
@@ -119,7 +119,7 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                            <button type="submit" class="btn btn-sm btn-danger"></button>
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
                         </form>
                     </td>
                 </tr>
@@ -135,7 +135,7 @@
 </div>
 
 <script>
-    console.log(' Prophecy Comments Manager loaded for prophecy {{ prophecy_id }}');
+    console.log('<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Prophecy Comments Manager loaded for prophecy {{ prophecy_id }}');
 </script>
 
 {% endblock %}

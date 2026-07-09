@@ -15,12 +15,12 @@
     {% if is_pinned %}
     <form method="POST" action="{{ url_for('help.help_unpin', article_id=article.id) }}" style="margin:0;">
         {% include 'partials/csrf_field.html' %}
-        <button type="submit" class="btn-secondary"> Pinned - click to remove</button>
+        <button type="submit" class="btn-secondary"><i class="fa-solid fa-star" aria-hidden="true"></i> Pinned - click to remove</button>
     </form>
     {% else %}
     <form method="POST" action="{{ url_for('help.help_pin', article_id=article.id) }}" style="margin:0;">
         {% include 'partials/csrf_field.html' %}
-        <button type="submit" class="btn-primary"> Pin to my list</button>
+        <button type="submit" class="btn-primary"><i class="fa-solid fa-star" aria-hidden="true"></i> Pin to my list</button>
     </form>
     {% endif %}
     {% if can_manage %}

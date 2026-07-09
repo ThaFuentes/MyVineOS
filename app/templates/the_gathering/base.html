@@ -113,7 +113,7 @@
     </div>
 
     <div class="user-info">
-        <span style="color:var(--primary); font-size:0.78rem;"> {{ current_user or 'Manager' }}</span>
+        <span style="color:var(--primary); font-size:0.78rem;"><i class="fa-solid fa-user" aria-hidden="true"></i> {{ current_user or 'Manager' }}</span>
         <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.22rem 0.5rem; font-size:0.72rem; min-height:auto; border-color:#ff6666; color:#ff6666;">Logout</a>
     </div>
 </header>
@@ -144,7 +144,7 @@
     <span class="label">Dashboard</span>
   </a>
   <a href="/the_gathering/dashboard/moderation">
-    <span class="icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></span>
+    <span class="icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
     <span class="label">Queue</span>
   </a>
   <a href="/the_gathering/events/">
@@ -160,7 +160,7 @@
     <span class="label">Sermons</span>
   </a>
   <a href="/the_gathering/dreams/">
-    <span class="icon"><i class="fa-solid fa-moon" aria-hidden="true"></i></span>
+    <span class="icon"><i class="fa-solid fa-star" aria-hidden="true"></i></span>
     <span class="label">Dreams</span>
   </a>
   <a href="/the_gathering/prophecies/">

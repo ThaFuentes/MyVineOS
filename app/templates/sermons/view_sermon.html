@@ -11,7 +11,7 @@
 {% block page_title %}{{ sermon.title }}{% endblock %}
 
 {% block page_description %}
-Sermon by {{ sermon.uploader }} - {{ sermon.uploaded_at }}
+Sermon by {{ sermon.uploader }} • {{ sermon.uploaded_at }}
 {% endblock %}
 
 {% block sermons_content %}
@@ -23,7 +23,7 @@ Sermon by {{ sermon.uploader }} - {{ sermon.uploaded_at }}
         <h1 class="section-title">{{ sermon.title }}</h1>
         <p class="meta">
             Uploaded by <strong>{{ sermon.uploader }}</strong>
-            on {{ sermon.uploaded_at }} -
+            on {{ sermon.uploaded_at }} •
             <span class="badge">{{ sermon.visibility|capitalize }}</span>
         </p>
 
@@ -39,13 +39,13 @@ Sermon by {{ sermon.uploader }} - {{ sermon.uploaded_at }}
             <h3 class="detail-heading">Media & Downloads</h3>
             <div class="detail-content">
                 {% if sermon.notes %}
-                <p><a href="{{ url_for('sermons.uploaded_file', filename=sermon.notes) }}" target="_blank" class="btn-secondary btn-small"> Download Notes</a></p>
+                <p><a href="{{ url_for('sermons.uploaded_file', filename=sermon.notes) }}" target="_blank" class="btn-secondary btn-small"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Download Notes</a></p>
                 {% endif %}
                 {% if sermon.sermon_file %}
-                <p><a href="{{ url_for('sermons.uploaded_file', filename=sermon.sermon_file) }}" target="_blank" class="btn-secondary btn-small"> Download Media</a></p>
+                <p><a href="{{ url_for('sermons.uploaded_file', filename=sermon.sermon_file) }}" target="_blank" class="btn-secondary btn-small"><i class="fa-solid fa-music" aria-hidden="true"></i> Download Media</a></p>
                 {% endif %}
                 {% if sermon.external_link %}
-                <p><a href="{{ sermon.external_link }}" target="_blank" rel="noopener" class="btn-secondary btn-small"> External Link</a></p>
+                <p><a href="{{ sermon.external_link }}" target="_blank" rel="noopener" class="btn-secondary btn-small"><i class="fa-solid fa-link" aria-hidden="true"></i> External Link</a></p>
                 {% endif %}
             </div>
         </div>
@@ -60,7 +60,7 @@ Sermon by {{ sermon.uploader }} - {{ sermon.uploaded_at }}
             <div class="card glass response-item">
                 <p class="meta">
                     <strong>{{ c.commenter_username or 'Anonymous' }}</strong>
-                    - {{ c.date_added }}
+                    • {{ c.date_added }}
                 </p>
                 <p>{{ c.comment | nl2br | censor }}</p>
 

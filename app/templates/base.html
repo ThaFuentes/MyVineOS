@@ -85,7 +85,7 @@
     <div class="user-info">
       {% if session.get('user_id') %}
         <div class="user-chip">
-           {{ session.username|default('Member') }}
+          <i class="fa-solid fa-user" aria-hidden="true"></i> {{ session.username|default('Member') }}
           <span style="opacity:0.7; font-size:0.75em;">{{ session.user_role|default('') }}</span>
         </div>
         <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Logout</a>

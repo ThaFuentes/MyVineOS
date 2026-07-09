@@ -2,9 +2,9 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/events/edit.html -->
 <!-- File name: edit.html -->
 <!-- Brief, detailed purpose: Full Event Editor form inside the Gathering Place Manager. -->
-<!-- - Create new OR edit existing event (all fields from your events table). -->
-<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.events.* -->
-<!-- - 100% rebuilt entire file with correct new routes. -->
+<!-- • Create new OR edit existing event (all fields from your events table). -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.events.* -->
+<!-- • 100% rebuilt entire file with correct new routes. -->
 
 {% extends "the_gathering/base.html" %}
 
@@ -16,9 +16,9 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">
             {% if event %}
-                 Edit Event #{{ event.id }}
+                <i class="fa-solid fa-pen" aria-hidden="true"></i> Edit Event #{{ event.id }}
             {% else %}
-                 Create New Event
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Create New Event
             {% endif %}
         </h1>
 
@@ -32,13 +32,13 @@
             <!-- View on Public -->
             <a href="{{ url_for('public.public_events.public_event_detail', event_id=event.id) }}"
                target="_blank" class="btn btn-outline-light me-2">
-                 View Public
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> View Public
             </a>
 
             <!-- Delete -->
             <form method="POST" action="{{ url_for('the_gathering.events.delete_event', event_id=event.id) }}" style="display:inline;"
                   onsubmit="return confirm('PERMANENTLY DELETE this event and ALL potluck items + comments?')">
-                <button type="submit" class="btn btn-danger"> Delete Event</button>
+                <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete Event</button>
             </form>
             {% endif %}
         </div>
@@ -149,7 +149,7 @@
         <div class="mt-5 text-end">
             <a href="{{ url_for('the_gathering.events.events_dashboard') }}" class="btn btn-secondary me-3">Cancel</a>
             <button type="submit" class="btn btn-primary btn-lg" style="background:var(--primary); color:#000; font-weight:bold;">
-                 Save Event
+                <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Event
             </button>
         </div>
     </form>

@@ -47,7 +47,7 @@
       </div>
       <form action="{{ url_for('pastoral.care.care_remove_assignment', assignment_id=ass.id) }}" method="POST" style="margin:0;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-        <button type="submit" class="btn btn-secondary" style="min-height:36px; padding:0 0.6rem; font-size:0.8rem; background:#522;" onclick="return confirm('Remove {{ ass.pastor_name }}?');"></button>
+        <button type="submit" class="btn btn-secondary" style="min-height:36px; padding:0 0.6rem; font-size:0.8rem; background:#522;" onclick="return confirm('Remove {{ ass.pastor_name }}?');">✕</button>
       </form>
     </div>
     {% endfor %}

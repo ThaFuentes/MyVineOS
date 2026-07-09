@@ -2,21 +2,21 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/dreams/comments.html -->
 <!-- File name: comments.html -->
 <!-- Brief, detailed purpose: Comment moderation page for a specific dream/vision inside the Gathering Place Manager. -->
-<!-- - Full table of all comments (top-level + replies). -->
-<!-- - Actions: Approve / Edit / Delete any comment. -->
-<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.dreams.* -->
-<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events/comments.html styling. -->
+<!-- • Full table of all comments (top-level + replies). -->
+<!-- • Actions: Approve / Edit / Delete any comment. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.dreams.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/comments.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 
-{% block title %}Comments - {{ dream.title or 'Dream' }}{% endblock %}
+{% block title %}Comments • {{ dream.title or 'Dream' }}{% endblock %}
 
 {% block content %}
 
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <div>
-            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> Dream / Vision Comments</h1>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"><i class="fa-solid fa-comment" aria-hidden="true"></i> Dream / Vision Comments</h1>
             <h4 class="text-muted">{{ dream.title or 'Dream #' ~ dream_id }}</h4>
         </div>
 
@@ -29,7 +29,7 @@
             <!-- View on Public Site -->
             <a href="{{ url_for('public.public_dreams.public_dream_detail', dream_id=dream_id) }}"
                target="_blank" class="btn btn-outline-light">
-                 View on Public Site
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> View on Public Site
             </a>
         </div>
     </div>
@@ -78,7 +78,7 @@
                     <td style="max-width:420px;">
                         {{ comment.comment_text | nl2br | censor }}
                         {% if comment.has_censored_content %}
-                            <span class="badge bg-warning ms-2"> Censored</span>
+                            <span class="badge bg-warning ms-2"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Censored</span>
                         {% endif %}
                     </td>
                     <td>{{ comment.created_at_nice }}</td>
@@ -103,13 +103,13 @@
                               onsubmit="return confirm('Approve this comment?')">
                             <input type="hidden" name="action" value="approve">
                             <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                            <button type="submit" class="btn btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.8rem; background:#2a2; color:#fff;"> Approve</button>
+                            <button type="submit" class="btn btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.8rem; background:#2a2; color:#fff;"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve</button>
                         </form>
                         {% endif %}
 
                         <!-- Edit (placeholder) -->
                         <button onclick="alert('Edit comment coming in next update')"
-                                class="btn btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.8rem;"></button>
+                                class="btn btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.8rem;"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
 
                         <!-- Delete -->
                         <form method="POST" action="{{ url_for

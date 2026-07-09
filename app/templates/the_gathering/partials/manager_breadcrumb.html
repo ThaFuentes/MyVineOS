@@ -2,7 +2,7 @@
 <nav class="manager-breadcrumb" aria-label="Manager navigation" style="display:flex; flex-wrap:wrap; align-items:center; gap:0.35rem 0.6rem; padding:0.55rem 0.75rem; margin-bottom:1rem; background:rgba(0,255,255,0.06); border:1px solid rgba(0,255,255,0.2); border-radius:8px; font-size:0.85rem;">
     <a href="{{ url_for('the_gathering.dashboard.dashboard') }}"
        style="color:var(--primary); text-decoration:none; font-weight:600;">
-         Main Dashboard
+        <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Main Dashboard
     </a>
     {% if manager_section_name and manager_section_url %}
     <span style="opacity:0.45;">›</span>
@@ -21,7 +21,7 @@
     </a>
     {% endif %}
     <a href="{{ url_for('the_gathering.dashboard.dashboard') }}" class="btn btn-secondary" style="padding:0.2rem 0.55rem; font-size:0.75rem; min-height:auto;">
-         Main
+        <i class="fa-solid fa-house" aria-hidden="true"></i> Main
     </a>
 </nav>
 {% endif %}
