@@ -23,6 +23,7 @@
 #   Uses DictCursor for consistent dict results.
 #   Parameterized queries for MariaDB / PyMySQL safety.
 
+import re
 import pymysql
 from datetime import datetime, time, timedelta
 
@@ -108,17 +109,38 @@ def dedupe_service_templates():
     return removed
 
 
+def _assignment_display_name(assignment: dict) -> str | None:
+    """Prefer member name; fall back to free-text guest_name for guest speakers."""
+    name = (assignment.get('user_full_name') or '').strip()
+    if name:
+        return name
+    guest = (assignment.get('guest_name') or '').strip()
+    return guest or None
+
+
 def _extract_preacher(plan: dict):
-    """Return the assigned preacher/pastor/speaker name from a plan or template."""
-    return next(
-        (
-            a['user_full_name']
-            for a in plan.get('assignments', [])
-            if a.get('role_name', '').lower() in ('preacher', 'pastor', 'speaker')
-            and a.get('user_full_name')
-        ),
-        None,
-    )
+    """Return the assigned preacher/pastor/speaker name from a plan or template.
+    Supports guest speakers via guest_name when no member user is selected.
+    """
+    for a in plan.get('assignments', []) or []:
+        role = (a.get('role_name') or '').lower().strip()
+        if role in ('preacher', 'pastor', 'speaker', 'guest speaker', 'guest preacher'):
+            name = _assignment_display_name(a)
+            if name:
+                return name
+    return None
+
+
+def _public_notes_html(plan: dict) -> str:
+    """Order-of-service notes for guest pages (HTML from Quill). Empty if none."""
+    raw = (plan.get('notes') or '').strip()
+    if not raw:
+        return ''
+    # Drop empty Quill shells
+    plain = re.sub(r'<[^>]+>', '', raw).replace('\xa0', ' ').strip()
+    if not plain:
+        return ''
+    return raw
 
 
 def _effective_service_title(plan: dict) -> str:
@@ -140,6 +162,13 @@ def _plan_to_public_service(plan: dict, *, is_recurring: bool = False) -> dict:
     """Normalize a plan dict for guest-facing schedule cards."""
     service_date = plan.get('service_date')
     weekday = service_date.weekday() if service_date is not None and hasattr(service_date, 'weekday') else plan.get('weekday')
+    # Role list for public (Preacher + other filled roles)
+    public_roles = []
+    for a in plan.get('assignments', []) or []:
+        name = _assignment_display_name(a)
+        role = (a.get('role_name') or '').strip()
+        if name and role:
+            public_roles.append({'role_name': role, 'name': name})
     return {
         'weekday': weekday,
         'title': _effective_service_title(plan),
@@ -147,8 +176,12 @@ def _plan_to_public_service(plan: dict, *, is_recurring: bool = False) -> dict:
         'start_time': _format_display_time(plan.get('start_time')),
         'worship_start_time': _format_display_time(plan.get('worship_start_time')),
         'preacher': _extract_preacher(plan),
+        'notes': _public_notes_html(plan),
+        'roles': public_roles,
         'is_recurring': is_recurring,
-        'is_override': plan.get('source') == 'override',
+        'is_override': plan.get('source') == 'override' or (
+            plan.get('id') is not None and plan.get('source') != 'template'
+        ),
         'service_date': service_date,
     }
 
@@ -305,7 +338,7 @@ def get_template_assignments(template_id: int):
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
-        SELECT sta.role_name, sta.user_id,
+        SELECT sta.role_name, sta.user_id, sta.guest_name,
                CONCAT(u.first_name, ' ', u.last_name) AS user_full_name
         FROM service_template_assignments sta
         LEFT JOIN users u ON sta.user_id = u.id
@@ -321,10 +354,16 @@ def save_template_assignments(template_id: int, assignments: list):
     cur.execute("DELETE FROM service_template_assignments WHERE template_id = %s", (template_id,))
     for a in assignments:
         if a['role_name'].strip():
+            uid = a.get('user_id') or None
+            if uid in ('', 'None'):
+                uid = None
+            guest = (a.get('guest_name') or '').strip() or None
+            if uid:
+                guest = None
             cur.execute("""
-                INSERT INTO service_template_assignments (template_id, role_name, user_id)
-                VALUES (%s, %s, %s)
-            """, (template_id, a['role_name'], a.get('user_id')))
+                INSERT INTO service_template_assignments (template_id, role_name, user_id, guest_name)
+                VALUES (%s, %s, %s, %s)
+            """, (template_id, a['role_name'], uid, guest))
     db.commit()
 
 
@@ -406,7 +445,7 @@ def get_service_plan_assignments(plan_id: int):
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
-        SELECT spa.role_name, spa.user_id,
+        SELECT spa.role_name, spa.user_id, spa.guest_name,
                CONCAT(u.first_name, ' ', u.last_name) AS user_full_name
         FROM service_plan_assignments spa
         LEFT JOIN users u ON spa.user_id = u.id
@@ -422,10 +461,17 @@ def save_service_plan_assignments(plan_id: int, assignments: list):
     cur.execute("DELETE FROM service_plan_assignments WHERE service_plan_id = %s", (plan_id,))
     for a in assignments:
         if a['role_name'].strip():
+            uid = a.get('user_id') or None
+            if uid in ('', 'None'):
+                uid = None
+            guest = (a.get('guest_name') or '').strip() or None
+            # If a member is selected, clear guest name (member takes precedence)
+            if uid:
+                guest = None
             cur.execute("""
-                INSERT INTO service_plan_assignments (service_plan_id, role_name, user_id)
-                VALUES (%s, %s, %s)
-            """, (plan_id, a['role_name'], a.get('user_id')))
+                INSERT INTO service_plan_assignments (service_plan_id, role_name, user_id, guest_name)
+                VALUES (%s, %s, %s, %s)
+            """, (plan_id, a['role_name'], uid, guest))
     db.commit()
 
 
@@ -522,7 +568,7 @@ def get_default_assignments():
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
-        SELECT role_name, user_id,
+        SELECT role_name, user_id, guest_name,
                CONCAT(u.first_name, ' ', u.last_name) AS user_full_name
         FROM default_service_plan_assignments d
         LEFT JOIN users u ON d.user_id = u.id
@@ -530,7 +576,7 @@ def get_default_assignments():
     """)
     rows = cur.fetchall()
     if not rows:
-        rows = [{'role_name': '', 'user_id': None, 'user_full_name': None}]
+        rows = [{'role_name': '', 'user_id': None, 'guest_name': None, 'user_full_name': None}]
     return rows
 
 
@@ -540,10 +586,16 @@ def save_default_assignments(assignments: list):
     cur.execute("DELETE FROM default_service_plan_assignments")
     for a in assignments:
         if a['role_name'].strip():
+            uid = a.get('user_id') or None
+            if uid in ('', 'None'):
+                uid = None
+            guest = (a.get('guest_name') or '').strip() or None
+            if uid:
+                guest = None
             cur.execute("""
-                INSERT INTO default_service_plan_assignments (role_name, user_id)
-                VALUES (%s, %s)
-            """, (a['role_name'], a['user_id']))
+                INSERT INTO default_service_plan_assignments (role_name, user_id, guest_name)
+                VALUES (%s, %s, %s)
+            """, (a['role_name'], uid, guest))
     db.commit()
 
 

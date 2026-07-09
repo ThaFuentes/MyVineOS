@@ -28,10 +28,23 @@
         </div>
         <p style="margin:0.5rem 0 0; color:#bbb; font-size:0.95rem;">
           {% if service.start_time %}Service: {{ service.start_time }}{% endif %}
-          {% if service.worship_start_time %}{% if service.start_time %} - {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
-          {% if service.preacher %} - {{ service.preacher }}{% endif %}
-          {% if service.is_override %} - <span style="color:#6f6;">Custom week</span>{% endif %}
+          {% if service.worship_start_time %}{% if service.start_time %} · {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
+          {% if service.preacher %} · <strong style="color:#eee;">{{ service.preacher }}</strong>{% endif %}
+          {% if service.is_override %} · <span style="color:#6f6;">Custom week</span>{% endif %}
         </p>
+        {% if service.roles and service.roles|length > 1 %}
+        <p style="margin:0.45rem 0 0; color:#999; font-size:0.85rem;">
+          {% for r in service.roles %}
+            <span style="margin-right:0.75rem;">{{ r.role_name }}: {{ r.name }}</span>
+          {% endfor %}
+        </p>
+        {% endif %}
+        {% if service.notes %}
+        <div class="service-notes" style="margin-top:0.85rem; padding-top:0.75rem; border-top:1px solid rgba(0,255,255,0.12); color:#ccc; font-size:0.92rem; line-height:1.55;">
+          <div style="color:var(--primary); font-size:0.8rem; font-weight:600; margin-bottom:0.35rem; letter-spacing:0.03em;">ORDER OF SERVICE / NOTES</div>
+          <div class="service-notes-body">{{ service.notes | safe }}</div>
+        </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>

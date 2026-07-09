@@ -184,9 +184,17 @@ def edit(date_str):
 
         role_names = request.form.getlist('role_name')
         user_ids = request.form.getlist('user_id')
-        for role, uid in zip(role_names, user_ids):
+        guest_names = request.form.getlist('guest_name')
+        # zip_longest-style: guest_names may be shorter on older forms
+        while len(guest_names) < len(role_names):
+            guest_names.append('')
+        for role, uid, guest in zip(role_names, user_ids, guest_names):
             if role.strip():
-                data['assignments'].append({'role_name': role.strip(), 'user_id': uid or None})
+                data['assignments'].append({
+                    'role_name': role.strip(),
+                    'user_id': uid or None,
+                    'guest_name': (guest or '').strip() or None,
+                })
 
         create_or_update_service_plan(data, session['user_id'])
         log_change(session['user_id'], 'plan_save', None, data['title'], f'Saved override plan for {date_str}')
@@ -301,11 +309,15 @@ def template_edit(template_id=None):
             else:
                 role_names = request.form.getlist('role_name')
                 user_ids = request.form.getlist('user_id')
-                for role, uid in zip(role_names, user_ids):
+                guest_names = request.form.getlist('guest_name')
+                while len(guest_names) < len(role_names):
+                    guest_names.append('')
+                for role, uid, guest in zip(role_names, user_ids, guest_names):
                     if role.strip():
                         data['assignments'].append({
                             'role_name': role.strip(),
-                            'user_id': int(uid) if uid else None
+                            'user_id': int(uid) if uid else None,
+                            'guest_name': (guest or '').strip() or None,
                         })
 
                 try:
@@ -432,9 +444,16 @@ def defaults():
         assignments = []
         role_names = request.form.getlist('role_name')
         user_ids = request.form.getlist('user_id')
-        for role, uid in zip(role_names, user_ids):
+        guest_names = request.form.getlist('guest_name')
+        while len(guest_names) < len(role_names):
+            guest_names.append('')
+        for role, uid, guest in zip(role_names, user_ids, guest_names):
             if role.strip():
-                assignments.append({'role_name': role.strip(), 'user_id': uid or None})
+                assignments.append({
+                    'role_name': role.strip(),
+                    'user_id': uid or None,
+                    'guest_name': (guest or '').strip() or None,
+                })
         save_default_assignments(assignments)
         log_change(session['user_id'], 'defaults_save', None, None, 'Saved global default role assignments')
         flash('Global defaults saved.', 'success')

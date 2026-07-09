@@ -238,11 +238,21 @@ def create_tables(cursor):
             service_plan_id INT UNSIGNED NOT NULL,
             role_name TEXT NOT NULL,
             user_id INT UNSIGNED,
+            guest_name VARCHAR(191) NULL,
             UNIQUE KEY uniq_role_per_plan (service_plan_id, role_name),
             FOREIGN KEY (service_plan_id) REFERENCES service_plans(id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """)
+    # Guest speaker name when no church member is selected for a role
+    cursor.execute("SHOW COLUMNS FROM service_plan_assignments LIKE 'guest_name'")
+    if not cursor.fetchone():
+        print(" Migration: Adding guest_name to service_plan_assignments")
+        safe_exec(cursor, "ALTER TABLE service_plan_assignments ADD COLUMN guest_name VARCHAR(191) NULL AFTER user_id")
+    cursor.execute("SHOW COLUMNS FROM service_template_assignments LIKE 'guest_name'")
+    if not cursor.fetchone():
+        print(" Migration: Adding guest_name to service_template_assignments")
+        safe_exec(cursor, "ALTER TABLE service_template_assignments ADD COLUMN guest_name VARCHAR(191) NULL AFTER user_id")
 
     # NEW: Global default role assignments (pre-fill new templates & dated overrides)
     cursor.execute("""
@@ -250,9 +260,14 @@ def create_tables(cursor):
             id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             role_name TEXT NOT NULL,
             user_id INT UNSIGNED,
+            guest_name VARCHAR(191) NULL,
             UNIQUE KEY uniq_default_role (role_name(191))
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """)
+    cursor.execute("SHOW COLUMNS FROM default_service_plan_assignments LIKE 'guest_name'")
+    if not cursor.fetchone():
+        print(" Migration: Adding guest_name to default_service_plan_assignments")
+        safe_exec(cursor, "ALTER TABLE default_service_plan_assignments ADD COLUMN guest_name VARCHAR(191) NULL AFTER user_id")
 
     # Seed default Preacher if table empty
     cursor.execute("SELECT COUNT(*) FROM default_service_plan_assignments")

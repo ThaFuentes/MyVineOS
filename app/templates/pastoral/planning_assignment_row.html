@@ -1,36 +1,18 @@
-{# app/templates/pastoral/planning_assignment_row.html #}
-{# Full path: WebChurchMan/app/templates/pastoral/planning_assignment_row.html #}
-{# File name: planning_assignment_row.html #}
-{# Brief, detailed purpose:
-#   Partial template for a single role assignment row.
-#   Used dynamically in:
-#     - planning_edit.html      - per-service-plan assignments (new or existing dated plans)
-#     - planning_defaults.html  - global default role assignments (pre-fill every new plan)
-#     - planning_template_edit.html - master recurring template role assignments
-#   FULLY REBUILT & POLISHED:
-#     - Accessibility: proper labels, aria attributes, clear remove button with screen-reader text
-#     - Responsive: input-group flex layout works perfectly on mobile
-#     - Consistent dark/cyan theme using form-control-dark
-#     - Helpful placeholder on role name field
-#     - "Unassigned" option always first in dropdown
-#     - Clean remove button with icon + visually-hidden text
-#     - Dropdown populated exclusively with Pastoral Group members (assignable_users)
-#     - No 'required' attribute: empty role_name rows are skipped on save (allows blank rows without blocking submit)
-#     - Handles assignment=none gracefully for hidden template row (dynamic add)
-#   No inline styles - relies entirely on global pastoral.css for smoothness. #}
+{# Single role assignment row - member OR free-text guest speaker (no member required). #}
 
-<div class="input-group mb-3 assignment-row" role="group" aria-label="Role assignment row">
+<div class="input-group mb-3 assignment-row" role="group" aria-label="Role assignment row" style="flex-wrap:wrap; gap:0.35rem;">
     <input type="text"
            name="role_name"
            class="form-control form-control-dark"
-           placeholder="e.g. Preacher, Worship Leader, Sound Tech, Greeter"
+           placeholder="e.g. Preacher, Worship Leader, Sound Tech"
            value="{{ assignment.role_name if assignment else '' }}"
-           aria-label="Role name">
+           aria-label="Role name"
+           style="min-width:140px; flex:1 1 140px;">
 
     <select name="user_id"
-            class="form-select form-control-dark"
-            aria-label="Assigned user">
-        <option value="">Unassigned</option>
+            class="form-select form-control-dark assignment-user-select"
+            aria-label="Assigned church member (optional)">
+        <option value="">Unassigned / use guest name -></option>
         {% for user in assignable_users %}
             <option value="{{ user.id }}"
                     {% if assignment and assignment.user_id == user.id %}selected{% endif %}>
@@ -39,6 +21,14 @@
         {% endfor %}
     </select>
 
+    <input type="text"
+           name="guest_name"
+           class="form-control form-control-dark assignment-guest-name"
+           placeholder="Guest name (if not a member)"
+           value="{{ assignment.guest_name if assignment and assignment.guest_name else '' }}"
+           aria-label="Guest speaker or non-member name"
+           style="min-width:160px; flex:1 1 160px;">
+
     <button type="button"
             class="btn btn-danger remove-role-btn flex-shrink-0"
             aria-label="Remove this role assignment"
@@ -46,4 +36,7 @@
         <i class="fas fa-times"></i>
         <span class="visually-hidden">Remove</span>
     </button>
+    <small class="text-muted w-100" style="font-size:0.75rem;">
+        Leave member Unassigned and type a guest name for guest speakers. Notes on the plan also show on the public welcome page.
+    </small>
 </div>
