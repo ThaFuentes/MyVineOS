@@ -96,4 +96,4 @@ def get_event_comments(event_id, search=None, status_filter='all'):
     return fetch_manager_comments('event', event_id, search=search, status_filter=status_filter)
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/events/queries.py loaded successfully (event listing + potluck + comments.html + moderation queries ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/events/queries.py loaded successfully (event listing + potluck + comments.html + moderation queries ready)")

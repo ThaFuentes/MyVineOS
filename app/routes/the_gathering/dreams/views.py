@@ -159,4 +159,4 @@ def dream_comments(dream_id):
                            filter=status_filter)
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/dreams/views.py loaded successfully (full dedicated routes for dreams ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/dreams/views.py loaded successfully (full dedicated routes for dreams ready)")

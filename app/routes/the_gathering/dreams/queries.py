@@ -80,4 +80,4 @@ def get_dream_comments(dream_id, search=None, status_filter='all'):
     return fetch_manager_comments('dream', dream_id, search=search, status_filter=status_filter)
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/dreams/queries.py loaded successfully (dream listing + comments.html + moderation queries ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/dreams/queries.py loaded successfully (dream listing + comments.html + moderation queries ready)")

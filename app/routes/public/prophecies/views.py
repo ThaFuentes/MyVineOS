@@ -108,4 +108,4 @@ def public_prophecy_detail(prophecy_id):
                            prophecy=prophecy, comments_enabled=comments_enabled)
 
 
-print("✅ MYVINECHURCH.ONLINE public/prophecies/views.py loaded successfully (comments key fixed + Events gold standard applied)")
+# print("✅ MYVINECHURCH.ONLINE public/prophecies/views.py loaded successfully (comments key fixed + Events gold standard applied)")

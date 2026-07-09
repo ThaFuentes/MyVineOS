@@ -235,4 +235,4 @@ def event_comments(event_id):
                            filter=status_filter)
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/events/views.py loaded successfully (full dedicated routes for events ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/events/views.py loaded successfully (full dedicated routes for events ready)")

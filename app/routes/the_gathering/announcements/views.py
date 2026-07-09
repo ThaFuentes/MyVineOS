@@ -164,4 +164,4 @@ def announcement_comments(announcement_id):
                            filter=status_filter)
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/announcements/views.py loaded successfully (full dedicated routes for announcements ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/announcements/views.py loaded successfully (full dedicated routes for announcements ready)")

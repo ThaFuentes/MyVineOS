@@ -24,4 +24,4 @@ from . import queries
 from . import forms
 from . import utils
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/dreams sub-blueprint initialized successfully (dedicated routes for edit/delete/comments.html ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/dreams sub-blueprint initialized successfully (dedicated routes for edit/delete/comments.html ready)")

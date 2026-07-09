@@ -82,4 +82,4 @@ def get_announcement_comments(announcement_id, search=None, status_filter='all')
     return fetch_manager_comments('announcement', announcement_id, search=search, status_filter=status_filter)
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/announcements/queries.py loaded successfully (announcement listing + comments.html + moderation queries ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/announcements/queries.py loaded successfully (announcement listing + comments.html + moderation queries ready)")

@@ -127,7 +127,7 @@ def build_all(verbose: bool = False) -> None:
             try:
                 module.create_tables(cursor)
             except Exception as e:
-                print(f"  ⚠️ Critical error in {module_name}.py: {e}")
+#                 print(f"  ⚠️ Critical error in {module_name}.py: {e}")
                 raise
         else:
             if verbose:

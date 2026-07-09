@@ -18,4 +18,4 @@ sermons_bp = Blueprint(
 # Import views/routes
 from . import views
 
-print("✅ public/sermons sub-blueprint ready at /public/sermons (public.public_sermons.*)")
+# print("✅ public/sermons sub-blueprint ready at /public/sermons (public.public_sermons.*)")

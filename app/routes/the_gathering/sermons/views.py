@@ -161,4 +161,4 @@ def sermon_comments(sermon_id):
                            filter=status_filter)
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/sermons/views.py loaded successfully (full dedicated routes for sermons ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/sermons/views.py loaded successfully (full dedicated routes for sermons ready)")

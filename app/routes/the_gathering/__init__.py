@@ -123,4 +123,4 @@ def index():
     return redirect(url_for('the_gathering.dashboard.dashboard'))
 
 
-print("✅ the_gathering (Gathering Place Manager) fully enabled: announcements, dreams, prayers, prophecies, sermons, events subs for admin edit/moderation of posts & comments.")
+# print("✅ the_gathering (Gathering Place Manager) fully enabled: announcements, dreams, prayers, prophecies, sermons, events subs for admin edit/moderation of posts & comments.")

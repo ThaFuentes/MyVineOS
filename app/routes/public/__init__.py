@@ -53,7 +53,7 @@ public_bp.register_blueprint(prophecies_bp)
 from .sermons import sermons_bp
 public_bp.register_blueprint(sermons_bp)
 
-print("✅ public routes initialized under /public/ with clean nested endpoints (public.public_xxx.*)")
+# print("✅ public routes initialized under /public/ with clean nested endpoints (public.public_xxx.*)")
 
 # ----------------------------------------------------------------------
 # Donate (online giving public page)

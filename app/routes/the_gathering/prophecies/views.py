@@ -159,4 +159,4 @@ def prophecy_comments(prophecy_id):
                            filter=status_filter)
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/prophecies/views.py loaded successfully (full dedicated routes for prophecies ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/prophecies/views.py loaded successfully (full dedicated routes for prophecies ready)")

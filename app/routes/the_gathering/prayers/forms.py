@@ -67,6 +67,6 @@ def validate_search_filter(form_data):
     }
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/prayers/forms.py loaded successfully (validation + censorship ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/prayers/forms.py loaded successfully (validation + censorship ready)")
 
 

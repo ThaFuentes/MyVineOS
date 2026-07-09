@@ -67,4 +67,4 @@ def safe_truncate(text, length=180):
     return text
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/dreams/utils.py loaded successfully (manager helpers + audit prep ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/dreams/utils.py loaded successfully (manager helpers + audit prep ready)")

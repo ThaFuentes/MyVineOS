@@ -34,4 +34,4 @@ def validate_guest_comment_form(form_data):
     }
 
 
-print("✅ MYVINECHURCH.ONLINE public/sermons/forms.py loaded successfully (Events gold standard applied)")
+# print("✅ MYVINECHURCH.ONLINE public/sermons/forms.py loaded successfully (Events gold standard applied)")

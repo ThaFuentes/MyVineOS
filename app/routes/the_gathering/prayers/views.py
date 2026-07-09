@@ -187,4 +187,4 @@ def reject_prayer(prayer_id):
     return redirect(request.referrer or url_for('the_gathering.prayers.prayers_dashboard'))
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/prayers/views.py loaded successfully (full dedicated routes for prayers ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/prayers/views.py loaded successfully (full dedicated routes for prayers ready)")

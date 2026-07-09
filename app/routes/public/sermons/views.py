@@ -117,4 +117,4 @@ def public_sermon_detail(sermon_id):
                            sermon=sermon, comments_enabled=comments_enabled)
 
 
-print("✅ MYVINECHURCH.ONLINE public/sermons/views.py loaded successfully (comments key fixed + Events gold standard applied)")
+# print("✅ MYVINECHURCH.ONLINE public/sermons/views.py loaded successfully (comments key fixed + Events gold standard applied)")

@@ -79,4 +79,4 @@ def get_prophecy_comments(prophecy_id, search=None, status_filter='all'):
     return fetch_manager_comments('prophecy', prophecy_id, search=search, status_filter=status_filter)
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/prophecies/queries.py loaded successfully (prophecy listing + comments.html + moderation queries ready)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/prophecies/queries.py loaded successfully (prophecy listing + comments.html + moderation queries ready)")

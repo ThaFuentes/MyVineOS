@@ -110,4 +110,4 @@ def public_dream_detail(dream_id):
                            dream=dream, comments_enabled=comments_enabled)
 
 
-print("✅ MYVINECHURCH.ONLINE public/dreams/views.py loaded successfully (comments key fixed + Events gold standard applied)")
+# print("✅ MYVINECHURCH.ONLINE public/dreams/views.py loaded successfully (comments key fixed + Events gold standard applied)")

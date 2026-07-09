@@ -90,4 +90,4 @@ def public_community():
     return render_template('public/public_dashboard.html', feed=feed)
 
 
-print("✅ MYVINECHURCH.ONLINE public/public_dashboard/views.py loaded successfully (production-clean + gold standard applied)")
+# print("✅ MYVINECHURCH.ONLINE public/public_dashboard/views.py loaded successfully (production-clean + gold standard applied)")

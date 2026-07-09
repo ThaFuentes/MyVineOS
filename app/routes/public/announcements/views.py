@@ -108,4 +108,4 @@ def public_announcement_detail(ann_id):
                            announcement=announcement, comments_enabled=comments_enabled)
 
 
-print("✅ MYVINECHURCH.ONLINE public/announcements/views.py loaded successfully (comments key fixed + Events gold standard applied)")
+# print("✅ MYVINECHURCH.ONLINE public/announcements/views.py loaded successfully (comments key fixed + Events gold standard applied)")
