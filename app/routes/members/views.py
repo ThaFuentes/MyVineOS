@@ -244,7 +244,8 @@ def delete_member(member_id):
             flash(reason or 'You do not have permission to delete this account.', 'error')
             return redirect(url_for('members.members_directory'))
 
-        delete_member_record(member_id)
+        # Reassign NOT NULL FKs (sermons, inventory, etc.) to the actor so delete succeeds
+        delete_member_record(member_id, reassign_to=actor_id)
 
         flash('Member deleted successfully.', 'success')
         log_change(
@@ -257,7 +258,11 @@ def delete_member(member_id):
         )
 
     except Exception as e:
-        flash('Failed to delete member.', 'error')
+        # Surface the real reason (FK, etc.) so failures are actionable
+        err = str(e).strip() or e.__class__.__name__
+        if len(err) > 180:
+            err = err[:177] + '...'
+        flash(f'Failed to delete member: {err}', 'error')
         print(f"Delete member error: {e}\n{traceback.format_exc()}")
 
     return redirect(url_for('members.members_directory'))

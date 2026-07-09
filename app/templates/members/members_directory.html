@@ -114,18 +114,48 @@ Granted permissions control who can view, edit, or fully manage accounts.
                         <td>{{ member.phone or '-' }}</td>
                         <td>
                             {{ member.role }}
+                            {% if not member.email_verified %}
+                            <span title="Email not verified" style="margin-left:0.35rem; padding:0.1rem 0.4rem; border-radius:999px; background:#ff9944; color:#000; font-size:0.75rem;">Unverified</span>
+                            {% endif %}
                             {% if member.is_shadow_banned %}<span title="Shadow banned" style="margin-left:0.25rem;"></span>{% endif %}
                             {% if member.login_locked_until %}<span title="Login locked" style="margin-left:0.25rem;"></span>{% endif %}
                         </td>
                         <td>{{ member.family_count or 0 }}</td>
                         {% if can_edit_members %}
                         <td class="actions-cell" onclick="event.stopPropagation();">
-                            <div class="actions-buttons" style="display:flex; gap:0.5rem; justify-content:flex-end; flex-wrap:nowrap; align-items:center;">
+                            <div class="actions-buttons" style="display:flex; gap:0.4rem; justify-content:flex-end; flex-wrap:wrap; align-items:center;">
                                 <a href="{{ url_for('members.add_member', member_id=member.id) }}"
                                    class="btn-primary btn-small"
                                    style="padding:0.45rem 0.8rem; font-size:0.9rem; min-width:60px; text-align:center;">
                                     Edit
                                 </a>
+                                {# Owner: any unverified account. Admin: unverified non-Admin/Owner. #}
+                                {% if can_manage_users and not member.email_verified and member.email
+                                      and (session.get('user_role') == 'Owner'
+                                           or (session.get('user_role') == 'Admin' and member.role not in ['Admin', 'Owner'])) %}
+                                <form action="{{ url_for('members.member_admin_action', member_id=member.id) }}" method="post" class="inline-form" style="margin:0;">
+                                    {% include 'partials/csrf_field.html' %}
+                                    <input type="hidden" name="action" value="resend_verification">
+                                    <button type="submit" class="btn-secondary btn-small"
+                                            style="padding:0.45rem 0.6rem; font-size:0.8rem;"
+                                            title="Send a new verification email to {{ member.email }}"
+                                            onclick="return confirm('Resend verification email to {{ member.email }}?');">
+                                        Resend verify
+                                    </button>
+                                </form>
+                                {% if session.get('user_role') == 'Owner' %}
+                                <form action="{{ url_for('members.member_admin_action', member_id=member.id) }}" method="post" class="inline-form" style="margin:0;">
+                                    {% include 'partials/csrf_field.html' %}
+                                    <input type="hidden" name="action" value="mark_email_verified">
+                                    <button type="submit" class="btn-secondary btn-small"
+                                            style="padding:0.45rem 0.6rem; font-size:0.8rem;"
+                                            title="Unblock login without waiting for email"
+                                            onclick="return confirm('Mark email verified for {{ member.username }}?');">
+                                        Mark verified
+                                    </button>
+                                </form>
+                                {% endif %}
+                                {% endif %}
                                 {% if can_manage_users and member.id != session.get('user_id') and (session.get('user_role') == 'Owner' or member.role not in ['Admin', 'Owner']) %}
                                 <form action="{{ url_for('members.delete_member', member_id=member.id) }}" method="post" class="inline-form" style="margin:0;">
                                     {% include 'partials/csrf_field.html' %}

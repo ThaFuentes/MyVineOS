@@ -89,17 +89,15 @@ def submit_ticket():
                 cleaned['priority'],
                 created_at
             )
-#             print(f" [DEBUG] Ticket created with ID: {ticket_id}")
 
             try:
                 send_new_ticket_notification_to_staff(
                     ticket_id, cleaned['title'], 'General', cleaned['priority']
                 )
-#                 print(" [DEBUG] Staff notification sent")
-                except Exception as e:
-    #                 print(f" [DEBUG] Staff notification failed: {e}")
-    
-                log_change(user_id, 'create', ticket_id, change_details='Submitted new support ticket')
+            except Exception:
+                pass
+
+            log_change(user_id, 'create', ticket_id, change_details='Submitted new support ticket')
             flash('Your support ticket has been submitted successfully!', 'success')
             return redirect(url_for('support_tickets.view_ticket', ticket_id=ticket_id))
 
