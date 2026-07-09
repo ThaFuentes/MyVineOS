@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/profile/views.py
 # File name: views.py
 # Brief, detailed purpose: All route handlers (controllers) for the Profile blueprint.
-# • Every single function name and endpoint from the original profile.py is preserved exactly (no renaming allowed).
-# • All database work moved to queries.py
-# • All form validation + censorship moved to forms.py
-# • All helpers moved to utils.py
-# • 100% original behavior preserved.
+# - Every single function name and endpoint from the original profile.py is preserved exactly (no renaming allowed).
+# - All database work moved to queries.py
+# - All form validation + censorship moved to forms.py
+# - All helpers moved to utils.py
+# - 100% original behavior preserved.
 
 from flask import render_template, request, redirect, url_for, flash, session
 from werkzeug.security import check_password_hash

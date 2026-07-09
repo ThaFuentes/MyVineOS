@@ -3,10 +3,10 @@
 # File name: utils.py
 # Brief, detailed purpose: Utility helpers specifically for the Events section
 # of the Gathering Place Manager.
-# • Light censorship for manager display (flags prohibited words).
-# • Date/time formatting using church timezone helper.
-# • 100% consistent with the_gathering/dreams/utils.py and announcements/utils.py.
-# • Only this file was rebuilt — everything else on the site remains untouched.
+# - Light censorship for manager display (flags prohibited words).
+# - Date/time formatting using church timezone helper.
+# - 100% consistent with the_gathering/dreams/utils.py and announcements/utils.py.
+# - Only this file was rebuilt — everything else on the site remains untouched.
 
 from app.utils.helpers import censor_text
 from app.utils.time_utils import format_church
@@ -36,7 +36,7 @@ def censor_for_manager(items, fields=None):
 def format_manager_datetime(date_value):
     """Format any datetime for manager dashboard display using the church's timezone helper."""
     if date_value:
-        return format_church(date_value, '%b %d, %Y • %I:%M %p')
+        return format_church(date_value, '%b %d, %Y - %I:%M %p')
     return 'Unknown date'
 
 
@@ -50,4 +50,4 @@ def safe_truncate(text, length=180):
     return text
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/events/utils.py loaded successfully (manager helpers ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/events/utils.py loaded successfully (manager helpers ready)")

@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/donations/views.py
 # File name: views.py
 # Brief, detailed purpose: Clean, thin route handlers for the Donations blueprint.
-# • All database work moved to queries.py
-# • All form validation + censorship moved to forms.py
-# • All helpers moved to utils.py
-# • 100% original behavior preserved – dashboard, add/edit/delete, view all, reports, DOCX exports, censored word checks, church local time, audit logging, member selector, etc.
-# • Now super short, readable, and ready for future growth.
+# - All database work moved to queries.py
+# - All form validation + censorship moved to forms.py
+# - All helpers moved to utils.py
+# - 100% original behavior preserved – dashboard, add/edit/delete, view all, reports, DOCX exports, censored word checks, church local time, audit logging, member selector, etc.
+# - Now super short, readable, and ready for future growth.
 
 from flask import render_template, redirect, url_for, request, flash, session, current_app, jsonify
 import os

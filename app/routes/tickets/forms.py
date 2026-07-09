@@ -3,10 +3,10 @@
 # File name: forms.py
 # Brief, detailed purpose: All form validation + censored word checks + repopulation logic for the **Ticket Manager** blueprint ONLY (routes/tickets/).
 # This file is now 100% isolated to administrative ticket management (ticket_managers group + Admins/Owner).
-# • Managers use these forms for status updates, priority changes, assignment, and internal comments.html.
-# • Guest/member submission logic has been removed (moved to the new support_tickets blueprint).
-# • Every original validation block, flash message, and censored-word check preserved exactly where still relevant to managers.
-# • Returns clean data + error lists so views.py can keep identical logic and template repopulation.
+# - Managers use these forms for status updates, priority changes, assignment, and internal comments.html.
+# - Guest/member submission logic has been removed (moved to the new support_tickets blueprint).
+# - Every original validation block, flash message, and censored-word check preserved exactly where still relevant to managers.
+# - Returns clean data + error lists so views.py can keep identical logic and template repopulation.
 
 from app.utils.helpers import contains_censored_word
 

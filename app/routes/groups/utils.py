@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/groups/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Groups module.
-# • KNOWN_PERMISSIONS dictionary (central source of truth for all permissions in the application)
-# • is_global_manager() and is_group_leader() helpers
-# • Clean, reusable, and consistent with the rest of the app.
-# • Designed for easy future growth (add new permission helpers, group validation, etc.)
+# - KNOWN_PERMISSIONS dictionary (central source of truth for all permissions in the application)
+# - is_global_manager() and is_group_leader() helpers
+# - Clean, reusable, and consistent with the rest of the app.
+# - Designed for easy future growth (add new permission helpers, group validation, etc.)
 
 from flask import session
 import pymysql

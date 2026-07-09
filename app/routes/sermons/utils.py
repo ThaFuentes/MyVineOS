@@ -2,10 +2,10 @@
 # Full path: WebChurchMan/app/routes/sermons/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Constants + small helper functions for the sermons blueprint.
-# • Allowed file extensions
-# • Upload folder path resolution
-# • File extension validation
-# • Staff role constant (used in decorators & permission checks)
+# - Allowed file extensions
+# - Upload folder path resolution
+# - File extension validation
+# - Staff role constant (used in decorators & permission checks)
 # 100% identical behavior to original — only extracted and centralized.
 
 import os

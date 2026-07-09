@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/groups/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Groups module.
-# • Validates create group and edit group forms.
-# • Performs server-side censored word check on visible fields (name + description).
-# • Handles permissions list from checkboxes.
-# • Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
-# • 100% matches the original groups.py validation logic.
+# - Validates create group and edit group forms.
+# - Performs server-side censored word check on visible fields (name + description).
+# - Handles permissions list from checkboxes.
+# - Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
+# - 100% matches the original groups.py validation logic.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

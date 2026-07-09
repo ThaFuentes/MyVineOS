@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/attendance/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Attendance module.
-# • Pure data-access layer – no Flask routes, no templates, no flash messages.
-# • Every SELECT/INSERT/UPDATE from the original attendance.py is now here.
-# • 100% MariaDB/pymysql compatible, parameterized, reusable functions.
-# • Designed for easy growth – add new query functions anytime without touching views.
+# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Every SELECT/INSERT/UPDATE from the original attendance.py is now here.
+# - 100% MariaDB/pymysql compatible, parameterized, reusable functions.
+# - Designed for easy growth – add new query functions anytime without touching views.
 
 import pymysql
 from datetime import date, datetime

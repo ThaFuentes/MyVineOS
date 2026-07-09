@@ -2,13 +2,13 @@
 # Full path: MyVineChurch/app/routes/inventory/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Inventory module.
-# • REQUIRED_ROLES constant
-# • current_user_id() helper for logging and ownership
-# • UPC lookup URL constant
-# • Barcode lookup fallback logic
-# • Stock calculation helpers (low stock, expiring soon)
-# • Designed for easy future growth (stock calculations, alerts, reports, etc.).
-# • 100% matches the original inventory.py helpers and constants.
+# - REQUIRED_ROLES constant
+# - current_user_id() helper for logging and ownership
+# - UPC lookup URL constant
+# - Barcode lookup fallback logic
+# - Stock calculation helpers (low stock, expiring soon)
+# - Designed for easy future growth (stock calculations, alerts, reports, etc.).
+# - 100% matches the original inventory.py helpers and constants.
 
 from flask import session
 import requests

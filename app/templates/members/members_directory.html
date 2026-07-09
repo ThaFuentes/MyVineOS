@@ -67,7 +67,7 @@ Granted permissions control who can view, edit, or fully manage accounts.
 
   <details class="collapsible-controls">
         <summary class="collapsible-summary">
-            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+            <strong>Search & Filters</strong> <span class="arrow">v</span>
         </summary>
         <div class="search-controls styled-form inline-form">
             <div class="form-group search-group">
@@ -114,8 +114,8 @@ Granted permissions control who can view, edit, or fully manage accounts.
                         <td>{{ member.phone or '-' }}</td>
                         <td>
                             {{ member.role }}
-                            {% if member.is_shadow_banned %}<span title="Shadow banned" style="margin-left:0.25rem;">👻</span>{% endif %}
-                            {% if member.login_locked_until %}<span title="Login locked" style="margin-left:0.25rem;">🔒</span>{% endif %}
+                            {% if member.is_shadow_banned %}<span title="Shadow banned" style="margin-left:0.25rem;"></span>{% endif %}
+                            {% if member.login_locked_until %}<span title="Login locked" style="margin-left:0.25rem;"></span>{% endif %}
                         </td>
                         <td>{{ member.family_count or 0 }}</td>
                         {% if can_edit_members %}

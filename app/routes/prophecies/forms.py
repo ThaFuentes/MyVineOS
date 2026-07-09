@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/prophecies/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Prophecies module.
-# • Validates add prophecy, edit prophecy, add comment, and edit comment forms.
-# • Performs server-side censored word check on all visible text fields.
-# • Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
-# • 100% matches the original prophecies.py validation logic.
+# - Validates add prophecy, edit prophecy, add comment, and edit comment forms.
+# - Performs server-side censored word check on all visible text fields.
+# - Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
+# - 100% matches the original prophecies.py validation logic.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

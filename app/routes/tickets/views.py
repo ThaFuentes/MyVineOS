@@ -2,11 +2,11 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/tickets/views.py
 # File name: views.py
 # Brief, detailed purpose: All the route functions (the @route decorators) for the **Ticket Manager** blueprint ONLY.
-# • FIXED: RecursionError when deleting a ticket.
+# - FIXED: RecursionError when deleting a ticket.
 #   The view function was named `delete_ticket` and it was also importing `delete_ticket` from queries.py → Python name shadowing caused infinite recursion.
 #   Now the queries function is imported with an alias so it can never call itself.
-# • Manage Ticket Managers Group route and link have been completely removed (you confirmed you do not want it — use /groups/ instead).
-# • Everything else (dashboard, view ticket, status/priority/assign, comments.html, email notifications) is untouched and working.
+# - Manage Ticket Managers Group route and link have been completely removed (you confirmed you do not want it — use /groups/ instead).
+# - Everything else (dashboard, view ticket, status/priority/assign, comments.html, email notifications) is untouched and working.
 
 from flask import render_template, request, redirect, url_for, flash, session
 from app.utils.decorators import login_required, role_required

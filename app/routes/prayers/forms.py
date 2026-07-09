@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/prayers/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Prayers module.
-# • Validates add prayer, edit prayer, and add response forms.
-# • Performs server-side censored word check on all visible text fields.
-# • Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
-# • 100% matches the original prayers.py validation and repopulation logic.
+# - Validates add prayer, edit prayer, and add response forms.
+# - Performs server-side censored word check on all visible text fields.
+# - Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
+# - 100% matches the original prayers.py validation and repopulation logic.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

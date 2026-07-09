@@ -2,11 +2,11 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/the_gathering/events/views.py
 # File name: views.py
 # Brief, detailed purpose: All event routes for the Gathering Place Manager.
-# • Dedicated sub-blueprint routes: listing, create/edit, view, delete, potluck management, comment moderation.
-# • Uses events/forms.py, queries.py, and utils.py for clean separation.
-# • Protected by the exact same session + DB role check pattern used everywhere else.
-# • All url_for calls use the correct nested blueprint: 'the_gathering.events.*'
-# • 100% rebuilt entire file — only this script was touched.
+# - Dedicated sub-blueprint routes: listing, create/edit, view, delete, potluck management, comment moderation.
+# - Uses events/forms.py, queries.py, and utils.py for clean separation.
+# - Protected by the exact same session + DB role check pattern used everywhere else.
+# - All url_for calls use the correct nested blueprint: 'the_gathering.events.*'
+# - 100% rebuilt entire file — only this script was touched.
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql
@@ -235,4 +235,4 @@ def event_comments(event_id):
                            filter=status_filter)
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/events/views.py loaded successfully (full dedicated routes for events ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/events/views.py loaded successfully (full dedicated routes for events ready)")

@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/dreams/__init__.py
 # File name: __init__.py
 # Brief, detailed purpose: Dreams Blueprint Package Initializer – 100% MariaDB/pymysql compatible.
-# • Creates the exact same Blueprint(name='dreams', url_prefix='/dreams') as the old flat file.
-# • Automatically imports all modular files so every route registers instantly.
-# • Zero functional change today – public/private/personal visibility, listing with search, detail view, submit/edit/delete, comments.html, server-side censorship, audit logging all remain 100% identical.
-# • Designed purely for future scaling: we can now safely split into views.py, queries.py, forms.py, utils.py without touching app/__init__.py or main.py.
+# - Creates the exact same Blueprint(name='dreams', url_prefix='/dreams') as the old flat file.
+# - Automatically imports all modular files so every route registers instantly.
+# - Zero functional change today – public/private/personal visibility, listing with search, detail view, submit/edit/delete, comments.html, server-side censorship, audit logging all remain 100% identical.
+# - Designed purely for future scaling: we can now safely split into views.py, queries.py, forms.py, utils.py without touching app/__init__.py or main.py.
 
 from flask import Blueprint
 

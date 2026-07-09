@@ -3,13 +3,13 @@
 # File name: vault.py
 # Brief, detailed purpose:
 #   Blueprint for the Pastoral Vault module (saved sermon sections, reusable content).
-#   • Unified library view (private + shared) — mirrors illustrations library style
-#   • Manual add/edit/delete (with ownership enforcement)
-#   • AJAX quick-save from sermon editor (/save_section_ajax)
-#   • AJAX search for "Insert from Vault" modal (/search_ajax) — loads recent on empty query
-#   • Safe tags parsing — no JSONDecodeError crash on bad DB data
-#   • All routes require Pastoral Group membership (@pastoral_required)
-#   • Consistent with illustrations.py: direct DB access, safe helpers, audit logging
+#   - Unified library view (private + shared) — mirrors illustrations library style
+#   - Manual add/edit/delete (with ownership enforcement)
+#   - AJAX quick-save from sermon editor (/save_section_ajax)
+#   - AJAX search for "Insert from Vault" modal (/search_ajax) — loads recent on empty query
+#   - Safe tags parsing — no JSONDecodeError crash on bad DB data
+#   - All routes require Pastoral Group membership (@pastoral_required)
+#   - Consistent with illustrations.py: direct DB access, safe helpers, audit logging
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 import json

@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/announcements/views.py
 # File name: views.py
 # Brief, detailed purpose: All route handlers (controllers) for the Announcements blueprint.
-# • Every single @announcements_bp.route from the old flat file lives here.
-# • 100% original behavior preserved: public/private visibility, family-ready templates, audit logging, censorship, comments.html, email tools, dashboard vs public view.
-# • Group permissions integrated: comment owner OR anyone with 'moderate_announcements' permission OR Admin/Owner can edit/delete comments.html.
-# • This is the “HTTP layer” only – thin, readable, easy to grow.
+# - Every single @announcements_bp.route from the old flat file lives here.
+# - 100% original behavior preserved: public/private visibility, family-ready templates, audit logging, censorship, comments.html, email tools, dashboard vs public view.
+# - Group permissions integrated: comment owner OR anyone with 'moderate_announcements' permission OR Admin/Owner can edit/delete comments.html.
+# - This is the “HTTP layer” only – thin, readable, easy to grow.
 
 from flask import render_template, request, redirect, url_for, flash, session
 import pymysql

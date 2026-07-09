@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/emailer/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Emailer module.
-# • Validates the manual email send form (required fields: to_email, subject, body).
-# • Performs server-side censored word check on subject + body.
-# • Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
-# • 100% matches the original emailer.py validation and repopulation logic.
+# - Validates the manual email send form (required fields: to_email, subject, body).
+# - Performs server-side censored word check on subject + body.
+# - Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
+# - 100% matches the original emailer.py validation and repopulation logic.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

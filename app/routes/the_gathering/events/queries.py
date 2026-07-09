@@ -3,10 +3,10 @@
 # File name: queries.py
 # Brief, detailed purpose: Reusable database queries specifically for the Events section
 # of the Gathering Place Manager.
-# • Provides listing, single event, potluck signups, and comment queries for moderation.
-# • All queries safe, use LEFT JOINs for creator names.
-# • 100% consistent with the_gathering/dreams/queries.py and announcements/queries.py.
-# • Only this file was rebuilt.
+# - Provides listing, single event, potluck signups, and comment queries for moderation.
+# - All queries safe, use LEFT JOINs for creator names.
+# - 100% consistent with the_gathering/dreams/queries.py and announcements/queries.py.
+# - Only this file was rebuilt.
 
 from app.models.db import get_db
 from app.utils.comment_moderation import comment_count_subquery, fetch_manager_comments
@@ -96,4 +96,4 @@ def get_event_comments(event_id, search=None, status_filter='all'):
     return fetch_manager_comments('event', event_id, search=search, status_filter=status_filter)
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/events/queries.py loaded successfully (event listing + potluck + comments.html + moderation queries ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/events/queries.py loaded successfully (event listing + potluck + comments.html + moderation queries ready)")

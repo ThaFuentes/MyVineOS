@@ -2,12 +2,12 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/sermons/views.py
 # File name: views.py
 # Brief, detailed purpose: Public Sermons routes for unauthenticated guests only.
-# • 100% rebuilt to match the working public/events/views.py gold standard exactly.
-# • FIXED: sermon['comments.html'] → sermon['comments'] so the template can see the comments.
-# • Listing safely formats uploaded_at and sets posted_by/creator_name.
-# • Detail page now correctly loads and passes comments (guest comments + replies + admin delete).
-# • All url_for calls use correct nested blueprint endpoint 'public.public_sermons.public_sermon_detail'.
-# • Production-clean (no debug prints).
+# - 100% rebuilt to match the working public/events/views.py gold standard exactly.
+# - FIXED: sermon['comments.html'] → sermon['comments'] so the template can see the comments.
+# - Listing safely formats uploaded_at and sets posted_by/creator_name.
+# - Detail page now correctly loads and passes comments (guest comments + replies + admin delete).
+# - All url_for calls use correct nested blueprint endpoint 'public.public_sermons.public_sermon_detail'.
+# - Production-clean (no debug prints).
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql
@@ -117,4 +117,4 @@ def public_sermon_detail(sermon_id):
                            sermon=sermon, comments_enabled=comments_enabled)
 
 
-# print("✅ MYVINECHURCH.ONLINE public/sermons/views.py loaded successfully (comments key fixed + Events gold standard applied)")
+# print(" MYVINECHURCH.ONLINE public/sermons/views.py loaded successfully (comments key fixed + Events gold standard applied)")

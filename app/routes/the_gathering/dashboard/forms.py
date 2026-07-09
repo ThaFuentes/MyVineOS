@@ -2,9 +2,9 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/the_gathering/dashboard/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and cleaning for the Gathering Place Dashboard.
-# • Validates search and filter parameters used on the main dashboard.
-# • Returns clean dict on success or None + flash message on error.
-# • 100% consistent with the style used in events/forms.py, prayers/forms.py, and announcements/forms.py.
+# - Validates search and filter parameters used on the main dashboard.
+# - Returns clean dict on success or None + flash message on error.
+# - 100% consistent with the style used in events/forms.py, prayers/forms.py, and announcements/forms.py.
 
 from flask import flash
 
@@ -20,4 +20,4 @@ def validate_search_filter(form_data):
     }
 
 
-#print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/forms.py loaded successfully")
+#print(" MYVINECHURCH.ONLINE the_gathering/dashboard/forms.py loaded successfully")

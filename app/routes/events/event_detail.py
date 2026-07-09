@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/events/event_detail.py
 # File name: event_detail.py
 # Brief, detailed purpose: Public single event detail page with full comment support.
-# • Guests (non-registered) can view events, add to potluck, and post comments.html.
-# • Logged-in users can post, edit, and delete their own comments.html.
-# • Admins / users with 'moderate_events' permission can edit/delete any comment.
-# • Strong anti-spam: censored word check + rate limiting for guests.
-# • All original potluck behavior preserved exactly.
+# - Guests (non-registered) can view events, add to potluck, and post comments.html.
+# - Logged-in users can post, edit, and delete their own comments.html.
+# - Admins / users with 'moderate_events' permission can edit/delete any comment.
+# - Strong anti-spam: censored word check + rate limiting for guests.
+# - All original potluck behavior preserved exactly.
 
 from flask import render_template, request, redirect, url_for, flash, session
 from app.utils.helpers import contains_censored_word

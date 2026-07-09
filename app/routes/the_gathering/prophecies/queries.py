@@ -3,12 +3,12 @@
 # File name: queries.py
 # Brief, detailed purpose: Reusable database queries specifically for the Prophecies section
 # of the Gathering Place Manager.
-# • Provides listing with filters/search (all/public/private), single prophecy fetch,
+# - Provides listing with filters/search (all/public/private), single prophecy fetch,
 #   and comment queries for moderation.
-# • All queries are safe, efficient, and use LEFT JOINs for creator names.
-# • Designed to be called only from prophecies/views.py — keeps views clean.
-# • 100% consistent with the_gathering/events/queries.py, dreams/queries.py, prayers/queries.py and announcements/queries.py patterns.
-# • Only this file was rebuilt — everything else on the site remains untouched and secure.
+# - All queries are safe, efficient, and use LEFT JOINs for creator names.
+# - Designed to be called only from prophecies/views.py — keeps views clean.
+# - 100% consistent with the_gathering/events/queries.py, dreams/queries.py, prayers/queries.py and announcements/queries.py patterns.
+# - Only this file was rebuilt — everything else on the site remains untouched and secure.
 
 from app.models.db import get_db
 from app.utils.comment_moderation import comment_count_subquery, fetch_manager_comments
@@ -79,4 +79,4 @@ def get_prophecy_comments(prophecy_id, search=None, status_filter='all'):
     return fetch_manager_comments('prophecy', prophecy_id, search=search, status_filter=status_filter)
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/prophecies/queries.py loaded successfully (prophecy listing + comments.html + moderation queries ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/prophecies/queries.py loaded successfully (prophecy listing + comments.html + moderation queries ready)")

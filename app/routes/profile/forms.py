@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/profile/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Profile module.
-# • Validates the main profile update form (all fields, new privacy preferences, check-in PIN, password change).
-# • Performs server-side censored word check on visible fields (first_name, last_name, email, phone, address, relation_type).
-# • Validates PIN (4-6 digits or empty), password match, role restrictions.
-# • Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
-# • 100% matches the original profile.py validation and repopulation logic.
+# - Validates the main profile update form (all fields, new privacy preferences, check-in PIN, password change).
+# - Performs server-side censored word check on visible fields (first_name, last_name, email, phone, address, relation_type).
+# - Validates PIN (4-6 digits or empty), password match, role restrictions.
+# - Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
+# - 100% matches the original profile.py validation and repopulation logic.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

@@ -2,9 +2,9 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prophecies/edit.html -->
 <!-- File name: edit.html -->
 <!-- Brief, detailed purpose: Full Prophecy Editor form inside the Gathering Place Manager. -->
-<!-- • Create new OR edit existing prophecy (title, prophecy_text, visibility). -->
-<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prophecies.* -->
-<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/edit.html styling. -->
+<!-- - Create new OR edit existing prophecy (title, prophecy_text, visibility). -->
+<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.prophecies.* -->
+<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events/edit.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 
@@ -16,9 +16,9 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">
             {% if prophecy %}
-                ✏️ Edit Prophecy #{{ prophecy.id }}
+                 Edit Prophecy #{{ prophecy.id }}
             {% else %}
-                ➕ Create New Prophecy
+                 Create New Prophecy
             {% endif %}
         </h1>
 
@@ -32,14 +32,14 @@
             <!-- View on Public -->
             <a href="{{ url_for('public.public_prophecies.public_prophecy_detail', prophecy_id=prophecy.id) }}"
                target="_blank" class="btn btn-outline-light me-2">
-                👁️ View Public
+                 View Public
             </a>
 
             <!-- Delete -->
             <form method="POST" action="{{ url_for('the_gathering.prophecies.delete_prophecy', prophecy_id=prophecy.id) }}" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                   onsubmit="return confirm('PERMANENTLY DELETE this prophecy and ALL its comments?')">
-                <button type="submit" class="btn btn-danger">🗑️ Delete Prophecy</button>
+                <button type="submit" class="btn btn-danger"> Delete Prophecy</button>
             </form>
             {% endif %}
         </div>
@@ -80,7 +80,7 @@
         <div style="margin-top:1.25rem; display:flex; justify-content:flex-end; gap:0.5rem; flex-wrap:wrap;">
             <a href="{{ url_for('the_gathering.prophecies.prophecies_dashboard') }}" class="btn btn-secondary">Cancel</a>
             <button type="submit" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold;">
-                💾 Save Prophecy
+                 Save Prophecy
             </button>
         </div>
     </form>

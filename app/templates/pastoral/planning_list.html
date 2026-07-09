@@ -3,15 +3,15 @@
 {# File name: planning_list.html #}
 {# Brief, detailed purpose:
 #   Service Planning overview – clean, responsive list of upcoming effective services (template fallback + overrides).
-#   • Prominent links to manage Global Default Role Assignments and Recurring Templates console.
-#   • Date picker + full clickable calendar strip (current + next 11 months).
-#   • Table shows upcoming effective plans (next year) — master changes visible immediately for plain weeks.
-#   • Source badge: Template (blue) or Override (green).
-#   • Calendar marks overrides (green badge).
-#   • Clear explanations: master templates control plain weeks.
-#   • Empty state if no templates/overrides.
-#   • FULL REBUILD: Matches new route with upcoming_plans — master changes show instantly.
-#   • Refresh button in templates list cleans legacy identical overrides. #}
+#   - Prominent links to manage Global Default Role Assignments and Recurring Templates console.
+#   - Date picker + full clickable calendar strip (current + next 11 months).
+#   - Table shows upcoming effective plans (next year) — master changes visible immediately for plain weeks.
+#   - Source badge: Template (blue) or Override (green).
+#   - Calendar marks overrides (green badge).
+#   - Clear explanations: master templates control plain weeks.
+#   - Empty state if no templates/overrides.
+#   - FULL REBUILD: Matches new route with upcoming_plans — master changes show instantly.
+#   - Refresh button in templates list cleans legacy identical overrides. #}
 
 {% extends "pastoral/base_pastoral.html" %}
 
@@ -21,7 +21,7 @@
 <div class="glass-panel" style="margin-bottom:0.9rem;">
   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.6rem; flex-wrap:wrap;">
     <div>
-      <h2 style="margin:0 0 0.2rem;">📅 Service Planning</h2>
+      <h2 style="margin:0 0 0.2rem;"> Service Planning</h2>
       <div style="opacity:0.7; font-size:0.85rem;">Recurring templates + dated overrides</div>
     </div>
     <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
@@ -62,7 +62,7 @@
                 <div style="padding:0.25rem 0; border-radius:6px; min-height:34px; background:{% if day.has_override %}#0a3{% else %}#222{% endif %}; position:relative; font-weight:{% if day.has_override %}700{% else %}400{% endif %}; border:1px solid {% if day.has_override %}#0f0{% else %}#333{% endif %};">
                   {{ day.day }}
                   {% if day.has_override %}<span style="position:absolute; bottom:1px; left:50%; transform:translateX(-50%); font-size:0.55rem; background:#060; padding:0 2px; border-radius:3px;">O</span>{% endif %}
-                  {% if day.date == today %}<span style="display:block; font-size:0.55rem; color:#ff0;">•</span>{% endif %}
+                  {% if day.date == today %}<span style="display:block; font-size:0.55rem; color:#ff0;">-</span>{% endif %}
                 </div>
               </a>
             {% else %}
@@ -73,7 +73,7 @@
       </div>
     {% endfor %}
   </div>
-  <div style="font-size:0.7rem; opacity:0.6; margin-top:0.3rem;">Scroll horiz • Green=O override (special) • Plain weeks use latest master template</div>
+  <div style="font-size:0.7rem; opacity:0.6; margin-top:0.3rem;">Scroll horiz - Green=O override (special) - Plain weeks use latest master template</div>
 </div>
 
 <!-- Upcoming list as modern cards (better phone, no bunch table) -->
@@ -85,7 +85,7 @@
     <div class="item-card" style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
       <div>
         <div style="font-weight:600;">{{ plan.service_date.strftime('%A, %B %d') }}</div>
-        <div style="font-size:0.8rem; opacity:0.75;">{{ plan.start_time.strftime('%I:%M %p')|lower if plan.start_time else '—' }} • <span style="padding:0 0.3rem; background:rgba(255,255,255,0.08); border-radius:4px; font-size:0.7rem;">{{ plan.source_badge }}</span></div>
+        <div style="font-size:0.8rem; opacity:0.75;">{{ plan.start_time.strftime('%I:%M %p')|lower if plan.start_time else '—' }} - <span style="padding:0 0.3rem; background:rgba(255,255,255,0.08); border-radius:4px; font-size:0.7rem;">{{ plan.source_badge }}</span></div>
         <div style="margin-top:0.2rem;">{{ plan.title or 'Untitled' }}</div>
         {% if plan.linked_sermon_title %}
           <div style="font-size:0.8rem; margin-top:0.15rem;"><a href="{{ url_for('pastoral.sermons.edit', sermon_id=plan.pastoral_sermon_id) }}" style="color:var(--primary);">Sermon: {{ plan.linked_sermon_title }}</a></div>

@@ -31,11 +31,11 @@
             <h2 class="page-title">{{ dream.title|title|censor }}</h2>
             <p class="event-key-info">
                 {{ dream.type|capitalize if dream.type else 'Dream/Vision' }}
-                {% if dream.date_occurred_text %} • {{ dream.date_occurred_text }} {% endif %}
-                • Posted by {{ dream.poster_name or 'Anonymous' }}
+                {% if dream.date_occurred_text %} - {{ dream.date_occurred_text }} {% endif %}
+                - Posted by {{ dream.poster_name or 'Anonymous' }}
                 on {{ dream.date_posted.strftime('%B %d, %Y') }}
-                • {{ dream.visibility|capitalize }}
-                {% if dream.comments %} • {{ dream.comments|length }} comment{{ 's' if dream.comments|length != 1 else '' }}{% endif %}
+                - {{ dream.visibility|capitalize }}
+                {% if dream.comments %} - {{ dream.comments|length }} comment{{ 's' if dream.comments|length != 1 else '' }}{% endif %}
             </p>
         </div>
 

@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/members/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Members module.
-# • Validates add/edit member form (required fields, role restrictions, censored words on visible text).
-# • Handles email uniqueness check for new members.
-# • Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
-# • 100% matches the original members.py validation and repopulation logic.
+# - Validates add/edit member form (required fields, role restrictions, censored words on visible text).
+# - Handles email uniqueness check for new members.
+# - Returns clean dict on success, or None + flash message + repopulates form on error (keeps views.py clean).
+# - 100% matches the original members.py validation and repopulation logic.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

@@ -3,16 +3,16 @@
 # File name: illustrations.py
 # Brief, detailed purpose:
 #   Routes and Blueprint for the ILLUSTRATION LIBRARY (pastoral area only) - Reusable TEXT content for sermons.
-#   • Pure text/verbal library: written illustrations, stories, memories, analogies, reusable sermon blocks (NOT JPEG imagery or visual images).
-#   • Pastors save reusable verbal content here from sermon builder (e.g. a near-death experience story) to reuse without re-typing.
-#   • Unified with saved sermon Sections from Vault (auto-included as 'section' type).
-#   • Type badge: "Illustration" (manual text) vs "Section" (saved from sermon builder).
-#   • Search title/content/tags/notes/source (source = reference like book/experience, free text).
-#   • Buttons: Insert into Sermon (injects content into editor section), View, Edit, Delete.
-#   • Dock for quick access across sessions.
-#   • Add New manual text illustration.
-#   • Supports rich content (Quill editor).
-#   • Robust for desktop pastoral use.
+#   - Pure text/verbal library: written illustrations, stories, memories, analogies, reusable sermon blocks (NOT JPEG imagery or visual images).
+#   - Pastors save reusable verbal content here from sermon builder (e.g. a near-death experience story) to reuse without re-typing.
+#   - Unified with saved sermon Sections from Vault (auto-included as 'section' type).
+#   - Type badge: "Illustration" (manual text) vs "Section" (saved from sermon builder).
+#   - Search title/content/tags/notes/source (source = reference like book/experience, free text).
+#   - Buttons: Insert into Sermon (injects content into editor section), View, Edit, Delete.
+#   - Dock for quick access across sessions.
+#   - Add New manual text illustration.
+#   - Supports rich content (Quill editor).
+#   - Robust for desktop pastoral use.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 import json

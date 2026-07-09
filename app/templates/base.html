@@ -83,7 +83,7 @@
     <div class="user-info">
       {% if session.get('user_id') %}
         <div class="user-chip">
-          👤 {{ session.username|default('Member') }}
+           {{ session.username|default('Member') }}
           <span style="opacity:0.7; font-size:0.75em;">{{ session.user_role|default('') }}</span>
         </div>
         <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Logout</a>
@@ -113,19 +113,19 @@
   {% if session.get('user_id') %}
   <nav class="bottom-nav" aria-label="Primary mobile navigation">
     <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard.dashboard' else '' }}">
-      <span class="icon">🏠</span>
+      <span class="icon"></span>
       <span class="label">Home</span>
     </a>
     <a href="{{ url_for('events.events') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('events','prayers','sermons','dreams','prophecies','announcements'))) else '' }}">
-      <span class="icon">👥</span>
+      <span class="icon"></span>
       <span class="label">Community</span>
     </a>
     <a href="{{ url_for('profile.profile') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('profile','help','settings','attendance','groups','log','support_tickets'))) else '' }}">
-      <span class="icon">👤</span>
+      <span class="icon"></span>
       <span class="label">My Stuff</span>
     </a>
     <a href="{{ url_for('the_gathering.index') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith('the_gathering')) else '' }}">
-      <span class="icon">🛠️</span>
+      <span class="icon"></span>
       <span class="label">Manager</span>
     </a>
   </nav>

@@ -2,20 +2,20 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/announcements/view.html -->
 <!-- File name: view.html -->
 <!-- Brief, detailed purpose: Read-only detailed view of a single announcement inside the Gathering Place Manager. -->
-<!-- • Shows every field from the announcements table in a clean layout. -->
-<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.announcements.* -->
-<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
+<!-- - Shows every field from the announcements table in a clean layout. -->
+<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.announcements.* -->
+<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 
-{% block title %}View Announcement • {{ announcement.title }}{% endblock %}
+{% block title %}View Announcement - {{ announcement.title }}{% endblock %}
 
 {% block content %}
 
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <div>
-            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">📢 Announcement Detail</h1>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> Announcement Detail</h1>
             <h2 class="text-light">{{ announcement.title }}</h2>
         </div>
 
@@ -27,24 +27,24 @@
 
             <!-- Edit Announcement -->
             <a href="{{ url_for('the_gathering.announcements.edit_announcement', announcement_id=announcement.id) }}" class="btn btn-primary">
-                ✏️ Edit Announcement
+                 Edit Announcement
             </a>
 
             <!-- Manage Comments -->
             <a href="{{ url_for('the_gathering.announcements.announcement_comments', announcement_id=announcement.id) }}" class="btn btn-warning">
-                💬 Manage Comments ({{ comment_count or 0 }})
+                 Manage Comments ({{ comment_count or 0 }})
             </a>
 
             <!-- View on Public Site -->
             <a href="{{ url_for('public.public_announcements.public_announcement_detail', ann_id=announcement.id) }}"
                target="_blank" class="btn btn-outline-light">
-                👁️ View Public
+                 View Public
             </a>
 
             <!-- Delete Announcement -->
             <form method="POST" action="{{ url_for('the_gathering.announcements.delete_announcement', announcement_id=announcement.id) }}" style="display:inline;"
                   onsubmit="return confirm('PERMANENTLY DELETE this announcement and ALL its comments?')">
-                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+                <button type="submit" class="btn btn-danger"> Delete</button>
             </form>
         </div>
     </div>
@@ -55,7 +55,7 @@
             <div class="col-md-3">
                 <strong>Pinned:</strong>
                 {% if announcement.is_pinned %}
-                    <span class="badge bg-warning">📌 Yes</span>
+                    <span class="badge bg-warning"> Yes</span>
                 {% else %}
                     <span class="text-muted">No</span>
                 {% endif %}
@@ -94,7 +94,7 @@
 </div>
 
 <script>
-    console.log('✅ Announcement View loaded for announcement #{{ announcement.id }}');
+    console.log(' Announcement View loaded for announcement #{{ announcement.id }}');
 </script>
 
 {% endblock %}

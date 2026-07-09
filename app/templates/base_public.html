@@ -2,13 +2,13 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/base_public.html -->
 <!-- File name: base_public.html -->
 <!-- Brief, detailed purpose: Dedicated public master layout – EXACT visual match to private base.html gold standard.
-   • Header identical: glowing status left, church title center, clock + action button right
-   • Single glowing pill navigation row (perfectly styled like private tabs – no dropdowns for public)
-   • Mobile hamburger + sliding menu ONLY visible/functional on mobile (completely hidden on desktop → zero double nav)
-   • FIXED: All public links now use hardcoded /public/ paths to bypass url_for naming issues and break the crash loop
-   • Active via request.path
-   • All branding, theme, glass wrapper, flash, footer, clock script identical to private
-   • Year 2026 hard-coded -->
+   - Header identical: glowing status left, church title center, clock + action button right
+   - Single glowing pill navigation row (perfectly styled like private tabs – no dropdowns for public)
+   - Mobile hamburger + sliding menu ONLY visible/functional on mobile (completely hidden on desktop → zero double nav)
+   - FIXED: All public links now use hardcoded /public/ paths to bypass url_for naming issues and break the crash loop
+   - Active via request.path
+   - All branding, theme, glass wrapper, flash, footer, clock script identical to private
+   - Year 2026 hard-coded -->
 
 <!DOCTYPE html>
 <html lang="en" data-theme="{% if session.user_theme %}{{ session.user_theme }}{% else %}cyan-glow{% endif %}">
@@ -129,43 +129,43 @@
   <nav class="bottom-nav" aria-label="Public navigation">
     {% if session.get('user_id') %}
     <a href="{{ url_for('public.public_dashboard.public_community') }}">
-      <span class="icon">🏠</span>
+      <span class="icon"></span>
       <span class="label">Home</span>
     </a>
     {% else %}
     <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">
-      <span class="icon">🏠</span>
+      <span class="icon"></span>
       <span class="label">Welcome</span>
     </a>
     {% endif %}
     <a href="{{ url_for('public.public_events.public_events') }}">
-      <span class="icon">📅</span>
+      <span class="icon"></span>
       <span class="label">Events</span>
     </a>
     <a href="{{ url_for('public.public_prayers.public_prayers') }}">
-      <span class="icon">🙏</span>
+      <span class="icon"></span>
       <span class="label">Prayers</span>
     </a>
     <a href="{{ url_for('public.public_sermons.public_sermons') }}">
-      <span class="icon">📖</span>
+      <span class="icon"></span>
       <span class="label">Sermons</span>
     </a>
     <a href="{{ url_for('public.public_prophecies.public_prophecies') }}">
-      <span class="icon">🔮</span>
+      <span class="icon"></span>
       <span class="label">Prophecies</span>
     </a>
     <a href="{{ url_for('public.public_announcements.public_announcements') }}">
-      <span class="icon">📢</span>
+      <span class="icon"></span>
       <span class="label">Announce</span>
     </a>
     {% if session.get('user_id') %}
     <a href="{{ url_for('dashboard.dashboard') }}">
-      <span class="icon">🏠</span>
+      <span class="icon"></span>
       <span class="label">My Dash</span>
     </a>
     {% else %}
     <a href="{{ url_for('auth.login') }}">
-      <span class="icon">🔑</span>
+      <span class="icon"></span>
       <span class="label">Login–Reg</span>
     </a>
     {% endif %}

@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/emailer/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Emailer module.
-# • REQUIRED_ROLES constant for consistency
-# • Email validation and formatting helpers
-# • Designed for easy future growth (bulk sending, templates, scheduled emails, etc.)
-# • 100% professional and secure – no partials, no placeholders.
+# - REQUIRED_ROLES constant for consistency
+# - Email validation and formatting helpers
+# - Designed for easy future growth (bulk sending, templates, scheduled emails, etc.)
+# - 100% professional and secure – no partials, no placeholders.
 
 import re
 

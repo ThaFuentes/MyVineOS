@@ -7,9 +7,9 @@
 #     - Fetching visible sermons (personal, collaborators, pastoral group)
 #     - Sermon CRUD (create, read, update, delete) with visibility enforcement
 #     - Sermon section management (structured, ordered content blocks)
-#       • FULL REPLACE PATTERN: Delete all old sections → insert new ones (prevents accumulation of blanks/extras)
-#       • Safe sequential sort_order assignment if missing
-#       • All current fields preserved: title, section_type, scripture_reference, source (free text reference), content, notes
+#       - FULL REPLACE PATTERN: Delete all old sections → insert new ones (prevents accumulation of blanks/extras)
+#       - Safe sequential sort_order assignment if missing
+#       - All current fields preserved: title, section_type, scripture_reference, source (free text reference), content, notes
 #     - Collaborator management (add/remove users who can edit)
 #   Visibility strictly enforced at query level.
 #   Routes handle audit logging and censorship checks separately.

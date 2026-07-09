@@ -2,13 +2,13 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/support_tickets/view_ticket.html -->
 <!-- File name: view_ticket.html -->
 <!-- Brief, detailed purpose: Ticket detail page for regular members (My Portal).
-   • Looks and feels almost identical to the Ticket Manager view_ticket.html you showed.
-   • Clean header with ticket info and status.
-   • Full description + conversation thread (staff replies clearly visible).
-   • Simple "Add an Update" box at the bottom.
-   • One-click "I figured it out" option to close the ticket.
-   • No manager controls — only what a regular member needs.
-   • 100% unified with the rest of the site styling. -->
+   - Looks and feels almost identical to the Ticket Manager view_ticket.html you showed.
+   - Clean header with ticket info and status.
+   - Full description + conversation thread (staff replies clearly visible).
+   - Simple "Add an Update" box at the bottom.
+   - One-click "I figured it out" option to close the ticket.
+   - No manager controls — only what a regular member needs.
+   - 100% unified with the rest of the site styling. -->
 
 {% extends "base.html" %}
 
@@ -24,8 +24,8 @@
             <div class="event-title-info">
                 <h2 class="page-title">#{{ ticket.id }} – {{ ticket.title }}</h2>
                 <p class="event-key-info">
-                    Category: <strong>{{ ticket.category_name }}</strong> •
-                    Priority: <strong class="{{ 'priority-' + ticket.priority }}">{{ ticket.priority|capitalize }}</strong> •
+                    Category: <strong>{{ ticket.category_name }}</strong> -
+                    Priority: <strong class="{{ 'priority-' + ticket.priority }}">{{ ticket.priority|capitalize }}</strong> -
                     Status: <strong>{{ ticket.status.replace('_', ' ')|title }}</strong><br>
                     Created on {{ ticket.formatted_created }}
                 </p>

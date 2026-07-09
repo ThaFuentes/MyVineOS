@@ -48,10 +48,10 @@
             <div class="card glass" style="margin-top:1rem;">
                 {% if sermon.sermon_file or sermon.external_link %}
                     {% if sermon.sermon_file %}
-                    <p><a href="{{ url_for('sermons.uploaded_file', filename=sermon.sermon_file) }}" target="_blank" class="btn-secondary">📥 Download / Play Sermon Media</a></p>
+                    <p><a href="{{ url_for('sermons.uploaded_file', filename=sermon.sermon_file) }}" target="_blank" class="btn-secondary"> Download / Play Sermon Media</a></p>
                     {% endif %}
                     {% if sermon.external_link %}
-                    <p><a href="{{ sermon.external_link }}" target="_blank" rel="noopener" class="btn-secondary">▶️ Watch / Listen Externally</a></p>
+                    <p><a href="{{ sermon.external_link }}" target="_blank" rel="noopener" class="btn-secondary">> Watch / Listen Externally</a></p>
                     {% endif %}
                 {% else %}
                     <p class="no-data" style="text-align:center; padding:2rem 0; color:#888;">

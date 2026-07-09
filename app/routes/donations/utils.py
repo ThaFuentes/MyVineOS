@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/donations/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Donations module.
-# • REQUIRED_ROLES and ADMIN_OWNER_ONLY constants
-# • get_church_info() helper (moved from views.py for clean separation)
-# • Keeps views.py thin and focused – all shared logic lives here.
-# • 100% matches the original donations.py behavior.
+# - REQUIRED_ROLES and ADMIN_OWNER_ONLY constants
+# - get_church_info() helper (moved from views.py for clean separation)
+# - Keeps views.py thin and focused – all shared logic lives here.
+# - 100% matches the original donations.py behavior.
 
 from app.models.db import get_db
 import pymysql

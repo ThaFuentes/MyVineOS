@@ -2,11 +2,11 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/the_gathering/sermons/views.py
 # File name: views.py
 # Brief, detailed purpose: All sermon routes for the Gathering Place Manager.
-# • Dedicated sub-blueprint routes: listing, create/edit, view, delete, comment moderation.
-# • Uses sermons/forms.py, queries.py, and utils.py for clean separation.
-# • Protected by the exact same session + DB role check pattern used everywhere else.
-# • All url_for calls use the correct nested blueprint: 'the_gathering.sermons.*'
-# • 100% rebuilt entire file — only this script was touched.
+# - Dedicated sub-blueprint routes: listing, create/edit, view, delete, comment moderation.
+# - Uses sermons/forms.py, queries.py, and utils.py for clean separation.
+# - Protected by the exact same session + DB role check pattern used everywhere else.
+# - All url_for calls use the correct nested blueprint: 'the_gathering.sermons.*'
+# - 100% rebuilt entire file — only this script was touched.
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql
@@ -161,4 +161,4 @@ def sermon_comments(sermon_id):
                            filter=status_filter)
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/sermons/views.py loaded successfully (full dedicated routes for sermons ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/sermons/views.py loaded successfully (full dedicated routes for sermons ready)")

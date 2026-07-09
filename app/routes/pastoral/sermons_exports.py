@@ -3,13 +3,13 @@
 # File name: sermons_export.py
 # Brief, detailed purpose:
 #   Dedicated blueprint for sermon export functionality (single & bulk DOCX).
-#   • Export list view with selectable sermons
-#   • Single sermon DOCX download
-#   • Bulk export → ZIP of multiple DOCX files
-#   • Clean formatting with python-docx (title, passage, sections, notes)
-#   • Respects existing visibility enforcement
-#   • Audit-logged single and bulk exports
-#   • Consistent modular blueprint pattern (separate from sermons_core)
+#   - Export list view with selectable sermons
+#   - Single sermon DOCX download
+#   - Bulk export → ZIP of multiple DOCX files
+#   - Clean formatting with python-docx (title, passage, sections, notes)
+#   - Respects existing visibility enforcement
+#   - Audit-logged single and bulk exports
+#   - Consistent modular blueprint pattern (separate from sermons_core)
 
 from flask import Blueprint, render_template, send_file, session, request, abort, flash, redirect, url_for
 from io import BytesIO

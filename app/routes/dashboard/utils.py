@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/dashboard/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions for the Dashboard module.
-# • Prepares content lists with server-side censorship + church-local date/time formatting.
-# • Keeps repeated formatting logic out of views.py (DRY).
-# • 100% matches the original dashboard.py formatting behavior.
-# • Ready for future growth (widget prep, quick stats, custom dashboard sections, etc.).
+# - Prepares content lists with server-side censorship + church-local date/time formatting.
+# - Keeps repeated formatting logic out of views.py (DRY).
+# - 100% matches the original dashboard.py formatting behavior.
+# - Ready for future growth (widget prep, quick stats, custom dashboard sections, etc.).
 
 from app.utils.helpers import censor_text
 from app.utils.time_utils import format_church

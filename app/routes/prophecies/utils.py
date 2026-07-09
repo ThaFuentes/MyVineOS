@@ -2,9 +2,9 @@
 # Full path: MyVineChurch/app/routes/prophecies/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Prophecies module.
-# • REQUIRED_ROLES and ADMIN_ROLES constants
-# • Simple role check helpers (keeps views.py clean)
-# • 100% matches the original prophecies.py constants and permission logic.
+# - REQUIRED_ROLES and ADMIN_ROLES constants
+# - Simple role check helpers (keeps views.py clean)
+# - 100% matches the original prophecies.py constants and permission logic.
 
 from flask import session
 

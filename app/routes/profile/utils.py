@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/profile/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Profile module.
-# • REQUIRED_ROLES constant
-# • current_user_id() helper for logging and ownership
-# • PIN hashing and validation helper
-# • 100% matches the original profile.py helpers and logic. No renaming of anything.
+# - REQUIRED_ROLES constant
+# - current_user_id() helper for logging and ownership
+# - PIN hashing and validation helper
+# - 100% matches the original profile.py helpers and logic. No renaming of anything.
 
 from flask import session
 from werkzeug.security import generate_password_hash

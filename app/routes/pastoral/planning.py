@@ -4,16 +4,16 @@
 # Brief, detailed purpose:
 #   Blueprint for Service Planning within the Pastoral Area – FULL REBUILD for template-based recurring system + forced notes + safe refresh.
 #   Routes:
-#     • /planning/ → Overview with upcoming effective services (template fallback + overrides), calendar, links to templates & defaults
-#     • /planning/edit/<date_str> → Create/edit dated override/special event
-#     • /planning/templates → Centralized recurring templates console (list)
-#     • /planning/templates/new → Create new recurring template (weekday required, starts empty)
-#     • /planning/templates/edit/<template_id> → Edit recurring template (weekday fixed)
-#     • /planning/templates/delete/<template_id> → Delete recurring template
-#     • /planning/templates/refresh/<template_id> → Safe refresh: delete future identical overrides (manual edits preserved)
-#     • /planning/defaults → Manage global default role assignments (pre-fill NEW DATED OVERRIDES ONLY)
-#     • /planning/assignments/<plan_id> → AJAX for dated plan assignments
-#     • /planning/delete/<date_str> → Delete dated override
+#     - /planning/ → Overview with upcoming effective services (template fallback + overrides), calendar, links to templates & defaults
+#     - /planning/edit/<date_str> → Create/edit dated override/special event
+#     - /planning/templates → Centralized recurring templates console (list)
+#     - /planning/templates/new → Create new recurring template (weekday required, starts empty)
+#     - /planning/templates/edit/<template_id> → Edit recurring template (weekday fixed)
+#     - /planning/templates/delete/<template_id> → Delete recurring template
+#     - /planning/templates/refresh/<template_id> → Safe refresh: delete future identical overrides (manual edits preserved)
+#     - /planning/defaults → Manage global default role assignments (pre-fill NEW DATED OVERRIDES ONLY)
+#     - /planning/assignments/<plan_id> → AJAX for dated plan assignments
+#     - /planning/delete/<date_str> → Delete dated override
 #   All routes protected by @pastoral_required().
 #   NEW: Index shows upcoming effective services (next year) — master changes visible immediately for plain weeks.
 #   NEW: New dated overrides copy from matching master template (roles, times, notes, sermon) — title blank for override.

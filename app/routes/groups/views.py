@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/groups/views.py
 # File name: views.py
 # Brief, detailed purpose: All route handlers (controllers) for the Groups blueprint.
-# • Every single function name and endpoint from the original groups.py is preserved exactly.
-# • All database work moved to queries.py
-# • All form validation + censorship moved to forms.py
-# • All helpers moved to utils.py
-# • 100% original behavior preserved + improved edit experience (full permission checkboxes + member management)
+# - Every single function name and endpoint from the original groups.py is preserved exactly.
+# - All database work moved to queries.py
+# - All form validation + censorship moved to forms.py
+# - All helpers moved to utils.py
+# - 100% original behavior preserved + improved edit experience (full permission checkboxes + member management)
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from app.utils.decorators import login_required, role_required

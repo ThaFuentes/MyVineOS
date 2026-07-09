@@ -2,9 +2,9 @@
 # Full path: MyVineChurch/app/routes/groups/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Groups module.
-# • Pure data-access layer – no Flask routes, no templates, no flash messages.
-# • Every function name and signature from the original groups.py is preserved exactly.
-# • 100% original behavior preserved.
+# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Every function name and signature from the original groups.py is preserved exactly.
+# - 100% original behavior preserved.
 
 import pymysql
 import json

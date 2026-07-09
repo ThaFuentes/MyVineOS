@@ -3,10 +3,10 @@
 # File name: users.py
 # Brief, detailed purpose: Creates and synchronizes the users table for MariaDB.
 # Definitive schema including new privacy preference columns and secure check-in PIN:
-#   • allow_proxy_checkin TINYINT(1) DEFAULT 1 – allow others to check in for attendance.
-#   • allow_group_add TINYINT(1) DEFAULT 1 – allow staff to add to groups.
-#   • allow_family_search TINYINT(1) DEFAULT 1 – allow appearing in family searches.
-#   • checkin_pin TEXT – hashed PIN for kiosk self check-in (hashed with Werkzeug, not plain).
+#   - allow_proxy_checkin TINYINT(1) DEFAULT 1 – allow others to check in for attendance.
+#   - allow_group_add TINYINT(1) DEFAULT 1 – allow staff to add to groups.
+#   - allow_family_search TINYINT(1) DEFAULT 1 – allow appearing in family searches.
+#   - checkin_pin TEXT – hashed PIN for kiosk self check-in (hashed with Werkzeug, not plain).
 # All original fields preserved + safe migration pattern.
 # MariaDB-compatible syntax (INT UNSIGNED, ENGINE=InnoDB, proper AUTO_INCREMENT).
 

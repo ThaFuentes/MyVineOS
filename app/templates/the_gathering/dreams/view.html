@@ -2,20 +2,20 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/dreams/view.html -->
 <!-- File name: view.html -->
 <!-- Brief, detailed purpose: Read-only detailed view of a single dream/vision inside the Gathering Place Manager. -->
-<!-- • Shows every field from the dreams table in a clean layout. -->
-<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.dreams.* -->
-<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
+<!-- - Shows every field from the dreams table in a clean layout. -->
+<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.dreams.* -->
+<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 
-{% block title %}View Dream • {{ dream.title }}{% endblock %}
+{% block title %}View Dream - {{ dream.title }}{% endblock %}
 
 {% block content %}
 
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <div>
-            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">🌙 Dream / Vision Detail</h1>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> Dream / Vision Detail</h1>
             <h2 class="text-light">{{ dream.title }}</h2>
         </div>
 
@@ -27,24 +27,24 @@
 
             <!-- Edit Dream -->
             <a href="{{ url_for('the_gathering.dreams.edit_dream', dream_id=dream.id) }}" class="btn btn-primary">
-                ✏️ Edit Dream
+                 Edit Dream
             </a>
 
             <!-- Manage Comments -->
             <a href="{{ url_for('the_gathering.dreams.dream_comments', dream_id=dream.id) }}" class="btn btn-warning">
-                💬 Manage Comments ({{ comment_count or 0 }})
+                 Manage Comments ({{ comment_count or 0 }})
             </a>
 
             <!-- View on Public Site -->
             <a href="{{ url_for('public.public_dreams.public_dream_detail', dream_id=dream.id) }}"
                target="_blank" class="btn btn-outline-light">
-                👁️ View Public
+                 View Public
             </a>
 
             <!-- Delete Dream -->
             <form method="POST" action="{{ url_for('the_gathering.dreams.delete_dream', dream_id=dream.id) }}" style="display:inline;"
                   onsubmit="return confirm('PERMANENTLY DELETE this dream and ALL its comments?')">
-                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+                <button type="submit" class="btn btn-danger"> Delete</button>
             </form>
         </div>
     </div>
@@ -77,7 +77,7 @@
 </div>
 
 <script>
-    console.log('✅ Dream View loaded for dream #{{ dream.id }}');
+    console.log(' Dream View loaded for dream #{{ dream.id }}');
 </script>
 
 {% endblock %}

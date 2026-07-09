@@ -2,10 +2,10 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/the_gathering/dashboard/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Feature-specific utility functions for the main Gathering Place Manager Dashboard.
-# • Provides manager-focused censorship (with flagging of censored content), datetime formatting, and safe truncation.
-# • 100% rebuilt to match the exact clean, modular style of public/events/utils.py and public/dreams/utils.py
+# - Provides manager-focused censorship (with flagging of censored content), datetime formatting, and safe truncation.
+# - 100% rebuilt to match the exact clean, modular style of public/events/utils.py and public/dreams/utils.py
 #   (detailed section comments, enhanced docstrings, consistent naming, no behavior changes).
-# • All original functions (censor_for_manager, format_manager_datetime, safe_truncate) and their exact logic
+# - All original functions (censor_for_manager, format_manager_datetime, safe_truncate) and their exact logic
 #   are preserved 100% — only readability, documentation, and consistency with the public gold standard were updated.
 
 from flask import url_for
@@ -99,7 +99,7 @@ def format_manager_datetime(date_value):
     as the original version).
     """
     if date_value:
-        return format_church(date_value, '%b %d, %Y • %I:%M %p')
+        return format_church(date_value, '%b %d, %Y - %I:%M %p')
     return 'Unknown date'
 
 
@@ -117,4 +117,4 @@ def safe_truncate(text, length=180):
     return text
 
 
-#print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/utils.py loaded successfully (public-style rebuilt)")
+#print(" MYVINECHURCH.ONLINE the_gathering/dashboard/utils.py loaded successfully (public-style rebuilt)")

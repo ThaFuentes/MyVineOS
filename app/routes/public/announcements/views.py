@@ -2,13 +2,13 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/announcements/views.py
 # File name: views.py
 # Brief, detailed purpose: Public Announcements routes for unauthenticated guests only.
-# • 100% rebuilt to match the working public/events/views.py gold standard exactly.
-# • FIXED: announcement['comments.html'] → announcement['comments'] so the template can see the comments.
-# • Listing shows only public + active announcements with creator_name.
-# • Detail page supports guest comments/replies (one-level).
-# • Logged-in users are redirected to private announcements.
-# • All debug prints removed for production cleanliness.
-# • Uses local queries.py, forms.py and utils.py for modularity.
+# - 100% rebuilt to match the working public/events/views.py gold standard exactly.
+# - FIXED: announcement['comments.html'] → announcement['comments'] so the template can see the comments.
+# - Listing shows only public + active announcements with creator_name.
+# - Detail page supports guest comments/replies (one-level).
+# - Logged-in users are redirected to private announcements.
+# - All debug prints removed for production cleanliness.
+# - Uses local queries.py, forms.py and utils.py for modularity.
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql
@@ -108,4 +108,4 @@ def public_announcement_detail(ann_id):
                            announcement=announcement, comments_enabled=comments_enabled)
 
 
-# print("✅ MYVINECHURCH.ONLINE public/announcements/views.py loaded successfully (comments key fixed + Events gold standard applied)")
+# print(" MYVINECHURCH.ONLINE public/announcements/views.py loaded successfully (comments key fixed + Events gold standard applied)")

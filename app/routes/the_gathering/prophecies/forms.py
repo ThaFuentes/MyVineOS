@@ -3,12 +3,12 @@
 # File name: forms.py
 # Brief, detailed purpose: Form validation and cleaning specifically for the Prophecies section
 # of the Gathering Place Manager.
-# • Validates create/edit prophecy forms (title, prophecy_text, visibility).
-# • Performs server-side censored word checks on all visible fields.
-# • Includes moderation validation for comments.html (approve/delete).
-# • Returns clean dict on success or None + flash message on error.
-# • 100% consistent with the_gathering/events/forms.py, dreams/forms.py, prayers/forms.py and announcements/forms.py patterns.
-# • Only this file was rebuilt — everything else on the site remains untouched.
+# - Validates create/edit prophecy forms (title, prophecy_text, visibility).
+# - Performs server-side censored word checks on all visible fields.
+# - Includes moderation validation for comments.html (approve/delete).
+# - Returns clean dict on success or None + flash message on error.
+# - 100% consistent with the_gathering/events/forms.py, dreams/forms.py, prayers/forms.py and announcements/forms.py patterns.
+# - Only this file was rebuilt — everything else on the site remains untouched.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word
@@ -67,4 +67,4 @@ def validate_search_filter(form_data):
     }
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/prophecies/forms.py loaded successfully (validation + censorship ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/prophecies/forms.py loaded successfully (validation + censorship ready)")

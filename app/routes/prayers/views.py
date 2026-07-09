@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/prayers/views.py
 # File name: views.py
 # Brief, detailed purpose: All route handlers (controllers) for the Prayers blueprint.
-# • Every single function name and endpoint from the original prayers.py is preserved exactly (no renaming allowed).
-# • All database work moved to queries.py
-# • All form validation + censorship moved to forms.py
-# • All helpers moved to utils.py
-# • 100% original behavior preserved + new ability to edit/delete responses (including guest responses).
+# - Every single function name and endpoint from the original prayers.py is preserved exactly (no renaming allowed).
+# - All database work moved to queries.py
+# - All form validation + censorship moved to forms.py
+# - All helpers moved to utils.py
+# - 100% original behavior preserved + new ability to edit/delete responses (including guest responses).
 
 from flask import render_template, request, redirect, url_for, flash, session
 import pymysql

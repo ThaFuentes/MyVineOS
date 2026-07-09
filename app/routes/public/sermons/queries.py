@@ -58,4 +58,4 @@ def get_public_sermon(sermon_id):
     return sermon
 
 
-# print("✅ MYVINECHURCH.ONLINE public/sermons/queries.py loaded successfully (creator_name fixed to match Events gold standard)")
+# print(" MYVINECHURCH.ONLINE public/sermons/queries.py loaded successfully (creator_name fixed to match Events gold standard)")

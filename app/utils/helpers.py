@@ -2,11 +2,11 @@
 # Full path: WebChurchMan/app/utils/helpers.py
 # File name: helpers.py
 # Brief, detailed purpose: Centralized utility functions used throughout the application.
-#   • Consistent date parsing, formatting, validation, and today's date string.
-#   • Global censored words system: fetch EXCLUSIVELY from settings table (TEXT column, \n-separated).
-#   • Censor check and replacement functions (for submission blocking + Jinja display filter).
-#   • Flash message helper for uniform user feedback.
-#   • All functions are lightweight, safe (handle None/invalid input gracefully), and avoid circular imports.
+#   - Consistent date parsing, formatting, validation, and today's date string.
+#   - Global censored words system: fetch EXCLUSIVELY from settings table (TEXT column, \n-separated).
+#   - Censor check and replacement functions (for submission blocking + Jinja display filter).
+#   - Flash message helper for uniform user feedback.
+#   - All functions are lightweight, safe (handle None/invalid input gracefully), and avoid circular imports.
 #   FULL REBUILD: Preserved all original date helpers exactly.
 #   Censored words are now 100% DB-driven (no defaults, no JSON – plain \n-separated TEXT).
 #   contains_censored_word() for server-side validation (fresh DB query each call).

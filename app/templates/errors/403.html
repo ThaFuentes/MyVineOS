@@ -2,9 +2,9 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/errors/403.html -->
 <!-- File name: 403.html -->
 <!-- Brief, detailed purpose: Global 403 Forbidden page. Clean, friendly design matching the church theme and 404.
-   • Shown for PBT security blocks (rate, rep, csrf fail, vet, https, etc) or role/permission denials.
-   • For unauthed users, the handler redirects to login with flash instead of showing this (see __init__.py).
-   • Uses public links; safe to render for guests. -->
+   - Shown for PBT security blocks (rate, rep, csrf fail, vet, https, etc) or role/permission denials.
+   - For unauthed users, the handler redirects to login with flash instead of showing this (see __init__.py).
+   - Uses public links; safe to render for guests. -->
 
 {% extends "base_public.html" %}
 {% block title %}Access Denied{% endblock %}

@@ -2,13 +2,13 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/prophecies/views.py
 # File name: views.py
 # Brief, detailed purpose: Public Prophecies routes for unauthenticated guests only.
-# • 100% rebuilt to match the working public/events/views.py gold standard exactly.
-# • FIXED: prophecy['comments.html'] → prophecy['comments'] so the template can see the comments.
-# • Listing shows only public prophecies with creator_name.
-# • Detail page supports guest comments/replies (one-level).
-# • Logged-in users are redirected to private prophecies.
-# • All debug prints removed for production cleanliness.
-# • Uses local queries.py, forms.py and utils.py for modularity.
+# - 100% rebuilt to match the working public/events/views.py gold standard exactly.
+# - FIXED: prophecy['comments.html'] → prophecy['comments'] so the template can see the comments.
+# - Listing shows only public prophecies with creator_name.
+# - Detail page supports guest comments/replies (one-level).
+# - Logged-in users are redirected to private prophecies.
+# - All debug prints removed for production cleanliness.
+# - Uses local queries.py, forms.py and utils.py for modularity.
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql
@@ -108,4 +108,4 @@ def public_prophecy_detail(prophecy_id):
                            prophecy=prophecy, comments_enabled=comments_enabled)
 
 
-# print("✅ MYVINECHURCH.ONLINE public/prophecies/views.py loaded successfully (comments key fixed + Events gold standard applied)")
+# print(" MYVINECHURCH.ONLINE public/prophecies/views.py loaded successfully (comments key fixed + Events gold standard applied)")

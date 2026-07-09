@@ -60,9 +60,9 @@
   </div>
 
   <div id="controls">
-    <button type="button" id="prev-btn">◀</button>
-    <button type="button" id="play-btn">▶ Auto</button>
-    <button type="button" id="next-btn">▶</button>
+    <button type="button" id="prev-btn"><</button>
+    <button type="button" id="play-btn">> Auto</button>
+    <button type="button" id="next-btn">></button>
     <label>Size <input type="range" id="size-slider" min="20" max="64" value="36"></label>
     <label>Speed <input type="range" id="speed-slider" min="1" max="10" value="4"></label>
     <button type="button" id="fs-btn">Fullscreen</button>
@@ -93,7 +93,7 @@
     };
     document.getElementById('play-btn').onclick = () => {
       playing = !playing;
-      document.getElementById('play-btn').textContent = playing ? '⏸ Pause' : '▶ Auto';
+      document.getElementById('play-btn').textContent = playing ? '⏸ Pause' : '> Auto';
       clearInterval(timer);
       if (playing) {
         const spd = () => 12000 - document.getElementById('speed-slider').value * 1000;

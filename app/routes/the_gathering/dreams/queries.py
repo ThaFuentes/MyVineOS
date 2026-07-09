@@ -3,12 +3,12 @@
 # File name: queries.py
 # Brief, detailed purpose: Reusable database queries specifically for the Dreams section
 # of the Gathering Place Manager.
-# • Provides listing with filters/search (all/public/private), single dream fetch,
+# - Provides listing with filters/search (all/public/private), single dream fetch,
 #   and comment queries for moderation.
-# • All queries are safe, efficient, and use LEFT JOINs for creator names.
-# • Designed to be called only from dreams/views.py — keeps views clean.
-# • 100% consistent with the_gathering/announcements/queries.py and public/events/queries.py patterns.
-# • Only this file was rebuilt — everything else on the site remains untouched and secure.
+# - All queries are safe, efficient, and use LEFT JOINs for creator names.
+# - Designed to be called only from dreams/views.py — keeps views clean.
+# - 100% consistent with the_gathering/announcements/queries.py and public/events/queries.py patterns.
+# - Only this file was rebuilt — everything else on the site remains untouched and secure.
 
 from app.models.db import get_db
 from app.utils.comment_moderation import comment_count_subquery, fetch_manager_comments
@@ -80,4 +80,4 @@ def get_dream_comments(dream_id, search=None, status_filter='all'):
     return fetch_manager_comments('dream', dream_id, search=search, status_filter=status_filter)
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/dreams/queries.py loaded successfully (dream listing + comments.html + moderation queries ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/dreams/queries.py loaded successfully (dream listing + comments.html + moderation queries ready)")

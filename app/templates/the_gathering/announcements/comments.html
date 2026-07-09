@@ -2,21 +2,21 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/announcements/comments.html -->
 <!-- File name: comments.html -->
 <!-- Brief, detailed purpose: Comment moderation page for a specific announcement inside the Gathering Place Manager. -->
-<!-- • Full table of all comments (top-level + replies). -->
-<!-- • Actions: Approve / Edit / Delete any comment. -->
-<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.announcements.* -->
-<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/comments.html styling. -->
+<!-- - Full table of all comments (top-level + replies). -->
+<!-- - Actions: Approve / Edit / Delete any comment. -->
+<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.announcements.* -->
+<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events/comments.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 
-{% block title %}Comments • {{ announcement.title or 'Announcement' }}{% endblock %}
+{% block title %}Comments - {{ announcement.title or 'Announcement' }}{% endblock %}
 
 {% block content %}
 
 <div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
         <div>
-            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">💬 Announcement Comments</h1>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;"> Announcement Comments</h1>
             <h4 class="text-muted">{{ announcement.title or 'Announcement #' ~ announcement_id }}</h4>
         </div>
 
@@ -29,7 +29,7 @@
             <!-- View on Public Site -->
             <a href="{{ url_for('public.public_announcements.public_announcement_detail', ann_id=announcement_id) }}"
                target="_blank" class="btn btn-outline-light">
-                👁️ View on Public Site
+                 View on Public Site
             </a>
         </div>
     </div>
@@ -79,7 +79,7 @@
                     <td style="max-width:420px;">
                         {{ comment.comment_text | nl2br | censor }}
                         {% if comment.has_censored_content %}
-                            <span class="badge bg-warning ms-2">⚠️ Censored</span>
+                            <span class="badge bg-warning ms-2"> Censored</span>
                         {% endif %}
                     </td>
                     <td>{{ comment.created_at_nice }}</td>
@@ -106,13 +106,13 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                             <input type="hidden" name="action" value="approve">
                             <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                            <button type="submit" class="btn btn-sm btn-success me-1">✅ Approve</button>
+                            <button type="submit" class="btn btn-sm btn-success me-1"> Approve</button>
                         </form>
                         {% endif %}
 
                         <!-- Edit (placeholder) -->
                         <button onclick="alert('Edit comment coming in next update')"
-                                class="btn btn-sm btn-primary me-1">✏️</button>
+                                class="btn btn-sm btn-primary me-1"></button>
 
                         <!-- Delete -->
                         <form method="POST" action="{{ url_for('the_gathering.announcements.announcement_comments', announcement_id=announcement_id) }}" style="display:inline;"
@@ -120,7 +120,7 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                            <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                            <button type="submit" class="btn btn-sm btn-danger"></button>
                         </form>
                     </td>
                 </tr>
@@ -136,7 +136,7 @@
 </div>
 
 <script>
-    console.log('✅ Announcement Comments Manager loaded for announcement {{ announcement_id }}');
+    console.log(' Announcement Comments Manager loaded for announcement {{ announcement_id }}');
 </script>
 
 {% endblock %}

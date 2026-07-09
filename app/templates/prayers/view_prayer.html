@@ -12,7 +12,7 @@
 {% block page_title %}{{ prayer.title }}{% endblock %}
 
 {% block page_description %}
-Prayer request by {{ prayer.creator_name }} • {{ prayer.formatted_date }}
+Prayer request by {{ prayer.creator_name }} - {{ prayer.formatted_date }}
 {% endblock %}
 
 {% block prayers_content %}
@@ -40,7 +40,7 @@ Prayer request by {{ prayer.creator_name }} • {{ prayer.formatted_date }}
             <div class="card glass response-item">
                 <p class="meta">
                     <strong>{{ r.responder_name }}</strong>
-                    • {{ r.formatted_date }}
+                    - {{ r.formatted_date }}
                 </p>
                 <p>{{ r.prayer | nl2br | censor }}</p>
 

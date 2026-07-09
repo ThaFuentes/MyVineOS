@@ -2,12 +2,12 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/prayers/views.py
 # File name: views.py
 # Brief, detailed purpose: Public Prayers routes for unauthenticated guests only.
-# • Listing shows only public prayers (with creator_name).
-# • Detail page supports guest responses/replies (one-level) + potluck-style censorship.
-# • Logged-in users are redirected to private prayers.
-# • Uses local queries.py, forms.py and utils.py for modularity.
-# • 100% rebuilt clean version - identical structure and style to the working public/events/views.py gold standard.
-# • FIXED: Correct nested blueprint endpoints, response aliasing for new template, creator_name handling, and clean production code (debug prints removed).
+# - Listing shows only public prayers (with creator_name).
+# - Detail page supports guest responses/replies (one-level) + potluck-style censorship.
+# - Logged-in users are redirected to private prayers.
+# - Uses local queries.py, forms.py and utils.py for modularity.
+# - 100% rebuilt clean version - identical structure and style to the working public/events/views.py gold standard.
+# - FIXED: Correct nested blueprint endpoints, response aliasing for new template, creator_name handling, and clean production code (debug prints removed).
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql

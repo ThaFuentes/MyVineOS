@@ -3,8 +3,8 @@
 # File name: utils.py
 # Brief, detailed purpose: Helper functions for the **user-facing Support Tickets** blueprint (My Portal).
 # This is now 100% isolated from the Ticket Manager utils.
-# • Handles email notifications to staff when a member submits a new ticket.
-# • Clean, simple, and ready for future user-side helpers (e.g. ticket ownership checks).
+# - Handles email notifications to staff when a member submits a new ticket.
+# - Clean, simple, and ready for future user-side helpers (e.g. ticket ownership checks).
 
 from flask import session
 from app.utils.emailer import send_email

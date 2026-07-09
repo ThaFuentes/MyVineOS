@@ -3,23 +3,23 @@
 # File name: sermons_core.py
 # Brief, detailed purpose:
 #   Dedicated blueprint for core sermon management in the Pastoral Area.
-#   • List visible sermons
-#   • Create new sermon
-#   • Full editor with metadata, visibility, collaborators
-#   • Main save (full form submit), autosave (sections only), delete
-#   • Unified censorship check across all fields and sections
-#   • Audit logging for all actions
-#   • Consistent with other pastoral sub-blueprints (illustrations, planning, podium)
+#   - List visible sermons
+#   - Create new sermon
+#   - Full editor with metadata, visibility, collaborators
+#   - Main save (full form submit), autosave (sections only), delete
+#   - Unified censorship check across all fields and sections
+#   - Audit logging for all actions
+#   - Consistent with other pastoral sub-blueprints (illustrations, planning, podium)
 #   FULL REBUILD: Complete, production-ready version.
-#   • Passes all service plans (including permanent seeded Sundays) to editor for dropdown
-#   • Auto-pre-selects next upcoming Sunday for new sermons
-#   • Save fully functional with inline JS in template
-#   • All existing logic preserved exactly
-#   • source_url renamed to source (free text – books, conversations, etc., NO URL REQUIRED)
-#   • Private notes per section (personal, matches illustrations)
-#   • Vault integration ready
-#   • AUTO-SAVE: Sections only every 30s (no reload, status update)
-#   • FULL REPLACE in save_sermon_sections → no extra/blank sections ever
+#   - Passes all service plans (including permanent seeded Sundays) to editor for dropdown
+#   - Auto-pre-selects next upcoming Sunday for new sermons
+#   - Save fully functional with inline JS in template
+#   - All existing logic preserved exactly
+#   - source_url renamed to source (free text – books, conversations, etc., NO URL REQUIRED)
+#   - Private notes per section (personal, matches illustrations)
+#   - Vault integration ready
+#   - AUTO-SAVE: Sections only every 30s (no reload, status update)
+#   - FULL REPLACE in save_sermon_sections → no extra/blank sections ever
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from datetime import datetime, timedelta

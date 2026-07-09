@@ -2,10 +2,10 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/events/views.py
 # File name: views.py
 # Brief, detailed purpose: Public Events routes for unauthenticated guests only.
-# • Made 100% identical to the working sermon section (same comment handling, same debug, same success flow).
-# • Listing shows only upcoming public events with potluck signups.
-# • Detail page supports potluck + full guest comments.html/replies (one-level).
-# • Logged-in users are redirected to private events.
+# - Made 100% identical to the working sermon section (same comment handling, same debug, same success flow).
+# - Listing shows only upcoming public events with potluck signups.
+# - Detail page supports potluck + full guest comments.html/replies (one-level).
+# - Logged-in users are redirected to private events.
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql
@@ -29,14 +29,14 @@ from app.utils.comment_moderation import (
 @events_bp.route('/')
 def public_events():
     """Public events listing – upcoming public events only."""
-#    print("🔍 [PUBLIC EVENTS] Route /public/events/ hit (sub-blueprint)")
+#    print(" [PUBLIC EVENTS] Route /public/events/ hit (sub-blueprint)")
 
     if 'user_id' in session:
-#        print("🔄 [PUBLIC EVENTS] Logged-in user → redirecting to private events")
+#        print(" [PUBLIC EVENTS] Logged-in user → redirecting to private events")
         return redirect(url_for('events.events'))
 
     events = get_public_events()
-#    print(f"📊 [PUBLIC EVENTS] Raw events returned from query: {len(events)} records")
+#    print(f" [PUBLIC EVENTS] Raw events returned from query: {len(events)} records")
 
     events = censor_public_content(events)
 
@@ -63,10 +63,10 @@ def public_events():
 @events_bp.route('/<int:event_id>', methods=['GET', 'POST'])
 def public_event_detail(event_id):
     """Public single event detail with potluck signups + guest comments.html/replies."""
-    print(f"🔍 [PUBLIC EVENT DETAIL] Route /public/events/{event_id} hit")
+    print(f" [PUBLIC EVENT DETAIL] Route /public/events/{event_id} hit")
 
     if 'user_id' in session and request.method == 'GET':
-        print("🔄 [PUBLIC EVENT DETAIL] Logged-in user → redirecting to private view")
+        print(" [PUBLIC EVENT DETAIL] Logged-in user → redirecting to private view")
         return redirect(url_for('events.view_event', event_id=event_id))
 
     db = get_db()
@@ -74,7 +74,7 @@ def public_event_detail(event_id):
 
     event = get_public_event(event_id)
     if not event:
-        print(f"❌ [PUBLIC EVENT DETAIL] Event {event_id} not found or not public")
+        print(f" [PUBLIC EVENT DETAIL] Event {event_id} not found or not public")
         abort(404)
 
     # Censor content for public view
@@ -99,7 +99,7 @@ def public_event_detail(event_id):
     # Handle POST - potluck or guest comment/reply
     if request.method == 'POST':
         action = request.form.get('action')
-        print(f"📤 [PUBLIC EVENT DETAIL] POST action = {action}")
+        print(f" [PUBLIC EVENT DETAIL] POST action = {action}")
 
         if action == 'potluck' and event.get('potluck_enabled'):
             clean = validate_potluck_signup_form(request.form)

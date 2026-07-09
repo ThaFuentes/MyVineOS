@@ -2,16 +2,16 @@
 # Full path: WebChurchMan/app/routes/pastoral/ai_assistant.py
 # File name: ai_assistant.py
 # Brief, detailed purpose: AI-powered sermon assistance endpoints for the Pastoral Sermon Builder.
-#   • Generate outline from title/primary passage
-#   • Suggest discussion/application questions
-#   • Expand a selected point/section
-#   • Uses the globally configured AI provider from settings table (grok, openai, gemini, ollama)
-#   • API key loaded and decrypted on each call (from settings.ai_api_key)
-#   • Falls back to disabled if no valid config
-#   • Site-wide censored word check on user prompt text
-#   • Generated output checked and redacted if contains censored words (rare but safe)
-#   • Audit-logged AI usage
-#   • Returns JSON for editor JS integration
+#   - Generate outline from title/primary passage
+#   - Suggest discussion/application questions
+#   - Expand a selected point/section
+#   - Uses the globally configured AI provider from settings table (grok, openai, gemini, ollama)
+#   - API key loaded and decrypted on each call (from settings.ai_api_key)
+#   - Falls back to disabled if no valid config
+#   - Site-wide censored word check on user prompt text
+#   - Generated output checked and redacted if contains censored words (rare but safe)
+#   - Audit-logged AI usage
+#   - Returns JSON for editor JS integration
 
 from flask import request, jsonify, session
 from . import pastoral_bp, pastoral_required  # Package-relative import within pastoral

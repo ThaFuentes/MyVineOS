@@ -10,7 +10,7 @@ def create_tables(cursor):
             type_key VARCHAR(64) NOT NULL UNIQUE,
             name VARCHAR(120) NOT NULL,
             description TEXT,
-            icon VARCHAR(16) DEFAULT '📋',
+            icon VARCHAR(16) DEFAULT '',
             schema_json TEXT NOT NULL,
             default_theme VARCHAR(32) NOT NULL DEFAULT 'ocean',
             is_active TINYINT(1) NOT NULL DEFAULT 1,
@@ -79,7 +79,7 @@ def _seed_module_types(cursor):
             'bus_routes',
             'Bus Routes',
             'Pickup stops, times, and drivers for church transportation.',
-            '🚌',
+            '',
             'forest',
             {
                 'list_label': 'Routes & Stops',
@@ -98,7 +98,7 @@ def _seed_module_types(cursor):
             'youth_group',
             'Youth Group',
             'Events, meetings, and activities for youth ministry.',
-            '🎯',
+            '',
             'youth',
             {
                 'list_label': 'Youth Events',
@@ -119,7 +119,7 @@ def _seed_module_types(cursor):
             'resource_list',
             'Resource List',
             'Shared equipment, rooms, and church resources.',
-            '📦',
+            '',
             'slate',
             {
                 'list_label': 'Resources',
@@ -140,7 +140,7 @@ def _seed_module_types(cursor):
             'weekly_schedule',
             'Weekly Schedule',
             'Recurring classes, ministries, and meeting times.',
-            '📅',
+            '',
             'royal',
             {
                 'list_label': 'Schedule Items',

@@ -2,12 +2,12 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/the_gathering/__init__.py
 # File name: __init__.py
 # Brief, detailed purpose: Main The Gathering Place Manager blueprint initializer (parent blueprint).
-# • Creates the_gathering_bp with url_prefix='/the_gathering' (exact same pattern as public parent).
-# • Registers ONLY the dashboard sub-blueprint (exactly like public sub-blueprints).
-# • Root '/' route redirects to the nested dashboard endpoint using the full correct name.
-# • Template and static paths match your templates/the_gathering/ folder structure.
-# • 100% rebuilt to match the exact public modular pattern you already have working.
-# • All original behavior preserved — only registration and route attachment fixed.
+# - Creates the_gathering_bp with url_prefix='/the_gathering' (exact same pattern as public parent).
+# - Registers ONLY the dashboard sub-blueprint (exactly like public sub-blueprints).
+# - Root '/' route redirects to the nested dashboard endpoint using the full correct name.
+# - Template and static paths match your templates/the_gathering/ folder structure.
+# - 100% rebuilt to match the exact public modular pattern you already have working.
+# - All original behavior preserved — only registration and route attachment fixed.
 
 from flask import Blueprint, redirect, url_for, request
 import re
@@ -47,12 +47,12 @@ from .events import events_bp
 the_gathering_bp.register_blueprint(events_bp)
 
 _SECTION_NAV = {
-    'events': ('📅 Events Manager', 'the_gathering.events.events_dashboard'),
-    'prayers': ('🙏 Prayers Manager', 'the_gathering.prayers.prayers_dashboard'),
-    'sermons': ('📖 Sermons Manager', 'the_gathering.sermons.sermons_dashboard'),
-    'dreams': ('🌟 Dreams Manager', 'the_gathering.dreams.dreams_dashboard'),
-    'prophecies': ('🔮 Prophecies Manager', 'the_gathering.prophecies.prophecies_dashboard'),
-    'announcements': ('📢 Announcements Manager', 'the_gathering.announcements.announcements_dashboard'),
+    'events': (' Events Manager', 'the_gathering.events.events_dashboard'),
+    'prayers': (' Prayers Manager', 'the_gathering.prayers.prayers_dashboard'),
+    'sermons': (' Sermons Manager', 'the_gathering.sermons.sermons_dashboard'),
+    'dreams': (' Dreams Manager', 'the_gathering.dreams.dreams_dashboard'),
+    'prophecies': (' Prophecies Manager', 'the_gathering.prophecies.prophecies_dashboard'),
+    'announcements': (' Announcements Manager', 'the_gathering.announcements.announcements_dashboard'),
 }
 
 _PAGE_LABELS = {
@@ -123,4 +123,4 @@ def index():
     return redirect(url_for('the_gathering.dashboard.dashboard'))
 
 
-# print("✅ the_gathering (Gathering Place Manager) fully enabled: announcements, dreams, prayers, prophecies, sermons, events subs for admin edit/moderation of posts & comments.")
+# print(" the_gathering (Gathering Place Manager) fully enabled: announcements, dreams, prayers, prophecies, sermons, events subs for admin edit/moderation of posts & comments.")

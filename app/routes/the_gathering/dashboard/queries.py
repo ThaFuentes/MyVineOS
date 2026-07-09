@@ -2,10 +2,10 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/the_gathering/dashboard/queries.py
 # File name: queries.py
 # Brief, detailed purpose: Reusable database query functions specifically for the main Gathering Place Manager Dashboard.
-# • Provides summary statistics (counts across all major content types) and recent activity feed.
-# • 100% rebuilt to match the exact clean, safe, and consistent style of public/events/queries.py and public/dreams/queries.py.
-# • All queries are parameterized, use DictCursor, and follow the public gold standard (no f-strings in SQL, detailed docstrings, cursor always closed).
-# • Original behavior, table names, column aliases, and return values preserved 100%.
+# - Provides summary statistics (counts across all major content types) and recent activity feed.
+# - 100% rebuilt to match the exact clean, safe, and consistent style of public/events/queries.py and public/dreams/queries.py.
+# - All queries are parameterized, use DictCursor, and follow the public gold standard (no f-strings in SQL, detailed docstrings, cursor always closed).
+# - Original behavior, table names, column aliases, and return values preserved 100%.
 
 from app.models.db import get_db
 from app.utils.comment_moderation import get_comment_stats
@@ -219,4 +219,4 @@ def get_pending_comments_queue(limit=100):
     return queue[:limit]
 
 
-#print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/queries.py loaded successfully (public-style rebuilt – fully parameterized and consistent)")
+#print(" MYVINECHURCH.ONLINE the_gathering/dashboard/queries.py loaded successfully (public-style rebuilt – fully parameterized and consistent)")

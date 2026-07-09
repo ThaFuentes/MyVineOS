@@ -9,7 +9,7 @@
      style="--cm-accent: {{ module.theme_config.accent }}; --cm-icon-bg: {{ module.theme_config.icon_bg }}; --cm-header-grad: {{ module.theme_config.header_grad }};">
 
     <header class="cm-header glass-panel">
-        <div class="cm-header-icon">{{ module.type_icon|default('📋') }}</div>
+        <div class="cm-header-icon">{{ module.type_icon|default('') }}</div>
         <div class="cm-header-text">
             <div class="cm-breadcrumb">
                 <a href="{{ url_for('dashboard.dashboard') }}">Dashboard</a>

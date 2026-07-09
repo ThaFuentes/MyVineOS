@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/auth/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Auth module.
-# • Handles register (required fields, password match, server-side censorship on visible fields, form repopulation on error).
-# • Simple validation for password reset and forgot username.
-# • Returns clean data dict on success, or None + flash message on error (keeps views.py super clean and thin).
-# • 100% matches the original auth.py validation logic (including first-user Owner handling).
-# • Fully modular and ready for use with views.py, queries.py, and utils.py.
+# - Handles register (required fields, password match, server-side censorship on visible fields, form repopulation on error).
+# - Simple validation for password reset and forgot username.
+# - Returns clean data dict on success, or None + flash message on error (keeps views.py super clean and thin).
+# - 100% matches the original auth.py validation logic (including first-user Owner handling).
+# - Fully modular and ready for use with views.py, queries.py, and utils.py.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

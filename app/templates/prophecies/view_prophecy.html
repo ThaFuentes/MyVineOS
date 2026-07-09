@@ -9,7 +9,7 @@
 {% block page_title %}{{ prophecy.title|title }}{% endblock %}
 
 {% block page_description %}
-Prophecy detail • {{ prophecy.visibility|capitalize }} visibility
+Prophecy detail - {{ prophecy.visibility|capitalize }} visibility
 {% endblock %}
 
 {% block prophecies_content %}
@@ -22,8 +22,8 @@ Prophecy detail • {{ prophecy.visibility|capitalize }} visibility
       </h1>
       <p style="color: var(--text-muted); font-size:0.9rem;">
           Shared on {{ prophecy.date_posted.strftime('%B %d, %Y at %I:%M %p') if prophecy.date_posted else 'Unknown' }}
-          • By {{ prophecy.poster_name or 'Anonymous' }}
-          • <strong>{{ prophecy.visibility|capitalize }}</strong>
+          - By {{ prophecy.poster_name or 'Anonymous' }}
+          - <strong>{{ prophecy.visibility|capitalize }}</strong>
       </p>
   </div>
 

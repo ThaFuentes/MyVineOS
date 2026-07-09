@@ -2,10 +2,10 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prayers/prayers_dashboard.html -->
 <!-- File name: prayers_dashboard.html -->
 <!-- Brief, detailed purpose: Dedicated Prayers Management Dashboard for the Gathering Place Manager. -->
-<!-- • Full list of all prayers with search + filters (All / Public / Private). -->
-<!-- • Per-prayer actions: Edit, View, Delete, Manage Comments, View Public. -->
-<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prayers.* -->
-<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events_dashboard.html styling. -->
+<!-- - Full list of all prayers with search + filters (All / Public / Private). -->
+<!-- - Per-prayer actions: Edit, View, Delete, Manage Comments, View Public. -->
+<!-- - ALL url_for calls updated to the new nested blueprint: the_gathering.prayers.* -->
+<!-- - 100% rebuilt entire file to match the new sub-blueprint structure and events_dashboard.html styling. -->
 
 {% extends "the_gathering/base.html" %}
 {% from 'the_gathering/partials/title_preview.html' import title_preview %}
@@ -84,39 +84,39 @@
                         <!-- View on Public -->
                         <a href="{{ url_for('public.public_prayers.public_prayer_detail', prayer_id=prayer.id) }}"
                            target="_blank" class="btn btn-sm btn-outline-light me-1" title="View Public">
-                            👁️
+                            
                         </a>
 
                         <!-- Edit Prayer -->
                         <a href="{{ url_for('the_gathering.prayers.edit_prayer', prayer_id=prayer.id) }}"
-                           class="btn btn-sm btn-primary me-1" title="Edit Prayer">✏️</a>
+                           class="btn btn-sm btn-primary me-1" title="Edit Prayer"></a>
 
                         <!-- View Prayer -->
                         <a href="{{ url_for('the_gathering.prayers.view_prayer', prayer_id=prayer.id) }}"
-                           class="btn btn-sm btn-info me-1" title="View Prayer">📋</a>
+                           class="btn btn-sm btn-info me-1" title="View Prayer"></a>
 
                         <!-- Delete Prayer -->
                         <form method="POST" action="{{ url_for('the_gathering.prayers.delete_prayer', prayer_id=prayer.id) }}" style="display:inline;"
                               onsubmit="return confirm('Delete this prayer and ALL its comments?')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                            <button type="submit" class="btn btn-sm btn-danger" title="Delete Prayer">🗑️</button>
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete Prayer"></button>
                         </form>
 
                         {% if prayer.status == 'pending' %}
                         <form method="POST" action="{{ url_for('the_gathering.prayers.approve_prayer', prayer_id=prayer.id) }}" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                            <button type="submit" class="btn btn-sm btn-success" title="Approve">✓</button>
+                            <button type="submit" class="btn btn-sm btn-success" title="Approve"></button>
                         </form>
                         <form method="POST" action="{{ url_for('the_gathering.prayers.reject_prayer', prayer_id=prayer.id) }}" style="display:inline;"
                               onsubmit="return confirm('Reject this prayer?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                            <button type="submit" class="btn btn-sm btn-danger" title="Reject">✗</button>
+                            <button type="submit" class="btn btn-sm btn-danger" title="Reject"></button>
                         </form>
                         {% endif %}
 
                         <!-- Manage Comments -->
                         <a href="{{ url_for('the_gathering.prayers.prayer_comments', prayer_id=prayer.id) }}"
-                           class="btn btn-sm btn-warning" title="Manage Comments">💬</a>
+                           class="btn btn-sm btn-warning" title="Manage Comments"></a>
                     </td>
                 </tr>
                 {% endfor %}

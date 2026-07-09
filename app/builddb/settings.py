@@ -2,13 +2,13 @@
 # Full path: myvinechurchonline/app/builddb/old_settings.py
 # File name: old_settings.py
 # Brief, detailed purpose: Creates/updates the global settings table AND the new email_accounts table.
-# • settings table remains single-row (id=1) for church-wide globals (paths, church info, censored_words, etc.).
-# • NEW email_accounts table supports MULTIPLE email configurations (outgoing + optional incoming).
+# - settings table remains single-row (id=1) for church-wide globals (paths, church info, censored_words, etc.).
+# - NEW email_accounts table supports MULTIPLE email configurations (outgoing + optional incoming).
 #   - Allows professional addresses like groups@myvinechurch.online, events@, pastors@, etc.
 #   - Each account has a name, full SMTP/IMAP details, and is_default flag (only one default recommended).
 #   - Passwords stored encrypted in routes (Fernet) – schema stores as TEXT.
 #   - Safe migration: adds table/columns if missing, migrates legacy single email from settings to new table as "Main Account".
-# • Isolated module – called from builddb.py during DB initialization.
+# - Isolated module – called from builddb.py during DB initialization.
 
 def create_tables(cursor):
     """

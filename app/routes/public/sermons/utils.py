@@ -2,9 +2,9 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/sermons/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Feature-specific utility functions for the public Sermons section.
-# • Exact same censor_public_content and format_public_datetime logic from the original shared public/utils.py
-# • Tailored keys for sermons (title, details, notes_content, posted_by) while preserving 100% of the old behavior
-# • No functionality lost – all censoring, date formatting, and public safety checks remain identical
+# - Exact same censor_public_content and format_public_datetime logic from the original shared public/utils.py
+# - Tailored keys for sermons (title, details, notes_content, posted_by) while preserving 100% of the old behavior
+# - No functionality lost – all censoring, date formatting, and public safety checks remain identical
 
 from app.utils.helpers import censor_text
 from app.utils.time_utils import format_church
@@ -31,4 +31,4 @@ def format_public_datetime(date_value):
     return 'Unknown date'
 
 
-# print("✅ MYVINECHURCH.ONLINE public/sermons/utils.py loaded successfully")
+# print(" MYVINECHURCH.ONLINE public/sermons/utils.py loaded successfully")

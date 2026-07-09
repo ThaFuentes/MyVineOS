@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/auth/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Auth module.
-# • Pure data-access layer – no Flask routes, no templates, no flash messages.
-# • Every SELECT/INSERT/UPDATE from the original auth.py is now here.
-# • 100% MariaDB/pymysql compatible, parameterized, reusable functions.
-# • Designed for easy growth – add new query functions anytime without touching views.
+# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Every SELECT/INSERT/UPDATE from the original auth.py is now here.
+# - 100% MariaDB/pymysql compatible, parameterized, reusable functions.
+# - Designed for easy growth – add new query functions anytime without touching views.
 
 import pymysql
 from app.models.db import get_db
@@ -97,6 +97,7 @@ def create_new_user(first_name, last_name, email, phone, address, birthday,
 
 
 def set_verification_token(user_id, token):
+    """Store a fresh verification token; keeps email_verified = 0."""
     db = get_db()
     cur = db.cursor()
     cur.execute(
@@ -107,19 +108,28 @@ def set_verification_token(user_id, token):
 
 
 def get_unverified_user_by_email(email):
+    """Return user row if this email is registered, not banned, and not yet verified."""
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
-        SELECT * FROM users WHERE LOWER(email) = LOWER(%s) AND email_verified = 0 AND role != 'banned'
+        SELECT * FROM users
+        WHERE LOWER(email) = LOWER(%s)
+          AND (email_verified = 0 OR email_verified IS NULL)
+          AND role != 'banned'
+        LIMIT 1
     """, (email,))
     return cur.fetchone()
 
 
 def mark_email_verified(user_id):
+    """Mark verified and clear the one-time token so it cannot be reused."""
     db = get_db()
     cur = db.cursor()
     cur.execute("""
-        UPDATE users SET email_verified = 1, email_verified_at = CURRENT_TIMESTAMP
+        UPDATE users
+        SET email_verified = 1,
+            email_verified_at = CURRENT_TIMESTAMP,
+            email_verification_token = NULL
         WHERE id = %s
     """, (user_id,))
     db.commit()

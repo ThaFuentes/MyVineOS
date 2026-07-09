@@ -3,13 +3,13 @@
 # File name: queries.py
 # Brief, detailed purpose: Reusable database queries specifically for the Sermons section
 # of the Gathering Place Manager.
-# • Provides listing with filters/search (all/public/private), single sermon fetch,
+# - Provides listing with filters/search (all/public/private), single sermon fetch,
 #   and comment queries for moderation.
-# • All queries are safe, efficient, and use LEFT JOINs for creator names.
-# • Designed to be called only from sermons/views.py — keeps views clean.
-# • 100% consistent with the_gathering/events/queries.py, prayers/queries.py,
+# - All queries are safe, efficient, and use LEFT JOINs for creator names.
+# - Designed to be called only from sermons/views.py — keeps views clean.
+# - 100% consistent with the_gathering/events/queries.py, prayers/queries.py,
 #   dreams/queries.py, prophecies/queries.py and announcements/queries.py patterns.
-# • Only this file was rebuilt — everything else on the site remains untouched and secure.
+# - Only this file was rebuilt — everything else on the site remains untouched and secure.
 
 from app.models.db import get_db
 from app.utils.comment_moderation import comment_count_subquery, fetch_manager_comments

@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/dashboard/views.py
 # File name: views.py
 # Brief, detailed purpose: All route handlers (controllers) for the Dashboard blueprint.
-# • Single route /dashboard that intelligently serves public or private view based on login status.
-# • 100% original behavior preserved: birthdays, prayers, dreams, prophecies, sermons, announcements, events, widgets, server-side censorship, church-local timezone formatting (now_church/format_church), visibility enforcement.
-# • This is the “HTTP layer” only – thin, readable, easy to grow.
-# • DB operations, time helpers, and widgets will be extracted next (queries.py / utils.py) for true scalability.
+# - Single route /dashboard that intelligently serves public or private view based on login status.
+# - 100% original behavior preserved: birthdays, prayers, dreams, prophecies, sermons, announcements, events, widgets, server-side censorship, church-local timezone formatting (now_church/format_church), visibility enforcement.
+# - This is the “HTTP layer” only – thin, readable, easy to grow.
+# - DB operations, time helpers, and widgets will be extracted next (queries.py / utils.py) for true scalability.
 
 from flask import render_template, session, flash
 from datetime import datetime

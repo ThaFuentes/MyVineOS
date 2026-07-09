@@ -4,12 +4,12 @@
 # Brief, detailed purpose:
 #   Centralizes audit logging for the entire application in MariaDB.
 #   Provides a single, ultra-robust log_change() function used throughout the app.
-#   • Accepts ANY combination of old/new/legacy parameter names without error.
-#   • Standard columns: user_id, action, target_id (item_id), target_username (item_title), change_details (details/description)
-#   • FULL REBUILD: maximum backward + forward compatibility, clean, type-hinted, documented.
-#   • Errors printed but NEVER crash the app.
-#   • Uses server-side UTC_TIMESTAMP() for perfect consistency.
-#   • Added explicit rollback() in except for safety (even though single INSERT).
+#   - Accepts ANY combination of old/new/legacy parameter names without error.
+#   - Standard columns: user_id, action, target_id (item_id), target_username (item_title), change_details (details/description)
+#   - FULL REBUILD: maximum backward + forward compatibility, clean, type-hinted, documented.
+#   - Errors printed but NEVER crash the app.
+#   - Uses server-side UTC_TIMESTAMP() for perfect consistency.
+#   - Added explicit rollback() in except for safety (even though single INSERT).
 
 from app.models.db import get_db
 from typing import Optional

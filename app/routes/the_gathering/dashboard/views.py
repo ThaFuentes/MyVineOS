@@ -2,11 +2,11 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/the_gathering/dashboard/views.py
 # File name: views.py
 # Brief, detailed purpose: Main dashboard routes and permission logic for the Gathering Place Manager.
-# • Handles the primary dashboard view at /the_gathering/dashboard/ (overview, stats, recent activity).
-# • Includes the gathering_place_required decorator (kept exactly as original for now – will be centralized later).
-# • 100% rebuilt to match the exact clean, consistent style of public/events/views.py and public/dreams/views.py
+# - Handles the primary dashboard view at /the_gathering/dashboard/ (overview, stats, recent activity).
+# - Includes the gathering_place_required decorator (kept exactly as original for now – will be centralized later).
+# - 100% rebuilt to match the exact clean, consistent style of public/events/views.py and public/dreams/views.py
 #   (detailed section comments, enhanced docstrings, route structure, flash handling, and template rendering).
-# • Original behavior, role checks, stats/recent queries, and template keys preserved 100%.
+# - Original behavior, role checks, stats/recent queries, and template keys preserved 100%.
 
 from flask import render_template, session, redirect, url_for, flash, request
 
@@ -104,4 +104,4 @@ def moderation_queue():
     )
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/views.py loaded successfully (public-style rebuilt)")
+# print(" MYVINECHURCH.ONLINE the_gathering/dashboard/views.py loaded successfully (public-style rebuilt)")

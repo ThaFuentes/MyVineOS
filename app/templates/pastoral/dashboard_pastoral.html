@@ -54,7 +54,7 @@
 
     <a href="{{ url_for('pastoral.planning.edit', date_str=upcoming_service.service_date.strftime('%Y-%m-%d')) }}"
        class="btn btn-primary" style="min-height:44px; padding:0.6rem 1.25rem; font-size:1rem;">
-      {% if upcoming_service.get('id') %}✏️ Edit Plan{% else %}📅 Create Plan{% endif %}
+      {% if upcoming_service.get('id') %} Edit Plan{% else %} Create Plan{% endif %}
     </a>
   </div>
 </div>
@@ -71,7 +71,7 @@
 
     <!-- Illustrations Library (written stories, analogies, sermon sections — not images) -->
     <a href="{{ url_for('pastoral.illustrations.library') }}" class="item-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:118px; text-decoration:none;">
-      <span style="font-size:1.8rem; margin-bottom:0.2rem;">📝</span>
+      <span style="font-size:1.8rem; margin-bottom:0.2rem;"></span>
       <div style="font-weight:600;">Illustrations Library</div>
       <small style="opacity:0.7;">Stories, analogies &amp; written sections</small>
     </a>
@@ -85,7 +85,7 @@
 
     <!-- Default Role Assignments -->
     <a href="{{ url_for('pastoral.planning.defaults') }}" class="item-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:118px; text-decoration:none;">
-      <span style="font-size:1.8rem; margin-bottom:0.2rem;">👥</span>
+      <span style="font-size:1.8rem; margin-bottom:0.2rem;"></span>
       <div style="font-weight:600;">Default Roles</div>
       <small style="opacity:0.7;">Recurring assignments</small>
     </a>
@@ -106,5 +106,5 @@
   </div>
 </div>
 
-<p style="text-align:center; margin-top:1rem; font-size:0.75rem; opacity:0.5;">All pastoral tools • tap targets optimized for phones</p>
+<p style="text-align:center; margin-top:1rem; font-size:0.75rem; opacity:0.5;">All pastoral tools - tap targets optimized for phones</p>
 {% endblock %}

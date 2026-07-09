@@ -3,9 +3,9 @@
 # File name: utils.py
 # Brief, detailed purpose: Helper functions for the **Ticket Manager** blueprint ONLY (routes/tickets/).
 # 100% rebuilt clean version – exact same behavior as before, but now can_manage_tickets() properly checks:
-#   • Owner / Admin role (via session)
-#   • Explicit membership in the ticket_managers table (your dedicated ticket group admin)
-#   • Old group-based 'manage_tickets' permission (for backward compatibility)
+#   - Owner / Admin role (via session)
+#   - Explicit membership in the ticket_managers table (your dedicated ticket group admin)
+#   - Old group-based 'manage_tickets' permission (for backward compatibility)
 # This file is now 100% isolated to administrative ticket management (ticket_managers group + Admins/Owner).
 # No user-facing functions remain here.
 

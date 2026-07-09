@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/dreams/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Dreams module.
-# • Validates submit dream, edit dream, and comment forms.
-# • Performs server-side censored word check on all visible fields.
-# • Returns clean dict on success, or None + flash message on error (keeps views.py clean).
-# • 100% matches the original censorship + repopulation logic from dreams.py.
+# - Validates submit dream, edit dream, and comment forms.
+# - Performs server-side censored word check on all visible fields.
+# - Returns clean dict on success, or None + flash message on error (keeps views.py clean).
+# - 100% matches the original censorship + repopulation logic from dreams.py.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

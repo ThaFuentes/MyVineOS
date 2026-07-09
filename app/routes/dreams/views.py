@@ -2,7 +2,7 @@
 # Full path: MyVineChurch/app/routes/dreams/views.py
 # File name: views.py
 # Brief, detailed purpose: Clean, thin route handlers for the Dreams blueprint.
-# • FIXED: Guests are now forced to public view (exact same pattern as prophecies)
+# - FIXED: Guests are now forced to public view (exact same pattern as prophecies)
 
 from flask import render_template, request, redirect, url_for, flash, session
 

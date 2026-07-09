@@ -107,16 +107,22 @@ Review pending registrations in Members → Pending Registrations.
 
 
 def send_email_verification(user_id: int, email: str, token: str, username: str) -> bool:
+    """Send verification email. Returns True if the mailer accepted the message."""
     verify_url = external_url('auth.verify_email', token=token)
-    subject = f"Verify your email — {_church_name()}"
+    subject = f"Verify your email - {_church_name()}"
     body = f"""Hello {username},
 
 Please verify your email address for {_church_name()}.
 
-Open this link, then click the "Verify my email" button on the page:
+1. Open this link:
 {verify_url}
 
+2. On the page that opens, click "Verify my email".
+
+If the link does not work, copy and paste the full URL into your browser.
 If you did not register, you can ignore this message.
+
+Need a new link? Use "Resend email verification" on the login page.
 """
     return _safe_send(email, subject, body, 'registration_verify')
 

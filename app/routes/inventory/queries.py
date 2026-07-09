@@ -2,9 +2,9 @@
 # Full path: MyVineChurch/app/routes/inventory/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Inventory module.
-# • Pure data-access layer – no Flask routes, no templates, no flash messages.
-# • 100% MariaDB/pymysql compatible (%s placeholders, DictCursor).
-# • Every query from the original inventory.py is here with exact same logic.
+# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - 100% MariaDB/pymysql compatible (%s placeholders, DictCursor).
+# - Every query from the original inventory.py is here with exact same logic.
 
 import pymysql
 from datetime import datetime, timedelta

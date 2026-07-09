@@ -2,11 +2,11 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/base.html -->
 <!-- File name: base.html -->
 <!-- Brief, detailed purpose: Dedicated base layout for the Gathering Place Manager (The-Gathering). -->
-<!-- • Management-only header, navigation, and styling (cyan glass theme). -->
-<!-- • Does NOT inherit from the main site base.html — completely separate for admin/staff use. -->
-<!-- • Sticky top nav with direct links to all sections. -->
-<!-- • Flash messages, responsive design, and logout link. -->
-<!-- • All manager pages extend this file. -->
+<!-- - Management-only header, navigation, and styling (cyan glass theme). -->
+<!-- - Does NOT inherit from the main site base.html — completely separate for admin/staff use. -->
+<!-- - Sticky top nav with direct links to all sections. -->
+<!-- - Flash messages, responsive design, and logout link. -->
+<!-- - All manager pages extend this file. -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -111,7 +111,7 @@
     </div>
 
     <div class="user-info">
-        <span style="color:var(--primary); font-size:0.78rem;">👤 {{ current_user or 'Manager' }}</span>
+        <span style="color:var(--primary); font-size:0.78rem;"> {{ current_user or 'Manager' }}</span>
         <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.22rem 0.5rem; font-size:0.72rem; min-height:auto; border-color:#ff6666; color:#ff6666;">Logout</a>
     </div>
 </header>
@@ -138,35 +138,35 @@
 <!-- Bottom nav for manager area on phones - manager-specific primary nav (overhaul) -->
 <nav class="bottom-nav" aria-label="Manager navigation">
   <a href="/the_gathering/">
-    <span class="icon">📊</span>
+    <span class="icon"></span>
     <span class="label">Dashboard</span>
   </a>
   <a href="/the_gathering/dashboard/moderation">
-    <span class="icon">⚠️</span>
+    <span class="icon"></span>
     <span class="label">Queue</span>
   </a>
   <a href="/the_gathering/events/">
-    <span class="icon">📅</span>
+    <span class="icon"></span>
     <span class="label">Events</span>
   </a>
   <a href="/the_gathering/prayers/">
-    <span class="icon">🙏</span>
+    <span class="icon"></span>
     <span class="label">Prayers</span>
   </a>
   <a href="/the_gathering/sermons/">
-    <span class="icon">📖</span>
+    <span class="icon"></span>
     <span class="label">Sermons</span>
   </a>
   <a href="/the_gathering/dreams/">
-    <span class="icon">🌟</span>
+    <span class="icon"></span>
     <span class="label">Dreams</span>
   </a>
   <a href="/the_gathering/prophecies/">
-    <span class="icon">🔮</span>
+    <span class="icon"></span>
     <span class="label">Prophecies</span>
   </a>
   <a href="/the_gathering/announcements/">
-    <span class="icon">📢</span>
+    <span class="icon"></span>
     <span class="label">Announce</span>
   </a>
 </nav>

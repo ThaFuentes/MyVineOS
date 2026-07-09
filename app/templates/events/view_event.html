@@ -33,9 +33,9 @@ Detailed view of {{ event.event_name|title }}.
             <p class="event-key-info">
                 {{ event.event_date }}
                 {% if event.event_time %} at {{ event.event_time }}{% endif %}
-                {% if event.location %} • {{ event.location }}{% endif %}
-                • {{ event.visibility|capitalize }}
-                {% if event.potluck_enabled %} • Potluck Event{% endif %}
+                {% if event.location %} - {{ event.location }}{% endif %}
+                - {{ event.visibility|capitalize }}
+                {% if event.potluck_enabled %} - Potluck Event{% endif %}
             </p>
         </div>
 

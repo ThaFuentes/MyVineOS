@@ -21,9 +21,9 @@ Billing record and secure credential vault for {{ bill.bill_name }} — payment 
         <div class="event-title-info">
             <h2 class="page-title">{{ bill.bill_name|title }}</h2>
             <p class="event-key-info">
-                {% if bill.vendor_name %}Vendor: {{ bill.vendor_name }} • {% endif %}
-                Typical: ${{ "%.2f"|format(bill.typical_amount or 0) }} •
-                Next Due: {{ bill.next_due_date or 'Not set' }} •
+                {% if bill.vendor_name %}Vendor: {{ bill.vendor_name }} - {% endif %}
+                Typical: ${{ "%.2f"|format(bill.typical_amount or 0) }} -
+                Next Due: {{ bill.next_due_date or 'Not set' }} -
                 Status: <span class="status-badge status-{{ bill.current_status|lower }}">{{ bill.current_status|capitalize }}</span>
             </p>
         </div>
@@ -91,7 +91,7 @@ Billing record and secure credential vault for {{ bill.bill_name }} — payment 
             <div id="credentials-locked" class="card glass">
                 <p><strong>Protected storage for utility logins, portal passwords, and software license keys.</strong></p>
                 <p>Credentials are encrypted at rest. Only assigned users and managers may unlock them after re-entering their account password.</p>
-                <button onclick="showRevealModal({{ bill.id }})" class="btn-primary">🔓 Unlock Credentials</button>
+                <button onclick="showRevealModal({{ bill.id }})" class="btn-primary"> Unlock Credentials</button>
             </div>
 
             <div id="credentials-unlocked" class="card glass" style="display:none;">
@@ -101,7 +101,7 @@ Billing record and secure credential vault for {{ bill.bill_name }} — payment 
                 {% if bill.password %}
                 <p><strong>Password:</strong> <span id="shown-password">{{ bill.password }}</span></p>
                 {% endif %}
-                <button onclick="lockAgain()" class="btn-secondary">🔒 Lock Again</button>
+                <button onclick="lockAgain()" class="btn-secondary"> Lock Again</button>
             </div>
 
             {% if not bill.username and not bill.password %}

@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/prophecies/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Prophecies module.
-# • Pure data-access layer – no Flask routes, no templates, no flash messages.
-# • Every SELECT/INSERT/UPDATE/DELETE from the original prophecies.py is now here.
-# • Supports public/private/personal visibility enforcement at query level.
-# • 100% MariaDB/pymysql compatible, parameterized, reusable functions.
+# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Every SELECT/INSERT/UPDATE/DELETE from the original prophecies.py is now here.
+# - Supports public/private/personal visibility enforcement at query level.
+# - 100% MariaDB/pymysql compatible, parameterized, reusable functions.
 
 import pymysql
 from app.models.db import get_db

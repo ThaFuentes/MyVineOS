@@ -4,9 +4,9 @@
 # Brief, detailed purpose: All database operations (SELECT, INSERT, UPDATE, DELETE) for the **Ticket Manager** blueprint ONLY (routes/tickets/).
 # MariaDB/PyMySQL ready (%s placeholders). Every query from original tickets.py extracted here.
 # This file is now 100% isolated to administrative ticket management (ticket_managers group + Admins/Owner).
-# • All user-facing queries (get_user_tickets, get_open_user_ticket_count, create_ticket for guests) have been removed.
-# • Only manager-specific queries remain: full queue, comments.html, status/priority/assignment updates, group management, notifications.
-# • All timestamps (created_at/updated_at/date_added) expect UTC values. Behavior 100% identical for managers.
+# - All user-facing queries (get_user_tickets, get_open_user_ticket_count, create_ticket for guests) have been removed.
+# - Only manager-specific queries remain: full queue, comments.html, status/priority/assignment updates, group management, notifications.
+# - All timestamps (created_at/updated_at/date_added) expect UTC values. Behavior 100% identical for managers.
 
 import pymysql.cursors
 import json

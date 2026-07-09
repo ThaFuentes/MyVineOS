@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/profile/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Profile module.
-# • Pure data-access layer – no Flask routes, no templates, no flash messages.
-# • Every SELECT/INSERT/UPDATE/DELETE from the original profile.py is now here.
-# • 100% original behavior preserved (profile load, family requests, search, suggested users, approve/reject/remove).
-# • 100% MariaDB/pymysql compatible (%s placeholders, DictCursor).
+# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Every SELECT/INSERT/UPDATE/DELETE from the original profile.py is now here.
+# - 100% original behavior preserved (profile load, family requests, search, suggested users, approve/reject/remove).
+# - 100% MariaDB/pymysql compatible (%s placeholders, DictCursor).
 
 import pymysql
 from app.models.db import get_db

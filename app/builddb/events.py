@@ -197,7 +197,7 @@ def create_tables(cursor):
                 ADD CONSTRAINT fk_event_comments_parent
                 FOREIGN KEY (parent_id) REFERENCES event_comments(id) ON DELETE CASCADE
             """)
-            print("✓ Added self-referencing FK for parent_id")
+            print(" Added self-referencing FK for parent_id")
         except Exception as e:
             print(f"Note: parent_id FK may already exist ({e})")
 

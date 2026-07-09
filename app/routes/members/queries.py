@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/members/queries.py
 # File name: queries.py
 # Brief, detailed purpose: All database queries and operations for the Members module.
-# • Pure data-access layer – no Flask routes, no templates, no flash messages.
-# • Every SELECT/INSERT/UPDATE/DELETE from the original members.py is now here.
-# • 100% original behavior preserved (directory with family relations, add/edit, delete, export, email roster, group assignment, role checks).
-# • 100% MariaDB/pymysql compatible (%s placeholders, DictCursor).
+# - Pure data-access layer – no Flask routes, no templates, no flash messages.
+# - Every SELECT/INSERT/UPDATE/DELETE from the original members.py is now here.
+# - 100% original behavior preserved (directory with family relations, add/edit, delete, export, email roster, group assignment, role checks).
+# - 100% MariaDB/pymysql compatible (%s placeholders, DictCursor).
 
 import pymysql
 from app.models.db import get_db
@@ -176,5 +176,5 @@ def build_roster_text(members: list) -> str:
     for m in members:
         phone = m.get('phone') or 'Not provided'
         role = m.get('role') or 'Member'
-        lines.append(f"{m.get('first_name', '')} {m.get('last_name', '')} • {phone} • {m.get('email', '')} • {role}")
+        lines.append(f"{m.get('first_name', '')} {m.get('last_name', '')} - {phone} - {m.get('email', '')} - {role}")
     return '\n'.join(lines)

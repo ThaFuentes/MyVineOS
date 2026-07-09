@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/prophecies/views.py
 # File name: views.py
 # Brief, detailed purpose: All route handlers for the Prophecies blueprint.
-# • 100% rebuilt
-# • Guests are FORCED to the public page (no access to private list or view)
-# • Logged-in users see full private experience (public + private + personal)
-# • All original behavior preserved
-# • FIXED: Correct full public endpoint names for guest redirects
+# - 100% rebuilt
+# - Guests are FORCED to the public page (no access to private list or view)
+# - Logged-in users see full private experience (public + private + personal)
+# - All original behavior preserved
+# - FIXED: Correct full public endpoint names for guest redirects
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from app.utils.decorators import login_required, role_required

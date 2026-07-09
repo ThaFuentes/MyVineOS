@@ -2,10 +2,10 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/public_dashboard/views.py
 # File name: views.py
 # Brief, detailed purpose: Public Dashboard routes – rich social-media style feed on the home page (/ and /public).
-# • Reuses ALL existing public queries with smart priority ordering (upcoming events first, newest sermons, recent announcements, dreams, prophecies, prayers).
-# • Easy click-to-detail cards with recent comment previews (loaded via queries.py).
-# • 100% rebuilt clean production version - identical structure to the working public/events/views.py gold standard.
-# • All debug prints removed.
+# - Reuses ALL existing public queries with smart priority ordering (upcoming events first, newest sermons, recent announcements, dreams, prophecies, prayers).
+# - Easy click-to-detail cards with recent comment previews (loaded via queries.py).
+# - 100% rebuilt clean production version - identical structure to the working public/events/views.py gold standard.
+# - All debug prints removed.
 
 from flask import render_template, url_for, redirect, session
 from app.utils.welcome_page import render_welcome_page
@@ -90,4 +90,4 @@ def public_community():
     return render_template('public/public_dashboard.html', feed=feed)
 
 
-# print("✅ MYVINECHURCH.ONLINE public/public_dashboard/views.py loaded successfully (production-clean + gold standard applied)")
+# print(" MYVINECHURCH.ONLINE public/public_dashboard/views.py loaded successfully (production-clean + gold standard applied)")

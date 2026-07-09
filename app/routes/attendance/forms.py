@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/attendance/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Attendance module.
-# • Takes raw request.form data, strips whitespace, sets defaults, checks required fields.
-# • Returns clean data OR flashes error + returns None (keeps views.py super clean).
-# • Handles kiosk check-in (member_id + optional PIN) and self-checkin (client time).
-# • 100% matches the original validation logic from the flat attendance.py file.
+# - Takes raw request.form data, strips whitespace, sets defaults, checks required fields.
+# - Returns clean data OR flashes error + returns None (keeps views.py super clean).
+# - Handles kiosk check-in (member_id + optional PIN) and self-checkin (client time).
+# - 100% matches the original validation logic from the flat attendance.py file.
 
 from flask import flash
 

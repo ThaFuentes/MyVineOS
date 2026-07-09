@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/attendance/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Attendance module.
-# • REQUIRED_ROLES constant
-# • Secure kiosk token generation + expiration
-# • Keeps views.py, queries.py, and forms.py clean and focused
-# • Ready for future growth (add report helpers, timezone tools, etc.)
+# - REQUIRED_ROLES constant
+# - Secure kiosk token generation + expiration
+# - Keeps views.py, queries.py, and forms.py clean and focused
+# - Ready for future growth (add report helpers, timezone tools, etc.)
 
 from datetime import datetime, timedelta
 import secrets

@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/announcements/__init__.py
 # File name: __init__.py
 # Brief, detailed purpose: Announcements Blueprint Package Initializer
-# • Creates the exact same Blueprint(name='announcements', url_prefix='/announcements')
-# • Automatically imports all modular files so every route registers instantly
-# • Zero functional change today – 100% compatible with your current main.py / app factory
-# • Designed purely for future scaling (add api.py, tasks.py, admin.py later with zero breakage)
+# - Creates the exact same Blueprint(name='announcements', url_prefix='/announcements')
+# - Automatically imports all modular files so every route registers instantly
+# - Zero functional change today – 100% compatible with your current main.py / app factory
+# - Designed purely for future scaling (add api.py, tasks.py, admin.py later with zero breakage)
 
 from flask import Blueprint
 

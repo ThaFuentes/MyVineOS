@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/attendance/views.py
 # File name: views.py
 # Brief, detailed purpose: Clean, thin route handlers for the Attendance blueprint.
-# • All DB work moved to queries.py
-# • All form validation moved to forms.py
-# • All constants/helpers moved to utils.py
-# • 100% original behavior preserved – now super easy to maintain and grow.
+# - All DB work moved to queries.py
+# - All form validation moved to forms.py
+# - All constants/helpers moved to utils.py
+# - 100% original behavior preserved – now super easy to maintain and grow.
 
 from flask import render_template, request, redirect, url_for, flash, session, jsonify
 from datetime import date, datetime

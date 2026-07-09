@@ -99,7 +99,7 @@ def get_members_for_selector():
             display = full_name
             extras = [p for p in [username, email, phone] if p]
             if extras:
-                display += ' — ' + ' • '.join(extras)
+                display += ' — ' + ' - '.join(extras)
 
             search = f"{full_name} {username} {email} {phone} {address}".lower()
             members.append({

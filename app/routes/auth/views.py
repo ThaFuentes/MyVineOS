@@ -61,17 +61,25 @@ def _complete_login(user):
 
 
 def _login_blocked_reason(user):
+    """Return a human message if login should be refused, else None.
+    Second value is optional redirect kwargs for resend-verification.
+    """
     if user['role'] == 'pending':
-        return 'Your account is pending approval by church leadership.'
+        return 'Your account is pending approval by church leadership.', None
     if user['role'] == 'banned':
-        return 'Your account has been banned.'
+        return 'Your account has been banned.', None
     if is_account_login_locked(user):
-        return 'Your account is temporarily locked. Contact church leadership for assistance.'
+        return 'Your account is temporarily locked. Contact church leadership for assistance.', None
     settings = get_notification_settings()
     if settings['registration_require_email_verification'] and not user.get('email_verified'):
         if user['role'] != 'Owner':
-            return 'Please verify your email address before logging in. Check your inbox for the verification link.'
-    return None
+            email = (user.get('email') or '').strip()
+            msg = (
+                'Please verify your email address before logging in. '
+                'Use "Resend email verification" on the login page if you need a new link.'
+            )
+            return msg, {'email': email} if email else None
+    return None, None
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -92,9 +100,12 @@ def login():
             flash('Invalid credentials.', 'error')
             return render_template('auth/login.html')
 
-        blocked = _login_blocked_reason(user)
+        blocked, resend_kw = _login_blocked_reason(user)
         if blocked:
             flash(blocked, 'info' if user['role'] == 'pending' else 'error')
+            # Unverified email: send them to resend page with email prefilled
+            if resend_kw is not None:
+                return redirect(url_for('auth.resend_verification', **resend_kw))
             return render_template('auth/login.html')
 
         if user.get('totp_enabled'):
@@ -238,23 +249,48 @@ def register():
 
 @auth_bp.route('/resend-verification', methods=['GET', 'POST'])
 def resend_verification():
+    """Public form: send a fresh verification email to an unverified account."""
+    prefill = (request.args.get('email') or request.form.get('email') or '').strip()
+
     if request.method == 'POST':
-        email = (request.form.get('email') or '').strip().lower()
+        email = prefill.lower()
         if not email:
             flash('Enter your registration email address.', 'error')
-            return render_template('auth/resend_verification.html')
+            return render_template('auth/resend_verification.html', email=prefill)
+
+        settings = get_notification_settings()
+        if not settings.get('registration_require_email_verification'):
+            flash('Email verification is not required on this site. You can try logging in.', 'info')
+            return redirect(url_for('auth.login'))
+
         user = get_unverified_user_by_email(email)
         if user:
             token = generate_verification_token()
             set_verification_token(user['id'], token)
+            sent = False
             try:
-                send_email_verification(user['id'], email, token, user['username'])
+                sent = bool(send_email_verification(
+                    user['id'], email, token, user.get('username') or email,
+                ))
             except Exception:
-                flash('Could not send email. Try again later or contact an admin.', 'error')
-                return render_template('auth/resend_verification.html')
-        flash('If that email is registered and unverified, a new link has been sent.', 'success')
+                sent = False
+            if not sent:
+                flash(
+                    'Could not send the verification email. '
+                    'Check that site email (SMTP) is configured, or contact an admin.',
+                    'error',
+                )
+                return render_template('auth/resend_verification.html', email=prefill)
+
+        # Same message whether or not the address matched (avoid account enumeration)
+        flash(
+            'If that email is registered and not yet verified, a new verification link has been sent. '
+            'Check your inbox and spam folder.',
+            'success',
+        )
         return redirect(url_for('auth.login'))
-    return render_template('auth/resend_verification.html')
+
+    return render_template('auth/resend_verification.html', email=prefill)
 
 
 @auth_bp.route('/verify-email/<token>', methods=['GET', 'POST'])
@@ -263,7 +299,7 @@ def verify_email(token):
     token = unquote(token or '').strip()
     user = get_user_by_verification_token(token)
     if not user:
-        flash('Invalid or expired verification link.', 'error')
+        flash('Invalid or expired verification link. You can request a new one below.', 'error')
         return render_template('auth/verify_email.html', success=False)
 
     if user.get('email_verified'):

@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/auth/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Auth module.
-# • Generates secure random reset codes for password reset.
-# • Keeps views.py, forms.py, and queries.py clean and focused.
-# • 100% matches the original reset code logic from the flat auth.py.
-# • Ready for future growth (add password strength checker, token expiration, email templates, etc.).
+# - Generates secure random reset codes for password reset.
+# - Keeps views.py, forms.py, and queries.py clean and focused.
+# - 100% matches the original reset code logic from the flat auth.py.
+# - Ready for future growth (add password strength checker, token expiration, email templates, etc.).
 
 import random
 import string

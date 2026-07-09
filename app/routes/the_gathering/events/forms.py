@@ -3,10 +3,10 @@
 # File name: forms.py
 # Brief, detailed purpose: Form validation and cleaning specifically for the Events section
 # of the Gathering Place Manager.
-# • Validates create/edit event forms, potluck signups, and comment moderation.
-# • Performs server-side censored word checks.
-# • 100% consistent with the_gathering style.
-# • Only this file was rebuilt.
+# - Validates create/edit event forms, potluck signups, and comment moderation.
+# - Performs server-side censored word checks.
+# - 100% consistent with the_gathering style.
+# - Only this file was rebuilt.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word
@@ -93,4 +93,4 @@ def validate_search_filter(form_data):
     }
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/events/forms.py loaded successfully (validation + censorship ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/events/forms.py loaded successfully (validation + censorship ready)")

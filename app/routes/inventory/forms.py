@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/inventory/forms.py
 # File name: forms.py
 # Brief, detailed purpose: Form validation and data cleaning for the Inventory module.
-# • Validates item add/edit, receive stock, category and location forms.
-# • Performs server-side censored word check on all text fields.
-# • Returns clean dict on success, or None + flash message on error.
-# • 100% matches the original inventory.py validation logic.
+# - Validates item add/edit, receive stock, category and location forms.
+# - Performs server-side censored word check on all text fields.
+# - Returns clean dict on success, or None + flash message on error.
+# - 100% matches the original inventory.py validation logic.
 
 from flask import flash
 from app.utils.helpers import contains_censored_word

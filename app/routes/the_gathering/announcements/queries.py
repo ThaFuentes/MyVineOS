@@ -3,12 +3,12 @@
 # File name: queries.py
 # Brief, detailed purpose: Reusable database queries specifically for the Announcements section
 # of the Gathering Place Manager.
-# • Provides listing with filters/search (active/expired/pinned/all), single announcement fetch,
+# - Provides listing with filters/search (active/expired/pinned/all), single announcement fetch,
 #   and comment queries for moderation.
-# • All queries are safe, efficient, and use LEFT JOINs for creator names.
-# • Designed to be called only from announcements/views.py — keeps views clean.
-# • 100% consistent with the_gathering/events/queries.py and public/events/queries.py patterns.
-# • Only this file was rebuilt — everything else on the site remains untouched and secure.
+# - All queries are safe, efficient, and use LEFT JOINs for creator names.
+# - Designed to be called only from announcements/views.py — keeps views clean.
+# - 100% consistent with the_gathering/events/queries.py and public/events/queries.py patterns.
+# - Only this file was rebuilt — everything else on the site remains untouched and secure.
 
 from app.models.db import get_db
 from app.utils.comment_moderation import comment_count_subquery, fetch_manager_comments
@@ -82,4 +82,4 @@ def get_announcement_comments(announcement_id, search=None, status_filter='all')
     return fetch_manager_comments('announcement', announcement_id, search=search, status_filter=status_filter)
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/announcements/queries.py loaded successfully (announcement listing + comments.html + moderation queries ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/announcements/queries.py loaded successfully (announcement listing + comments.html + moderation queries ready)")

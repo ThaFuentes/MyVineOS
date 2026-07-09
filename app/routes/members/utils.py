@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/members/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Members module.
-# • REQUIRED_ROLES constant
-# • current_user_id() helper for logging and ownership
-# • Role permission helpers (get_allowed_roles)
-# • Temporary password generator (used when adding new members)
-# • 100% matches the original members.py helpers and logic.
+# - REQUIRED_ROLES constant
+# - current_user_id() helper for logging and ownership
+# - Role permission helpers (get_allowed_roles)
+# - Temporary password generator (used when adding new members)
+# - 100% matches the original members.py helpers and logic.
 
 from flask import session
 import json

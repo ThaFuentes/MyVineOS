@@ -2,11 +2,11 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/the_gathering/prophecies/views.py
 # File name: views.py
 # Brief, detailed purpose: All prophecy routes for the Gathering Place Manager.
-# • Dedicated sub-blueprint routes: listing, create/edit, view, delete, comment moderation.
-# • Uses prophecies/forms.py, queries.py, and utils.py for clean separation.
-# • Protected by the exact same session + DB role check pattern used everywhere else.
-# • All url_for calls use the correct nested blueprint: 'the_gathering.prophecies.*'
-# • 100% rebuilt entire file — only this script was touched.
+# - Dedicated sub-blueprint routes: listing, create/edit, view, delete, comment moderation.
+# - Uses prophecies/forms.py, queries.py, and utils.py for clean separation.
+# - Protected by the exact same session + DB role check pattern used everywhere else.
+# - All url_for calls use the correct nested blueprint: 'the_gathering.prophecies.*'
+# - 100% rebuilt entire file — only this script was touched.
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql
@@ -159,4 +159,4 @@ def prophecy_comments(prophecy_id):
                            filter=status_filter)
 
 
-# print("✅ MYVINECHURCH.ONLINE the_gathering/prophecies/views.py loaded successfully (full dedicated routes for prophecies ready)")
+# print(" MYVINECHURCH.ONLINE the_gathering/prophecies/views.py loaded successfully (full dedicated routes for prophecies ready)")

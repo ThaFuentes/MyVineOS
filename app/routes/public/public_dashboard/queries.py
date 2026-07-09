@@ -2,11 +2,11 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/public_dashboard/queries.py
 # File name: queries.py
 # Brief, detailed purpose: Reusable database query functions for the Public Dashboard (rich social-media style feed on homepage).
-# • Reuses ALL existing public queries safely.
-# • Smart priority ordering + recent comment previews on every card.
-# • FIXED: Prophecies now use correct column 'date_added' (matches prophecy_comments table used in views.py).
-# • All other types unchanged and working.
-# • Production-clean version.
+# - Reuses ALL existing public queries safely.
+# - Smart priority ordering + recent comment previews on every card.
+# - FIXED: Prophecies now use correct column 'date_added' (matches prophecy_comments table used in views.py).
+# - All other types unchanged and working.
+# - Production-clean version.
 
 from app.models.db import get_db
 import pymysql.cursors

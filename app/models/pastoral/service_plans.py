@@ -4,19 +4,19 @@
 # Brief, detailed purpose:
 #   All database operations related to Service Planning module – FULL REBUILD for permanent recurring templates + forced notes + override count.
 #   NEW SIMPLE & CLEAN STRUCTURE:
-#     • service_templates: Central permanent recurring masters (Sunday Morning, Wednesday Night, etc.)
+#     - service_templates: Central permanent recurring masters (Sunday Morning, Wednesday Night, etc.)
 #       - One row per recurring service type
 #       - No service_date – applies to all matching weekdays unless overridden
 #       - Title, notes (regular Quill HTML), forced_notes (critical plain text lines), times, linked sermon, role assignments
 #       - Change once → instantly affects every future display of that weekday
-#     • service_plans: Individual dated overrides/special events only (much fewer rows)
-#     • get_plan_for_date(date_str): Returns dated override if exists, ELSE matching template
+#     - service_plans: Individual dated overrides/special events only (much fewer rows)
+#     - get_plan_for_date(date_str): Returns dated override if exists, ELSE matching template
 #       - For template plans: forced_notes prepended to notes (as highlighted HTML block)
-#     • Templates matched by weekday (0-6) only – simple, no complex recurrence rules
-#     • Global defaults still exist – pre-fill when creating new templates or dated overrides
-#     • Removed old 52-week seeding – now seeds one default Sunday template if none exists
-#     • get_upcoming_service(): Safe wrapper using get_plan_for_date for next date (plan or template)
-#     • get_all_templates(): Now includes override_count (future dated plans on this weekday)
+#     - Templates matched by weekday (0-6) only – simple, no complex recurrence rules
+#     - Global defaults still exist – pre-fill when creating new templates or dated overrides
+#     - Removed old 52-week seeding – now seeds one default Sunday template if none exists
+#     - get_upcoming_service(): Safe wrapper using get_plan_for_date for next date (plan or template)
+#     - get_all_templates(): Now includes override_count (future dated plans on this weekday)
 #   This gives true "central place – change once, updates all" for recurring services.
 #   Overrides still possible via dated plans.
 #   Delete template anytime.

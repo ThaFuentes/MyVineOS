@@ -15,7 +15,7 @@
     </p>
 
     <section class="glass-panel" style="padding:1rem; margin-bottom:1.25rem;">
-        <h3 style="color:#ffcc00; margin-top:0;">🙏 Pending Prayer Requests ({{ pending_prayers|length }})</h3>
+        <h3 style="color:#ffcc00; margin-top:0;"> Pending Prayer Requests ({{ pending_prayers|length }})</h3>
         {% if pending_prayers %}
         <div style="overflow:auto;">
             <table class="data-table" style="width:100%; min-width:720px;">
@@ -36,15 +36,15 @@
                         <td>{{ p.contributor_name or 'Guest' }}</td>
                         <td>{{ p.posted_at_nice or p.date_posted }}</td>
                         <td>
-                            <a href="{{ url_for('the_gathering.prayers.view_prayer', prayer_id=p.id) }}" class="btn btn-sm btn-secondary" title="Full detail">📋</a>
+                            <a href="{{ url_for('the_gathering.prayers.view_prayer', prayer_id=p.id) }}" class="btn btn-sm btn-secondary" title="Full detail"></a>
                             <form method="POST" action="{{ url_for('the_gathering.prayers.approve_prayer', prayer_id=p.id) }}" style="display:inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                                <button type="submit" class="btn btn-sm btn-success" title="Approve">✓</button>
+                                <button type="submit" class="btn btn-sm btn-success" title="Approve"></button>
                             </form>
                             <form method="POST" action="{{ url_for('the_gathering.prayers.reject_prayer', prayer_id=p.id) }}" style="display:inline;"
                                   onsubmit="return confirm('Reject this prayer request?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                                <button type="submit" class="btn btn-sm btn-danger" title="Reject">✗</button>
+                                <button type="submit" class="btn btn-sm btn-danger" title="Reject"></button>
                             </form>
                         </td>
                     </tr>
@@ -59,7 +59,7 @@
 
     <section class="glass-panel" style="padding:1rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
-            <h3 style="color:#ffcc00; margin:0;">💬 All Comments ({{ all_comments|length }})</h3>
+            <h3 style="color:#ffcc00; margin:0;"> All Comments ({{ all_comments|length }})</h3>
         </div>
 
         <form method="GET" class="glass-panel" style="padding:0.85rem; margin-bottom:1rem;">
@@ -111,12 +111,12 @@
                         <td style="white-space:nowrap;">{{ c.posted_at_nice or c.posted_at }}</td>
                         <td>
                             {% if c.shadowed %}
-                                <span class="badge bg-warning text-dark">👻 Shadowed</span>
+                                <span class="badge bg-warning text-dark"> Shadowed</span>
                             {% else %}
                                 <span class="badge bg-success">Visible</span>
                             {% endif %}
                             {% if c.edited_by_moderator %}
-                                <br><small class="text-info">✏️ Edited</small>
+                                <br><small class="text-info"> Edited</small>
                             {% endif %}
                         </td>
                         <td>

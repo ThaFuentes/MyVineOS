@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/members/views.py
 # File name: views.py
 # Brief, detailed purpose: All route handlers (controllers) for the Members blueprint.
-# • Every single function name and endpoint from the original members.py is preserved exactly (no renaming).
-# • All database work moved to queries.py
-# • All form validation + censorship moved to forms.py
-# • All helpers moved to utils.py
-# • 100% original behavior preserved.
+# - Every single function name and endpoint from the original members.py is preserved exactly (no renaming).
+# - All database work moved to queries.py
+# - All form validation + censorship moved to forms.py
+# - All helpers moved to utils.py
+# - 100% original behavior preserved.
 
 from flask import render_template, request, redirect, url_for, flash, session, send_file, abort
 from werkzeug.security import generate_password_hash

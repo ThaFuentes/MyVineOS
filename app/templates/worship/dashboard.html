@@ -12,9 +12,9 @@
 <div class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.9rem;">
   <strong>Worship leaders / managers:</strong>
   {% for l in leaders %}
-  <span style="margin-right:0.75rem;">{{ l.first_name }} {{ l.last_name }}{% if l.role_in_group == 'leader' %} ★{% elif l.site_role %} ({{ l.site_role }}){% endif %}</span>
+  <span style="margin-right:0.75rem;">{{ l.first_name }} {{ l.last_name }}{% if l.role_in_group == 'leader' %} {% elif l.site_role %} ({{ l.site_role }}){% endif %}</span>
   {% endfor %}
-  <div style="margin-top:0.35rem; opacity:0.65; font-size:0.82rem;">★ = Group Manager in Worship Team Group (can edit plans &amp; send personal notes)</div>
+  <div style="margin-top:0.35rem; opacity:0.65; font-size:0.82rem;"> = Group Manager in Worship Team Group (can edit plans &amp; send personal notes)</div>
 </div>
 {% endif %}
 
@@ -52,16 +52,16 @@
 
 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.6rem; margin-bottom:1.25rem;">
   <a href="{{ url_for('worship.templates_list') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
-    <div style="font-size:1.5rem;">📅</div><div style="font-weight:600;">Weekly Defaults</div>
+    <div style="font-size:1.5rem;"></div><div style="font-weight:600;">Weekly Defaults</div>
   </a>
   <a href="{{ url_for('worship.setlists_list') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
-    <div style="font-size:1.5rem;">📋</div><div style="font-weight:600;">Date Overrides</div>
+    <div style="font-size:1.5rem;"></div><div style="font-weight:600;">Date Overrides</div>
   </a>
   <a href="{{ url_for('worship.songs_list') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
-    <div style="font-size:1.5rem;">🎶</div><div style="font-weight:600;">Song Library</div>
+    <div style="font-size:1.5rem;"></div><div style="font-weight:600;">Song Library</div>
   </a>
   <a href="{{ url_for('worship.history') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
-    <div style="font-size:1.5rem;">📊</div><div style="font-weight:600;">Play History</div>
+    <div style="font-size:1.5rem;"></div><div style="font-weight:600;">Play History</div>
   </a>
 </div>
 
@@ -77,7 +77,7 @@
     {% for s in play_stats %}
     {% if s.play_count %}
     {% set shown = true %}
-    <li>{{ s.title }} ({{ s.play_count }}×)</li>
+    <li>{{ s.title }} ({{ s.play_count }}x)</li>
     {% endif %}
     {% endfor %}
     {% if not shown %}

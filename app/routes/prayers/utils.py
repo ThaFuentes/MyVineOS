@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/prayers/utils.py
 # File name: utils.py
 # Brief, detailed purpose: Utility functions and constants for the Prayers module.
-# • REQUIRED_ROLES and ADMIN_ROLES constants
-# • Simple helpers for role checks (keeps views.py clean)
-# • Designed for easy future growth (email notifications, response moderation, etc.)
-# • 100% consistent with the rest of the application
+# - REQUIRED_ROLES and ADMIN_ROLES constants
+# - Simple helpers for role checks (keeps views.py clean)
+# - Designed for easy future growth (email notifications, response moderation, etc.)
+# - 100% consistent with the rest of the application
 
 from flask import session
 

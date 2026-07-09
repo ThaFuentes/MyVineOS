@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/emailer/views.py
 # File name: views.py
 # Brief, detailed purpose: Clean, thin route handlers for the Emailer blueprint.
-# • All form validation + censorship moved to forms.py
-# • All logging moved to queries.py
-# • All helpers moved to utils.py
-# • 100% original behavior preserved: manual email form, censorship on subject/body, audit logging, Staff/Admin/Owner restriction.
-# • Ready for future expansion (bulk emails, templates, scheduling, etc.).
+# - All form validation + censorship moved to forms.py
+# - All logging moved to queries.py
+# - All helpers moved to utils.py
+# - 100% original behavior preserved: manual email form, censorship on subject/body, audit logging, Staff/Admin/Owner restriction.
+# - Ready for future expansion (bulk emails, templates, scheduling, etc.).
 
 from flask import render_template, request, redirect, url_for, flash, session
 

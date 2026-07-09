@@ -4,10 +4,10 @@
 import pymysql.cursors
 from app.models.db import get_db
 
-print("🚀 [DEBUG] support_tickets/queries.py (FIXED VERSION) LOADED")
+print(" [DEBUG] support_tickets/queries.py (FIXED VERSION) LOADED")
 
 def get_user_tickets(user_id):
-    print(f"🔍 [DEBUG] get_user_tickets called for user_id={user_id}")
+    print(f" [DEBUG] get_user_tickets called for user_id={user_id}")
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
@@ -21,12 +21,12 @@ def get_user_tickets(user_id):
         ORDER BY t.updated_at DESC
     """, (user_id,))
     result = cur.fetchall()
-    print(f"🔍 [DEBUG] get_user_tickets returned {len(result)} rows")
+    print(f" [DEBUG] get_user_tickets returned {len(result)} rows")
     return result
 
 
 def get_open_user_ticket_count(user_id):
-    print(f"🔍 [DEBUG] get_open_user_ticket_count called for user_id={user_id}")
+    print(f" [DEBUG] get_open_user_ticket_count called for user_id={user_id}")
     db = get_db()
     cur = db.cursor()
     cur.execute("""
@@ -34,12 +34,12 @@ def get_open_user_ticket_count(user_id):
         WHERE created_by = %s AND status IN ('open', 'in_progress')
     """, (user_id,))
     result = cur.fetchone()[0]
-    print(f"🔍 [DEBUG] get_open_user_ticket_count = {result}")
+    print(f" [DEBUG] get_open_user_ticket_count = {result}")
     return result
 
 
 def create_ticket(user_id, title, description, category_id, priority, created_at):
-    print(f"🔍 [DEBUG] create_ticket called")
+    print(f" [DEBUG] create_ticket called")
     db = get_db()
     cur = db.cursor()
     cur.execute("""
@@ -49,12 +49,12 @@ def create_ticket(user_id, title, description, category_id, priority, created_at
     """, (user_id, title, description, category_id, priority, created_at, created_at))
     db.commit()
     new_id = cur.lastrowid
-#     print(f"✅ [DEBUG] create_ticket created ID {new_id}")
+#     print(f" [DEBUG] create_ticket created ID {new_id}")
     return new_id
 
 
 def get_user_ticket(ticket_id, user_id):
-    print(f"🔍 [DEBUG] get_user_ticket called for ticket_id={ticket_id}, user_id={user_id}")
+    print(f" [DEBUG] get_user_ticket called for ticket_id={ticket_id}, user_id={user_id}")
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
@@ -67,12 +67,12 @@ def get_user_ticket(ticket_id, user_id):
         WHERE t.id = %s AND t.created_by = %s
     """, (ticket_id, user_id))
     result = cur.fetchone()
-    print(f"🔍 [DEBUG] get_user_ticket result: {result is not None}")
+    print(f" [DEBUG] get_user_ticket result: {result is not None}")
     return result
 
 
 def get_ticket_comments(ticket_id):
-    print(f"🔍 [DEBUG] get_ticket_comments called for ticket_id={ticket_id}")
+    print(f" [DEBUG] get_ticket_comments called for ticket_id={ticket_id}")
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
@@ -83,12 +83,12 @@ def get_ticket_comments(ticket_id):
         ORDER BY tc.date_added ASC
     """, (ticket_id,))
     result = cur.fetchall()
-    print(f"🔍 [DEBUG] get_ticket_comments returned {len(result)} comments")
+    print(f" [DEBUG] get_ticket_comments returned {len(result)} comments")
     return result
 
 
 def add_ticket_comment(ticket_id, user_id, comment, created_at):
-    print(f"🔍 [DEBUG] add_ticket_comment called")
+    print(f" [DEBUG] add_ticket_comment called")
     db = get_db()
     cur = db.cursor()
     cur.execute("""
@@ -97,22 +97,22 @@ def add_ticket_comment(ticket_id, user_id, comment, created_at):
     """, (ticket_id, user_id, comment, created_at))
     cur.execute("UPDATE tickets SET updated_at = %s WHERE id = %s", (created_at, ticket_id))
     db.commit()
-#     print("✅ [DEBUG] add_ticket_comment done")
+#     print(" [DEBUG] add_ticket_comment done")
 
 
 def get_ticket_categories():
-    print("🔍 [DEBUG] get_ticket_categories called")
+    print(" [DEBUG] get_ticket_categories called")
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     # FIXED: removed is_active filter (column doesn't exist)
     cur.execute("SELECT id, name FROM ticket_categories ORDER BY sort_order")
     result = cur.fetchall()
-    print(f"🔍 [DEBUG] get_ticket_categories returned {len(result)} categories")
+    print(f" [DEBUG] get_ticket_categories returned {len(result)} categories")
     return result
 
 
 def get_staff_emails():
-    print("🔍 [DEBUG] get_staff_emails called")
+    print(" [DEBUG] get_staff_emails called")
     db = get_db()
     cur = db.cursor()
     emails = set()
@@ -130,7 +130,7 @@ def get_staff_emails():
             if row[0]:
                 emails.add(row[0].strip())
     except Exception as e:
-#         print(f"⚠️ [DEBUG] Error getting ticket_managers emails: {e}")
+#         print(f" [DEBUG] Error getting ticket_managers emails: {e}")
 
     try:
         cur.execute("""
@@ -142,14 +142,14 @@ def get_staff_emails():
             if row[0]:
                 emails.add(row[0].strip())
     except Exception as e:
-#         print(f"⚠️ [DEBUG] Error getting admin/owner emails: {e}")
+#         print(f" [DEBUG] Error getting admin/owner emails: {e}")
 
     cur.close()
     return list(emails)
 
 
 def get_ticket_title(ticket_id):
-    print(f"🔍 [DEBUG] get_ticket_title called for {ticket_id}")
+    print(f" [DEBUG] get_ticket_title called for {ticket_id}")
     db = get_db()
     cur = db.cursor()
     cur.execute("SELECT title FROM tickets WHERE id = %s", (ticket_id,))
@@ -158,4 +158,4 @@ def get_ticket_title(ticket_id):
     return row[0] if row else f"Ticket #{ticket_id}"
 
 
-# print("✅ [DEBUG] support_tickets/queries.py (FIXED) FULLY LOADED")
+# print(" [DEBUG] support_tickets/queries.py (FIXED) FULLY LOADED")

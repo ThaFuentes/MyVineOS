@@ -2,10 +2,10 @@
 # Full path: MyVineChurch/app/routes/attendance/__init__.py
 # File name: __init__.py
 # Brief, detailed purpose: Attendance Blueprint Package Initializer – 100% MariaDB/pymysql compatible.
-# • Creates the exact same Blueprint(name='attendance', url_prefix='/attendance') as the old flat file.
-# • Automatically imports all modular files so every route registers instantly.
-# • Zero functional change today – kiosk, self-checkin, dashboard, day details, live search, token security, UTC time handling all remain 100% identical.
-# • Designed purely for future scaling: we can now safely split into views.py, queries.py, forms.py, utils.py (and later api.py, tasks.py, etc.) without touching main.py or app/__init__.py.
+# - Creates the exact same Blueprint(name='attendance', url_prefix='/attendance') as the old flat file.
+# - Automatically imports all modular files so every route registers instantly.
+# - Zero functional change today – kiosk, self-checkin, dashboard, day details, live search, token security, UTC time handling all remain 100% identical.
+# - Designed purely for future scaling: we can now safely split into views.py, queries.py, forms.py, utils.py (and later api.py, tasks.py, etc.) without touching main.py or app/__init__.py.
 
 from flask import Blueprint
 

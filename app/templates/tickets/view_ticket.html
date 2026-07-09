@@ -2,20 +2,20 @@
 <!-- Full path: MYVINECHURCH.ONLINE/app/templates/tickets/view_ticket.html -->
 <!-- File name: view_ticket.html -->
 <!-- Brief, detailed purpose: Private ticket detail view + management page for the **Ticket Manager** blueprint ONLY.
-   • 100% rebuilt as manager-only view (no user self-service code).
-   • FIXED: All date displays now use the pre-formatted strings that views.py already creates (formatted_created and formatted_date).
+   - 100% rebuilt as manager-only view (no user self-service code).
+   - FIXED: All date displays now use the pre-formatted strings that views.py already creates (formatted_created and formatted_date).
      This eliminates the TypeError: 'datetime.datetime' object is not subscriptable.
-   • Uses can_manage (passed from views.py) instead of is_manager.
-   • Removed broken link to the now-removed 'tickets.submit_ticket' endpoint (edit button deleted – managers use inline status/priority/assign controls).
-   • All comment, status, assign, priority, and delete functionality preserved exactly.
-   • Navigation and forms now point only to valid Ticket Manager endpoints. -->
+   - Uses can_manage (passed from views.py) instead of is_manager.
+   - Removed broken link to the now-removed 'tickets.submit_ticket' endpoint (edit button deleted – managers use inline status/priority/assign controls).
+   - All comment, status, assign, priority, and delete functionality preserved exactly.
+   - Navigation and forms now point only to valid Ticket Manager endpoints. -->
 
 {% extends "tickets/base_tickets.html" %}
 
 {% block page_title %}Ticket #{{ ticket.id }} – {{ ticket.title }}{% endblock %}
 
 {% block page_description %}
-Category: {{ ticket.category_name }} • Priority: {{ ticket.priority|capitalize }} • Status: {{ ticket.status.replace('_', ' ')|title }}
+Category: {{ ticket.category_name }} - Priority: {{ ticket.priority|capitalize }} - Status: {{ ticket.status.replace('_', ' ')|title }}
 {% endblock %}
 
 {% block tickets_content %}
@@ -31,12 +31,12 @@ Category: {{ ticket.category_name }} • Priority: {{ ticket.priority|capitalize
         <div class="event-title-info">
             <h2 class="page-title">#{{ ticket.id }} – {{ ticket.title }}</h2>
             <p class="event-key-info">
-                Category: <strong>{{ ticket.category_name }}</strong> •
-                Priority: <strong class="{{ 'priority-' + ticket.priority }}">{{ ticket.priority|capitalize }}</strong> •
+                Category: <strong>{{ ticket.category_name }}</strong> -
+                Priority: <strong class="{{ 'priority-' + ticket.priority }}">{{ ticket.priority|capitalize }}</strong> -
                 Status: <strong>{{ ticket.status.replace('_', ' ')|title }}</strong><br>
                 Created {% if ticket.contact_name %}by <strong>{{ ticket.contact_name }}</strong>{% else %}by <strong>{{ ticket.creator_name }}</strong>{% endif %}
                 on {{ ticket.formatted_created }}
-                {% if ticket.assigned_to %} • Assigned to <strong>{{ ticket.assignee_name or 'Unknown' }}</strong>{% endif %}
+                {% if ticket.assigned_to %} - Assigned to <strong>{{ ticket.assignee_name or 'Unknown' }}</strong>{% endif %}
             </p>
         </div>
 

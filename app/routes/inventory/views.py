@@ -2,11 +2,11 @@
 # Full path: MyVineChurch/app/routes/inventory/views.py
 # File name: views.py
 # Brief, detailed purpose: All route handlers for the Inventory blueprint.
-# • Every function name and @route from the original inventory.py is preserved exactly (no renaming).
-# • All DB work moved to queries.py
-# • All form validation moved to forms.py
-# • All helpers moved to utils.py
-# • 100% original behavior preserved.
+# - Every function name and @route from the original inventory.py is preserved exactly (no renaming).
+# - All DB work moved to queries.py
+# - All form validation moved to forms.py
+# - All helpers moved to utils.py
+# - 100% original behavior preserved.
 
 from flask import render_template, request, redirect, url_for, flash, session, jsonify
 

@@ -2,13 +2,13 @@
 # Full path: MYVINECHURCH.ONLINE/app/routes/public/dreams/views.py
 # File name: views.py
 # Brief, detailed purpose: Public Dreams & Visions routes for unauthenticated guests only.
-# • 100% rebuilt to match the working public/events/views.py gold standard exactly.
-# • FIXED: dream['comments.html'] → dream['comments'] so the template can see the comments.
-# • Listing shows only public + approved dreams with creator_name.
-# • Detail page supports guest comments/replies (one-level).
-# • Logged-in users are redirected to private dreams.
-# • All debug prints removed for production cleanliness.
-# • Uses local queries.py, forms.py and utils.py for modularity.
+# - 100% rebuilt to match the working public/events/views.py gold standard exactly.
+# - FIXED: dream['comments.html'] → dream['comments'] so the template can see the comments.
+# - Listing shows only public + approved dreams with creator_name.
+# - Detail page supports guest comments/replies (one-level).
+# - Logged-in users are redirected to private dreams.
+# - All debug prints removed for production cleanliness.
+# - Uses local queries.py, forms.py and utils.py for modularity.
 
 from flask import render_template, abort, request, flash, redirect, url_for, session
 import pymysql
@@ -110,4 +110,4 @@ def public_dream_detail(dream_id):
                            dream=dream, comments_enabled=comments_enabled)
 
 
-# print("✅ MYVINECHURCH.ONLINE public/dreams/views.py loaded successfully (comments key fixed + Events gold standard applied)")
+# print(" MYVINECHURCH.ONLINE public/dreams/views.py loaded successfully (comments key fixed + Events gold standard applied)")

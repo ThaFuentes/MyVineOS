@@ -14,8 +14,8 @@
 <div class="glass-panel" style="margin-bottom:0.75rem;">
   <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
     <div>
-      <h2 style="margin:0;">❤️ Pastoral Care</h2>
-      <div style="opacity:0.7; font-size:0.85rem;">{{ requests|length }} requests • filters below</div>
+      <h2 style="margin:0;"> Pastoral Care</h2>
+      <div style="opacity:0.7; font-size:0.85rem;">{{ requests|length }} requests - filters below</div>
     </div>
     <a href="{{ url_for('pastoral.care.care_new') }}" class="btn btn-primary" style="min-height:44px;">+ New Care Request</a>
   </div>
@@ -61,7 +61,7 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
       <div style="flex:1;">
         <div style="font-weight:600; font-size:1.02rem;">{{ req.member_name }}</div>
-        <div style="opacity:0.75; font-size:0.82rem;">{{ req.request_type|capitalize }} • {{ req.created_at|relative_time }}</div>
+        <div style="opacity:0.75; font-size:0.82rem;">{{ req.request_type|capitalize }} - {{ req.created_at|relative_time }}</div>
         <div style="margin:0.35rem 0 0.25rem;">
           {% if req.title %}<strong>{{ req.title }}</strong>{% else %}<em style="opacity:0.6;">No title – see details</em>{% endif %}
         </div>
@@ -77,7 +77,7 @@
   {% endfor %}
 {% else %}
   <div class="glass-panel" style="text-align:center; padding:1.5rem;">
-    <div style="font-size:2rem; opacity:0.5; margin-bottom:0.5rem;">❤️</div>
+    <div style="font-size:2rem; opacity:0.5; margin-bottom:0.5rem;"></div>
     <div style="font-weight:600;">No care requests found</div>
     <p style="opacity:0.65; margin:0.4rem 0 0;">Start by creating a new request above.</p>
   </div>
