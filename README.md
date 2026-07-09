@@ -1,88 +1,92 @@
-🗺️ The Detailed Documentation Roadmap
-Section 1: The Vision & Core Mission
-The "What" and "Why": Creating a unified digital ecosystem for spiritual and logistical church health.
+# MyVineOS
 
-The "No-Bloat" Architecture: Logic behind the stack (Flask/MariaDB/Vanilla JS).
+**Free, open-source church website & management platform — for everyone.**
 
-Section 2: The Gathering Place (The Community Hub)
-The public/ ecosystem: How dreams, prophecies, and prayers are shared.
+MyVineOS is software any church, ministry, or community can **download, run, host, and customize** at no cost. No SaaS lock-in, no seat licenses, no “premium tier” for core features. You own your data and your server.
 
-The Public Dashboard: Announcements and community engagement.
+Built for spiritual life *and* day-to-day operations: public community pages, pastoral tools, membership, events, giving, and more — on a simple **Flask + MariaDB + vanilla JS** stack (no heavy frontend framework required).
 
-Section 3: The Spiritual Intelligence Modules
-The Vault: Archiving illustrations, testimonies, and spiritual insights.
+> **License:** Free to use, study, share, and improve under open-source terms.  
+> **Who it’s for:** Churches of any size, tech volunteers, developers, and anyone who wants a self-hosted church site without renting a black-box product.
 
-Dreams & Prophecies: Structured tracking of spiritual revelations.
+---
 
-The Prayer Engine: Managing requests and communal intercession.
-
-Section 4: The Pastoral Command Center
-The Sermon Lifecycle: From the Sectional Editor to Document Export.
-
-Podium Mode: The high-performance teleprompter and preacher UX.
-
-Pastoral Care: Tracking and responding to member needs.
-
-Section 5: Administrative & Financial Stewardship
-Membership & Families: Managing the directory and complex household relations.
-
-Financial Integrity: Donations, Recurring Bills, and automated reporting.
-
-Inventory & Assets: Tracking physical resources and locations.
-
-Section 6: Operations & Logistics
-The Kiosk System: Secure attendance, check-ins, and session security.
-
-The Ticket System: Internal task management and manager assignments.
-
-Events & Planning: Scheduling and service assignment logic.
-
-Section 7: Infrastructure, Security & AI
-BuildDB: The automated schema sync logic.
-
-The "Shield": Audit logs (log_change), IP banning, and hashed security.
-
-Check the docs for more details on sections
-
-## Local Development
-
-To run locally (recommended):
+## Quick start (local)
 
 ```bash
 ./myvineos
 ```
 
-- Creates `.venv` (Python virtualenv) if missing
-- Installs dependencies from `requirements.txt`
-- Starts MariaDB via `docker compose` (see `docker-compose.yml`)
-- Waits for DB readiness
-- Launches dev server on http://127.0.0.1:5001 (override with HOST/PORT env)
+- Creates `.venv` if missing  
+- Installs from `requirements.txt`  
+- Starts MariaDB via Docker Compose  
+- Serves the app at http://127.0.0.1:5001  
 
-First run: you will be prompted to register the initial Owner.
-
-### Fresh reset (wipe DB)
+First run walks you through creating the initial Owner account.
 
 ```bash
-./myvineos --fresh
-# or
-./myvineos reset
+cp .env.example .env   # then set SECRET_KEY / FERNET_KEY for anything beyond local toys
+./myvineos --fresh     # wipe DB volume and start clean (dev only)
 ```
 
-This destroys the Docker volume for a clean slate.
+**Requirements:** Python 3.10+, Docker + Docker Compose (dev DB on host port **3308**).
 
-### Requirements
-- Python 3 + venv
-- Docker + Docker Compose (for the dev database; this project uses host port 3308 to coexist with veilbreak on 3306 and driverapp on 3307)
-- On first run, the script will guide you.
+Production: use `main.py` / `wsgi.py` / `passenger_wsgi.py` on your host. The `./myvineos` launcher is for development.
 
-For production hosting (Passenger / WSGI), use the existing `main.py` + `wsgi.py` / `passenger_wsgi.py` setup. The launcher is dev-only.
+---
 
-### Environment
-The script forces dev DB credentials (matching `docker-compose.yml`) via `export` so your existing `.env` (hosting values) won't interfere.
+## What you get
 
-Edit `.env` for custom hosting creds if needed (the app loads it but env vars take precedence for the launcher).
+| Area | Highlights |
+|------|------------|
+| **Public / community** | Announcements, dreams, prophecies, prayers, sermons, events feed |
+| **The Gathering Place** | Manager tools for community content & moderation |
+| **Pastoral** | Sermon editor, podium mode, care, vault, planning |
+| **Admin** | Members, groups, donations, bills, inventory, tickets |
+| **Ops** | Attendance kiosk, events, settings, help, security tooling |
 
-### Notes
-- BuildDB runs automatically on startup (see `app/builddb/` and `app/__init__.py`).
-- PoweredByTop security wrapper is always active.
-- For full local MariaDB without Docker, set the MYSQL_* env vars and skip the docker parts.
+Stack philosophy: **no bloat** — readable Python, SQL-backed MariaDB, and plain static assets you can edit without a Node build pipeline.
+
+---
+
+## Documentation roadmap
+
+**1. Vision & core mission** — Unified digital ecosystem for spiritual and logistical church health; why Flask/MariaDB/vanilla JS.
+
+**2. The Gathering Place** — Public ecosystem (dreams, prophecies, prayers) and community dashboard.
+
+**3. Spiritual modules** — Vault, dreams & prophecies, prayer engine.
+
+**4. Pastoral command center** — Sermon lifecycle, podium mode, pastoral care.
+
+**5. Stewardship** — Membership & families, donations, recurring bills, inventory.
+
+**6. Operations** — Kiosk attendance, tickets, events & service planning.
+
+**7. Infrastructure & security** — BuildDB schema sync, audit logs, IP controls, PoweredByTop hardening.
+
+---
+
+## Contributing & using freely
+
+- **Use it** for your church — fork, brand it, deploy it.  
+- **Improve it** — PRs and issues welcome.  
+- **Share it** — help other ministries avoid expensive closed platforms.
+
+Please don’t commit secrets. Copy `.env.example` → `.env`, keep keys and DB passwords out of git (see `.gitignore`).
+
+---
+
+## Project links
+
+- **Repository:** https://github.com/ThaFuentes/MyVineOS  
+- **Issues:** https://github.com/ThaFuentes/MyVineOS/issues  
+
+---
+
+### Notes for developers
+
+- BuildDB runs on startup (`app/builddb/`, `app/__init__.py`).  
+- Local launcher exports dev DB settings so hosting `.env` values don’t break Docker MariaDB.  
+- For MariaDB without Docker, set `MYSQL_*` yourself and skip Compose.  
+- `poweredbytop/` is a vendored security/session layer shipped with the project.
