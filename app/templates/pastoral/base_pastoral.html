@@ -81,27 +81,27 @@
   <!-- Bottom nav for pastoral on phones (consistent mobile GUI) - full functions -->
   <nav class="bottom-nav" aria-label="Pastoral mobile nav">
     <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="{{ 'active' if request.endpoint == 'pastoral.dashboard_pastoral' else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>
       <span class="label">Dash</span>
     </a>
     <a href="{{ url_for('pastoral.planning.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.planning') else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span>
       <span class="label">Plan</span>
     </a>
     <a href="{{ url_for('pastoral.sermons.list') }}" class="{{ 'active' if request.endpoint and (request.endpoint.startswith('pastoral.sermons') or request.endpoint.startswith('pastoral.podium')) else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
       <span class="label">Sermons</span>
     </a>
     <a href="{{ url_for('pastoral.podium.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.podium') else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-microphone" aria-hidden="true"></i></span>
       <span class="label">Podium</span>
     </a>
     <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.care') else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-heart" aria-hidden="true"></i></span>
       <span class="label">Care</span>
     </a>
     <a href="{{ url_for('pastoral.illustrations.library') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.illustrations') else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></span>
       <span class="label">Illustrations</span>
     </a>
   </nav>

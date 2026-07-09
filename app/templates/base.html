@@ -34,6 +34,8 @@
 
   <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+  <!-- Template UI icons only (never used in server log print statements) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
   <!-- Legacy kept only if needed for specific modules; overhaul.css is now primary for layout and mobile. -->
 
@@ -113,19 +115,19 @@
   {% if session.get('user_id') %}
   <nav class="bottom-nav" aria-label="Primary mobile navigation">
     <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard.dashboard' else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
       <span class="label">Home</span>
     </a>
     <a href="{{ url_for('events.events') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('events','prayers','sermons','dreams','prophecies','announcements'))) else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
       <span class="label">Community</span>
     </a>
     <a href="{{ url_for('profile.profile') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('profile','help','settings','attendance','groups','log','support_tickets'))) else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
       <span class="label">My Stuff</span>
     </a>
     <a href="{{ url_for('the_gathering.index') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith('the_gathering')) else '' }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i></span>
       <span class="label">Manager</span>
     </a>
   </nav>

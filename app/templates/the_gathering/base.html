@@ -28,6 +28,8 @@
 
     <!-- COMPLETE GUI OVERHAUL (new mobile-first) primary -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202606">
+    <!-- Template UI icons only (not used in server log print statements) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <style>
         :root {
@@ -138,35 +140,35 @@
 <!-- Bottom nav for manager area on phones - manager-specific primary nav (overhaul) -->
 <nav class="bottom-nav" aria-label="Manager navigation">
   <a href="/the_gathering/">
-    <span class="icon"></span>
+    <span class="icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>
     <span class="label">Dashboard</span>
   </a>
   <a href="/the_gathering/dashboard/moderation">
-    <span class="icon"></span>
+    <span class="icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></span>
     <span class="label">Queue</span>
   </a>
   <a href="/the_gathering/events/">
-    <span class="icon"></span>
+    <span class="icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span>
     <span class="label">Events</span>
   </a>
   <a href="/the_gathering/prayers/">
-    <span class="icon"></span>
+    <span class="icon"><i class="fa-solid fa-hands-praying" aria-hidden="true"></i></span>
     <span class="label">Prayers</span>
   </a>
   <a href="/the_gathering/sermons/">
-    <span class="icon"></span>
+    <span class="icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
     <span class="label">Sermons</span>
   </a>
   <a href="/the_gathering/dreams/">
-    <span class="icon"></span>
+    <span class="icon"><i class="fa-solid fa-moon" aria-hidden="true"></i></span>
     <span class="label">Dreams</span>
   </a>
   <a href="/the_gathering/prophecies/">
-    <span class="icon"></span>
+    <span class="icon"><i class="fa-solid fa-scroll" aria-hidden="true"></i></span>
     <span class="label">Prophecies</span>
   </a>
   <a href="/the_gathering/announcements/">
-    <span class="icon"></span>
+    <span class="icon"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></span>
     <span class="label">Announce</span>
   </a>
 </nav>

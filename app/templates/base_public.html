@@ -34,6 +34,8 @@
   <!-- COMPLETE GUI OVERHAUL CSS (new mobile-first design) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260708">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/public/base_public.css') }}?v=20260708">
+  <!-- Template UI icons only (never used in server log print statements) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
   <!-- overhaul.css primary; legacy scoped if needed -->
 
@@ -129,43 +131,44 @@
   <nav class="bottom-nav" aria-label="Public navigation">
     {% if session.get('user_id') %}
     <a href="{{ url_for('public.public_dashboard.public_community') }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
       <span class="label">Home</span>
     </a>
     {% else %}
     <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
       <span class="label">Welcome</span>
     </a>
     {% endif %}
     <a href="{{ url_for('public.public_events.public_events') }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span>
       <span class="label">Events</span>
     </a>
     <a href="{{ url_for('public.public_prayers.public_prayers') }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-hands-praying" aria-hidden="true"></i></span>
       <span class="label">Prayers</span>
     </a>
     <a href="{{ url_for('public.public_sermons.public_sermons') }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
       <span class="label">Sermons</span>
     </a>
     <a href="{{ url_for('public.public_prophecies.public_prophecies') }}">
-      <span class="icon"></span>
+      {# Scroll = prophetic word / written revelation (not crystal ball) #}
+      <span class="icon"><i class="fa-solid fa-scroll" aria-hidden="true"></i></span>
       <span class="label">Prophecies</span>
     </a>
     <a href="{{ url_for('public.public_announcements.public_announcements') }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></span>
       <span class="label">Announce</span>
     </a>
     {% if session.get('user_id') %}
     <a href="{{ url_for('dashboard.dashboard') }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i></span>
       <span class="label">My Dash</span>
     </a>
     {% else %}
     <a href="{{ url_for('auth.login') }}">
-      <span class="icon"></span>
+      <span class="icon"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i></span>
       <span class="label">Login-Reg</span>
     </a>
     {% endif %}
