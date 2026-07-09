@@ -1,15 +1,11 @@
-# ================================================================
-# myvineos.poweredby.top/passenger_wsgi.py
-# CLEAN PASSENGER WSGI ENTRY POINT – NO SELF-IMPORT – NO RECURSION
-# 1000% MINIMAL – points to main.py only
-# Full 100% rebuild – security is priority #1
-# ================================================================
-
-import os
 import sys
+import os
 
-# Add current directory to Python path (safe)
+# Force UTF-8 encoding to fix emoji/unicode errors
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+
+# Add project directory to Python path
 sys.path.insert(0, os.path.dirname(__file__))
 
-# Import the actual Flask application from main.py
-from main import application
+# Import your Flask app from main.py
+from main import app as application

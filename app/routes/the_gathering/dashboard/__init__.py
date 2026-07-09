@@ -31,4 +31,4 @@ from . import utils
 # Import view functions explicitly so all routes register on startup
 from .views import dashboard, moderation_queue  # noqa: F401
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard sub-blueprint initialized successfully (main dashboard ready for registration)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard sub-blueprint initialized successfully (main dashboard ready for registration)")

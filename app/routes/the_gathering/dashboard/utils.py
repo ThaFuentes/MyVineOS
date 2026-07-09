@@ -117,4 +117,4 @@ def safe_truncate(text, length=180):
     return text
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/utils.py loaded successfully (public-style rebuilt)")
+#print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/utils.py loaded successfully (public-style rebuilt)")

@@ -104,4 +104,4 @@ def moderation_queue():
     )
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/views.py loaded successfully (public-style rebuilt)")
+# print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/views.py loaded successfully (public-style rebuilt)")

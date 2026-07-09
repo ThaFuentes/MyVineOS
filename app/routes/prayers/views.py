@@ -39,14 +39,14 @@ def prayers():
     is_logged_in = 'user_id' in session
     user_id = session.get('user_id')
 
-    print(f"[DEBUG] Prayers listing accessed – logged_in={is_logged_in}, user_id={user_id}")
+#    print(f"[DEBUG] Prayers listing accessed – logged_in={is_logged_in}, user_id={user_id}")
 
     try:
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
 
         if is_logged_in:
-            print("[DEBUG] Logged-in view – fetching public + private prayers")
+#            print("[DEBUG] Logged-in view – fetching public + private prayers")
             cur.execute("""
                 SELECT p.id, p.title, p.description, p.date_posted, p.visibility,
                        COALESCE(p.status, 'approved') AS status,

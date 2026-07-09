@@ -28,13 +28,13 @@
        {% if request.endpoint == 'members.members_directory' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
        style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Members Dashboard</a>
 
-    {% if can_manage_users() %}
+    {% if can_manage_users %}
     <a href="{{ url_for('members.add_member') }}"
        {% if request.endpoint == 'members.add_member' and request.view_args.get('member_id') is none %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
        style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Member</a>
     {% endif %}
 
-    {% if can_manage_users() %}
+    {% if can_manage_users %}
     <a href="{{ url_for('members.pending_registrations') }}"
        {% if request.endpoint == 'members.pending_registrations' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
        style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Pending Registrations</a>

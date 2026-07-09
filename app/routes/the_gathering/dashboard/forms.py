@@ -20,4 +20,4 @@ def validate_search_filter(form_data):
     }
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/forms.py loaded successfully")
+#print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/forms.py loaded successfully")

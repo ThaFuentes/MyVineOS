@@ -219,4 +219,4 @@ def get_pending_comments_queue(limit=100):
     return queue[:limit]
 
 
-print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/queries.py loaded successfully (public-style rebuilt – fully parameterized and consistent)")
+#print("✅ MYVINECHURCH.ONLINE the_gathering/dashboard/queries.py loaded successfully (public-style rebuilt – fully parameterized and consistent)")

@@ -561,7 +561,7 @@ def seed_default_sunday_template():
     cur.execute("SELECT id FROM users WHERE role = 'Owner' LIMIT 1")
     owner = cur.fetchone()
     if not owner:
-        print("Warning: No Owner – cannot seed default template.")
+#        print("Warning: No Owner – cannot seed default template.")
         return
     creator_id = owner['id']
 

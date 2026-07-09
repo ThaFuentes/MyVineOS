@@ -29,14 +29,14 @@ from app.utils.comment_moderation import (
 @events_bp.route('/')
 def public_events():
     """Public events listing – upcoming public events only."""
-    print("🔍 [PUBLIC EVENTS] Route /public/events/ hit (sub-blueprint)")
+#    print("🔍 [PUBLIC EVENTS] Route /public/events/ hit (sub-blueprint)")
 
     if 'user_id' in session:
-        print("🔄 [PUBLIC EVENTS] Logged-in user → redirecting to private events")
+#        print("🔄 [PUBLIC EVENTS] Logged-in user → redirecting to private events")
         return redirect(url_for('events.events'))
 
     events = get_public_events()
-    print(f"📊 [PUBLIC EVENTS] Raw events returned from query: {len(events)} records")
+#    print(f"📊 [PUBLIC EVENTS] Raw events returned from query: {len(events)} records")
 
     events = censor_public_content(events)
 

@@ -64,7 +64,7 @@
   </button>
   <div class="nav-group-menu" role="menu">
     <a href="{{ url_for('pastoral.dashboard_pastoral') }}" role="menuitem" class="{{ 'active' if ep.startswith('pastoral.') else '' }}">Pastoral</a>
-    <a href="{{ url_for('support_tickets.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('support_tickets.') else '' }}">Support Tickets</a>
+    <a href="{{ url_for('tickets.manager_dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('support_tickets.') else '' }}">Support Tickets</a>
     <a href="{{ url_for('log.change_records') }}" role="menuitem" class="{{ 'active' if ep.startswith('log.') else '' }}">Change Log</a>
     {% if show_gathering %}
     <a href="{{ url_for('the_gathering.index') }}" role="menuitem" class="{{ 'active' if ep.startswith('the_gathering.') else '' }}">Gathering Manager</a>

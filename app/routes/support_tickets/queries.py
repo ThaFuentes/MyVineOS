@@ -49,7 +49,7 @@ def create_ticket(user_id, title, description, category_id, priority, created_at
     """, (user_id, title, description, category_id, priority, created_at, created_at))
     db.commit()
     new_id = cur.lastrowid
-    print(f"✅ [DEBUG] create_ticket created ID {new_id}")
+#     print(f"✅ [DEBUG] create_ticket created ID {new_id}")
     return new_id
 
 
@@ -97,7 +97,7 @@ def add_ticket_comment(ticket_id, user_id, comment, created_at):
     """, (ticket_id, user_id, comment, created_at))
     cur.execute("UPDATE tickets SET updated_at = %s WHERE id = %s", (created_at, ticket_id))
     db.commit()
-    print("✅ [DEBUG] add_ticket_comment done")
+#     print("✅ [DEBUG] add_ticket_comment done")
 
 
 def get_ticket_categories():
@@ -130,7 +130,7 @@ def get_staff_emails():
             if row[0]:
                 emails.add(row[0].strip())
     except Exception as e:
-        print(f"⚠️ [DEBUG] Error getting ticket_managers emails: {e}")
+#         print(f"⚠️ [DEBUG] Error getting ticket_managers emails: {e}")
 
     try:
         cur.execute("""
@@ -142,7 +142,7 @@ def get_staff_emails():
             if row[0]:
                 emails.add(row[0].strip())
     except Exception as e:
-        print(f"⚠️ [DEBUG] Error getting admin/owner emails: {e}")
+#         print(f"⚠️ [DEBUG] Error getting admin/owner emails: {e}")
 
     cur.close()
     return list(emails)
@@ -158,4 +158,4 @@ def get_ticket_title(ticket_id):
     return row[0] if row else f"Ticket #{ticket_id}"
 
 
-print("✅ [DEBUG] support_tickets/queries.py (FIXED) FULLY LOADED")
+# print("✅ [DEBUG] support_tickets/queries.py (FIXED) FULLY LOADED")

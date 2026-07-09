@@ -1,13 +1,9 @@
-import os
+# passenger_wsgi.py - Clean version for MyVineOS (loads main.py)
 import sys
+import os
 
-
+# Add current directory to Python path
 sys.path.insert(0, os.path.dirname(__file__))
 
-
-def application(environ, start_response):
-    start_response('200 OK', [('Content-Type', 'text/plain')])
-    message = 'It works!\n'
-    version = 'Python v' + sys.version.split()[0] + '\n'
-    response = '\n'.join([message, version])
-    return [response.encode()]
+# Import the Flask app from main.py as 'application' (required by Passenger)
+from main import app as application

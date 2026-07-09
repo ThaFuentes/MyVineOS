@@ -11,7 +11,5 @@ def create_tables(cursor):
     try:
         build_pbt_tables(verbose=False, cursor=cursor)
     except Exception as e:
-        print(f"  ⚠️ pbt_security build note: {e}")
-        # non-fatal; tables may exist or pbt not fully present in this env
-
-# No direct run; only via main build or pbt init.
+        pass  # non-fatal; tables may exist or pbt not fully present in this env
+    # No direct run; only via main build or pbt init.
