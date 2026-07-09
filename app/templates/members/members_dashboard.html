@@ -1,0 +1,251 @@
+<!-- myvinechurchonline/app/templates/members/members_dashboard.html -->
+<!-- Full path: myvinechurchonline/app/templates/members/members_dashboard.html -->
+<!-- File name: members_dashboard.html -->
+<!-- Brief, detailed purpose: Members Dashboard – main directory page.
+   Extends base_members.html → perfect match with Events/Announcements.
+   Fixed BuildError: Edit uses 'members.add_member' with member_id (combined add/edit route).
+   Delete uses 'members.delete_member' (assumed correct; adjust if different).
+   Pure global CSS, glass cards/table, collapsible search/filters, expandable family/details. -->
+
+{% extends "members/base_members.html" %}
+
+{% block page_title %}Members Dashboard{% endblock %}
+
+{% block page_description %}
+Searchable directory with family links and details.<br>
+Admin/Owner: add members, export DOCX, email roster.
+{% endblock %}
+
+{% block members_content %}
+
+<!-- App-style stats -->
+<div style="margin-bottom:0.75rem;">
+  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.35rem; letter-spacing:0.5px;">DIRECTORY STATS</div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:0.55rem;">
+    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
+      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ total_count }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Total</div>
+    </div>
+    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
+      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ member_count }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Members</div>
+    </div>
+    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
+      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ staff_count }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Staff</div>
+    </div>
+    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
+      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ admin_count }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Admins</div>
+    </div>
+        {% if owner_count > 0 or session.get('user_role') == 'Owner' %}
+    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
+      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ owner_count }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Owners</div>
+    </div>
+        {% endif %}
+    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
+      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ families_linked }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Families</div>
+    </div>
+  </div>
+</div>
+
+<!-- Top Admin Buttons -->
+{% if session.get('user_role') in ['Admin', 'Owner'] %}
+<div class="form-actions add-event-top" style="justify-content:center; gap:1.5rem; flex-wrap:wrap; margin:2rem 0;">
+    <a href="{{ url_for('members.add_member') }}" class="btn-primary">+ Add New Member</a>
+    <a href="{{ url_for('members.export_directory') }}" class="btn-primary">Export to DOCX</a>
+    <a href="{{ url_for('members.email_roster') }}" class="btn-primary">Member Emails</a>
+</div>
+{% endif %}
+
+<!-- Search & Filters -->
+<section class="content-section">
+    <h2 class="section-title">All Members</h2>
+
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search Members</label>
+                <input type="text" id="searchBox" class="search-input" placeholder="Name, email, phone..." autocomplete="off">
+                <p class="help-text">Live search</p>
+            </div>
+            <div class="form-group filter-group">
+                <label class="control-label">Role Filter</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    <button data-filter="Member" class="btn btn-small filter-btn btn-secondary">Members</button>
+                    <button data-filter="Staff" class="btn btn-small filter-btn btn-secondary">Staff</button>
+                    <button data-filter="Admin" class="btn btn-small filter-btn btn-secondary">Admins</button>
+                    {% if session.get('user_role') == 'Owner' %}
+                    <button data-filter="Owner" class="btn btn-small filter-btn btn-secondary">Owners</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Glass Table -->
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Role</th>
+                    <th>Family Links</th>
+                    {% if session.get('user_role') in ['Admin', 'Owner'] %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="membersBody">
+                {% if members %}
+                    {% for member in members %}
+                    <tr class="data-row" data-role="{{ member.role }}" onclick="toggleDetails('details-{{ member.id }}')" style="cursor:pointer;">
+                        <td><strong>{{ member.first_name }} {{ member.last_name }}</strong></td>
+                        <td>{{ member.email }}</td>
+                        <td>{{ member.phone or '-' }}</td>
+                        <td>{{ member.role }}</td>
+                        <td>{{ member.family_count or 0 }}</td>
+                        {% if session.get('user_role') in ['Admin', 'Owner'] %}
+                        <td class="actions-cell" onclick="event.stopPropagation();">
+                            <div class="actions-buttons">
+                                <!-- FIXED: uses add_member with member_id for edit -->
+                                <a href="{{ url_for('members.add_member', member_id=member.id) }}" class="btn-primary btn-small">Edit</a>
+                                <form action="{{ url_for('members.delete_member', member_id=member.id) }}" method="post" class="inline-form">
+                                    <button type="submit" class="btn-danger btn-small"
+                                            onclick="return confirm('Permanently delete this member? This cannot be undone.');">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    <tr class="details-row" id="details-{{ member.id }}" style="display:none;">
+                        <td colspan="{{ 6 if session.get('user_role') in ['Admin', 'Owner'] else 5 }}" class="details-content">
+                            <div class="potluck-content">
+                                <section class="detail-section">
+                                    <h3 class="detail-heading">Family Members ({{ member.family_count or 0 }})</h3>
+                                    <div class="detail-content">
+                                        {% if member.family_members %}
+                                            <ul class="family-list">
+                                                {% for rel in member.family_members %}
+                                                <li>
+                                                    <strong>{{ rel.related_first_name }} {{ rel.related_last_name }}</strong>
+                                                    ({{ rel.relation_type|capitalize }}
+                                                    {% if rel.status == 'pending' %} – Pending Approval{% endif %})
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            <p>No family links.</p>
+                                        {% endif %}
+                                    </div>
+                                </section>
+
+                                <section class="detail-section">
+                                    <h3 class="detail-heading">Additional Details</h3>
+                                    <div class="detail-content">
+                                        {% if member.address %}
+                                            <p><strong>Address:</strong><br>{{ member.address|nl2br }}</p>
+                                        {% endif %}
+                                        {% if member.birthday %}
+                                            <p><strong>Birthday:</strong> {{ member.birthday }}
+                                                {% if member.show_birthday %} (Visible){% else %} (Hidden){% endif %}
+                                            </p>
+                                        {% endif %}
+                                        <p><strong>Accepts Emails:</strong> {{ 'Yes' if member.accepts_emails else 'No' }}</p>
+                                    </div>
+                                </section>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{{ 6 if session.get('user_role') in ['Admin', 'Owner'] else 5 }}" class="no-data">No members found.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No members match the current search and filters.
+    </div>
+</section>
+
+<script>
+  function toggleDetails(id) {
+    const row = document.getElementById(id);
+    if (!row) return;
+    const isOpen = row.style.display === 'table-row';
+    row.style.display = isOpen ? 'none' : 'table-row';
+  }
+
+  (function() {
+    const searchBox = document.getElementById('searchBox');
+    const membersBody = document.getElementById('membersBody');
+    const noResults = document.getElementById('noResults');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    let roleFilter = 'all';
+    let timer;
+
+    function highlightFilters() {
+      filterButtons.forEach(btn => {
+        btn.classList.toggle('btn-primary', btn.dataset.filter === roleFilter);
+        btn.classList.toggle('btn-secondary', btn.dataset.filter !== roleFilter);
+      });
+    }
+
+    function applyFilters() {
+      const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+      const rows = membersBody.querySelectorAll('.data-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const role = row.dataset.role || '';
+        const matchesSearch = query === '' || text.includes(query);
+        const matchesRole = roleFilter === 'all' || role === roleFilter;
+        const show = matchesSearch && matchesRole;
+        row.style.display = show ? '' : 'none';
+
+        const details = row.nextElementSibling;
+        if (details && details.classList.contains('details-row')) {
+          details.style.display = 'none';
+        }
+
+        if (show) visibleCount++;
+      });
+
+      if (noResults) noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+      searchBox.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(applyFilters, 300);
+      });
+    }
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        roleFilter = btn.dataset.filter;
+        highlightFilters();
+        applyFilters();
+      });
+    });
+
+    highlightFilters();
+    applyFilters();
+  })();
+</script>
+{% endblock %}

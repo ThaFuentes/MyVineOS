@@ -1,0 +1,100 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/announcements/view.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/announcements/view.html -->
+<!-- File name: view.html -->
+<!-- Brief, detailed purpose: Read-only detailed view of a single announcement inside the Gathering Place Manager. -->
+<!-- • Shows every field from the announcements table in a clean layout. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.announcements.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}View Announcement • {{ announcement.title }}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">📢 Announcement Detail</h1>
+            <h2 class="text-light">{{ announcement.title }}</h2>
+        </div>
+
+        <div style="display:flex; gap:0.5rem;">
+            <!-- Back to Announcements Manager -->
+            <a href="{{ url_for('the_gathering.announcements.announcements_dashboard') }}" class="btn btn-secondary">
+                ← Back to Announcements
+            </a>
+
+            <!-- Edit Announcement -->
+            <a href="{{ url_for('the_gathering.announcements.edit_announcement', announcement_id=announcement.id) }}" class="btn btn-primary">
+                ✏️ Edit Announcement
+            </a>
+
+            <!-- Manage Comments -->
+            <a href="{{ url_for('the_gathering.announcements.announcement_comments', announcement_id=announcement.id) }}" class="btn btn-warning">
+                💬 Manage Comments ({{ comment_count or 0 }})
+            </a>
+
+            <!-- View on Public Site -->
+            <a href="{{ url_for('public.public_announcements.public_announcement_detail', ann_id=announcement.id) }}"
+               target="_blank" class="btn btn-outline-light">
+                👁️ View Public
+            </a>
+
+            <!-- Delete Announcement -->
+            <form method="POST" action="{{ url_for('the_gathering.announcements.delete_announcement', announcement_id=announcement.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this announcement and ALL its comments?')">
+                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="glass p-4 mb-5">
+        <!-- Meta Row -->
+        <div class="row mb-4" style="font-size:1.1rem;">
+            <div class="col-md-3">
+                <strong>Pinned:</strong>
+                {% if announcement.is_pinned %}
+                    <span class="badge bg-warning">📌 Yes</span>
+                {% else %}
+                    <span class="text-muted">No</span>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
+                <strong>Visibility:</strong>
+                <span class="badge {% if announcement.visibility == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
+                    {{ announcement.visibility|upper }}
+                </span>
+            </div>
+            <div class="col-md-3">
+                <strong>Expires:</strong>
+                {% if announcement.expiration_date %}
+                    {{ announcement.expiration_date }}
+                {% else %}
+                    <span class="text-muted">Never</span>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
+                <strong>Created:</strong> {{ announcement.created_at | format_manager_datetime }}
+            </div>
+        </div>
+
+        <!-- Full Content -->
+        <div class="mb-5">
+            <h5 class="text-light">Announcement Content</h5>
+            <div class="glass-panel">{{ announcement.content | nl2br | safe }}</div>
+        </div>
+
+        <!-- Created / Updated Info -->
+        <div class="text-muted small mt-4">
+            Created by {{ announcement.creator_name or 'Anonymous' }} on {{ announcement.created_at | format_manager_datetime }}<br>
+            Last updated: {{ announcement.updated_at | format_manager_datetime }}
+        </div>
+    </div>
+</div>
+
+<script>
+    console.log('✅ Announcement View loaded for announcement #{{ announcement.id }}');
+</script>
+
+{% endblock %}

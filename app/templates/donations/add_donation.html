@@ -1,0 +1,209 @@
+{% extends "donations/base_donations.html" %}
+
+{% block page_title %}Add New Donation{% endblock %}
+
+{% block page_description %}
+Record a member or non-member donation. Search links the gift to a member account; leave search blank for guests and businesses.
+{% endblock %}
+
+{% block donations_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Record Donation</h2>
+
+    <form method="POST" action="{{ url_for('donations.add_donation') }}" class="styled-form" id="donation-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <input type="hidden" name="user_id" id="user_id" value="{{ request.form.get('user_id', '') }}">
+        <input type="hidden" name="donor_type" id="donor_type" value="{{ request.form.get('donor_type', 'guest') }}">
+
+        <div class="form-group member-search">
+            <label for="member-search-input" class="control-label">Link to Member (optional)</label>
+            <input type="text" id="member-search-input" class="search-input"
+                   placeholder="Search username, name, email, or phone…" autocomplete="off">
+            <div id="member-results" class="table-wrapper" style="margin-top:0.5rem;"></div>
+            <p class="help-text">
+                Select a member to link this donation to their account (recommended for receipts).<br>
+                <button type="button" class="btn-small btn-secondary" onclick="clearMemberLink()">Clear — record as non-member</button>
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label for="name" class="control-label">Donor Name <span class="required">*</span></label>
+            <input type="text" id="name" name="name" class="form-input" required
+                   value="{{ request.form.get('name', '') }}" placeholder="Full name or organization">
+        </div>
+
+        <div class="form-group">
+            <label for="donor_email" class="control-label">Email (optional)</label>
+            <input type="email" id="donor_email" name="donor_email" class="form-input"
+                   value="{{ request.form.get('donor_email', '') }}" placeholder="donor@example.com">
+            <p class="help-text">Auto-filled for members; enter for guests/businesses.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="donor_phone" class="control-label">Phone (optional)</label>
+            <input type="tel" id="donor_phone" name="donor_phone" class="form-input"
+                   value="{{ request.form.get('donor_phone', '') }}" placeholder="(555) 123-4567">
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="is_business" name="is_business" {% if request.form.get('is_business') %}checked{% endif %}>
+                This is a business/corporate donation (non-member)
+            </label>
+        </div>
+
+        <div id="business-fields" class="form-group" style="display:{% if request.form.get('is_business') %}block{% else %}none{% endif %};">
+            <label for="company_ein" class="control-label">Company EIN / Tax ID (optional)</label>
+            <input type="text" id="company_ein" name="company_ein" class="form-input"
+                   value="{{ request.form.get('company_ein', '') }}" placeholder="e.g., 12-3456789">
+            <p class="help-text">Appended to notes for permanent record.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="amount" class="control-label">Amount <span class="required">*</span></label>
+            <input type="number" id="amount" name="amount" class="form-input" step="0.01" min="0.01" required
+                   value="{{ request.form.get('amount', '') }}" placeholder="0.00">
+        </div>
+
+        <div class="form-group">
+            <label for="date" class="control-label">Date <span class="required">*</span></label>
+            <input type="date" id="date" name="date" class="form-input" required
+                   value="{{ request.form.get('date', today) }}">
+        </div>
+
+        <div class="form-group">
+            <label for="method" class="control-label">Method <span class="required">*</span></label>
+            <select id="method" name="method" class="form-input" required>
+                <option value="">-- Select Method --</option>
+                {% for m in ['Cash', 'Check', 'Online', 'Bank Transfer', 'Other'] %}
+                <option value="{{ m }}" {% if request.form.get('method') == m %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="confirmation_number" class="control-label">Confirmation / Check # (optional)</label>
+            <input type="text" id="confirmation_number" name="confirmation_number" class="form-input"
+                   value="{{ request.form.get('confirmation_number', '') }}" placeholder="e.g., Check #1234">
+        </div>
+
+        <div class="form-group">
+            <label for="notes" class="control-label">Notes (optional)</label>
+            <textarea id="notes" name="notes" rows="5" class="form-input">{{ request.form.get('notes', '') }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="goods_services_provided" value="1" {% if request.form.get('goods_services_provided') %}checked{% endif %}>
+                Goods or services were provided in exchange
+            </label>
+        </div>
+
+        <div class="content-section compliance-info glass" style="margin-top:2rem;">
+            <h3 class="section-title">Receipt Compliance Information</h3>
+            <p><strong>{{ church_info.church_name or 'MyVineChurch.Online' }}</strong></p>
+            {% if church_info.address %}<p>{{ church_info.address }}</p>{% endif %}
+            {% if church_info.phone_number %}<p>Phone: {{ church_info.phone_number }}</p>{% endif %}
+            {% if church_info.tax_status %}<p class="ein">Church Tax ID / EIN: {{ church_info.tax_status }}</p>{% endif %}
+            <p class="statement">
+                <strong>Standard IRS Statement:</strong><br>
+                "No goods or services were provided in exchange for your contribution, other than intangible religious benefits."
+            </p>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Add Donation</button>
+            <a href="{{ url_for('donations.donations_dashboard') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+<script>
+  const members = {{ members|tojson }};
+  const searchInput = document.getElementById('member-search-input');
+  const resultsDiv = document.getElementById('member-results');
+  const nameInput = document.getElementById('name');
+  const emailInput = document.getElementById('donor_email');
+  const phoneInput = document.getElementById('donor_phone');
+  const userIdInput = document.getElementById('user_id');
+  const donorTypeInput = document.getElementById('donor_type');
+  const businessCheckbox = document.getElementById('is_business');
+  const businessFields = document.getElementById('business-fields');
+
+  function syncDonorType() {
+    if (userIdInput.value) {
+      donorTypeInput.value = 'member';
+      businessCheckbox.checked = false;
+      businessFields.style.display = 'none';
+    } else if (businessCheckbox.checked) {
+      donorTypeInput.value = 'business';
+    } else {
+      donorTypeInput.value = 'guest';
+    }
+  }
+
+  function clearMemberLink() {
+    userIdInput.value = '';
+    searchInput.value = '';
+    resultsDiv.innerHTML = '';
+    syncDonorType();
+  }
+
+  businessCheckbox.addEventListener('change', () => {
+    businessFields.style.display = businessCheckbox.checked ? 'block' : 'none';
+    if (businessCheckbox.checked) userIdInput.value = '';
+    syncDonorType();
+  });
+
+  function showResults(filtered) {
+    resultsDiv.innerHTML = '';
+    if (!filtered.length) {
+      resultsDiv.innerHTML = '<div class="no-data">No members found</div>';
+      return;
+    }
+    const table = document.createElement('table');
+    table.className = 'data-table';
+    const tbody = document.createElement('tbody');
+    filtered.forEach(member => {
+      const tr = document.createElement('tr');
+      tr.className = 'member-result-item';
+      tr.textContent = member.display;
+      tr.style.cursor = 'pointer';
+      tr.onclick = () => {
+        nameInput.value = member.value;
+        emailInput.value = member.email || '';
+        phoneInput.value = member.phone || '';
+        userIdInput.value = member.id;
+        donorTypeInput.value = 'member';
+        businessCheckbox.checked = false;
+        businessFields.style.display = 'none';
+        resultsDiv.innerHTML = '';
+        searchInput.value = member.value;
+      };
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    resultsDiv.appendChild(table);
+  }
+
+  searchInput.addEventListener('input', () => {
+    const val = searchInput.value.toLowerCase().trim();
+    if (!val) { showResults(members); return; }
+    showResults(members.filter(m => m.search.includes(val)));
+  });
+
+  searchInput.addEventListener('focus', () => {
+    if (!searchInput.value) showResults(members);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+      resultsDiv.innerHTML = '';
+    }
+  });
+
+  syncDonorType();
+</script>
+
+{% endblock %}

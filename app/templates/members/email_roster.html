@@ -1,0 +1,134 @@
+{% extends "members/base_members.html" %}
+
+{% block page_title %}Member Emails{% endblock %}
+{% block page_description %}
+Send the member roster or a custom message. Pick one option below — each does something different.
+Currently <strong>{{ roster_count }}</strong> active member(s) accept church emails and appear in the roster.
+{% endblock %}
+
+{% block members_content %}
+<div class="glass-panel" style="padding:1.25rem; max-width:820px;">
+
+  <form method="POST" class="styled-form" id="member-email-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+    <h2 class="section-subtitle" style="margin-bottom:1rem;">What do you want to do?</h2>
+
+    <div class="send-mode-options" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
+
+      <label class="glass-panel send-mode-card" style="padding:1rem; cursor:pointer; display:block; border:2px solid transparent;">
+        <input type="radio" name="send_mode" value="roster_to_address" style="margin-right:0.5rem;"
+          {% if (form and form.get('send_mode') == 'roster_to_address') or not form %}checked{% endif %}>
+        <strong>1. Send roster to someone</strong>
+        <p class="help-text" style="margin:0.35rem 0 0 1.4rem;">
+          Email the full member list (name, phone, email) to one or more <em>specific addresses</em> — e.g. treasurer, pastor, external bookkeeper. Members are <strong>not</strong> emailed.
+        </p>
+      </label>
+
+      <label class="glass-panel send-mode-card" style="padding:1rem; cursor:pointer; display:block; border:2px solid transparent;">
+        <input type="radio" name="send_mode" value="message_all_members" style="margin-right:0.5rem;"
+          {% if form and form.get('send_mode') == 'message_all_members' %}checked{% endif %}>
+        <strong>2. Message all members</strong>
+        <p class="help-text" style="margin:0.35rem 0 0 1.4rem;">
+          Send <em>your custom message</em> to every member who accepts church emails. No roster attached — just your note.
+        </p>
+      </label>
+
+      <label class="glass-panel send-mode-card" style="padding:1rem; cursor:pointer; display:block; border:2px solid transparent;">
+        <input type="radio" name="send_mode" value="roster_to_all_members" style="margin-right:0.5rem;"
+          {% if form and form.get('send_mode') == 'roster_to_all_members' %}checked{% endif %}>
+        <strong>3. Send roster to all members</strong>
+        <p class="help-text" style="margin:0.35rem 0 0 1.4rem;">
+          Email the <em>full roster</em> to every member who accepts church emails — each person gets the directory list.
+        </p>
+      </label>
+    </div>
+
+    <div id="field-recipients" class="mode-fields">
+      <div class="form-group">
+        <label for="recipient_emails">Send roster to these email address(es) <span class="required">*</span></label>
+        <input type="text" id="recipient_emails" name="recipient_emails" class="form-input"
+               placeholder="treasurer@church.org or email1@x.com, email2@x.com"
+               value="{{ form.recipient_emails if form else '' }}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="subject">Subject <span class="required" id="subject-required">*</span></label>
+      <input type="text" id="subject" name="subject" class="form-input"
+             placeholder="Defaults to &quot;Church Member Roster&quot; for roster options"
+             value="{{ form.subject if form else '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="message" id="message-label">Optional note (appears above roster)</label>
+      <textarea id="message" name="message" rows="8" class="form-input"
+                placeholder="Add a short note if you want...">{{ form.message if form else '' }}</textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" id="submit-btn">Send roster to address</button>
+      <a href="{{ url_for('members.members_directory') }}" class="btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<style>
+  .send-mode-card:has(input:checked) {
+    border-color: var(--primary, #0ff) !important;
+    background: rgba(0, 255, 255, 0.06);
+  }
+</style>
+
+<script>
+(function () {
+  var form = document.getElementById('member-email-form');
+  if (!form) return;
+
+  var configs = {
+    roster_to_address: {
+      showRecipients: true,
+      subjectRequired: false,
+      messageLabel: 'Optional note (appears above roster)',
+      messagePlaceholder: 'e.g. Attached is our current member roster for your records.',
+      submitText: 'Send roster to address(es)',
+    },
+    message_all_members: {
+      showRecipients: false,
+      subjectRequired: true,
+      messageLabel: 'Your message to all members *',
+      messagePlaceholder: 'Write the announcement or update you want every member to receive...',
+      submitText: 'Message all members',
+    },
+    roster_to_all_members: {
+      showRecipients: false,
+      subjectRequired: false,
+      messageLabel: 'Optional intro (appears above roster)',
+      messagePlaceholder: 'Leave blank for a default intro, or write your own.',
+      submitText: 'Send roster to all members',
+    },
+  };
+
+  function selectedMode() {
+    var r = form.querySelector('input[name="send_mode"]:checked');
+    return r ? r.value : 'roster_to_address';
+  }
+
+  function syncFields() {
+    var mode = selectedMode();
+    var cfg = configs[mode] || configs.roster_to_address;
+    document.getElementById('field-recipients').style.display = cfg.showRecipients ? 'block' : 'none';
+    document.getElementById('subject-required').style.display = cfg.subjectRequired ? 'inline' : 'none';
+    document.getElementById('message-label').textContent = cfg.messageLabel;
+    document.getElementById('message').placeholder = cfg.messagePlaceholder;
+    document.getElementById('submit-btn').textContent = cfg.submitText;
+    document.getElementById('message').required = mode === 'message_all_members';
+  }
+
+  form.querySelectorAll('input[name="send_mode"]').forEach(function (el) {
+    el.addEventListener('change', syncFields);
+  });
+  syncFields();
+})();
+</script>
+{% endblock %}

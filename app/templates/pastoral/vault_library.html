@@ -1,0 +1,72 @@
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Pastoral Vault{% endblock %}
+
+{% block pastoral_content %}
+<div class="glass-panel" style="text-align:center; margin-bottom:0.75rem;">
+  <h2 style="margin:0 0 0.2rem;">📦 Pastoral Vault</h2>
+  <div style="opacity:0.7; font-size:0.85rem;">Saved sermon sections &amp; reusable blocks • {{ total_count }} items</div>
+</div>
+
+<div class="glass-panel" style="margin-bottom:0.6rem;">
+  <form method="GET" style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;">
+    <div style="flex:1; min-width:220px;">
+      <label style="display:block; font-size:0.75rem; opacity:0.7; margin-bottom:0.2rem;">Search</label>
+      <input type="text" name="q" value="{{ q or '' }}" placeholder="title, scripture, content..."
+             style="width:100%; padding:0.5rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
+    </div>
+    <button type="submit" class="btn btn-primary" style="min-height:42px;">Search</button>
+  </form>
+</div>
+
+{% if edit_item %}
+<section class="glass-panel" style="margin-bottom:1rem;">
+  <h3 style="margin-top:0;">Edit Vault Item</h3>
+  <form method="POST">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="content" value="{{ edit_item.content|e }}">
+    <div style="margin-bottom:0.5rem;">
+      <label>Title</label>
+      <input type="text" name="title" value="{{ edit_item.title }}" required style="width:100%; padding:0.5rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
+    </div>
+    <div style="margin-bottom:0.5rem;">
+      <label>Section Type</label>
+      <select name="section_type" style="width:100%; padding:0.5rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
+        {% for t in ['introduction','point','application','illustration','conclusion','other'] %}
+        <option value="{{ t }}" {% if edit_item.section_type == t %}selected{% endif %}>{{ t|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <a href="{{ url_for('pastoral.vault.library') }}" class="btn btn-secondary">Cancel</a>
+  </form>
+</section>
+{% endif %}
+
+{% if items %}
+  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:0.65rem;">
+    {% for item in items %}
+    <div class="glass-panel" style="display:flex; flex-direction:column; gap:0.4rem;">
+      <div style="display:flex; justify-content:space-between; gap:0.5rem; align-items:flex-start;">
+        <strong>{{ item.title or 'Untitled' }}</strong>
+        <span style="font-size:0.75rem; opacity:0.7;">{{ item.section_type or 'section' }}</span>
+      </div>
+      {% if item.scripture_reference %}
+      <div style="font-size:0.8rem; opacity:0.75;">{{ item.scripture_reference }}</div>
+      {% endif %}
+      <div style="font-size:0.85rem; max-height:120px; overflow:hidden; opacity:0.9;">{{ item.content|safe }}</div>
+      {% if item.tag_list %}
+      <div style="font-size:0.75rem; opacity:0.7;">Tags: {{ item.tag_list|join(', ') }}</div>
+      {% endif %}
+      {% if item.can_edit %}
+      <a href="{{ url_for('pastoral.vault.library', edit_id=item.id, q=q) }}" class="btn btn-small btn-secondary" style="align-self:flex-start;">Edit</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="glass-panel" style="text-align:center; padding:2rem;">
+    <p style="opacity:0.8; margin:0;">No vault items yet. Save sections from the sermon builder to build your reusable library.</p>
+  </div>
+{% endif %}
+{% endblock %}

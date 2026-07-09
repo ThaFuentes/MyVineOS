@@ -1,0 +1,58 @@
+{# app/templates/pastoral/sermon_section_partial.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/sermon_section_partial.html #}
+{# File name: sermon_section_partial.html #}
+{# Brief, detailed purpose:
+#   Partial template for a single sermon section in the accordion editor.
+#   Used by sermon_editor.html to render each existing section on load.
+#   Includes type dropdown, title, scripture reference, Quill content area, notes textarea.
+#   Fully compatible with sermon_editor.js dynamic add/remove/reorder. #}
+
+<div class="accordion-item section-item" data-index="{{ index }}">
+    <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#section-collapse-{{ index }}">
+            Section {{ index + 1 }}: {{ section.title or 'Untitled' }}
+        </button>
+    </h2>
+    <div id="section-collapse-{{ index }}" class="accordion-collapse collapse" data-bs-parent="#sections-accordion">
+        <div class="accordion-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label text-cyan">Type</label>
+                    <select class="form-select form-control-dark section-type">
+                        <option value="introduction" {{ 'selected' if section.section_type == 'introduction' else '' }}>Introduction</option>
+                        <option value="point" {{ 'selected' if section.section_type == 'point' else '' }}>Point</option>
+                        <option value="scripture" {{ 'selected' if section.section_type == 'scripture' else '' }}>Scripture</option>
+                        <option value="illustration" {{ 'selected' if section.section_type == 'illustration' else '' }}>Illustration</option>
+                        <option value="application" {{ 'selected' if section.section_type == 'application' else '' }}>Application</option>
+                        <option value="conclusion" {{ 'selected' if section.section_type == 'conclusion' else '' }}>Conclusion</option>
+                    </select>
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label text-cyan">Title</label>
+                    <input type="text" class="form-control form-control-dark section-title" value="{{ section.title or '' }}">
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <label class="form-label text-cyan">Scripture Reference</label>
+                <input type="text" class="form-control form-control-dark section-scripture" value="{{ section.scripture_reference or '' }}">
+            </div>
+
+            <div class="mt-3">
+                <label class="form-label text-cyan">Content</label>
+                <div class="quill-editor" style="height:300px;">{{ section.content|safe }}</div>
+            </div>
+
+            <div class="mt-3">
+                <label class="form-label text-cyan">Notes</label>
+                <textarea class="form-control form-control-dark section-notes" rows="3">{{ section.notes or '' }}</textarea>
+            </div>
+
+            <div class="mt-3 text-end">
+                <button type="button" class="btn btn-sm btn-danger remove-section">
+                    <i class="fas fa-trash me-1"></i>Remove Section
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

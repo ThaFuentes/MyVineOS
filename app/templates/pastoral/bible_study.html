@@ -1,0 +1,128 @@
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Bible Study{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260709c">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260709c">
+{% endblock %}
+
+{% block pastoral_content %}
+<div class="bible-study-header text-center mb-3">
+    <h2 class="mb-1"><i class="fas fa-book-bible me-2"></i>Bible Study Guide</h2>
+    <p class="text-muted mb-0">Full-screen reading — open Books or Search tools when you need them.</p>
+</div>
+
+<div class="bible-sermon-bar glass-card mb-3">
+    <div class="bible-sermon-bar-inner">
+        <div class="bible-sermon-field">
+            <label class="form-label small mb-1" for="bible-sermon-select">Active sermon</label>
+            <select id="bible-sermon-select" class="form-select form-control-dark">
+                <option value="">— Choose a sermon to insert into —</option>
+                {% for s in sermons %}
+                <option value="{{ s.id }}" {% if sermon_id == s.id %}selected{% endif %}>{{ s.title }}{% if s.primary_passage %} ({{ s.primary_passage }}){% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="bible-sermon-actions">
+            <button type="button" id="bible-new-sermon-btn" class="btn btn-outline-cyan btn-sm">
+                <i class="fas fa-plus me-1"></i>New sermon
+            </button>
+            <a href="#" id="bible-open-sermon-btn" class="btn btn-cyan btn-sm disabled" target="_blank" rel="noopener">
+                <i class="fas fa-pen me-1"></i>Open editor
+            </a>
+        </div>
+    </div>
+    <p id="bible-sermon-hint" class="small text-muted mb-0 mt-2">
+        {% if sermon_id and sermon %}
+        Linked to <strong>{{ sermon.title }}</strong>.
+        {% else %}
+        Pick or create a sermon to insert verses from the main reading area.
+        {% endif %}
+    </p>
+</div>
+
+<div class="bible-stage" id="bible-study-stage">
+    <div class="bible-stage-toolbar glass-card" style="padding:0.5rem 0.65rem;">
+        <button type="button" id="bible-open-canon" class="btn btn-sm btn-outline-cyan bible-flyout-trigger">📖 Books</button>
+        <h4 id="bible-reader-title" class="bible-stage-title">Select a book</h4>
+        <div class="bible-stage-toolbar-actions">
+            <button type="button" id="bible-back-chapter" class="btn btn-sm btn-outline-secondary" style="display:none;">← Chapter</button>
+            <button type="button" id="bible-prev-chapter" class="btn btn-sm btn-outline-secondary" disabled>Prev</button>
+            <button type="button" id="bible-next-chapter" class="btn btn-sm btn-outline-secondary" disabled>Next</button>
+            <button type="button" id="bible-open-tools" class="btn btn-sm btn-cyan bible-flyout-trigger">🔍 Search</button>
+        </div>
+    </div>
+
+    <div id="bible-reader-content" class="bible-stage-main glass-card">
+        <p class="text-muted">Tap <strong>Books</strong> for canon navigation or <strong>Search</strong> for scripture and Strong's.</p>
+    </div>
+</div>
+
+<div id="bible-canon-flyout" class="bible-flyout bible-flyout-left glass-card" aria-hidden="true">
+    <div class="bible-flyout-head">
+        <h3>Books &amp; chapters</h3>
+        <button type="button" class="bible-flyout-close" data-close-flyout aria-label="Close">&times;</button>
+    </div>
+    <div class="bible-flyout-body">
+        <label class="form-label small">Translation</label>
+        <select id="bible-translation" class="form-select form-control-dark mb-3">
+            {% for t in translations %}
+            <option value="{{ t.code }}" {% if t.is_default %}selected{% endif %}>{{ t.name }} ({{ t.code }})</option>
+            {% endfor %}
+        </select>
+        <div class="bible-book-tabs mb-2">
+            <button type="button" class="btn btn-sm btn-outline-cyan active" data-testament="OT">OT</button>
+            <button type="button" class="btn btn-sm btn-outline-cyan" data-testament="NT">NT</button>
+        </div>
+        <div id="bible-book-list" class="bible-book-list"></div>
+        <div id="bible-chapter-section" class="bible-flyout-anchor-section">
+        <label class="form-label small mt-3" for="bible-chapter-select">Chapter</label>
+        <select id="bible-chapter-select" class="form-select form-control-dark mb-2">
+            <option value="1">1</option>
+        </select>
+        <p id="bible-chapter-meta" class="small text-muted mb-2">Select a book to see chapters and verses.</p>
+        <label class="form-label small">Verses in chapter</label>
+        <div id="bible-verse-picker" class="bible-verse-picker"></div>
+        </div>
+    </div>
+</div>
+
+<div id="bible-tools-flyout" class="bible-flyout bible-flyout-right glass-card" aria-hidden="true">
+    <div class="bible-flyout-head">
+        <h3>Search &amp; Strong's</h3>
+        <button type="button" class="bible-flyout-close" data-close-flyout aria-label="Close">&times;</button>
+    </div>
+    <div class="bible-flyout-body">
+        <h5 class="text-cyan small">Scripture search</h5>
+        <div class="input-group mb-2">
+            <input type="text" id="bible-search-input" class="form-control form-control-dark" placeholder="love, John 3:16">
+            <button type="button" id="bible-search-btn" class="btn btn-cyan">Search</button>
+        </div>
+        <p class="small text-muted">Results show in the main reading area.</p>
+
+        <h5 class="text-cyan small mt-3">Strong's concordance</h5>
+        <div class="input-group mb-2">
+            <input type="text" id="strongs-search-input" class="form-control form-control-dark" placeholder="G26, H2617">
+            <button type="button" id="strongs-search-btn" class="btn btn-outline-cyan">Lookup</button>
+        </div>
+    </div>
+</div>
+
+<div id="bible-flyout-backdrop" class="bible-flyout-backdrop" aria-hidden="true"></div>
+<div id="bible-toast" class="bible-toast" role="status" aria-live="polite"></div>
+
+<script>
+  window.BIBLE_STUDY = {
+    books: {{ books|tojson }},
+    translations: {{ translations|tojson }},
+    sermonId: {{ sermon_id|tojson if sermon_id else 'null' }},
+    urls: {
+      quickSermon: {{ url_for('pastoral.bible.quick_sermon')|tojson }},
+      saveIllustration: {{ url_for('pastoral.bible.save_illustration')|tojson }},
+      sermonEdit: {{ url_for('pastoral.sermons.edit', sermon_id=0)|tojson }},
+    }
+  };
+</script>
+<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260709c"></script>
+{% endblock %}

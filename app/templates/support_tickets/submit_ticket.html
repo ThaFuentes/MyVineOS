@@ -1,0 +1,65 @@
+<!-- app/templates/tickets/submit_ticket.html -->
+<!-- Full path: WebChurchMan/app/templates/tickets/submit_ticket.html -->
+<!-- File name: submit_ticket.html -->
+<!-- Brief, detailed purpose: Public + private ticket submission form.
+   Used by /tickets/submit (public route – no login_required).
+   - Guests (not logged in): show name/email fields (required), limited categories (allow_guest_creation=1).
+   - Logged-in members+: no name/email, all categories visible.
+   Extends base.html directly (public access) – no private base_tickets.html.
+   Consistent styling with other forms (styled-form, global classes).
+   On success: flash + redirect (guests to public dashboard, members to private dashboard). -->
+<!-- support_tickets/submit_ticket.html -->
+{% extends "base.html" %}
+
+{% block title %}Submit New Support Ticket{% endblock %}
+
+{% block content %}
+<div class="content-section">
+    <h1 class="page-title">Submit New Support Ticket</h1>
+
+    <div class="card glass" style="max-width: 800px; margin: 0 auto;">
+        <form method="POST" action="{{ url_for('support_tickets.submit_ticket') }}" class="styled-form">
+
+            <div class="form-group">
+                <label class="control-label">Title <span class="required">*</span></label>
+                <input type="text" name="title" class="form-input"
+                       value="{{ form_data.title if form_data else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label">Category <span class="required">*</span></label>
+                <select name="category_id" class="form-input" required>
+                    <option value="">-- Select Category --</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}"
+                            {% if form_data and form_data.category_id == cat.id|string %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label">Priority</label>
+                <select name="priority" class="form-input">
+                    <option value="low" {% if form_data and form_data.priority == 'low' %}selected{% endif %}>Low</option>
+                    <option value="medium" {% if not form_data or form_data.priority == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="high" {% if form_data and form_data.priority == 'high' %}selected{% endif %}>High</option>
+                    <option value="urgent" {% if form_data and form_data.priority == 'urgent' %}selected{% endif %}>Urgent</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label">Description <span class="required">*</span></label>
+                <textarea name="description" class="form-input" rows="6" required>{{ form_data.description if form_data else '' }}</textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Submit Ticket</button>
+                <a href="{{ url_for('support_tickets.dashboard') }}" class="btn-secondary">Cancel</a>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endblock %}k %}

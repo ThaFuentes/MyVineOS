@@ -1,0 +1,1168 @@
+{# app/templates/pastoral/sermon_editor.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/sermon_editor.html #}
+{# File name: sermon_editor.html #}
+{# Brief, detailed purpose:
+#   Full sermon editor – FINAL FULL REBUILD (COMPLETE & STABLE).
+#   • Auto-save every 30 seconds (existing sermons: full metadata + sections).
+#   • Manual save = full form submit (includes collaborators).
+#   • Save status with timestamp.
+#   • Skips blank sections on save.
+#   • Unified section builder: one form for inline cards, New Section modal, and 1-click Vault save (no duplicate modal).
+#   • Vault quick-save on sections (no insert-from-vault modal on this page).
+#   • Collaborators, reorder, delete, dynamic headers — all stable.
+#   • Fixed Jinja syntax error (proper endblock matching).
+#}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}{{ 'New Sermon' if not sermon else 'Edit: ' + sermon.title }}{% endblock %}
+
+{% block pastoral_content %}
+<div class="glass-panel" style="margin-bottom:0.5rem;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem;">
+    <h2 style="margin:0; color:var(--primary);">
+      {{ 'Create New Sermon' if not sermon else 'Edit Sermon: ' + sermon.title }}
+    </h2>
+    <div>
+      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="font-size:0.85rem;">← Cancel</a>
+    </div>
+  </div>
+</div>
+
+<div class="sermon-editor">
+  <!-- Main Content Column (full desktop width) -->
+  <div class="main-editor">
+    <div class="glass-panel">
+      <div class="card glass-card shadow">
+        <div class="card-header d-flex justify-content-between align-items-center bg-dark">
+          <h2 class="mb-0 text-cyan" style="font-size:1.1rem;">
+            {{ 'Create New Sermon' if not sermon else 'Edit Sermon: ' + sermon.title }}
+          </h2>
+          <div class="save-bar">
+            <button type="button" id="save-btn" class="btn btn-success btn-lg">
+              <i class="fas fa-save me-2"></i>Save Sermon
+            </button>
+            <span id="save-status" class="ms-3 text-muted small">Unsaved changes</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <form id="sermon-form" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        {% if sermon %}
+                            <input type="hidden" name="sermon_id" value="{{ sermon.id }}">
+                        {% endif %}
+
+                        <!-- Core Metadata - pro inputs -->
+                        <div class="input-group">
+                            <label for="sermon-title">Title <span class="text-danger">*</span></label>
+                            <input type="text" name="title" id="sermon-title" class="form-control form-control-dark"
+                                   value="{{ sermon.title if sermon else '' }}" required placeholder="Sermon Title">
+                        </div>
+
+                        <div class="row" style="gap:1rem 0;">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <label for="sermon-primary-passage">Primary Passage</label>
+                                    <input type="text" name="primary_passage" id="sermon-primary-passage" class="form-control form-control-dark"
+                                           value="{{ sermon.primary_passage if sermon else '' }}" placeholder="e.g. John 3:16">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <label for="sermon-visibility">Visibility</label>
+                                    <select name="visibility" id="sermon-visibility" class="form-select form-control-dark">
+                                        <option value="private" {{ 'selected' if (sermon and sermon.visibility == 'private') or not sermon }}>Private</option>
+                                        <option value="collaborators" {{ 'selected' if sermon and sermon.visibility == 'collaborators' }}>Collaborators</option>
+                                        <option value="pastoral_group" {{ 'selected' if sermon and sermon.visibility == 'pastoral_group' }}>Pastoral Group</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="sermon-service-date">Associated Service</label>
+                            <select name="service_date" id="sermon-service-date" class="form-select form-control-dark">
+                                <option value="">No associated service</option>
+                                {% for plan in service_plans %}
+                                    <option value="{{ plan.service_date.strftime('%Y-%m-%d') }}"
+                                            {% if sermon and sermon.service_date and sermon.service_date.strftime('%Y-%m-%d') == plan.service_date.strftime('%Y-%m-%d') %}selected{% endif %}
+                                            {% if not sermon and plan.service_date.strftime('%Y-%m-%d') == next_upcoming_date %}selected{% endif %}>
+                                        {{ plan.service_date.strftime('%A, %B %d, %Y') }} - {{ plan.title or 'Regular Sunday Service' }}
+                                        {% if plan.start_time %} ({{ plan.start_time.strftime('%I:%M %p') }}{% if plan.worship_start_time %} / {{ plan.worship_start_time.strftime('%I:%M %p') }}{% endif %}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="sermon-series-tags">Series Tags (comma-separated)</label>
+                            <input type="text" name="series_tags" id="sermon-series-tags" class="form-control form-control-dark"
+                                   value="{{ sermon.series_tags if sermon and sermon.series_tags else '' }}"
+                                   placeholder="Easter 2026, Faith, Grace">
+                        </div>
+
+                        <!-- Sermon Sections -->
+                        <div class="mb-5 sermon-sections-block">
+                            <div class="sermon-sections-toolbar d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                                <h4 class="text-cyan mb-0">Sermon Sections</h4>
+                                <div class="sermon-quick-menu">
+                                    <div class="sermon-quick-menu-actions d-flex flex-wrap gap-2 justify-content-end">
+                                        <button type="button" id="insert-from-illustrations-btn" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-book me-1"></i>Illustrations
+                                        </button>
+                                        {% if sermon and sermon.id %}
+                                        <a href="{{ url_for('pastoral.bible.bible_study', sermon_id=sermon.id) }}" class="btn btn-outline-cyan btn-sm" target="_blank">
+                                            <i class="fas fa-book-bible me-1"></i>Bible Study
+                                        </a>
+                                        {% else %}
+                                        <a href="{{ url_for('pastoral.bible.bible_study') }}" class="btn btn-outline-cyan btn-sm" target="_blank">
+                                            <i class="fas fa-book-bible me-1"></i>Bible Study
+                                        </a>
+                                        {% endif %}
+                                        <button type="button" id="toggle-quick-preview-btn" class="btn btn-outline-secondary btn-sm" aria-expanded="false" aria-controls="quick-preview-panel">
+                                            <i class="fas fa-eye me-1"></i>Preview
+                                        </button>
+                                        <button type="button" id="open-preview-window-btn" class="btn btn-cyan btn-sm">
+                                            <i class="fas fa-external-link-alt me-1"></i>Open Preview
+                                        </button>
+                                    </div>
+                                    <div id="quick-preview-panel" class="quick-preview-panel collapse">
+                                        <div class="d-flex justify-content-between align-items-center mt-2 mb-1">
+                                            <span class="text-cyan small fw-bold">Current sermon</span>
+                                            <label class="d-flex align-items-center gap-1 small text-muted mb-0" style="cursor:pointer;">
+                                                <input type="checkbox" id="preview-show-prep-notes" class="form-check-input m-0" style="transform:scale(0.9);">
+                                                Prep notes
+                                            </label>
+                                        </div>
+                                        <div class="quick-preview-mini" id="live-preview">
+                                            <em class="text-muted small">Preview updates as you type.</em>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="sections-container">
+                                {% for section in sections %}
+                                    {% include "pastoral/sermon_section_card.html" %}
+                                {% endfor %}
+                            </div>
+                            <div class="sections-add-footer text-center py-4 mt-3">
+                                <button type="button" id="add-section-bottom-btn" class="btn btn-success btn-lg px-5">
+                                    <i class="fas fa-plus me-2"></i>Add Sermon Section
+                                </button>
+                                <p class="text-muted small mt-2 mb-0">Goes to the first empty section, or adds a new one here and scrolls to it.</p>
+                            </div>
+                        </div>
+
+                        <!-- Collaborators -->
+                        <div class="mb-4">
+                            <label class="form-label text-cyan">Collaborators</label>
+                            <div class="d-flex gap-2 mb-2">
+                                <select id="collaborator-select" class="form-select form-control-dark">
+                                    <option value="">Add collaborator...</option>
+                                    {% for user in pastoral_users %}
+                                        <option value="{{ user.id }}">{{ user.full_name or user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" id="add-collaborator-btn" class="btn btn-outline-cyan">Add</button>
+                            </div>
+                            <div id="collaborators-list" class="d-flex flex-wrap gap-2">
+                                {% for collab in collaborators %}
+                                    <span class="badge bg-info text-dark">
+                                        {{ collab.full_name or collab.username }}
+                                        <a href="#" class="text-dark ms-1 remove-collab" data-id="{{ collab.id }}">×</a>
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Header/Footer, Conclusion, Notes -->
+                        <!-- Header Area - savable default, repopulates for new sermons (webpage style top) -->
+                        <div class="glass-panel mb-4" style="border-left: 4px solid var(--primary);">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label text-cyan fw-bold mb-0">📜 Sermon Header (repeats at top of printed/exported sermon - save as your default)</label>
+                                <div>
+                                    <button type="button" id="save-default-header" class="btn btn-sm btn-outline-cyan">Save as My Default Header</button>
+                                    <button type="button" id="load-default-header" class="btn btn-sm btn-outline-secondary">Load Default</button>
+                                </div>
+                            </div>
+                            <textarea name="header_text" id="sermon-header-text" class="form-control form-control-dark" rows="6" style="min-height:120px; font-size:1rem; line-height:1.5;" placeholder="e.g. Welcome... Opening prayer... (saved default repopulates for new sermons)">{{ sermon.header_text if sermon else default_header }}</textarea>
+                        </div>
+
+                        <!-- Footer Area (webpage style bottom, savable default) -->
+                        <div class="glass-panel mb-4" style="border-left: 4px solid var(--primary);">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label text-cyan fw-bold mb-0">📜 Sermon Footer (repeats at end of sermon - save as your default)</label>
+                                <div>
+                                    <button type="button" id="save-default-footer" class="btn btn-sm btn-outline-cyan">Save as My Default Footer</button>
+                                    <button type="button" id="load-default-footer" class="btn btn-sm btn-outline-secondary">Load Default</button>
+                                </div>
+                            </div>
+                            <textarea name="footer_text" id="sermon-footer-text" class="form-control form-control-dark" rows="6" style="min-height:120px; font-size:1rem; line-height:1.5;" placeholder="e.g. Closing prayer... Benediction... (saved default repopulates for new sermons)">{{ sermon.footer_text if sermon else default_footer }}</textarea>
+                        </div>
+
+                        <!-- Notes & References Area (prominent for pastor prep) -->
+                        <div class="glass-panel mb-4">
+                            <label class="form-label text-cyan fw-bold">📝 Notes & References (personal prep, delivery tips, full scripture, research - not printed by default)</label>
+                            <textarea name="notes" id="sermon-notes" class="form-control form-control-dark" rows="10" style="min-height:180px; font-size:1rem; line-height:1.5;" placeholder="Key points, full passages, personal reminders, full scripture text, delivery cues... (full prep area)">{{ sermon.notes if sermon else '' }}</textarea>
+                        </div>
+
+                        <!-- Conclusion if needed, or merge into last section -->
+                        <div class="mb-4">
+                            <label class="form-label text-cyan">Conclusion Text (optional, or put in last section)</label>
+                            <textarea name="conclusion_text" id="sermon-conclusion-text" class="form-control form-control-dark" rows="5" style="min-height:100px; font-size:1rem; line-height:1.5;">{{ sermon.conclusion_text if sermon else '' }}</textarea>
+                        </div>
+
+                        <input type="hidden" name="sections_json" id="sections-json">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div> <!-- /main-editor -->
+</div> <!-- /sermon-editor -->
+
+{# HIDDEN SECTION TEMPLATE #}
+<div style="display:none;">
+    <div class="section-card" data-template>
+        {% set default_section = {
+            'id': '',
+            'title': '',
+            'section_type': 'point',
+            'scripture_reference': '',
+            'source': '',
+            'content': '',
+            'notes': '',
+            'vault_tags': '',
+            'vault_visibility': 'private'
+        } %}
+        {% with section = default_section %}
+            {% include "pastoral/sermon_section_card.html" %}
+        {% endwith %}
+    </div>
+</div>
+
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('sections-container');
+        const saveBtn = document.getElementById('save-btn');
+        const saveStatus = document.getElementById('save-status');
+        const initialSermonId = {{ sermon.id if sermon else 'null' }};
+        let currentSermonId = initialSermonId;
+        let isDirty = false;
+        let lastSaved = null;
+        const VAULT_SAVE_URL = '/pastoral/vault/save_section_ajax';
+        const EMPTY_QUILL_HTML = ['', '<p><br></p>', '<p></p>'];
+
+        function sectionQuillEl(root) {
+            return root?.querySelector('.section-quill-editor');
+        }
+
+        function getQuillFromRoot(root) {
+            const el = sectionQuillEl(root);
+            if (!el || !window.Quill) return null;
+            return Quill.find(el) || null;
+        }
+
+        function getContentHtml(root) {
+            const q = getQuillFromRoot(root);
+            const raw = q ? q.root.innerHTML.trim() : (sectionQuillEl(root)?.innerHTML || '').trim();
+            return raw;
+        }
+
+        function isQuillEmpty(html) {
+            return EMPTY_QUILL_HTML.includes(html);
+        }
+
+        function readSectionFromRoot(root) {
+            if (!root) return {};
+            return {
+                title: root.querySelector('.section-title')?.value.trim() || '',
+                section_type: root.querySelector('.section-type')?.value || 'point',
+                scripture_reference: root.querySelector('.section-scripture')?.value.trim() || '',
+                source: root.querySelector('.section-source')?.value.trim() || '',
+                vault_tags: root.querySelector('.section-vault-tags')?.value.trim() || '',
+                vault_visibility: root.querySelector('.section-vault-visibility')?.value || 'private',
+                content: getContentHtml(root),
+                notes: root.querySelector('.section-notes')?.value.trim() || ''
+            };
+        }
+
+        function isSectionCompletelyEmpty(data) {
+            return !data.title && isQuillEmpty(data.content) && !data.notes
+                && !data.scripture_reference && !data.source && !data.vault_tags;
+        }
+
+        function buildVaultPayload(data) {
+            const tagsArr = data.vault_tags
+                ? data.vault_tags.split(',').map(t => t.trim()).filter(Boolean)
+                : [];
+            let title = data.title;
+            if (!title) {
+                const t = (data.section_type || 'section').replace('_', ' ');
+                title = `Untitled ${t.charAt(0).toUpperCase() + t.slice(1)}`;
+            }
+            return {
+                title,
+                content: isQuillEmpty(data.content) ? '<p></p>' : data.content,
+                section_type: data.section_type,
+                scripture_reference: data.scripture_reference,
+                source_url: data.source,
+                notes: data.notes,
+                visibility: data.vault_visibility || 'private',
+                tags: tagsArr
+            };
+        }
+
+        async function saveSectionToVault(data, options = {}) {
+            if (isSectionCompletelyEmpty(data)) {
+                showToast('Add a title, content, notes, or tags before saving to Vault.', false);
+                return false;
+            }
+            try {
+                const resp = await fetch(VAULT_SAVE_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(buildVaultPayload(data))
+                });
+                const result = await resp.json();
+                if (result.status === 'success') {
+                    if (!options.suppressToast) {
+                        showToast('Saved to Vault — reusable in any sermon.', true);
+                    }
+                    return true;
+                }
+                showToast(result.message || 'Vault save failed.', false);
+                return false;
+            } catch (e) {
+                showToast('Network error saving to Vault.', false);
+                return false;
+            }
+        }
+
+        async function saveVaultAndSermonFromRoot(root, opts = {}) {
+            const data = readSectionFromRoot(root);
+            const ok = await saveSectionToVault(data, { suppressToast: true });
+            if (!ok) return false;
+            if (!opts.alreadyInSermon) {
+                appendSectionCard(data);
+                showToast('Saved to Vault and added to this sermon.', true);
+            } else {
+                markDirty();
+                showToast('Saved to Vault — section remains in this sermon.', true);
+            }
+            return true;
+        }
+
+        function applySectionToRoot(root, data) {
+            if (!root) return;
+            root.querySelector('.section-type').value = data.section_type || 'point';
+            root.querySelector('.section-title').value = data.title || '';
+            root.querySelector('.section-scripture').value = data.scripture_reference || '';
+            root.querySelector('.section-source').value = data.source || '';
+            root.querySelector('.section-vault-tags').value = data.vault_tags || '';
+            const vis = root.querySelector('.section-vault-visibility');
+            if (vis) vis.value = data.vault_visibility || 'private';
+            root.querySelector('.section-notes').value = data.notes || '';
+            const quillEl = sectionQuillEl(root);
+            if (quillEl) quillEl.innerHTML = data.content || '<p></p>';
+        }
+
+        function appendSectionCard(data) {
+            if (!container) return null;
+            const template = document.querySelector('.section-card[data-template]');
+            if (!template) {
+                console.error('[sermon editor] section template missing');
+                return null;
+            }
+            const newCard = template.cloneNode(true);
+            newCard.removeAttribute('data-template');
+            newCard.style.display = '';
+            newCard.classList.remove('d-none');
+            const root = newCard.querySelector('[data-section-root]') || newCard;
+            applySectionToRoot(root, data || {});
+            container.appendChild(newCard);
+            const quillEl = sectionQuillEl(root);
+            if (quillEl) initQuill(quillEl);
+            updateAllHeaders();
+            markDirty();
+            if (typeof schedulePreviewUpdate === 'function') schedulePreviewUpdate();
+            return newCard;
+        }
+
+        function clearSectionForm(root) {
+            if (!root) return;
+            root.querySelectorAll('input:not([type="hidden"]), textarea, select').forEach(el => {
+                if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                else el.value = '';
+            });
+            const q = getQuillFromRoot(root);
+            if (q) q.root.innerHTML = '';
+            else {
+                const el = sectionQuillEl(root);
+                if (el) el.innerHTML = '';
+            }
+        }
+
+        // Status helpers
+        const markDirty = () => {
+            if (!isDirty) {
+                isDirty = true;
+                saveStatus.textContent = 'Unsaved changes';
+                saveStatus.classList.remove('text-success');
+                saveStatus.classList.add('text-warning');
+            }
+            scheduleLocalDraftSave();
+        };
+
+        function getDraftStorageKey() {
+            return currentSermonId ? `sermonDraft_${currentSermonId}` : 'sermonDraft_new';
+        }
+
+        function scheduleLocalDraftSave() {
+            clearTimeout(window.__draftTimer);
+            window.__draftTimer = setTimeout(() => {
+                try {
+                    const d = collectFullDraftData();
+                    localStorage.setItem(getDraftStorageKey(), JSON.stringify(d));
+                } catch (e) {}
+            }, 650);
+        }
+
+        // Defined early so markDirty/schedule on first keystroke never ReferenceErrors (hoisted for safety)
+        function collectFullDraftData() {
+            const sections = [];
+            document.querySelectorAll('#sections-container > .section-card').forEach(card => {
+                const root = card.querySelector('[data-section-root]') || card;
+                const data = readSectionFromRoot(root);
+                sections.push({
+                    id: card.dataset.sectionId || '',
+                    ...data
+                });
+            });
+            return {
+                ts: Date.now(),
+                title: document.getElementById('sermon-title')?.value.trim() || '',
+                primary_passage: document.getElementById('sermon-primary-passage')?.value.trim() || '',
+                visibility: document.getElementById('sermon-visibility')?.value || 'private',
+                service_date: document.getElementById('sermon-service-date')?.value || '',
+                series_tags: document.getElementById('sermon-series-tags')?.value.trim() || '',
+                header_text: document.getElementById('sermon-header-text')?.value || '',
+                footer_text: document.getElementById('sermon-footer-text')?.value || '',
+                conclusion_text: document.getElementById('sermon-conclusion-text')?.value || '',
+                notes: document.getElementById('sermon-notes')?.value || '',
+                sections: sections
+            };
+        }
+
+        const updateSaved = (time = new Date()) => {
+            lastSaved = time;
+            saveStatus.textContent = `Saved at ${lastSaved.toLocaleTimeString()}`;
+            saveStatus.classList.remove('text-warning');
+            saveStatus.classList.add('text-success');
+            isDirty = false;
+        };
+
+        const UNDO_MAX_STEPS = 5;
+        let activeContentQuill = null;
+
+        function refreshContentUndoButtons(quill) {
+            const group = quill?.root?.closest?.('.section-content-group');
+            if (!group) return;
+            const stack = quill.history?.stack;
+            const undoBtn = group.querySelector('.section-undo-btn');
+            const redoBtn = group.querySelector('.section-redo-btn');
+            if (undoBtn) undoBtn.disabled = !(stack?.undo?.length > 0);
+            if (redoBtn) redoBtn.disabled = !(stack?.redo?.length > 0);
+        }
+
+        function wireSectionContentUndo(quill) {
+            const group = quill.root.closest('.section-content-group');
+            if (!group || group.dataset.undoWired) return;
+            group.dataset.undoWired = '1';
+            const undoBtn = group.querySelector('.section-undo-btn');
+            const redoBtn = group.querySelector('.section-redo-btn');
+            const refresh = () => refreshContentUndoButtons(quill);
+
+            quill.on('text-change', () => {
+                markDirty();
+                schedulePreviewUpdate();
+                refresh();
+            });
+            quill.on('selection-change', range => {
+                if (range) {
+                    activeContentQuill = quill;
+                    refresh();
+                }
+            });
+            undoBtn?.addEventListener('click', e => {
+                e.preventDefault();
+                quill.history.undo();
+                markDirty();
+                schedulePreviewUpdate();
+                refresh();
+            });
+            redoBtn?.addEventListener('click', e => {
+                e.preventDefault();
+                quill.history.redo();
+                markDirty();
+                schedulePreviewUpdate();
+                refresh();
+            });
+            refresh();
+        }
+
+        function initQuill(el) {
+            if (!el.classList.contains('ql-container')) {
+                const quill = new Quill(el, {
+                    theme: 'snow',
+                    modules: {
+                        toolbar: [['bold', 'italic', 'underline'], [{'list': 'ordered'}, {'list': 'bullet'}], ['link'], ['clean']],
+                        history: { delay: 400, maxStack: UNDO_MAX_STEPS, userOnly: true }
+                    }
+                });
+                wireSectionContentUndo(quill);
+                return quill;
+            }
+            const existing = Quill.find(el);
+            if (existing) wireSectionContentUndo(existing);
+            return existing;
+        }
+
+        document.querySelectorAll('.section-quill-editor').forEach(el => {
+            if (!el.closest('.section-card[data-template]')) initQuill(el);
+        });
+
+        document.addEventListener('keydown', e => {
+            if (!(e.ctrlKey || e.metaKey) || !activeContentQuill) return;
+            if (!e.target.closest?.('.ql-editor')) return;
+            const key = e.key.toLowerCase();
+            if (key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                activeContentQuill.history.undo();
+                markDirty();
+                schedulePreviewUpdate();
+                refreshContentUndoButtons(activeContentQuill);
+            } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
+                e.preventDefault();
+                activeContentQuill.history.redo();
+                markDirty();
+                schedulePreviewUpdate();
+                refreshContentUndoButtons(activeContentQuill);
+            }
+        });
+
+        const showToast = (message, success = true) => {
+            let el = document.getElementById('sermon-toast');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'sermon-toast';
+                el.className = 'sermon-toast-popup';
+                el.setAttribute('role', 'status');
+                el.setAttribute('aria-live', 'polite');
+                document.body.appendChild(el);
+            }
+            el.textContent = message;
+            el.classList.toggle('sermon-toast-success', success);
+            el.classList.toggle('sermon-toast-error', !success);
+            el.classList.add('sermon-toast-visible');
+            clearTimeout(el._hideTimer);
+            el._hideTimer = setTimeout(() => el.classList.remove('sermon-toast-visible'), 4200);
+        };
+
+        // Dynamic headers
+        const updateAllHeaders = () => {
+            document.querySelectorAll('#sections-container > .section-card').forEach((card, i) => {
+                const title = card.querySelector('.section-title')?.value.trim() || 'Untitled';
+                const header = card.querySelector('.section-header-title');
+                if (header) header.textContent = `Section ${i + 1}: ${title}`;
+            });
+        };
+        updateAllHeaders();
+
+        function getSectionCards() {
+            return [...document.querySelectorAll('#sections-container > .section-card')];
+        }
+
+        function isSectionCardEmpty(card) {
+            const root = card.querySelector('[data-section-root]') || card;
+            return isSectionCompletelyEmpty(readSectionFromRoot(root));
+        }
+
+        function scrollToSectionCard(card) {
+            if (!card) return;
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.classList.add('section-card-highlight');
+            setTimeout(() => card.classList.remove('section-card-highlight'), 2200);
+            const titleInput = card.querySelector('.section-title');
+            const quillHost = card.querySelector('.section-quill-editor');
+            setTimeout(() => {
+                if (titleInput && !titleInput.value.trim()) {
+                    titleInput.focus();
+                } else if (quillHost && window.Quill) {
+                    const q = Quill.find(quillHost);
+                    if (q) q.focus();
+                } else if (titleInput) {
+                    titleInput.focus();
+                }
+            }, 400);
+        }
+
+        /** First empty section → scroll there; otherwise append and scroll. */
+        function focusOrAddSection() {
+            if (!container) {
+                showToast('Sections area not ready — refresh the page.', false);
+                return;
+            }
+            const cards = getSectionCards();
+            let target = null;
+            if (cards.length && isSectionCardEmpty(cards[0])) {
+                target = cards[0];
+            } else {
+                target = appendSectionCard({});
+                if (!target) {
+                    showToast('Could not add a section. Refresh and try again.', false);
+                    return;
+                }
+            }
+            scrollToSectionCard(target);
+        }
+
+        const sectionsAddFooter = document.querySelector('.sections-add-footer');
+        if (sectionsAddFooter) {
+            sectionsAddFooter.addEventListener('click', e => {
+                const btn = e.target.closest('#add-section-bottom-btn');
+                if (!btn) return;
+                e.preventDefault();
+                e.stopPropagation();
+                focusOrAddSection();
+            });
+        }
+        // Reorder/remove
+        container.addEventListener('click', e => {
+            const card = e.target.closest('.section-card');
+            if (!card) return;
+
+            if (e.target.closest('.save-section-vault-and-sermon')) {
+                e.preventDefault();
+                const root = card.querySelector('[data-section-root]') || card;
+                saveVaultAndSermonFromRoot(root, { alreadyInSermon: true });
+            } else if (e.target.closest('.save-section-to-vault')) {
+                e.preventDefault();
+                const root = card.querySelector('[data-section-root]') || card;
+                saveSectionToVault(readSectionFromRoot(root));
+            } else if (e.target.closest('.remove-section')) {
+                if (confirm('Permanently delete this section?')) {
+                    card.remove();
+                    updateAllHeaders();
+                    markDirty();
+                }
+            } else if (e.target.closest('.move-up')) {
+                const prev = card.previousElementSibling;
+                if (prev) {
+                    container.insertBefore(card, prev);
+                    updateAllHeaders();
+                    markDirty();
+                }
+            } else if (e.target.closest('.move-down')) {
+                const next = card.nextElementSibling;
+                if (next) {
+                    container.insertBefore(next, card);
+                    updateAllHeaders();
+                    markDirty();
+                }
+            }
+        });
+
+        // Mark dirty on input
+        document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', markDirty));
+
+        // Collect sections
+        const collectSections = () => {
+            const sections = [];
+            document.querySelectorAll('#sections-container > .section-card').forEach(card => {
+                const root = card.querySelector('[data-section-root]') || card;
+                const data = readSectionFromRoot(root);
+                if (isSectionCompletelyEmpty(data)) return;
+                sections.push({
+                    id: card.dataset.sectionId || '',
+                    sort_order: sections.length + 1,
+                    section_type: data.section_type,
+                    title: data.title,
+                    scripture_reference: data.scripture_reference,
+                    source: data.source,
+                    content: data.content,
+                    notes: data.notes
+                });
+            });
+            return sections;
+        };
+
+        // Collect metadata
+        const collectSermonData = () => ({
+            title: document.getElementById('sermon-title')?.value.trim() || '',
+            visibility: document.getElementById('sermon-visibility')?.value || 'private',
+            primary_passage: document.getElementById('sermon-primary-passage')?.value.trim() || '',
+            service_date: document.getElementById('sermon-service-date')?.value || '',
+            series_tags: document.getElementById('sermon-series-tags')?.value.trim() || '',
+            header_text: document.getElementById('sermon-header-text')?.value || '',
+            footer_text: document.getElementById('sermon-footer-text')?.value || '',
+            conclusion_text: document.getElementById('sermon-conclusion-text')?.value || '',
+            notes: document.getElementById('sermon-notes')?.value || ''
+        });
+
+        function hasMeaningfulContent() {
+            const t = document.getElementById('sermon-title')?.value.trim();
+            if (t && t.length > 1) return true;
+            const secs = collectSections();
+            return secs.length > 0;
+        }
+
+        // Robust never-lose: always flush full state to localStorage (lid close / crash / no click save)
+        function saveDraftToLocal(draft) {
+            try { localStorage.setItem(getDraftStorageKey(), JSON.stringify(draft)); } catch (e) {}
+        }
+
+        // Auto-save full (local instant + server draft/create for new sermons too)
+        // Uses unified /autosave that creates draft record for new if meaningful content
+        setInterval(() => {
+            if (!isDirty) return;
+            const full = collectFullDraftData();
+            saveDraftToLocal(full);
+            if (!hasMeaningfulContent()) return;
+            const payload = {
+                sermon_id: currentSermonId,
+                sermon: collectSermonData(),
+                sections: collectSections()
+            };
+            fetch('/pastoral/sermons/autosave', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.status === 'success') {
+                    if (data.sermon_id && !currentSermonId) {
+                        currentSermonId = data.sermon_id;
+                        // migrate local key from 'new' to id
+                        try {
+                            const old = localStorage.getItem('sermonDraft_new');
+                            if (old) {
+                                localStorage.setItem(getDraftStorageKey(), old);
+                                localStorage.removeItem('sermonDraft_new');
+                            }
+                        } catch(e){}
+                        // inject hidden so manual Save posts as update
+                        const form = document.getElementById('sermon-form');
+                        let hid = form.querySelector('input[name="sermon_id"]');
+                        if (!hid) {
+                            hid = document.createElement('input');
+                            hid.type = 'hidden';
+                            hid.name = 'sermon_id';
+                            form.appendChild(hid);
+                        }
+                        hid.value = currentSermonId;
+                        // switch URL so form POST hits the edit handler (prevents duplicate create)
+                        try { history.replaceState({}, document.title, `/pastoral/sermons/edit/${currentSermonId}`); } catch(e){}
+                    }
+                    updateSaved();
+                }
+            })
+            .catch(() => { /* localStorage is the safety net - never lose work */ });
+        }, 22000);
+        // initial status
+        if (currentSermonId) updateSaved(); else saveStatus.textContent = 'Editing draft (auto-saves locally + server on first content)';
+
+        // Hard flush local + beacon on close/lid-sleep (guarantees content even if interval missed)
+        window.addEventListener('beforeunload', () => {
+            try {
+                const d = collectFullDraftData();
+                localStorage.setItem(getDraftStorageKey(), JSON.stringify(d));
+            } catch(e){}
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                try {
+                    const d = collectFullDraftData();
+                    localStorage.setItem(getDraftStorageKey(), JSON.stringify(d));
+                    if (hasMeaningfulContent() && currentSermonId && navigator.sendBeacon) {
+                        const p = { sermon_id: currentSermonId, sermon: collectSermonData(), sections: collectSections() };
+                        navigator.sendBeacon('/pastoral/sermons/autosave', new Blob([JSON.stringify(p)], {type: 'application/json'}));
+                    }
+                } catch(e){}
+            }
+        });
+
+        // Manual save (explicit commit - clears local draft safety copy)
+        saveBtn.addEventListener('click', () => {
+            const sections = collectSections();
+            document.getElementById('sections-json').value = JSON.stringify(sections);
+
+            const form = document.getElementById('sermon-form');
+            form.querySelectorAll('input[name="collaborator_ids"]').forEach(el => el.remove());
+            document.querySelectorAll('#collaborators-list .remove-collab').forEach(link => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'collaborator_ids';
+                input.value = link.dataset.id;
+                form.appendChild(input);
+            });
+
+            try { localStorage.removeItem(getDraftStorageKey()); } catch(e){}
+            form.submit();
+        });
+
+        // Collaborators
+        document.getElementById('add-collaborator-btn').addEventListener('click', () => {
+            const select = document.getElementById('collaborator-select');
+            const userId = select.value;
+            const userName = select.options[select.selectedIndex].text;
+            if (!userId) return;
+
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-info text-dark';
+            badge.innerHTML = `${userName} <a href="#" class="text-dark ms-1 remove-collab" data-id="${userId}">×</a>`;
+            document.getElementById('collaborators-list').appendChild(badge);
+            select.value = '';
+            markDirty();
+        });
+
+        document.getElementById('collaborators-list').addEventListener('click', e => {
+            if (e.target.classList.contains('remove-collab')) {
+                e.preventDefault();
+                e.target.closest('.badge').remove();
+                markDirty();
+            }
+        });
+
+        // ===== NEW: Sermon Builder webpage coherence for pastor (desktop) =====
+        // Save/Load defaults for header/footer (repopulate each time)
+        function saveDefault(type, value) {
+            if (!value || !value.trim()) { showToast('Nothing to save as default', false); return; }
+            const title = type === 'header' ? '[DEFAULT] Sermon Header' : '[DEFAULT] Sermon Footer';
+            fetch('/pastoral/illustrations/quick_add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ title: title, content: value.trim(), source: 'Default for new sermons', tags: 'default' })
+            }).then(r => r.json()).then(res => {
+                if (res.success) showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' saved as default!', true);
+                else showToast('Save default failed', false);
+            }).catch(() => showToast('Network error saving default', false));
+        }
+
+        const saveHeaderBtn = document.getElementById('save-default-header');
+        if (saveHeaderBtn) saveHeaderBtn.addEventListener('click', () => {
+            const val = document.getElementById('sermon-header-text').value;
+            saveDefault('header', val);
+        });
+
+        const loadHeaderBtn = document.getElementById('load-default-header');
+        if (loadHeaderBtn) loadHeaderBtn.addEventListener('click', () => {
+            // Simple: reload page with default or note user can copy from library; for demo prefill if empty
+            const headerEl = document.getElementById('sermon-header-text');
+            if (!headerEl.value.trim() && typeof default_header !== 'undefined' && default_header) {
+                headerEl.value = default_header;
+                showToast('Loaded default header', true);
+            } else {
+                showToast('Visit Illustrations Library to manage defaults, or save one first', true);
+            }
+        });
+
+        const saveFooterBtn = document.getElementById('save-default-footer');
+        if (saveFooterBtn) saveFooterBtn.addEventListener('click', () => {
+            const val = document.getElementById('sermon-footer-text').value;
+            saveDefault('footer', val);
+        });
+
+        const loadFooterBtn = document.getElementById('load-default-footer');
+        if (loadFooterBtn) loadFooterBtn.addEventListener('click', () => {
+            const footerEl = document.getElementById('sermon-footer-text');
+            if (!footerEl.value.trim() && typeof default_footer !== 'undefined' && default_footer) {
+                footerEl.value = default_footer;
+                showToast('Loaded default footer', true);
+            } else {
+                showToast('Visit Illustrations Library to manage defaults', true);
+            }
+        });
+
+        // Per section: Save to Illustrations Library (text reuse, not images)
+        document.addEventListener('click', async function(e) {
+            const btn = e.target.closest('.save-to-illustrations');
+            if (!btn) return;
+            e.preventDefault();
+            const card = btn.closest('.section-card');
+            if (!card) return;
+            const title = (card.querySelector('.section-title')?.value || 'Untitled Illustration').trim();
+            // Get content from quill if present, else textarea
+            let content = '';
+            const root = card.querySelector('[data-section-root]') || card;
+            const quillEl = sectionQuillEl(root);
+            if (quillEl && window.Quill && Quill.find(quillEl)) {
+                content = Quill.find(quillEl).root.innerHTML;
+            } else {
+                content = card.querySelector('.section-source')?.value || card.querySelector('textarea')?.value || '';
+            }
+            const source = card.querySelector('.section-source')?.value || '';
+            if (!content || content === '<p><br></p>') {
+                showToast('Section has no content to save', false);
+                return;
+            }
+            try {
+                const res = await fetch('/pastoral/illustrations/quick_add', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ title: title, content: content, source: source, tags: 'sermon,illustration' })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Saved to Illustrations Library! Reusable now.', true);
+                } else {
+                    showToast(data.error || 'Failed to save', false);
+                }
+            } catch(err) {
+                showToast('Error saving to library', false);
+            }
+        });
+
+        // Insert from Illustrations: simple fetch list, choose by title, insert into LAST section's content (or first empty)
+        const insertIllusBtn = document.getElementById('insert-from-illustrations-btn');
+        if (insertIllusBtn) insertIllusBtn.addEventListener('click', async () => {
+            try {
+                const resp = await fetch('/pastoral/illustrations/list_json');
+                const items = await resp.json();
+                if (!items.length) {
+                    showToast('No illustrations yet. Save some from sections or library.', true);
+                    window.open('/pastoral/illustrations/library', '_blank');
+                    return;
+                }
+                // Simple choose: prompt with titles
+                const titles = items.map((it, i) => `${i+1}. ${it.title}`).join('\n');
+                const choice = prompt('Enter number to insert:\n' + titles + '\n\n(Or cancel and use full Library page for search)');
+                if (!choice) return;
+                const idx = parseInt(choice) - 1;
+                if (isNaN(idx) || !items[idx]) return;
+                const chosen = items[idx];
+                // Insert into last section's quill or content
+                const cards = document.querySelectorAll('#sections-container .section-card');
+                if (cards.length === 0) {
+                    // add one
+                    document.getElementById('add-section-bottom-btn')?.click();
+                    setTimeout(() => insertIntoLast(chosen), 100);
+                    return;
+                }
+                insertIntoLast(chosen);
+            } catch(e) {
+                showToast('Could not load library. Open /pastoral/illustrations/library', false);
+                window.open('/pastoral/illustrations/library', '_blank');
+            }
+        });
+
+        async function insertIntoLast(item) {
+            const cards = document.querySelectorAll('#sections-container .section-card');
+            if (!cards.length) return;
+            const last = cards[cards.length-1];
+            const root = last.querySelector('[data-section-root]') || last;
+            let html = '<p>' + (item.content || '') + '</p>';
+            if (currentSermonId && item.id) {
+                try {
+                    const res = await fetch('/pastoral/illustrations/insert/' + currentSermonId, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ item_id: item.id })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success' && data.html) html = data.html;
+                } catch (e) { /* fall back to client paste */ }
+            }
+            const quillEl = sectionQuillEl(root);
+            if (quillEl && window.Quill && Quill.find(quillEl)) {
+                const quill = Quill.find(quillEl);
+                quill.root.innerHTML = (quill.root.innerHTML || '') + html;
+            } else {
+                const ta = last.querySelector('textarea');
+                if (ta) ta.value = (ta.value || '') + '\n\n' + (item.content || item.title || '');
+            }
+            showToast('Inserted from Illustrations Library (saved to sermon)', true);
+            markDirty();
+        }
+
+        // === ROBUST RECOVERY HYDRATE: if laptop lid closed or no explicit save, restore EVERYTHING from local draft ===
+        function hydrateFromLocalDraft() {
+            let key = getDraftStorageKey();
+            let draftStr = localStorage.getItem(key);
+            if (!draftStr && !currentSermonId) {
+                draftStr = localStorage.getItem('sermonDraft_new');
+            }
+            if (!draftStr) return;
+            let draft;
+            try { draft = JSON.parse(draftStr); } catch (e) { return; }
+            if (!draft || !draft.ts) return;
+            const hasWork = (draft.title && draft.title.trim().length > 0) || (draft.sections && draft.sections.length > 0);
+            if (!hasWork) return;
+
+            // Overwrite fields with local draft (this is the "sermons save as is" guarantee)
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el != null && val != null) {
+                    el.value = val;
+                }
+            };
+            setVal('sermon-title', draft.title);
+            setVal('sermon-primary-passage', draft.primary_passage);
+            if (draft.visibility) {
+                const vis = document.getElementById('sermon-visibility');
+                if (vis) vis.value = draft.visibility;
+            }
+            setVal('sermon-service-date', draft.service_date);
+            setVal('sermon-series-tags', draft.series_tags);
+            setVal('sermon-header-text', draft.header_text);
+            setVal('sermon-footer-text', draft.footer_text);
+            setVal('sermon-conclusion-text', draft.conclusion_text);
+            setVal('sermon-notes', draft.notes);
+
+            // Rebuild sections from draft (full content preserved)
+            if (draft.sections && draft.sections.length) {
+                container.innerHTML = '';
+                draft.sections.forEach(sec => {
+                    const card = appendSectionCard({
+                        title: sec.title || '',
+                        section_type: sec.section_type || 'point',
+                        scripture_reference: sec.scripture_reference || '',
+                        source: sec.source || '',
+                        notes: sec.notes || '',
+                        vault_tags: sec.vault_tags || '',
+                        vault_visibility: sec.vault_visibility || 'private',
+                        content: sec.content || ''
+                    });
+                    if (card && sec.id) card.dataset.sectionId = sec.id;
+                });
+                updateAllHeaders();
+            }
+            isDirty = true;
+            saveStatus.textContent = 'Recovered from auto-backup';
+            saveStatus.classList.remove('text-success');
+            saveStatus.classList.add('text-warning');
+            // one time notice
+            setTimeout(() => {
+                if (typeof showToast === 'function') {
+                    showToast('Work restored from local auto-save (lid close safe). Use Save Sermon to commit to server.', true);
+                }
+            }, 900);
+        }
+
+        // Run recovery hydrate as soon as ready (after quills etc)
+        setTimeout(hydrateFromLocalDraft, 180);
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.textContent = str || '';
+            return d.innerHTML;
+        }
+
+        function buildSermonPreviewHtml() {
+            const showPrep = document.getElementById('preview-show-prep-notes')?.checked;
+            const title = document.getElementById('sermon-title')?.value.trim() || 'Untitled Sermon';
+            const passage = document.getElementById('sermon-primary-passage')?.value.trim();
+            const header = document.getElementById('sermon-header-text')?.value.trim();
+            const footer = document.getElementById('sermon-footer-text')?.value.trim();
+            const conclusion = document.getElementById('sermon-conclusion-text')?.value.trim();
+            const sermonNotes = document.getElementById('sermon-notes')?.value.trim();
+
+            let html = `<article class="sermon-preview-doc">`;
+            html += `<h1 class="preview-title">${escapeHtml(title)}</h1>`;
+            if (passage) html += `<p class="preview-passage"><strong>Primary passage:</strong> ${escapeHtml(passage)}</p>`;
+            if (header) html += `<section class="preview-block preview-header"><h6>Header</h6><div>${escapeHtml(header).replace(/\n/g, '<br>')}</div></section>`;
+
+            const cards = document.querySelectorAll('#sections-container > .section-card');
+            if (!cards.length) {
+                html += `<p class="text-muted"><em>No sections yet.</em></p>`;
+            }
+            cards.forEach((card, i) => {
+                const root = card.querySelector('[data-section-root]') || card;
+                const data = readSectionFromRoot(root);
+                if (isSectionCompletelyEmpty(data)) return;
+                const typeLabel = (data.section_type || 'section').replace('_', ' ');
+                html += `<section class="preview-block preview-section">`;
+                html += `<h6>Section ${i + 1}${data.title ? ': ' + escapeHtml(data.title) : ''} <span class="preview-badge">${escapeHtml(typeLabel)}</span></h6>`;
+                if (data.scripture_reference) {
+                    html += `<p class="preview-scripture">${escapeHtml(data.scripture_reference).replace(/\n/g, '<br>')}</p>`;
+                }
+                if (data.source) html += `<p class="preview-source small"><em>Source:</em> ${escapeHtml(data.source).replace(/\n/g, '<br>')}</p>`;
+                if (!isQuillEmpty(data.content)) html += `<div class="preview-content">${data.content}</div>`;
+                if (showPrep && data.notes) {
+                    html += `<aside class="preview-prep-notes"><strong>Prep:</strong> ${escapeHtml(data.notes).replace(/\n/g, '<br>')}</aside>`;
+                }
+                html += `</section>`;
+            });
+
+            if (conclusion) html += `<section class="preview-block"><h6>Conclusion</h6><div>${escapeHtml(conclusion).replace(/\n/g, '<br>')}</div></section>`;
+            if (footer) html += `<section class="preview-block preview-footer"><h6>Footer</h6><div>${escapeHtml(footer).replace(/\n/g, '<br>')}</div></section>`;
+            if (showPrep && sermonNotes) {
+                html += `<aside class="preview-prep-notes"><h6>Sermon prep notes</h6><div>${escapeHtml(sermonNotes).replace(/\n/g, '<br>')}</div></aside>`;
+            }
+            html += `</article>`;
+            return html;
+        }
+
+        function updateSermonPreview() {
+            const preview = document.getElementById('live-preview');
+            if (!preview) return;
+            preview.innerHTML = buildSermonPreviewHtml();
+        }
+
+        function openSermonPreviewWindow() {
+            const title = document.getElementById('sermon-title')?.value.trim() || 'Sermon Preview';
+            const bodyHtml = buildSermonPreviewHtml();
+            const win = window.open('', 'sermonPreview', 'noopener,noreferrer,width=960,height=820,scrollbars=yes');
+            if (!win) {
+                showToast('Allow pop-ups to open the preview window.', false);
+                return;
+            }
+            win.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(title)} — Preview</title>
+<style>
+body{font-family:Georgia,serif;background:#111;color:#e8e8e8;margin:0;padding:2rem 2.5rem;line-height:1.6;}
+.preview-title{color:#00d4ff;font-size:1.75rem;margin:0 0 0.5rem;}
+.preview-passage{color:#aaa;font-size:0.95rem;}
+.preview-block{margin:1.25rem 0;padding-bottom:1rem;border-bottom:1px solid #333;}
+.preview-block h6{color:#00d4ff;text-transform:uppercase;font-size:0.8rem;letter-spacing:0.05em;}
+.preview-badge{font-size:0.75rem;background:rgba(0,212,255,0.15);padding:0.1rem 0.4rem;border-radius:4px;}
+.preview-prep-notes{background:rgba(255,200,0,0.08);border-left:3px solid #c9a227;padding:0.5rem 0.75rem;font-size:0.9rem;}
+</style></head><body>${bodyHtml}</body></html>`);
+            win.document.close();
+        }
+
+        let previewTimer;
+        function schedulePreviewUpdate() {
+            clearTimeout(previewTimer);
+            previewTimer = setTimeout(updateSermonPreview, 280);
+        }
+
+        document.getElementById('sermon-form')?.addEventListener('input', schedulePreviewUpdate);
+        document.getElementById('preview-show-prep-notes')?.addEventListener('change', updateSermonPreview);
+
+        document.getElementById('toggle-quick-preview-btn')?.addEventListener('click', () => {
+            const panel = document.getElementById('quick-preview-panel');
+            const btn = document.getElementById('toggle-quick-preview-btn');
+            if (!panel || !btn) return;
+            const show = !panel.classList.contains('show');
+            panel.classList.toggle('show', show);
+            btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+            if (show) updateSermonPreview();
+        });
+
+        document.getElementById('open-preview-window-btn')?.addEventListener('click', () => {
+            updateSermonPreview();
+            openSermonPreviewWindow();
+        });
+
+        const sectionsCont = document.getElementById('sections-container');
+        if (sectionsCont) {
+            new MutationObserver(schedulePreviewUpdate).observe(sectionsCont, { childList: true, subtree: true });
+        }
+        setTimeout(updateSermonPreview, 350);
+    });
+</script>
+{% endblock %}

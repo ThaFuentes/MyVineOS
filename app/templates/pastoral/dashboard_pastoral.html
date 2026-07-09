@@ -1,0 +1,110 @@
+{# app/templates/pastoral/dashboard_pastoral.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/dashboard_pastoral.html #}
+{# File name: dashboard_pastoral.html #}
+{# Brief, detailed purpose:
+#   Pastoral Command Center – main hub for all pastoral tools.
+#   Features a prominent "Next Upcoming Service" card at the top (with date, times, title, linked sermon, and edit/create link).
+#   Below: responsive grid of quick-access hero cards for Sermon Builder, Illustration Library, Service Planning (with sub-link to Defaults), Podium Mode, Sermon Export.
+#   NEW: Dedicated hero card for Global Default Role Assignments – quick access to set recurring roles (Preacher, Worship Leader, Greeters, etc.) that auto-fill every new plan.
+#   Dark/cyan theme consistent, fully responsive, slightly slimmer cards (reduced padding, smaller images/text).
+#   Uses get_upcoming_service() data for the top card – safely handles missing times (None). #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Pastoral Command Center{% endblock %}
+
+{% block pastoral_content %}
+<div class="glass-panel" style="text-align:center; margin-bottom:1.25rem;">
+  <h1 style="margin:0 0 0.25rem; color:var(--primary);">Pastoral Command Center</h1>
+  <p style="margin:0; opacity:0.7; font-size:0.9rem;">Tools for planning, preaching, care &amp; creative prep</p>
+</div>
+
+<!-- Next Upcoming Service – Prominent app-style card -->
+<div class="glass-panel" style="border:1px solid var(--primary-border); margin-bottom:1.25rem;">
+  <div style="text-align:center; padding:0.25rem 0;">
+    <div style="font-size:0.8rem; opacity:0.7; margin-bottom:0.25rem;">NEXT UPCOMING SERVICE</div>
+    <h2 style="margin:0.25rem 0; font-size:1.35rem; color:var(--primary);">
+      {{ upcoming_service.service_date.strftime('%A, %B %d, %Y') }}
+    </h2>
+
+    {% if upcoming_service.start_time or upcoming_service.worship_start_time %}
+      <p style="margin:0.5rem 0; font-size:0.95rem;">
+        {% if upcoming_service.start_time %}
+          Service: {{ upcoming_service.start_time.strftime('%I:%M %p') }}<br>
+        {% endif %}
+        {% if upcoming_service.worship_start_time %}
+          Worship: {{ upcoming_service.worship_start_time.strftime('%I:%M %p') }}
+        {% endif %}
+      </p>
+    {% endif %}
+
+    <p style="margin:0.4rem 0 0.6rem; font-size:1.05rem; font-weight:600;">
+      {{ upcoming_service.title or 'Regular Sunday Service' }}
+    </p>
+
+    {% if upcoming_service.linked_sermon_title %}
+      <p style="margin:0.25rem 0 0.5rem; opacity:0.85;">
+        Sermon: <a href="{{ url_for('pastoral.sermons.edit', sermon_id=upcoming_service.pastoral_sermon_id) }}" style="color:var(--primary); text-decoration:underline;">{{ upcoming_service.linked_sermon_title }}</a>
+      </p>
+    {% endif %}
+
+    {% if upcoming_service.get('is_recurring_default') %}
+      <small style="opacity:0.6; display:block; margin-bottom:0.5rem;">Recurring default – customize in a plan</small>
+    {% endif %}
+
+    <a href="{{ url_for('pastoral.planning.edit', date_str=upcoming_service.service_date.strftime('%Y-%m-%d')) }}"
+       class="btn btn-primary" style="min-height:44px; padding:0.6rem 1.25rem; font-size:1rem;">
+      {% if upcoming_service.get('id') %}✏️ Edit Plan{% else %}📅 Create Plan{% endif %}
+    </a>
+  </div>
+</div>
+
+<!-- Quick Access Grid – phone friendly large tap targets, no bunch -->
+<div class="glass-panel">
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:0.75rem;">
+    <!-- Sermon Builder -->
+    <a href="{{ url_for('pastoral.sermons.list') }}" class="item-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:118px; text-decoration:none;">
+      <img src="{{ url_for('static', filename='images/sermons.png') }}" alt="Sermons" style="height:42px; margin-bottom:0.35rem;">
+      <div style="font-weight:600;">Sermon Builder</div>
+      <small style="opacity:0.7;">Create, edit &amp; export</small>
+    </a>
+
+    <!-- Illustrations Library (written stories, analogies, sermon sections — not images) -->
+    <a href="{{ url_for('pastoral.illustrations.library') }}" class="item-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:118px; text-decoration:none;">
+      <span style="font-size:1.8rem; margin-bottom:0.2rem;">📝</span>
+      <div style="font-weight:600;">Illustrations Library</div>
+      <small style="opacity:0.7;">Stories, analogies &amp; written sections</small>
+    </a>
+
+    <!-- Service Planning -->
+    <a href="{{ url_for('pastoral.planning.index') }}" class="item-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:118px; text-decoration:none;">
+      <img src="{{ url_for('static', filename='images/planning.png') }}" alt="Planning" style="height:42px; margin-bottom:0.35rem;">
+      <div style="font-weight:600;">Service Planning</div>
+      <small style="opacity:0.7;">Plans, roles, times</small>
+    </a>
+
+    <!-- Default Role Assignments -->
+    <a href="{{ url_for('pastoral.planning.defaults') }}" class="item-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:118px; text-decoration:none;">
+      <span style="font-size:1.8rem; margin-bottom:0.2rem;">👥</span>
+      <div style="font-weight:600;">Default Roles</div>
+      <small style="opacity:0.7;">Recurring assignments</small>
+    </a>
+
+    <!-- Podium Mode -->
+    <a href="{{ url_for('pastoral.podium.index') }}" class="item-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:118px; text-decoration:none;">
+      <img src="{{ url_for('static', filename='images/podium.png') }}" alt="Podium" style="height:42px; margin-bottom:0.35rem;">
+      <div style="font-weight:600;">Podium Mode</div>
+      <small style="opacity:0.7;">Teleprompter</small>
+    </a>
+
+    <!-- Sermon Export -->
+    <a href="{{ url_for('pastoral.sermons_export.list') }}" class="item-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:118px; text-decoration:none;">
+      <img src="{{ url_for('static', filename='images/export.png') }}" alt="Export" style="height:42px; margin-bottom:0.35rem;">
+      <div style="font-weight:600;">Sermon Export</div>
+      <small style="opacity:0.7;">DOCX / ZIP bulk</small>
+    </a>
+  </div>
+</div>
+
+<p style="text-align:center; margin-top:1rem; font-size:0.75rem; opacity:0.5;">All pastoral tools • tap targets optimized for phones</p>
+{% endblock %}

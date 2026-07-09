@@ -1,0 +1,74 @@
+<!-- app/templates/settings/timezone.html -->
+<!-- Full path: WebChurchMan/app/templates/settings/timezone.html -->
+<!-- File name: timezone.html -->
+<!-- Brief, detailed purpose: Dedicated Settings page for configuring the church's timezone.
+   Extends base_settings.html → inherits glass wrapper, internal .menu navigation, flash messages.
+   Displays current timezone, curated dropdown of common IANA timezones,
+   and real-time comparison of server time vs church time (helps debug offsets).
+   All fields, help text, and layout preserved in style with other settings pages.
+   Uses only global CSS classes. -->
+
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Church Timezone Configuration</h2>
+    <p class="help-text">
+        Select your church's primary timezone.<br>
+        All dates, times, events, check-ins, and logs will be <strong>displayed and entered</strong> in this timezone.<br>
+        <strong>Timestamps are always stored in UTC</strong> internally for accuracy across servers and DST changes.<br>
+        Use the preview below to confirm the correct offset from server time.
+    </p>
+
+    <!-- Time Preview Card (helps debug the original offset issue) -->
+    <div class="card glass" style="max-width: 900px; margin: 1.5rem auto; padding: 1.5rem;">
+        <h3 class="section-subtitle">Current Time Preview</h3>
+        <div class="form-grid" style="gap: 1rem;">
+            <div class="form-group">
+                <label>Server Time (as seen by the app)</label>
+                <div class="help-text mono">{{ server_now }} ({{ server_tz_name }})</div>
+            </div>
+            <div class="form-group">
+                <label>Church Time (based on current setting)</label>
+                <div class="help-text mono">{{ church_time_str }}</div>
+            </div>
+        </div>
+        <p class="help-text small" style="margin-top: 1rem;">
+            If there's a mismatch (e.g., 6 hours off), selecting the correct timezone here will fix display/input everywhere.
+        </p>
+    </div>
+
+    <!-- Main Form -->
+    <form method="POST" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <div class="form-grid">
+            <div class="form-group full-width">
+                <label for="timezone">Church Timezone <span class="required">*</span></label>
+                <select name="timezone" id="timezone" required>
+                    {% for tz in common_timezones %}
+                    <option value="{{ tz }}" {% if tz == current_tz_name %}selected{% endif %}>
+                        {{ tz.replace('_', ' ') }} {% if tz == 'UTC' %}(Coordinated Universal Time){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="help-text">
+                    Common timezones shown above. All valid IANA timezones are accepted (e.g., America/Chicago, Europe/London).<br>
+                    Changes take effect immediately for new entries and displays.
+                </p>
+            </div>
+
+            <div class="form-group full-width">
+                <label>Current Setting</label>
+                <div class="help-text mono">{{ current_tz_name }}</div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Timezone</button>
+            <a href="{{ url_for('settings.general') }}" class="btn-secondary">Back to General Settings</a>
+        </div>
+    </form>
+</section>
+
+{% endblock %}

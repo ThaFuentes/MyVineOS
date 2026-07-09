@@ -1,0 +1,198 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Church Details</h2>
+    <p class="help-text">
+        These details appear on the public welcome page, headers, and footers.
+        <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" style="color:var(--primary);">Preview welcome page →</a>
+    </p>
+
+    <!-- Live preview of public-facing info -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3 class="section-subtitle" style="margin:0;">Public preview</h3>
+            <span class="help-text small" style="margin:0;">Updates after you save</span>
+        </div>
+        <div class="settings-preview">
+            <div class="settings-preview-item">
+                <strong>Welcome title</strong>
+                {% if settings.church_name %}
+                <span>Welcome to {{ settings.church_name }}</span>
+                {% else %}
+                <p class="settings-preview-empty">Welcome (set church name below)</p>
+                {% endif %}
+            </div>
+            <div class="settings-preview-item">
+                <strong>Pastor / Leader</strong>
+                {% if settings.pastor %}
+                <span>{{ settings.pastor }}</span>
+                {% else %}
+                <p class="settings-preview-empty">Not set</p>
+                {% endif %}
+            </div>
+            <div class="settings-preview-item">
+                <strong>Location</strong>
+                {% if settings.address %}
+                <p>{{ settings.address }}</p>
+                {% else %}
+                <p class="settings-preview-empty">Not set</p>
+                {% endif %}
+            </div>
+            <div class="settings-preview-item">
+                <strong>Phone</strong>
+                {% if settings.phone_number %}
+                <span>{{ settings.phone_number }}</span>
+                {% else %}
+                <p class="settings-preview-empty">Not set</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+
+        <div class="settings-card">
+            <h3 class="section-subtitle">About your church</h3>
+            <p class="help-text">Shown to guests on the welcome page and in the site header.</p>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="church_name">Church Name</label>
+                    <input type="text" id="church_name" name="church_name"
+                           value="{{ settings.church_name or '' }}"
+                           placeholder="e.g. Grace Community Church">
+                    <p class="help-text small">Appears as “Welcome to [name]” on the public home page.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="pastor">Pastor / Primary Leader</label>
+                    <input type="text" id="pastor" name="pastor"
+                           value="{{ settings.pastor or '' }}"
+                           placeholder="e.g. Pastor John Smith">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone_number">Phone Number</label>
+                    <input type="text" id="phone_number" name="phone_number"
+                           value="{{ settings.phone_number or '' }}"
+                           placeholder="(555) 123-4567">
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="address">Address</label>
+                    <textarea id="address" name="address" rows="3"
+                              placeholder="Street, city, state, ZIP">{{ settings.address or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="tax_status">Tax Status <span class="help-text" style="display:inline; margin:0;">(optional)</span></label>
+                    <input type="text" id="tax_status" name="tax_status"
+                           value="{{ settings.tax_status or '' }}"
+                           placeholder="e.g. 501(c)(3)">
+                </div>
+
+                <div class="form-group">
+                    <label for="icon_path">Logo / Icon Path <span class="help-text" style="display:inline; margin:0;">(optional)</span></label>
+                    <input type="text" id="icon_path" name="icon_path"
+                           value="{{ settings.icon_path or '' }}"
+                           placeholder="images/logo.png">
+                    <p class="help-text small">Relative to the static folder.</p>
+                </div>
+            </div>
+        </div>
+
+        <details class="settings-advanced settings-card">
+            <summary>Advanced — server folder paths</summary>
+            <div class="settings-card-body">
+                <p class="help-text">
+                    Full absolute paths on the server. Only change these if you manage file storage directly.
+                </p>
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="export_location">Export Folder Path</label>
+                        <input type="text" id="export_location" name="export_location"
+                               value="{{ settings.export_location or '' }}"
+                               placeholder="/var/www/exports">
+                        <p class="help-text small">Writable folder for generated reports (DOCX, etc.).</p>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="sermon_folder_location">Sermon Upload Folder</label>
+                        <input type="text" id="sermon_folder_location" name="sermon_folder_location"
+                               value="{{ settings.sermon_folder_location or '' }}"
+                               placeholder="/var/www/uploads/sermons">
+                        <p class="help-text small">Writable folder for sermon audio/video files.</p>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <div class="form-actions">
+            <button type="submit" name="action" value="update_general" class="btn-primary">Save Church Details</button>
+            <a href="{{ url_for('dashboard.dashboard') }}" class="btn-secondary">Back to Dashboard</a>
+        </div>
+    </form>
+</section>
+
+<section class="content-section">
+    <div class="settings-card">
+        <h3 class="section-subtitle">Public Comments</h3>
+        <p class="help-text">
+            Disable all public-facing comment forms site-wide (events, sermons, prayers, etc.).
+            Existing comments remain visible; only new posts are blocked.
+        </p>
+        <form method="POST" class="styled-form">
+            {% include 'partials/csrf_field.html' %}
+            <div class="form-group full-width">
+                <div class="form-check">
+                    <input type="checkbox"
+                           name="public_comments_enabled"
+                           id="public_comments"
+                           class="form-check-input"
+                           {% if settings.public_comments_enabled is not defined or settings.public_comments_enabled %}checked{% endif %}>
+                    <label class="form-check-label" for="public_comments">
+                        Allow guests and members to post comments on public content
+                    </label>
+                </div>
+            </div>
+            <div class="form-actions" style="margin-top:1rem;">
+                <button type="submit" name="action" value="update_comments" class="btn-primary">
+                    Save Comment Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="content-section">
+    <div class="settings-card">
+        <h3 class="section-subtitle">Pastoral Care Controls</h3>
+        <p class="help-text">
+            Control who can submit pastoral care requests. When disabled, only Owner, Admin, and Staff can create requests.
+        </p>
+
+        <form method="POST" class="styled-form">
+            {% include 'partials/csrf_field.html' %}
+            <div class="form-group full-width">
+                <div class="form-check">
+                    <input type="checkbox"
+                           name="pastoral_care_public_submission_enabled"
+                           id="care_public"
+                           class="form-check-input"
+                           {% if settings.pastoral_care_public_submission_enabled %}checked{% endif %}>
+                    <label class="form-check-label" for="care_public">
+                        Allow members to submit care requests from their account
+                    </label>
+                </div>
+            </div>
+            <div class="form-actions" style="margin-top:1rem;">
+                <button type="submit" name="action" value="update_pastoral_care" class="btn-primary">
+                    Save Pastoral Care Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+{% endblock %}

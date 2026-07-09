@@ -1,0 +1,83 @@
+<!-- app/templates/dreams/add_dream.html -->
+<!-- Full path: WebChurchMan/app/templates/dreams/add_dream.html -->
+<!-- File name: add_dream.html -->
+<!-- Brief, detailed purpose: Submit Dream/Vision form – extends base_dreams.html for full consistency.
+   Spacious single-column layout, global form classes only.
+   Type selector, title, approximate date text field, description textarea, visibility dropdown (private default).
+   Now includes 'personal' visibility option – visible ONLY to the submitter.
+   Clean help text, required markers, form repopulation on error/censorship flash.
+   Requires login (server-side). -->
+
+{% extends "dreams/base_dreams.html" %}
+
+{% block page_title %}Submit Dream / Vision{% endblock %}
+
+{% block page_description %}
+Share a dream or vision with the community.<br>
+Choose visibility: Public (everyone), Private (members only), or Personal (only you).
+{% endblock %}
+
+{% block dreams_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Submit a Dream or Vision</h2>
+
+    <form method="POST" action="{{ url_for('dreams.submit_dream') }}" class="styled-form">
+
+        <div class="form-group">
+            <label for="type" class="control-label">Type <span class="required">*</span></label>
+            <select id="type" name="type" class="form-input" required>
+                <option value="dream" {% if request.form.get('type') == 'dream' %}selected{% endif %}>Dream</option>
+                <option value="vision" {% if request.form.get('type', 'vision') == 'vision' %}selected{% endif %}>Vision</option>
+            </select>
+            <p class="help-text">Was this a dream (while sleeping) or a vision (while awake)?</p>
+        </div>
+
+        <div class="form-group">
+            <label for="title" class="control-label">Title <span class="required">*</span></label>
+            <input type="text" id="title" name="title" class="form-input" required
+                   value="{{ request.form.get('title', '') }}" placeholder="Give your dream/vision a short title" autofocus>
+            <p class="help-text">A concise title helps others find your submission.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="date_occurred_text" class="control-label">When did this occur? (optional)</label>
+            <input type="text" id="date_occurred_text" name="date_occurred_text" class="form-input"
+                   value="{{ request.form.get('date_occurred_text', '') }}" placeholder="e.g., Last year, Summer 2023, About 2 months ago">
+            <p class="help-text">Describe approximately when it happened — no exact date needed.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="description" class="control-label">Description <span class="required">*</span></label>
+            <textarea id="description" name="description" rows="10" class="form-input" required
+                      placeholder="Describe your dream or vision in detail...">{{ request.form.get('description', '') }}</textarea>
+            <p class="help-text">Line breaks are preserved. Share as much detail as you feel comfortable with.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="visibility" class="control-label">Visibility <span class="required">*</span></label>
+            <select id="visibility" name="visibility" class="form-input" required>
+                <option value="public" {% if request.form.get('visibility') == 'public' %}selected{% endif %}>
+                    Public – visible to everyone (including guests)
+                </option>
+                <option value="private" {% if request.form.get('visibility', 'private') == 'private' %}selected{% endif %}>
+                    Private – visible to logged-in members only (default)
+                </option>
+                <option value="personal" {% if request.form.get('visibility') == 'personal' %}selected{% endif %}>
+                    Personal – visible ONLY to you (the submitter)
+                </option>
+            </select>
+            <p class="help-text">
+                Private is recommended for most submissions.<br>
+                Personal dreams are hidden from everyone except you – perfect for private reflection or drafts.
+            </p>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Submit Dream/Vision</button>
+            <a href="{{ url_for('dreams.dreams') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+{% endblock %}

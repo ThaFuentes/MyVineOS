@@ -1,0 +1,193 @@
+/* app/static/css/global/pastoral/editor.css */
+/* Full path: WebChurchMan/app/static/css/global/pastoral/editor.css */
+/* File name: editor.css */
+/* Brief, detailed purpose:
+   Complete rebuilt styles for the Sermon Builder editor (sermon_editor.html).
+   - 4-column responsive layout
+   - Hidden top toolbar with reveal/gripper
+   - Sidebar styling
+   - Section cards + drag handles
+   - Unified Quill + textarea appearance (exact match: #1e1e1e bg, white text, cyan border)
+   - Bottom status bar
+   - High-visibility empty state ("Add First Section" huge, glowing, black text on bright cyan)
+   - All buttons high-contrast (black text on bright cyan solids)
+   - Bootstrap dark mode compatible + overrides where needed
+   Preserves required dark theme + cyan (#00FFFF) accents */
+
+.pastoral-body .editor-layout {
+    max-width: none;
+    padding: 0;
+    min-height: calc(100vh - 120px);
+    background-color: #0a0f1a; /* Deep navy-black base */
+}
+
+/* Sidebars */
+.pastoral-body .editor-sidebar {
+    height: calc(100vh - 140px);
+    overflow-y: auto;
+    padding: 1.5rem;
+    border-right: 1px solid #00cccc;
+}
+.pastoral-body .bible-sidebar { background: rgba(15, 20, 35, 0.7); }
+.pastoral-body .illustrations-sidebar { background: rgba(20, 30, 20, 0.7); }
+.pastoral-body .metadata-sidebar { background: rgba(35, 20, 20, 0.7); }
+.pastoral-body .sidebar-title {
+    color: #00ffff;
+    border-bottom: 2px solid #00ffff;
+    padding-bottom: 0.75rem;
+    font-weight: 700;
+    font-size: 1.4rem;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+}
+
+/* Main Editor */
+.pastoral-body .main-editor {
+    padding: 2.5rem;
+    background: rgba(10, 10, 20, 0.85);
+}
+.pastoral-body .main-editor h4 {
+    color: #00ffff;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+    font-weight: 700;
+    font-size: 2.2rem;
+}
+
+/* Section Cards */
+.pastoral-body .section-card {
+    background: rgba(30, 30, 45, 0.8);
+    border: 1px solid #00cccc;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.1);
+}
+.pastoral-body .drag-handle {
+    cursor: move;
+    font-size: 1.8rem;
+    color: #88dddd;
+}
+.pastoral-body .section-type { min-width: 150px; }
+
+/* Unified Quill + Textarea Appearance */
+.pastoral-body .quill-wrapper,
+.pastoral-body textarea.form-control {
+    border: 1px solid #00cccc !important;
+    border-radius: 10px !important;
+    background-color: #1e1e1e !important;   /* Exact match to Quill editor bg */
+}
+.pastoral-body .ql-editor,
+.pastoral-body textarea.form-control {
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+    font-size: 1.05rem;
+}
+.pastoral-body .ql-editor.ql-blank::before {
+    color: #88dddd !important;
+    font-style: italic;
+}
+
+/* Quill Toolbar */
+.pastoral-body .ql-toolbar.ql-snow {
+    background-color: #2a2a2a !important;
+    border-color: #00cccc !important;
+    border-radius: 10px 10px 0 0 !important;
+}
+.pastoral-body .ql-snow .ql-stroke { stroke: #ffffff !important; }
+.pastoral-body .ql-snow .ql-fill { fill: #ffffff !important; }
+.pastoral-body .ql-snow .ql-picker { color: #ffffff !important; }
+.pastoral-body .ql-snow .ql-picker-options { background-color: #2a2a2a !important; }
+.pastoral-body .ql-snow .ql-picker-item { color: #ffffff !important; }
+
+/* Form Controls – consistent dark style */
+.pastoral-body .form-control,
+.pastoral-body .form-select {
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+    border-color: #00cccc !important;
+}
+.pastoral-body .form-control::placeholder,
+.pastoral-body .form-select::placeholder {
+    color: #88dddd !important;
+}
+.pastoral-body .form-label {
+    color: #ccffff !important;
+    font-weight: 600;
+}
+
+/* Autofill fix */
+.pastoral-body input:-webkit-autofill,
+.pastoral-body input:-webkit-autofill:hover,
+.pastoral-body input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-box-shadow: 0 0 0px 1000px #1e1e1e inset !important;
+}
+
+/* Select options */
+.pastoral-body option {
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+}
+
+/* Empty State – IMPOSSIBLE TO MISS */
+.pastoral-body .main-editor .text-center p {
+    color: #bbffff !important;
+    font-size: 2rem !important;
+    font-weight: 800;
+    text-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+    margin-bottom: 3rem !important;
+}
+.pastoral-body #add-first-section {
+    background-color: #00dddd !important;
+    border-color: #00ffff !important;
+    color: #000000 !important;
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+    padding: 1.5rem 4rem !important;
+    border-radius: 20px !important;
+    box-shadow: 0 0 50px rgba(0, 255, 255, 1) !important;
+    transition: all 0.3s ease;
+}
+.pastoral-body #add-first-section:hover {
+    background-color: #00ffff !important;
+    box-shadow: 0 0 70px rgba(0, 255, 255, 1) !important;
+    transform: scale(1.05);
+}
+
+/* Buttons – general */
+.pastoral-body .btn {
+    font-weight: 700 !important;
+}
+.pastoral-body .btn-cyan {
+    background-color: #00dddd !important;
+    border-color: #00ffff !important;
+    color: #000000 !important;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.8) !important;
+}
+.pastoral-body .btn-cyan:hover {
+    background-color: #00ffff !important;
+    box-shadow: 0 0 40px rgba(0, 255, 255, 1) !important;
+}
+.pastoral-body .btn-outline-cyan {
+    color: #00ffff !important;
+    border-color: #00ffff !important;
+}
+.pastoral-body .btn-outline-cyan:hover {
+    background-color: #00ffff !important;
+    color: #000000 !important;
+}
+
+/* Status */
+#autosave-status,
+#autosave-status-bottom {
+    color: #88ff88 !important;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* Toolbar & Status Bar */
+#editor-toolbar,
+.editor-status-bar {
+    background: rgba(5, 10, 20, 0.98) !important;
+}
+.toolbar-gripper {
+    background: #00ffff !important;
+    color: #000 !important;
+}

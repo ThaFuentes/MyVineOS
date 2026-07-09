@@ -1,0 +1,85 @@
+<!-- app/templates/bills/assign_bill.html -->
+<!-- Full path: WebChurchMan/app/templates/bills/assign_bill.html -->
+<!-- File name: assign_bill.html -->
+<!-- Brief, detailed purpose: Assign users to a recurring bill + set per-user reminder preference.
+   Extends base_bills.html → glass wrapper, menu, flash messages.
+   Table of all users with checkboxes: assigned (checked if current), remind_me (checked if current).
+   Submit updates assignments and reminder flags.
+   Uses ONLY global classes. Managers only (route-protected).
+   NO JSON ANYWHERE – pure standard form inputs (checkboxes). -->
+
+{% extends "bills/base_bills.html" %}
+
+{% block page_title %}Assign Users to {{ bill.bill_name|title }}{% endblock %}
+
+{% block page_description %}
+Select which members should have access to this bill and receive reminders.
+{% endblock %}
+
+{% block bills_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Assign Users to "{{ bill.bill_name|title }}"</h2>
+
+    <form method="POST" action="{{ url_for('bills.assign_bill', bill_id=bill.id) }}" class="styled-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <div class="table-wrapper glass">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Assign</th>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Send Reminders</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if all_users %}
+                        {% for user in all_users %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="assigned" value="{{ user.id }}"
+                                       {% if user.id in current %}checked{% endif %}>
+                            </td>
+                            <td>{{ user.first_name }} {{ user.last_name }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email or '-' }}</td>
+                            <td>
+                                <input type="checkbox" name="remind_{{ user.id }}" value="1"
+                                       {% if user.id in current and current[user.id] %}checked{% endif %}
+                                       {% if user.id not in current %}disabled{% endif %}>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="no-data">No users found.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="form-actions" style="margin-top:2rem; text-align:center;">
+            <button type="submit" class="btn-primary">Save Assignments</button>
+            <a href="{{ url_for('bills.view_bill', bill_id=bill.id) }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+<script>
+  // Enable/disable reminder checkbox when assignment checkbox changes
+  document.querySelectorAll('input[name="assigned"]').forEach(function(assignChk) {
+    assignChk.addEventListener('change', function() {
+      const userId = this.value;
+      const remindChk = document.querySelector(`input[name="remind_${userId}"]`);
+      if (remindChk) {
+        remindChk.disabled = !this.checked;
+        if (!this.checked) remindChk.checked = false;
+      }
+    });
+  });
+</script>
+
+{% endblock %}

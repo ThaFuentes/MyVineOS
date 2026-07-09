@@ -1,0 +1,225 @@
+<!-- app/templates/settings/online_giving.html -->
+<!-- Full path: WebChurchMan/app/templates/settings/online_giving.html -->
+<!-- File name: online_giving.html -->
+<!-- Brief, detailed purpose: Dedicated Settings page for Online Giving configuration.
+   Extends base_settings.html → inherits glass wrapper, internal .menu navigation, flash messages.
+   Contains ONLY the online giving global controls + full repeater (add/edit/delete/reorder + image upload/cleanup).
+   All original fields, help text, forms, table layout, collapsible inline edits, and image handling preserved 100%.
+   Uses only global CSS classes. -->
+
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Online Giving Configuration</h2>
+    <p class="help-text">
+        Enable/disable the public "Donate" tab and configure page text.<br>
+        Add multiple giving methods (Stripe link, PayPal embed, Venmo QR, etc.).
+    </p>
+
+    <!-- Global Page Settings -->
+    <form method="POST" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <div class="form-grid">
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="online_donations_enabled" {% if settings.online_donations_enabled %}checked{% endif %}>
+                    Enable Public Donate Tab
+                </label>
+                <p class="help-text">Shows "Donate" in public navigation and /donate page.</p>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="donations_page_title">Page Title</label>
+                <input type="text" name="donations_page_title" id="donations_page_title"
+                       value="{{ settings.donations_page_title or '' }}" placeholder="Support Our Ministry">
+            </div>
+
+            <div class="form-group full-width">
+                <label for="donations_welcome_text">Welcome Message (top of page)</label>
+                <textarea name="donations_welcome_text" id="donations_welcome_text" rows="4">{{ settings.donations_welcome_text or '' }}</textarea>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="donations_thank_you_text">Thank You Message</label>
+                <textarea name="donations_thank_you_text" id="donations_thank_you_text" rows="4">{{ settings.donations_thank_you_text or '' }}</textarea>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="donations_extra_text">Extra Content (bottom of page, optional)</label>
+                <textarea name="donations_extra_text" id="donations_extra_text" rows="6">{{ settings.donations_extra_text or '' }}</textarea>
+                <p class="help-text">HTML allowed (e.g., mailing address for checks).</p>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" name="action" value="update_online_global" class="btn-primary">Save Page Settings</button>
+            <a href="{{ url_for('settings.general') }}" class="btn-secondary">Back to Settings</a>
+        </div>
+    </form>
+
+    <hr class="section-divider">
+
+    <!-- Add New Option -->
+    <h2 class="section-title">Add New Giving Option</h2>
+    <form method="POST" enctype="multipart/form-data" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <div class="form-grid">
+            <div class="form-group full-width">
+                <label for="option_name">Display Name <span class="required">*</span></label>
+                <input type="text" name="option_name" id="option_name" required placeholder="e.g., Credit Card (Stripe)">
+            </div>
+
+            <div class="form-group">
+                <label for="option_type">Type (optional label)</label>
+                <input type="text" name="option_type" id="option_type" placeholder="stripe, paypal, venmo, etc.">
+            </div>
+
+            <div class="form-group full-width">
+                <label for="option_url">Direct URL (Stripe/PayPal/Tithe.ly link)</label>
+                <input type="url" name="option_url" id="option_url" placeholder="https://buy.stripe.com/...">
+            </div>
+
+            <div class="form-group full-width">
+                <label for="option_embed">Embed HTML Code (PayPal button, etc.)</label>
+                <textarea name="option_embed" id="option_embed" rows="6" placeholder="&lt;script src=..."></textarea>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="option_image">QR Code / Logo Image (optional)</label>
+                <input type="file" name="option_image" id="option_image" accept="image/*">
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="option_enabled" checked>
+                    Enabled (show on public page)
+                </label>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" name="action" value="add_option" class="btn-primary">Add Giving Option</button>
+        </div>
+    </form>
+
+    <!-- Existing Options List -->
+    {% if online_options %}
+    <h2 class="section-title" style="margin-top:4rem;">Current Giving Options</h2>
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Preview</th>
+                    <th>Name / Type</th>
+                    <th>URL / Embed</th>
+                    <th>Enabled</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for opt in online_options %}
+                <tr>
+                    <td>
+                        <form method="POST" style="display:inline;">
+        {% include 'partials/csrf_field.html' %}
+                            <input type="hidden" name="option_id" value="{{ opt.id }}">
+                            <button type="submit" name="action" value="move_up" class="btn-small" {% if loop.first %}disabled{% endif %}>↑</button>
+                            <button type="submit" name="action" value="move_down" class="btn-small" {% if loop.last %}disabled{% endif %}>↓</button>
+                        </form>
+                    </td>
+                    <td>
+                        {% if opt.image_path %}
+                        <img src="{{ url_for('static', filename='uploads/donations/' + opt.image_path) }}"
+                             alt="QR/Logo" class="option-preview-img">
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ opt.name }}</strong>
+                        {% if opt.option_type %}<br><em>{{ opt.option_type }}</em>{% endif %}
+                    </td>
+                    <td>
+                        {% if opt.url %}
+                        <a href="{{ opt.url }}" target="_blank">Link</a>
+                        {% elif opt.embed_code %}
+                        <em>Embed code</em>
+                        {% endif %}
+                    </td>
+                    <td>{{ 'Yes' if opt.enabled else 'No' }}</td>
+                    <td>
+                        <!-- Inline Edit (collapsible) -->
+                        <details class="collapsible-controls">
+                            <summary class="collapsible-summary">Edit</summary>
+                            <div class="potluck-content">
+                                <form method="POST" enctype="multipart/form-data" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+                                    <input type="hidden" name="option_id" value="{{ opt.id }}">
+
+                                    <div class="form-grid">
+                                        <div class="form-group full-width">
+                                            <label>Display Name</label>
+                                            <input type="text" name="option_name" value="{{ opt.name }}" required>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>Type</label>
+                                            <input type="text" name="option_type" value="{{ opt.option_type or '' }}">
+                                        </div>
+
+                                        <div class="form-group full-width">
+                                            <label>URL</label>
+                                            <input type="url" name="option_url" value="{{ opt.url or '' }}">
+                                        </div>
+
+                                        <div class="form-group full-width">
+                                            <label>Embed Code</label>
+                                            <textarea name="option_embed" rows="5">{{ opt.embed_code or '' }}</textarea>
+                                        </div>
+
+                                        <div class="form-group full-width">
+                                            <label>New Image (replace)</label>
+                                            <input type="file" name="option_image" accept="image/*">
+                                            {% if opt.image_path %}
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="remove_image">
+                                                Remove current image
+                                            </label>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>
+                                                <input type="checkbox" name="option_enabled" {% if opt.enabled %}checked{% endif %}>
+                                                Enabled
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-actions">
+                                        <button type="submit" name="action" value="update_option" class="btn-primary">Update</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </details>
+
+                        <!-- Delete -->
+                        <form method="POST" style="display:inline; margin-left:0.5rem;"
+                              onsubmit="return confirm('Delete this giving option?');">
+        {% include 'partials/csrf_field.html' %}
+                            <input type="hidden" name="option_id" value="{{ opt.id }}">
+                            <button type="submit" name="action" value="delete_option" class="btn-small btn-danger-small">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="no-data">No giving options configured yet.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

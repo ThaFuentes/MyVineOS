@@ -1,0 +1,137 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/public/prophecies/view_prophecy.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/public/prophecies/view_prophecy.html -->
+<!-- File name: view_prophecy.html -->
+<!-- Brief, detailed purpose: Public single prophecy detail page for unauthenticated guests. -->
+<!-- 100% rebuilt to match the Events gold standard (event_detail.html) and the fixed dreams/view_dream.html. -->
+<!-- All url_for calls now use the correct nested blueprint endpoint 'public.public_prophecies.public_prophecy_detail'. -->
+<!-- Uses creator_name + created_at from the rebuilt queries/views.py. -->
+
+{% extends "base_public.html" %}
+
+{% block title %}{{ prophecy.title|title }}{% endblock %}
+
+{% block content %}
+
+<!-- Prophecy Header -->
+<section class="content-section event-header">
+    <h1 class="page-title">{{ prophecy.title|title }}</h1>
+
+    <!-- Horizontal meta row (matches Events/Dreams gold standard) -->
+    <div class="prophecy-meta" style="display: flex; flex-wrap: wrap; gap: 1.8rem 2.5rem; align-items: baseline; justify-content: center; font-size: 1.15rem; color: #ddd; margin-top: 0.8rem;">
+        <div><strong>Shared on:</strong> {{ prophecy.created_at.strftime('%B %d, %Y') if prophecy.created_at else 'Unknown' }}</div>
+        <div><strong>By:</strong> {{ prophecy.creator_name or prophecy.posted_by or 'Anonymous' }}</div>
+    </div>
+</section>
+
+
+
+<div class="content-wrapper">
+
+    <!-- Full Prophecy Content -->
+    {% if prophecy.description %}
+    <section class="content-section">
+        <h3 class="section-title">The Prophecy</h3>
+        <div class="card glass">
+            {{ prophecy.description | nl2br | censor }}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- ==================== COMMENTS WITH SIMPLE ONE-LEVEL REPLIES ==================== -->
+    <section class="content-section">
+        <h3 class="section-title">Comments & Discussion</h3>
+
+        {% if prophecy.comments %}
+        <div class="card glass">
+            {% for comment in prophecy.comments if not comment.parent_id %}
+                <!-- Top-level comment -->
+                <div class="comment-item" style="margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1);">
+                    <p><strong>{{ comment.name | censor }}</strong>
+                       <small style="color:#888;">{{ comment.date }}</small></p>
+                    <p>{{ comment.comment | nl2br | censor }}</p>
+
+                    <!-- Reply button -->
+                    <button onclick="toggleReplyForm({{ comment.id }})"
+                            style="margin-top:0.8rem; padding:0.4rem 1rem; font-size:0.9rem; background:rgba(0,255,255,0.1); color:var(--primary); border:1px solid var(--primary); border-radius:6px; cursor:pointer;">
+                        Reply
+                    </button>
+
+                    <!-- Reply form -->
+                    <div id="reply-form-{{ comment.id }}" style="display:none; margin-top:1rem; padding:1rem; background:rgba(255,255,255,0.05); border-radius:8px;">
+                        <form action="{{ url_for('public.public_prophecies.public_prophecy_detail', prophecy_id=prophecy.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <input type="hidden" name="action" value="reply">
+                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                            <div style="margin-bottom:0.8rem;">
+                                <label style="display:block; color:var(--primary); margin-bottom:0.4rem;">Your Name <span style="color:#ff4444;">*</span></label>
+                                <input type="text" name="contributor_name" class="form-input" required
+                                       style="width:100%; padding:1rem; background:rgba(255,255,255,0.1); border:1px solid var(--primary); color:white; border-radius:8px;"
+                                       placeholder="Guest name or nickname">
+                            </div>
+                            <div style="margin-bottom:0.8rem;">
+                                <label style="display:block; color:var(--primary); margin-bottom:0.4rem;">Your Reply</label>
+                                <textarea name="comment" rows="3" class="form-input" required
+                                          style="width:100%; padding:1rem; background:rgba(255,255,255,0.1); border:1px solid var(--primary); color:white; border-radius:8px;"
+                                          placeholder="Write your reply..."></textarea>
+                            </div>
+                            <button type="submit"
+                                    style="padding:0.8rem 2rem; background:var(--primary); color:#000; font-weight:bold; border:none; border-radius:8px; cursor:pointer;">
+                                Post Reply
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- One-level replies -->
+                {% for reply in prophecy.comments if reply.parent_id == comment.id %}
+                <div class="comment-item" style="margin-left:2rem; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1); border-left:3px solid var(--primary); padding-left:1rem;">
+                    <p><strong>{{ reply.name | censor }}</strong>
+                       <small style="color:#888;">{{ reply.date }}</small></p>
+                    <p>{{ reply.comment | nl2br | censor }}</p>
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-data">No comments yet — be the first to respond!</p>
+        {% endif %}
+
+        <!-- Main Guest Comment Form -->
+        <form action="{{ url_for('public.public_prophecies.public_prophecy_detail', prophecy_id=prophecy.id) }}" method="POST" style="margin-top: 2rem;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="comment">
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; color: var(--primary); margin-bottom: 0.4rem;">Your Name <span style="color: #ff4444;">*</span></label>
+              <input type="text" name="contributor_name" class="form-input"
+                     style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); color: white; border-radius: 8px;"
+                     placeholder="Guest name or nickname" required>
+            </div>
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; color: var(--primary); margin-bottom: 0.4rem;">Your Comment</label>
+              <textarea name="comment" rows="4" class="form-input"
+                        style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); color: white; border-radius: 8px;"
+                        placeholder="Share your thoughts..." required></textarea>
+            </div>
+            <button type="submit"
+                    style="padding: 1rem 2.5rem; background: var(--primary); color: #000; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
+              Post Comment
+            </button>
+        </form>
+    </section>
+
+</div>
+
+<!-- Back to Prophecies list -->
+<div class="form-actions" style="margin-top:3rem;">
+    <a href="{{ url_for('public.public_prophecies.public_prophecies') }}" class="btn-secondary">← Back to All Prophecies</a>
+</div>
+
+<script>
+  // Toggle reply forms
+  function toggleReplyForm(commentId) {
+    const form = document.getElementById('reply-form-' + commentId);
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+</script>
+
+{% endblock %}

@@ -1,0 +1,81 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/tickets/ticket_manager.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/tickets/ticket_manager.html -->
+<!-- File name: ticket_manager.html -->
+<!-- Brief, detailed purpose: FULL Ticket Manager dashboard for Owners/Admins/Staff (ALL tickets view).
+   • Shows ALL tickets (not just your own).
+   • Clean summary cards at top (Open / In Progress + Total Tickets).
+   • Full sortable table with quick inline actions (Status, Priority, Assign).
+   • Click any row to open the detailed view_ticket page.
+   • 100% restored to the exact working version you had before the group page overwrote it.
+   • This is the page you see at /tickets/manage – the one you lost. -->
+
+{% extends "tickets/base_tickets.html" %}
+
+{% block page_title %}Ticket Manager{% endblock %}
+
+{% block page_description %}
+All support tickets in the church. You can assign, update status, change priority, and reply to any ticket.
+{% endblock %}
+
+{% block tickets_content %}
+
+<!-- Summary Cards -->
+<section class="content-section">
+    <h2 class="section-title">All Tickets Summary</h2>
+    <div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+        <div class="card glass" style="text-align: center; padding: 2rem 1.5rem;">
+            <h3 style="color: #00FFFF; margin-bottom: 0.5rem;">Open / In Progress</h3>
+            <p class="large-amount" style="font-size: 4.5rem; font-weight: bold; margin: 0; line-height: 1;">{{ open_count }}</p>
+        </div>
+        <div class="card glass" style="text-align: center; padding: 2rem 1.5rem;">
+            <h3 style="color: #00FFFF; margin-bottom: 0.5rem;">Total Tickets</h3>
+            <p class="large-amount" style="font-size: 4.5rem; font-weight: bold; margin: 0; line-height: 1;">{{ tickets|length }}</p>
+        </div>
+    </div>
+</section>
+
+<!-- All Tickets Table -->
+<section class="content-section">
+    <h3 class="section-title">All Tickets</h3>
+
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#ID</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Assigned To</th>
+                    <th>Creator</th>
+                    <th>Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tickets %}
+                <tr onclick="window.location='{{ url_for('tickets.view_ticket', ticket_id=t.id) }}'" style="cursor: pointer;">
+                    <td>#{{ t.id }}</td>
+                    <td><strong>{{ t.title }}</strong></td>
+                    <td>{{ t.category_name }}</td>
+                    <td class="priority-{{ t.priority }}">{{ t.priority|capitalize }}</td>
+                    <td>{{ t.status.replace('_', ' ')|title }}</td>
+                    <td>{{ t.assignee_name or 'Unassigned' }}</td>
+                    <td>{{ t.creator_name or 'Guest' }}</td>
+                    <td>{{ t.formatted_updated or t.updated_at[:10] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not tickets %}
+    <p class="no-data" style="text-align: center; padding: 4rem; font-size: 1.4rem;">
+        No tickets found.
+    </p>
+    {% endif %}
+</section>
+
+{% endblock %}
+
+print("✅ MYVINECHURCH.ONLINE templates/tickets/ticket_manager.html RESTORED successfully – you now have your All Tickets dashboard back!")

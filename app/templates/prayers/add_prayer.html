@@ -1,0 +1,77 @@
+<!-- app/templates/prayers/add_prayer.html -->
+<!-- Full path: WebChurchMan/app/templates/prayers/add_prayer.html -->
+<!-- File name: add_prayer.html -->
+<!-- Brief, detailed purpose: Form for submitting a new prayer request.
+   Mirrors add_event.html structure: single-column, global classes, collapsible sections not needed (simple form).
+   Guests can submit public requests only; logged-in users can choose visibility.
+   Form repopulates on validation/censorship errors.
+   Uses ONLY global classes. -->
+
+{% extends "prayers/base_prayers.html" %}
+
+{% block page_title %}Add Prayer Request{% endblock %}
+
+{% block page_description %}
+Share a prayer need with the community. Required fields marked with <span class="required">*</span>.
+{% endblock %}
+
+{% block prayers_content %}
+
+<section class="content-section">
+    <h2 class="section-title">New Prayer Request</h2>
+
+    <!-- Top submit/cancel for quick access -->
+    <div class="form-actions" style="margin-bottom:2rem; text-align:center;">
+        <button type="submit" form="prayer-form" class="btn-primary">Submit Request</button>
+        <a href="{{ url_for('prayers.prayers') }}" class="btn-secondary">Cancel</a>
+    </div>
+
+    <form id="prayer-form" method="POST" action="{{ url_for('prayers.add_prayer') }}" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+
+        <div class="form-group">
+            <label for="title" class="control-label">Title <span class="required">*</span></label>
+            <input type="text" id="title" name="title" class="form-input" required
+                   value="{{ request.form.get('title', '') }}" placeholder="e.g., Healing for family member">
+            <p class="help-text">Brief, clear title for the request.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="description" class="control-label">Description <span class="required">*</span></label>
+            <textarea id="description" name="description" rows="8" class="form-input" required
+                      placeholder="Share details about your prayer need...">{{ request.form.get('description', '') }}</textarea>
+            <p class="help-text">Provide context so the community can pray specifically.</p>
+        </div>
+
+        {% if is_logged_in %}
+        <div class="form-group">
+            <label for="visibility" class="control-label">Visibility</label>
+            <select id="visibility" name="visibility" class="form-input">
+                <option value="public" {% if request.form.get('visibility', 'public') == 'public' %}selected{% endif %}>
+                    Public (visible to all visitors)
+                </option>
+                <option value="private" {% if request.form.get('visibility') == 'private' %}selected{% endif %}>
+                    Private (members only)
+                </option>
+            </select>
+            <p class="help-text">Private requests are hidden from guests.</p>
+        </div>
+        {% else %}
+        <input type="hidden" name="visibility" value="public">
+        <div class="form-group">
+            <label for="contributor_name" class="control-label">Your Name (optional – "Anonymous" if blank)</label>
+            <input type="text" id="contributor_name" name="contributor_name" class="form-input"
+                   value="{{ request.form.get('contributor_name', '') }}" placeholder="Your name">
+            <p class="help-text">Guest submissions are always public.</p>
+        </div>
+        {% endif %}
+
+        <!-- Bottom submit/cancel for convenience -->
+        <div class="form-actions" style="margin-top:3rem; text-align:center;">
+            <button type="submit" class="btn-primary">Submit Request</button>
+            <a href="{{ url_for('prayers.prayers') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+{% endblock %}

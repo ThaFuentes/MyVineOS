@@ -1,0 +1,154 @@
+<!-- app/templates/dreams/view_dream.html -->
+<!-- Full path: WebChurchMan/app/templates/dreams/view_dream.html -->
+<!-- File name: view_dream.html -->
+<!-- Brief, detailed purpose: Single Dream/Vision detail view – mirrors view_event.html structure.
+   Full description + collapsible comments.html section (collapsed by default).
+   Extends base_dreams.html for menu consistency.
+   Uses ONLY global classes – glass cards, collapsible-section.
+   Shows title, type, approximate date, description, visibility.
+   Edit/Delete buttons only for owner or admin.
+   Add comment form for logged-in users.
+   Guests see login prompt for commenting.
+   All content censored server-side on display.
+   Dates use strftime (no slicing on datetime objects).
+   Handles personal/private/public visibility correctly (enforced in route). -->
+
+{% extends "dreams/base_dreams.html" %}
+
+{% block page_title %}{{ dream.title|title|censor }}{% endblock %}
+
+{% block page_description %}
+{{ dream.type|capitalize if dream.type else 'Dream/Vision' }} by {{ dream.poster_name or 'Anonymous' }} – {{ dream.visibility|capitalize }}
+{% endblock %}
+
+{% block dreams_content %}
+
+<section class="content-section">
+
+    <!-- Header: Title + Info + Actions -->
+    <div class="event-header-flex">
+        <div class="event-title-info">
+            <h2 class="page-title">{{ dream.title|title|censor }}</h2>
+            <p class="event-key-info">
+                {{ dream.type|capitalize if dream.type else 'Dream/Vision' }}
+                {% if dream.date_occurred_text %} • {{ dream.date_occurred_text }} {% endif %}
+                • Posted by {{ dream.poster_name or 'Anonymous' }}
+                on {{ dream.date_posted.strftime('%B %d, %Y') }}
+                • {{ dream.visibility|capitalize }}
+                {% if dream.comments %} • {{ dream.comments|length }} comment{{ 's' if dream.comments|length != 1 else '' }}{% endif %}
+            </p>
+        </div>
+
+        {% if can_edit or can_delete %}
+        <div class="event-actions">
+            {% if can_edit %}
+            <a href="{{ url_for('dreams.edit_dream', dream_id=dream.id) }}" class="btn-primary">Edit</a>
+            {% endif %}
+            {% if can_delete %}
+            <form action="{{ url_for('dreams.delete_dream', dream_id=dream.id) }}" method="post" style="display:inline;">
+                <button type="submit" class="btn-danger"
+                        onclick="return confirm('Permanently delete this dream/vision and all comments? This cannot be undone.');">
+                    Delete
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Description -->
+    <section class="content-section">
+        <h3 class="section-title">Description</h3>
+        <div class="card glass">
+            {{ dream.description | nl2br | censor }}
+        </div>
+    </section>
+
+    <!-- Optional Notes -->
+    {% if dream.notes %}
+    <section class="content-section">
+        <h3 class="section-title">Additional Notes</h3>
+        <div class="card glass">
+            {{ dream.notes | nl2br | censor }}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Comments – COLLAPSIBLE and COLLAPSED by default -->
+    <details class="collapsible-section glass">
+        <summary class="collapsible-summary section-title">
+            Comments {% if dream.comments %}({{ dream.comments|length }}){% endif %}
+        </summary>
+
+        <div class="collapsible-content">
+
+            {% if dream.comments %}
+            <div class="table-wrapper glass">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>By</th>
+                            <th>Comment</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in dream.comments %}
+                        <tr>
+                            <td>{{ c.date_posted.strftime('%b %d, %Y') }}</td>
+                            <td><strong>{{ c.commenter_name or 'Anonymous' }}</strong></td>
+                            <td>{{ c.comment | nl2br | censor }}</td>
+                            <td>
+                                {% if is_logged_in and (c.user_id == current_user_id or is_admin_owner) %}
+                                <form action="{{ url_for('dreams.delete_comment', dream_id=dream.id, comment_id=c.id) }}" method="post" style="display:inline;">
+                                    <button type="submit" class="btn-danger btn-small"
+                                            onclick="return confirm('Delete this comment?');">
+                                        Delete
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="card glass">
+                <p><em>No comments yet – be the first to share!</em></p>
+            </div>
+            {% endif %}
+
+            <!-- Add Comment Form – logged-in only -->
+            {% if is_logged_in %}
+            <section class="content-section" style="margin-top:2rem;">
+                <h3 class="section-subtitle">Add Your Comment</h3>
+                <form action="{{ url_for('dreams.add_comment', dream_id=dream.id) }}" method="POST" class="styled-form">
+                    <div class="form-group">
+                        <label class="control-label">Your Comment <span class="required">*</span></label>
+                        <textarea name="comment" rows="6" class="form-input" required
+                                  placeholder="Share your thoughts, encouragement, or insight..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Post Comment</button>
+                    </div>
+                </form>
+            </section>
+            {% else %}
+            <div class="card glass" style="margin-top:2rem; text-align:center; padding:2rem;">
+                <p><a href="{{ url_for('auth.login') }}">Log in</a> to add a comment.</p>
+            </div>
+            {% endif %}
+
+        </div>
+    </details>
+
+    <!-- Back to Dashboard -->
+    <div class="form-actions" style="margin-top:3rem;">
+        <a href="{{ url_for('dreams.dreams') }}" class="btn-secondary">← Back to Dreams & Visions</a>
+    </div>
+
+</section>
+
+{% endblock %}

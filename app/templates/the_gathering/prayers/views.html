@@ -1,0 +1,83 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/prayers/view.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prayers/view.html -->
+<!-- File name: view.html -->
+<!-- Brief, detailed purpose: Read-only detailed view of a single prayer inside the Gathering Place Manager. -->
+<!-- • Shows every field from the prayers table in a clean layout. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prayers.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}View Prayer • {{ prayer.title }}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">🙏 Prayer Detail</h1>
+            <h2 class="text-light">{{ prayer.title }}</h2>
+        </div>
+
+        <div style="display:flex; gap:0.5rem;">
+            <!-- Back to Prayers Manager -->
+            <a href="{{ url_for('the_gathering.prayers.prayers_dashboard') }}" class="btn btn-secondary">
+                ← Back to Prayers
+            </a>
+
+            <!-- Edit Prayer -->
+            <a href="{{ url_for('the_gathering.prayers.edit_prayer', prayer_id=prayer.id) }}" class="btn btn-primary">
+                ✏️ Edit Prayer
+            </a>
+
+            <!-- Manage Comments -->
+            <a href="{{ url_for('the_gathering.prayers.prayer_comments', prayer_id=prayer.id) }}" class="btn btn-warning">
+                💬 Manage Comments ({{ comment_count or 0 }})
+            </a>
+
+            <!-- View on Public Site -->
+            <a href="{{ url_for('public.public_prayers.public_prayer_detail', prayer_id=prayer.id) }}"
+               target="_blank" class="btn btn-outline-light">
+                👁️ View Public
+            </a>
+
+            <!-- Delete Prayer -->
+            <form method="POST" action="{{ url_for('the_gathering.prayers.delete_prayer', prayer_id=prayer.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this prayer and ALL its comments?')">
+                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="glass p-4 mb-5">
+        <!-- Meta Row -->
+        <div class="row mb-4" style="font-size:1.1rem;">
+            <div class="col-md-4"><strong>Visibility:</strong>
+                <span class="badge {% if prayer.visibility == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
+                    {{ prayer.visibility|upper }}
+                </span>
+            </div>
+            <div class="col-md-4"><strong>Creator:</strong> {{ prayer.creator_name or 'Anonymous' }}</div>
+            <div class="col-md-4"><strong>Created:</strong> {{ prayer.created_at | format_manager_datetime }}</div>
+        </div>
+
+        <!-- Prayer Content -->
+        {% if prayer.prayer_text %}
+        <div class="mb-5">
+            <h5 class="text-light">Prayer Content</h5>
+            <div class="card glass p-4">{{ prayer.prayer_text | nl2br | safe }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Created / Updated Info -->
+        <div class="text-muted small mt-4">
+            Last updated: {{ prayer.updated_at | format_manager_datetime }}
+        </div>
+    </div>
+</div>
+
+<script>
+    console.log('✅ Prayer View loaded for prayer #{{ prayer.id }}');
+</script>
+
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "worship/base_worship.html" %}
+
+{% block worship_title %}{{ song.title if song else 'New Song' }}{% endblock %}
+
+{% block worship_content %}
+<h1 style="margin:0 0 1rem; font-size:1.35rem; color:var(--primary);">
+  {% if song %}{{ song.title }}{% else %}New Song{% endif %}
+</h1>
+
+{% if not can_manage %}
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <p style="margin:0 0 0.75rem; opacity:0.8;">View only — managers can edit the song library.</p>
+  {% if song.lyrics_raw %}
+  <pre style="white-space:pre-wrap; font-family:inherit; margin:0;">{{ song.lyrics_raw }}</pre>
+  {% endif %}
+  {% if song.copyright_line %}
+  <p style="margin:1rem 0 0; font-size:0.85rem; opacity:0.65;">{{ song.copyright_line }}</p>
+  {% endif %}
+</div>
+<a href="{{ url_for('worship.songs_list') }}" class="btn btn-secondary">← Back</a>
+{% else %}
+<form method="post" enctype="multipart/form-data" class="glass-panel" style="padding:1rem; display:grid; gap:0.85rem;">
+  <label>Title *
+    <input type="text" name="title" value="{{ song.title if song else '' }}" required style="width:100%; margin-top:0.25rem;">
+  </label>
+  <label>Artist
+    <input type="text" name="artist" value="{{ song.artist if song and song.artist else '' }}" style="width:100%; margin-top:0.25rem;">
+  </label>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.75rem;">
+    <label>CCLI #
+      <input type="text" name="ccli_song_number" value="{{ song.ccli_song_number if song and song.ccli_song_number else '' }}" style="width:100%; margin-top:0.25rem;">
+    </label>
+    <label>Copyright year
+      <input type="number" name="copyright_year" value="{{ song.copyright_year if song and song.copyright_year else '' }}" style="width:100%; margin-top:0.25rem;">
+    </label>
+  </div>
+  <label>Copyright line
+    <input type="text" name="copyright_line" value="{{ song.copyright_line if song and song.copyright_line else '' }}" style="width:100%; margin-top:0.25rem;">
+  </label>
+  <label>Publisher
+    <input type="text" name="publisher" value="{{ song.publisher if song and song.publisher else '' }}" style="width:100%; margin-top:0.25rem;">
+  </label>
+  <label>Lyrics — use <code>[Verse 1]</code>, <code>(Chorus)</code>, <code>Bridge</code> lines to split sections for the prompter
+    <textarea name="lyrics_raw" rows="12" style="width:100%; margin-top:0.25rem; font-family:inherit;">{{ song.lyrics_raw if song and song.lyrics_raw else '' }}</textarea>
+  </label>
+  <label>Sections JSON (optional — advanced arrangement for screen mode)
+    <textarea name="sections_json" rows="6" style="width:100%; margin-top:0.25rem; font-family:monospace; font-size:0.85rem;">{% if song and song.sections %}{{ song.sections | tojson }}{% endif %}</textarea>
+  </label>
+  <label>Permanent notes (transitions, cues)
+    <textarea name="notes_permanent" rows="3" style="width:100%; margin-top:0.25rem;">{{ song.notes_permanent if song and song.notes_permanent else '' }}</textarea>
+  </label>
+  <label>Chord chart file
+    <input type="file" name="chords_file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" style="margin-top:0.25rem;">
+    {% if song and song.chords_filename %}
+    <div style="margin-top:0.35rem; font-size:0.85rem;">
+      Current: <a href="{{ url_for('worship.chord_file', filename=song.chords_filename) }}">Download chord chart</a>
+    </div>
+    {% endif %}
+  </label>
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+    <button type="submit" class="btn btn-primary">Save Song</button>
+    <a href="{{ url_for('worship.songs_list') }}" class="btn btn-secondary">Cancel</a>
+    {% if song %}
+    <button type="submit" formaction="{{ url_for('worship.song_delete', song_id=song.id) }}" formmethod="post" class="btn btn-secondary" style="margin-left:auto;" onclick="return confirm('Delete this song?');">Delete</button>
+    {% endif %}
+  </div>
+</form>
+{% endif %}
+{% endblock %}

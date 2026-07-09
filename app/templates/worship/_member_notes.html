@@ -1,0 +1,15 @@
+{% macro member_notes_block(assignments, member_notes) %}
+{% if assignments %}
+<h3 style="margin:0.75rem 0 0; font-size:1rem;">Personal notes to team members</h3>
+<p style="margin:0 0 0.5rem; font-size:0.85rem; opacity:0.65;">Only the assigned person sees their note (included in their email).</p>
+<div style="display:grid; gap:0.6rem;">
+  {% for a in assignments %}
+  <label style="display:block;">
+    <span style="font-weight:600;">{{ a.role_name }} — {{ a.user_full_name or a.username }}</span>
+    <input type="hidden" name="note_user_id[]" value="{{ a.user_id }}">
+    <textarea name="note_text[]" rows="2" style="width:100%; margin-top:0.25rem;" placeholder="e.g. You're on acoustic this week, capo 2…">{% if member_notes.get(a.user_id) %}{{ member_notes[a.user_id].note_text }}{% endif %}</textarea>
+  </label>
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}

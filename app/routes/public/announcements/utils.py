@@ -1,0 +1,34 @@
+# MYVINECHURCH.ONLINE/app/routes/public/announcements/utils.py
+# Full path: MYVINECHURCH.ONLINE/app/routes/public/announcements/utils.py
+# File name: utils.py
+# Brief, detailed purpose: Feature-specific utility functions for the public Announcements section.
+# • Exact same censor_public_content and format_public_datetime logic from the original shared public/utils.py
+# • Tailored keys for announcements (title, content, notes, creator_name, posted_by) while preserving 100% of the old behavior
+# • No functionality lost – all censoring, date formatting, and public safety checks remain identical
+# • 100% rebuilt to match the exact style of public/events/utils.py and public/dreams/utils.py gold standard
+
+from app.utils.helpers import censor_text
+from app.utils.time_utils import format_church
+
+
+# ----------------------------------------------------------------------
+# Public Helpers (Announcements specific)
+# ----------------------------------------------------------------------
+def censor_public_content(items):
+    """Apply server-side censorship to a list of public announcements.
+    Used by announcements listing and detail routes (exact same logic as the old shared public/utils.py and Events/Dreams gold standard)."""
+    for item in items:
+        for key in ['title', 'content', 'notes', 'creator_name', 'posted_by']:
+            if key in item and item[key]:
+                item[key] = censor_text(item[key])
+    return items
+
+
+def format_public_datetime(date_value):
+    """Format datetime for public announcements pages using the church's timezone helper.
+    Exact same behavior as the original public/utils.py and Events gold standard."""
+    if date_value:
+        return format_church(date_value, '%B %d, %Y at %I:%M %p')
+    return 'Unknown date'
+
+

@@ -1,0 +1,115 @@
+{# app/templates/pastoral/illustration_view.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/illustration_view.html #}
+{# File name: illustration_view.html #}
+{# Brief, detailed purpose:
+#   Read-only full view of a single reusable content item (Illustration or saved Section).
+#   Accessed from library "View" button or direct link.
+#   Displays title, type badge, tags, scripture (sections only), source/reference, full Quill content.
+#   Private notes visible only to creator (user_id match) or Admin/Owner.
+#   Back button to library.
+#   Dark/cyan theme consistent.
+#   FULL REBUILD – supports both illustration and vault section types, uses 'item' variable.
+#}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}View {{ 'Section' if item.type == 'section' else 'Illustration' }}: {{ item.title }}{% endblock %}
+
+{% block pastoral_content %}
+<div class="container-fluid py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card glass-card shadow">
+                <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0 text-cyan">{{ item.title }}</h2>
+                    <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-outline-cyan">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Library
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Type Badge -->
+                    <div class="mb-4">
+                        <span class="badge {% if item.type == 'section' %}bg-purple{% else %}bg-cyan{% endif %} fs-6">
+                            {{ 'Section' if item.type == 'section' else 'Illustration' }}
+                        </span>
+                    </div>
+
+                    <!-- Tags -->
+                    {% if item.tag_list %}
+                        <div class="mb-4">
+                            <strong class="text-cyan">Tags:</strong>
+                            <div class="mt-2">
+                                {% for tag in item.tag_list %}
+                                    <span class="badge bg-dark me-1">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Scripture Reference (sections only) -->
+                    {% if item.scripture_reference %}
+                        <div class="mb-4">
+                            <strong class="text-cyan">Scripture Reference:</strong>
+                            <p class="mt-2 text-white fw-medium">{{ item.scripture_reference }}</p>
+                        </div>
+                    {% endif %}
+
+                    <!-- Source / Reference – multi-line preserved -->
+                    {% if item.source_url or item.source %}
+                        <div class="mb-4">
+                            <strong class="text-cyan">Source / Reference:</strong>
+                            <p class="mt-2 text-white whitespace-pre-wrap">{{ item.source_url or item.source }}</p>
+                        </div>
+                    {% endif %}
+
+                    <!-- Full Content (Quill rendered) -->
+                    <div class="mb-5">
+                        <strong class="text-cyan">Content:</strong>
+                        <div class="quill-view-wrapper p-4 bg-dark rounded mt-3 shadow-inner" style="min-height: 350px;">
+                            {{ item.content|safe }}
+                        </div>
+                    </div>
+
+                    <!-- Private Notes – only show to creator or Admin/Owner -->
+                    {% if current_user_id == item.user_id or current_user_role in ['Admin', 'Owner'] %}
+                        {% if item.notes %}
+                            <div class="mb-4 p-4 bg-secondary rounded">
+                                <strong class="text-cyan">Private Notes:</strong>
+                                <div class="mt-2 text-white whitespace-pre-wrap">
+                                    {{ item.notes }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+
+                    <!-- Visibility badge -->
+                    <div class="text-end mt-4">
+                        <span class="badge {% if item.user_id %}bg-secondary{% else %}bg-cyan{% endif %} fs-6">
+                            {% if item.user_id %}Private{% else %}Shared with Pastoral Group{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quill CSS for proper rendering (view only) -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+
+<style>
+    .quill-view-wrapper .ql-editor {
+        padding: 0;
+        min-height: auto;
+        background: transparent;
+        color: #ffffff;
+    }
+    .whitespace-pre-wrap {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    .shadow-inner {
+        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "worship/base_worship.html" %}
+
+{% block worship_title %}Worship Team{% endblock %}
+
+{% block worship_content %}
+<div class="glass-panel" style="text-align:center; margin-bottom:1rem; padding:1rem;">
+  <h1 style="margin:0 0 0.25rem; color:var(--primary);">Worship Team</h1>
+  <p style="margin:0; opacity:0.75; font-size:0.9rem;">Weekly defaults, date overrides, prompter &amp; play tracking</p>
+</div>
+
+{% if leaders %}
+<div class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.9rem;">
+  <strong>Worship leaders / managers:</strong>
+  {% for l in leaders %}
+  <span style="margin-right:0.75rem;">{{ l.first_name }} {{ l.last_name }}{% if l.role_in_group == 'leader' %} ★{% elif l.site_role %} ({{ l.site_role }}){% endif %}</span>
+  {% endfor %}
+  <div style="margin-top:0.35rem; opacity:0.65; font-size:0.82rem;">★ = Group Manager in Worship Team Group (can edit plans &amp; send personal notes)</div>
+</div>
+{% endif %}
+
+{% if upcoming %}
+<div class="glass-panel" style="margin-bottom:1rem; border-left:3px solid var(--primary);">
+  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.25rem;">
+    NEXT SERVICE
+    {% if upcoming.source == 'template' %}<span style="color:#f0c040;"> — weekly default</span>{% elif upcoming.source == 'override' %}<span> — date override</span>{% endif %}
+  </div>
+  <h2 style="margin:0.2rem 0; font-size:1.2rem;">{{ upcoming.title }}</h2>
+  {% if upcoming.service_date %}
+  <p style="margin:0.35rem 0; font-size:0.95rem;">
+    <a href="{{ url_for('worship.plan_for_date', date_str=upcoming.service_date.strftime('%Y-%m-%d') if upcoming.service_date.strftime else upcoming.service_date) }}">{{ upcoming.service_date }}</a>
+  </p>
+  {% endif %}
+  {% if upcoming.assignments %}
+  <p style="font-size:0.88rem; margin:0.5rem 0 0; opacity:0.8;">
+    {% for a in upcoming.assignments[:4] %}{{ a.role_name }}: {{ a.user_full_name }}{% if not loop.last %} · {% endif %}{% endfor %}
+  </p>
+  {% endif %}
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.75rem;">
+    {% if upcoming.id and upcoming.source == 'override' %}
+    <a href="{{ url_for('worship.setlist_edit', setlist_id=upcoming.id) }}" class="btn btn-primary">Edit override</a>
+    <a href="{{ url_for('worship.podium', setlist_id=upcoming.id) }}" class="btn btn-secondary">Prompter (logged in)</a>
+    {% elif upcoming.weekday is defined %}
+    <a href="{{ url_for('worship.template_edit', weekday=upcoming.weekday) }}" class="btn btn-primary">Edit weekly default</a>
+    {% endif %}
+    {% if public_token %}
+    <a href="{{ url_for('worship.public_screen', token=public_token) }}" class="btn btn-secondary" target="_blank">Public screen</a>
+    <a href="{{ url_for('worship.public_prompter', token=public_token) }}" class="btn btn-secondary" target="_blank">Prompter link</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.6rem; margin-bottom:1.25rem;">
+  <a href="{{ url_for('worship.templates_list') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
+    <div style="font-size:1.5rem;">📅</div><div style="font-weight:600;">Weekly Defaults</div>
+  </a>
+  <a href="{{ url_for('worship.setlists_list') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
+    <div style="font-size:1.5rem;">📋</div><div style="font-weight:600;">Date Overrides</div>
+  </a>
+  <a href="{{ url_for('worship.songs_list') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
+    <div style="font-size:1.5rem;">🎶</div><div style="font-weight:600;">Song Library</div>
+  </a>
+  <a href="{{ url_for('worship.history') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
+    <div style="font-size:1.5rem;">📊</div><div style="font-weight:600;">Play History</div>
+  </a>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem; font-size:0.88rem; opacity:0.85;">
+  <strong>How verses &amp; choruses work:</strong> Paste lyrics with lines like <code>[Verse 1]</code> or <code>(Chorus)</code>, import JSON with a <code>sections</code> array, or use bulk import. The prompter shows one section per slide in set order. <code>arrangement_json</code> on each setlist song can limit which sections play.
+</div>
+
+{% if play_stats %}
+<div class="glass-panel" style="padding:1rem;">
+  <h3 style="margin:0 0 0.5rem; font-size:1rem;">Top songs (services played)</h3>
+  <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem;">
+    {% set shown = false %}
+    {% for s in play_stats %}
+    {% if s.play_count %}
+    {% set shown = true %}
+    <li>{{ s.title }} ({{ s.play_count }}×)</li>
+    {% endif %}
+    {% endfor %}
+    {% if not shown %}
+    <li style="list-style:none; opacity:0.6;">Confirm a service from a dated setlist to start tracking.</li>
+    {% endif %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}

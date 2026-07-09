@@ -1,0 +1,191 @@
+<!-- app/templates/attendance/kiosk.html -->
+<!-- Full path: myvinechurchonline/app/templates/attendance/kiosk.html -->
+<!-- File name: kiosk.html -->
+<!-- Brief, detailed purpose: Standalone public kiosk with LIVE AJAX search + LOCALSTORAGE TOKEN BACKUP.
+   LAYOUT FIXED: Search box always at top, success flash appears BELOW search (centered, prominent).
+   Live search (no reload) – token 100% safe.
+   Auto-populate as you type.
+   Check-in flashes success below search, results stay visible.
+   Full-screen friendly, global dark/cyan theme. -->
+
+<!DOCTYPE html>
+<html lang="en" data-theme="cyan-glow">
+<head>
+    <meta charset="UTF-8">
+    <!-- Kiosk optimized + PWA capable (install on tablet/phone as dedicated app) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#00ffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <title>Attendance Check-In – {{ g.settings.church_name or 'MyVineChurch.Online' }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/forms.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202606">
+    <style>
+      /* Kiosk is special full-touch device UI — never show the member bottom nav */
+      .bottom-nav { display: none !important; }
+      .top-bar { display: none !important; } /* kiosk has its own huge header */
+    </style>
+    <style>
+        body { background: #111; color: #0ff; min-height: 100vh; margin: 0; padding: 2rem; box-sizing: border-box; }
+        h1 { font-size: 3.5rem; margin-bottom: 3rem; text-align: center; }
+        .search-box { max-width: 800px; margin: 0 auto 2rem; text-align: center; }
+        input[type="text"] { width: 80%; max-width: 700px; padding: 1.8rem; font-size: 2.8rem; border-radius: var(--radius-large); border: 3px solid #0ff; background: #111; color: #0ff; }
+        .flash {
+            font-size: 2.8rem;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 900px;
+            border-radius: var(--radius-large);
+            background: rgba(0, 100, 100, 0.8);
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+        .table-wrapper { max-width: 900px; margin: 0 auto 4rem; }
+        table { width: 100%; }
+        th, td { padding: 1.8rem; font-size: 2rem; text-align: left; }
+        .pin-input { width: 200px; padding: 1.2rem; font-size: 1.8rem; }
+        .checkin-btn { padding: 1.2rem 2.5rem; font-size: 1.8rem; }
+        .loading { font-size: 2.5rem; text-align: center; margin: 3rem; color: #0ff; }
+        #no-results, #closed-message { font-size: 3rem; text-align: center; margin: 5rem; }
+    </style>
+</head>
+<body>
+    <h1>Attendance Check-In</h1>
+
+    <div id="closed-message" style="display:none;">
+        Kiosk session expired or invalid.<br><br>
+        Please reopen from the admin panel and use the full link.
+    </div>
+
+    <div id="main-content" style="display:none;">
+        <!-- Search always at top -->
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Type name or username..." autofocus>
+            <div id="loading" class="loading" style="display:none;">Searching...</div>
+        </div>
+
+        <!-- Flash messages (success) appear below search, centered & prominent -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Results table below flash -->
+        <div class="table-wrapper glass" id="results-table" style="display:none;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Check In</th>
+                    </tr>
+                </thead>
+                <tbody id="results-body"></tbody>
+            </table>
+        </div>
+
+        <p id="no-results">Type a name or username above to begin searching.</p>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let token = urlParams.get('token');
+
+        // Save token to localStorage if present
+        if (token) {
+            localStorage.setItem('kiosk_token', token);
+        } else {
+            // Restore from localStorage if missing
+            token = localStorage.getItem('kiosk_token');
+            if (token) {
+                window.location.href = `/attendance/kiosk?token=${token}`;
+            } else {
+                document.getElementById('closed-message').style.display = 'block';
+                document.getElementById('main-content').style.display = 'none';
+            }
+        }
+
+        if (token) {
+            document.getElementById('main-content').style.display = 'block';
+
+            const searchInput = document.getElementById('search-input');
+            const resultsTable = document.getElementById('results-table');
+            const resultsBody = document.getElementById('results-body');
+            const noResults = document.getElementById('no-results');
+            const loading = document.getElementById('loading');
+
+            let debounceTimer;
+
+            searchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                const query = searchInput.value.trim();
+
+                if (query.length === 0) {
+                    resultsTable.style.display = 'none';
+                    noResults.style.display = 'block';
+                    noResults.textContent = 'Type a name or username above to begin searching.';
+                    return;
+                }
+
+                loading.style.display = 'block';
+                resultsTable.style.display = 'none';
+                noResults.style.display = 'none';
+
+                debounceTimer = setTimeout(() => {
+                    fetch(`/attendance/kiosk_search?token=${token}&search=${encodeURIComponent(query)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            loading.style.display = 'none';
+                            resultsBody.innerHTML = '';
+
+                            if (data.error) {
+                                noResults.textContent = 'Kiosk session invalid – please reopen kiosk.';
+                                noResults.style.display = 'block';
+                                localStorage.removeItem('kiosk_token');
+                                return;
+                            }
+
+                            if (data.length === 0) {
+                                noResults.textContent = `No members found for "${query}".`;
+                                noResults.style.display = 'block';
+                                return;
+                            }
+
+                            data.forEach(member => {
+                                const tr = document.createElement('tr');
+                                tr.innerHTML = `
+                                    <td>${member.name}</td>
+                                    <td>
+                                        <form method="POST">
+                                            <input type="hidden" name="token" value="${token}">
+                                            <input type="hidden" name="member_id" value="${member.id}">
+                                            <input type="password" name="pin" placeholder="PIN (if required)" class="pin-input">
+                                            <button type="submit" class="checkin-btn btn-primary">Check In</button>
+                                        </form>
+                                    </td>
+                                `;
+                                resultsBody.appendChild(tr);
+                            });
+
+                            resultsTable.style.display = 'block';
+                        })
+                        .catch(() => {
+                            loading.style.display = 'none';
+                            noResults.textContent = 'Search error – check connection.';
+                            noResults.style.display = 'block';
+                        });
+                }, 300);
+            });
+
+            searchInput.focus();
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+</body>
+</html>

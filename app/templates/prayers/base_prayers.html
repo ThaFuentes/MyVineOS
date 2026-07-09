@@ -1,0 +1,43 @@
+<!-- app/templates/prayers/base_prayers.html -->
+<!-- Full path: WebChurchMan/app/templates/prayers/base_prayers.html -->
+<!-- File name: base_prayers.html -->
+<!-- Brief, detailed purpose: Common base template for ALL Prayers module pages (dashboard, add, edit, view).
+   Exact mirror of base_events.html → identical glassmorphism wrapper, menu, flash handling.
+   Menu: Prayers Dashboard (always) + Add Prayer Request (always visible – guests can submit public requests).
+   Active highlighting works for dashboard, add, and edit pages.
+   NO module-specific CSS – uses only global classes.
+   Provides blocks: page_title, page_description, prayers_content. -->
+
+{% extends "base.html" %}
+
+{% block extra_css %}
+{# Global CSS only – no prayers-specific files #}
+{% block prayers_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<!-- Overhauled -->
+<h1 class="page-title">{% block page_title %}Prayers{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Internal menu -->
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+    <a {% if request.endpoint == 'prayers.prayers' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       href="{{ url_for('prayers.prayers') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Prayers Dashboard</a>
+
+    <a {% if request.endpoint in ['prayers.add_prayer', 'prayers.edit_prayer'] %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       href="{{ url_for('prayers.add_prayer') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Prayer Request</a>
+</div>
+
+{% block prayers_content %}{% endblock %}
+{% endblock %}

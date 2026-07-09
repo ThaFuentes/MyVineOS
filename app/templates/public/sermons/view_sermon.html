@@ -1,0 +1,172 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/public/sermons/view_sermon.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/public/sermons/view_sermon.html -->
+<!-- File name: view_sermon.html -->
+<!-- Brief, detailed purpose: Public single sermon detail page – 100% rebuilt to match the current Events gold standard exactly. -->
+<!-- Media & Downloads section is now collapsible (collapsed by default when unavailable) with clear notice. -->
+
+{% extends "base_public.html" %}
+
+{% block title %}{{ sermon.title|title }}{% endblock %}
+
+{% block content %}
+
+<!-- Sermon Header -->
+<section class="content-section event-header">
+    <h1 class="page-title">{{ sermon.title|title }}</h1>
+
+    <!-- HORIZONTAL META – exactly like Events -->
+    <div class="event-meta" style="display: flex; flex-wrap: wrap; gap: 1.8rem 2.5rem; align-items: baseline; justify-content: center; font-size: 1.15rem; color: #ddd; margin-top: 0.8rem;">
+        <div><strong>Uploaded on:</strong> {{ sermon.uploaded_at.strftime('%B %d, %Y') if sermon.uploaded_at else 'Unknown' }}</div>
+        <div><strong>By:</strong> {{ sermon.posted_by or sermon.creator_name or 'Anonymous' }}</div>
+    </div>
+</section>
+
+
+
+<div class="content-wrapper">
+
+    <!-- Full Details / Notes -->
+    {% if sermon.details or sermon.notes_content %}
+    <section class="content-section">
+        <h3 class="section-title">Sermon Notes</h3>
+        <div class="card glass">
+            {{ (sermon.details or sermon.notes_content) | nl2br | safe }}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Media & Downloads – NOW COLLAPSIBLE (exactly like Potluck in Events) -->
+    <section class="content-section">
+        <details class="collapsible glass">
+            <summary class="section-title">
+                Media &amp; Downloads
+                {% if not sermon.sermon_file and not sermon.external_link %}
+                <span style="color:#ff0; font-size:0.9rem; margin-left:1rem;">(Not Available)</span>
+                {% endif %}
+            </summary>
+
+            <div class="card glass" style="margin-top:1rem;">
+                {% if sermon.sermon_file or sermon.external_link %}
+                    {% if sermon.sermon_file %}
+                    <p><a href="{{ url_for('sermons.uploaded_file', filename=sermon.sermon_file) }}" target="_blank" class="btn-secondary">📥 Download / Play Sermon Media</a></p>
+                    {% endif %}
+                    {% if sermon.external_link %}
+                    <p><a href="{{ sermon.external_link }}" target="_blank" rel="noopener" class="btn-secondary">▶️ Watch / Listen Externally</a></p>
+                    {% endif %}
+                {% else %}
+                    <p class="no-data" style="text-align:center; padding:2rem 0; color:#888;">
+                        No media available for this sermon at this time.
+                    </p>
+                {% endif %}
+            </div>
+        </details>
+    </section>
+
+    <!-- ==================== COMMENTS WITH SIMPLE ONE-LEVEL REPLIES ==================== -->
+    <section class="content-section">
+        <h3 class="section-title">Comments & Discussion</h3>
+
+        {% if sermon.comments %}
+        <div class="card glass">
+            {% for c in sermon.comments if not c.parent_id %}
+                <div class="comment-item" style="margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1);">
+                    <p><strong>{{ c.name | censor }}</strong>
+                       <small style="color:#888;">{{ c.date }}</small></p>
+                    <p>{{ c.comment | nl2br | censor }}
+                        {% if c.edited_by_moderator %}
+                        <em style="color:#888; font-size:0.85rem;"> (edited by a moderator)</em>
+                        {% endif %}
+                    </p>
+
+                    {% if comments_enabled %}
+                    <button onclick="toggleReplyForm({{ c.id }})"
+                            style="margin-top:0.8rem; padding:0.4rem 1rem; font-size:0.9rem; background:rgba(0,255,255,0.1); color:var(--primary); border:1px solid var(--primary); border-radius:6px; cursor:pointer;">
+                        Reply
+                    </button>
+
+                    <div id="reply-form-{{ c.id }}" style="display:none; margin-top:1rem; padding:1rem; background:rgba(255,255,255,0.05); border-radius:8px;">
+                        <form action="{{ url_for('public.public_sermons.public_sermon_detail', sermon_id=sermon.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <input type="hidden" name="action" value="reply">
+                            <input type="hidden" name="parent_id" value="{{ c.id }}">
+                            <div style="margin-bottom:0.8rem;">
+                              <label style="display:block; color:var(--primary); margin-bottom:0.4rem;">Your Name <span style="color:#ff4444;">*</span></label>
+                              <input type="text" name="contributor_name" class="form-input" required
+                                     style="width:100%; padding:1rem; background:rgba(255,255,255,0.1); border:1px solid var(--primary); color:white; border-radius:8px;"
+                                     placeholder="Guest name or nickname">
+                            </div>
+                            <div style="margin-bottom:0.8rem;">
+                              <label style="display:block; color:var(--primary); margin-bottom:0.4rem;">Your Reply</label>
+                              <textarea name="comment" rows="3" class="form-input" required
+                                        style="width:100%; padding:1rem; background:rgba(255,255,255,0.1); border:1px solid var(--primary); color:white; border-radius:8px;"
+                                        placeholder="Write your reply..."></textarea>
+                            </div>
+                            <button type="submit"
+                                    style="padding:0.8rem 2rem; background:var(--primary); color:#000; font-weight:bold; border:none; border-radius:8px; cursor:pointer;">
+                              Post Reply
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% for reply in sermon.comments if reply.parent_id == c.id %}
+                <div class="comment-item" style="margin-left:2rem; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1); border-left:3px solid var(--primary); padding-left:1rem;">
+                    <p><strong>{{ reply.name | censor }}</strong>
+                       <small style="color:#888;">{{ reply.date }}</small></p>
+                    <p>{{ reply.comment | nl2br | censor }}
+                        {% if reply.edited_by_moderator %}
+                        <em style="color:#888; font-size:0.85rem;"> (edited by a moderator)</em>
+                        {% endif %}
+                    </p>
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-data">No comments yet – be the first to comment!</p>
+        {% endif %}
+
+        {% if comments_enabled %}
+        <form action="{{ url_for('public.public_sermons.public_sermon_detail', sermon_id=sermon.id) }}" method="POST" style="margin-top: 2rem;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="comment">
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; color: var(--primary); margin-bottom: 0.4rem;">Your Name <span style="color: #ff4444;">*</span></label>
+              <input type="text" name="contributor_name" class="form-input"
+                     style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); color: white; border-radius: 8px;"
+                     placeholder="Enter your name" required>
+            </div>
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; color: var(--primary); margin-bottom: 0.4rem;">Your Comment</label>
+              <textarea name="comment" rows="4" class="form-input"
+                        style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); color: white; border-radius: 8px;"
+                        placeholder="Share your thoughts..." required></textarea>
+            </div>
+            <button type="submit"
+                    style="padding: 1rem 2.5rem; background: var(--primary); color: #000; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
+              Post Comment
+            </button>
+        </form>
+        {% else %}
+        <p class="no-data" style="margin-top:1.5rem;">Comments are temporarily closed.</p>
+        {% endif %}
+    </section>
+
+</div>
+
+<!-- Back to Sermons -->
+<div class="form-actions" style="margin-top:3rem;">
+    <a href="{{ url_for('public.public_sermons.public_sermons') }}" class="btn-secondary">← Back to Sermons</a>
+</div>
+
+<script>
+  function toggleReplyForm(commentId) {
+    const form = document.getElementById('reply-form-' + commentId);
+    if (form) {
+      form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+    }
+  }
+</script>
+
+{% endblock %}

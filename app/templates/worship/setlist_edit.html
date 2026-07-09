@@ -1,0 +1,110 @@
+{% extends "worship/base_worship.html" %}
+{% from "worship/_assignment_rows.html" import assignment_rows %}
+{% from "worship/_member_notes.html" import member_notes_block %}
+{% from "worship/_public_links.html" import public_links %}
+
+{% block worship_title %}{{ setlist.title if setlist else 'New Setlist' }}{% endblock %}
+
+{% block worship_content %}
+<h1 style="margin:0 0 1rem; font-size:1.35rem; color:var(--primary);">
+  {% if setlist %}Date override{% else %}New date override{% endif %}
+</h1>
+<p style="margin:0 0 1rem; opacity:0.7; font-size:0.88rem;">Overrides a specific service date. For recurring defaults use <a href="{{ url_for('worship.templates_list') }}">Weekly Defaults</a>.</p>
+
+{% if setlist %}{{ public_links(public_token, 'setlist') }}{% endif %}
+
+<form method="post" class="glass-panel" style="padding:1rem; margin-bottom:1rem; display:grid; gap:0.85rem;">
+  <input type="hidden" name="action" value="save">
+  <label>Title *
+    <input type="text" name="title" value="{{ setlist.title if setlist else '' }}" required {% if not can_manage %}disabled{% endif %} style="width:100%; margin-top:0.25rem;">
+  </label>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.75rem;">
+    <label>Service date
+      <input type="date" name="service_date" value="{{ setlist.service_date if setlist and setlist.service_date else '' }}" {% if not can_manage %}disabled{% endif %} style="width:100%; margin-top:0.25rem;">
+    </label>
+    <label>Service time
+      <input type="time" name="service_time" value="{{ setlist.service_time.strftime('%H:%M') if setlist and setlist.service_time and setlist.service_time.strftime else (setlist.service_time if setlist and setlist.service_time else '') }}" {% if not can_manage %}disabled{% endif %} style="width:100%; margin-top:0.25rem;">
+    </label>
+    <label>Rehearsal time
+      <input type="time" name="rehearsal_time" value="{{ setlist.rehearsal_time.strftime('%H:%M') if setlist and setlist.rehearsal_time and setlist.rehearsal_time.strftime else (setlist.rehearsal_time if setlist and setlist.rehearsal_time else '') }}" {% if not can_manage %}disabled{% endif %} style="width:100%; margin-top:0.25rem;">
+    </label>
+  </div>
+  <label>Rehearsal location
+    <input type="text" name="rehearsal_location" value="{{ setlist.rehearsal_location if setlist and setlist.rehearsal_location else '' }}" {% if not can_manage %}disabled{% endif %} style="width:100%; margin-top:0.25rem;">
+  </label>
+  <label>Notes
+    <textarea name="notes" rows="3" {% if not can_manage %}disabled{% endif %} style="width:100%; margin-top:0.25rem;">{{ setlist.notes if setlist and setlist.notes else '' }}</textarea>
+  </label>
+  {% if can_manage %}
+  <label style="display:flex; align-items:center; gap:0.5rem;">
+    <input type="checkbox" name="is_published" value="1" {% if setlist and setlist.is_published %}checked{% endif %}>
+    Published (visible to team)
+  </label>
+  {% endif %}
+
+  <h3 style="margin:0.5rem 0 0; font-size:1rem;">Team assignments</h3>
+  {{ assignment_rows(setlist.assignments if setlist else defaults, members, default_roles) }}
+
+  {% if setlist and can_manage %}
+  {{ member_notes_block(setlist.assignments, member_notes) }}
+  {% endif %}
+
+  {% if can_manage %}
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.5rem;">
+    <button type="submit" class="btn btn-primary">Save Setlist</button>
+    {% if setlist %}
+    <button type="submit" formaction="{{ url_for('worship.setlist_email', setlist_id=setlist.id) }}" formmethod="post" class="btn btn-secondary">Email Team</button>
+    {% if setlist.service_date and not setlist.service_confirmed_at %}
+    <button type="submit" name="action" value="confirm_service" class="btn btn-secondary">Confirm service played (log songs)</button>
+    {% elif setlist.service_confirmed_at %}
+    <span style="font-size:0.85rem; opacity:0.65; align-self:center;">Service logged {{ setlist.service_confirmed_at }}</span>
+    {% endif %}
+    <button type="submit" formaction="{{ url_for('worship.setlist_delete', setlist_id=setlist.id) }}" formmethod="post" class="btn btn-secondary" onclick="return confirm('Delete this setlist?');">Delete</button>
+    {% endif %}
+    <a href="{{ url_for('worship.setlists_list') }}" class="btn btn-secondary">Cancel</a>
+  </div>
+  {% endif %}
+</form>
+
+{% if setlist %}
+<div class="glass-panel" style="padding:1rem;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+    <h3 style="margin:0; font-size:1rem;">Songs on this setlist</h3>
+    {% if can_manage and all_songs %}
+    <form method="post" style="display:flex; gap:0.5rem; align-items:center;">
+      <input type="hidden" name="action" value="add_song">
+      <select name="song_id" required>
+        <option value="">Add song…</option>
+        {% for s in all_songs %}
+        <option value="{{ s.id }}">{{ s.title }}{% if s.artist %} — {{ s.artist }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+    {% endif %}
+  </div>
+  {% if songs %}
+  <ol style="margin:0; padding-left:1.25rem;">
+    {% for item in songs %}
+    <li style="margin-bottom:0.5rem; display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
+      <span><strong>{{ item.title }}</strong>{% if item.artist %} — {{ item.artist }}{% endif %}</span>
+      {% if item.copyright_line %}<small style="opacity:0.55;">{{ item.copyright_line }}</small>{% endif %}
+      {% if can_manage %}
+      <form method="post" style="margin:0;">
+        <input type="hidden" name="action" value="remove_song">
+        <input type="hidden" name="item_id" value="{{ item.id }}">
+        <button type="submit" class="btn btn-secondary" style="font-size:0.75rem; padding:0.2rem 0.5rem;">Remove</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p style="opacity:0.65; margin:0;">No songs on this setlist yet.</p>
+  {% endif %}
+  <div style="margin-top:1rem;">
+    <a href="{{ url_for('worship.podium', setlist_id=setlist.id) }}" class="btn btn-primary">Open Screen Mode</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

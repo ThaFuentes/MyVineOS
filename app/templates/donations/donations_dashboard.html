@@ -1,0 +1,72 @@
+<!-- app/templates/donations/donations_dashboard.html -->
+<!-- Full path: WebChurchMan/app/templates/donations/donations_dashboard.html -->
+<!-- File name: donations_dashboard.html -->
+<!-- Brief, detailed purpose: Donations Dashboard – extends base_donations.html for full consistency.
+   Glassmorphism summary cards + recent table (mirrors Events/Announcements dashboards).
+   ONLY global classes (.card.glass, .table-wrapper.glass, .large-amount, etc.).
+   + Add New Donation button at top (visible since route is Staff+ protected).
+   Clean, readable layout – no permission conditional (route enforces access). -->
+
+{% extends "donations/base_donations.html" %}
+
+{% block page_title %}Donations Dashboard{% endblock %}
+
+{% block page_description %}
+Overview of donation activity for the current year ({{ current_year }}).<br>
+Use the menu to add donations, view all records, generate reports, or export statements.
+{% endblock %}
+
+{% block donations_content %}
+
+<!-- App-style stats -->
+<div style="margin-bottom:0.75rem;">
+  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.3rem; letter-spacing:0.5px;">CURRENT YEAR ({{ current_year }})</div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.55rem;">
+    <div class="glass-panel" style="text-align:center; padding:0.7rem;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">${{ "%.2f"|format(total_this_year|default(0.0)) }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Total Amount</div>
+    </div>
+    <div class="glass-panel" style="text-align:center; padding:0.7rem;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ recent_donations|length }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Recent Donations</div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Donations (app feed style) -->
+<div style="margin-bottom:0.5rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.4rem;">
+    <div style="font-size:0.8rem; opacity:0.65; letter-spacing:0.5px;">RECENT DONATIONS</div>
+    <a href="{{ url_for('donations.add_donation') }}" class="btn btn-primary" style="padding:0.35rem 0.8rem; font-size:0.85rem;">+ Add Donation</a>
+  </div>
+
+    {% if recent_donations %}
+        <div class="table-wrapper glass">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Donor</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in recent_donations %}
+                        <tr>
+                            <td>{{ d.date[:10] if d.date else 'No date' }}</td>
+                            <td>{{ d.name }}{% if d.username %} <small class="text-muted">@{{ d.username }}</small>{% endif %}</td>
+                            <td>{{ (d.donor_type or 'guest')|capitalize }}</td>
+                            <td>${{ "%.2f"|format(d.amount) }}</td>
+                            <td>{{ d.method }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="no-data">No donations recorded yet.</p>
+    {% endif %}
+
+{% endblock %}

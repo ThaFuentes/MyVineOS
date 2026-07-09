@@ -1,0 +1,60 @@
+<!-- app/templates/inventory/base_inventory.html -->
+<!-- Full path: WebChurchMan/app/templates/inventory/base_inventory.html -->
+<!-- File name: base_inventory.html -->
+<!-- Brief, detailed purpose: Common base template for ALL Inventory module pages.
+   Extends the global base.html (master layout with navigation, head, footer, etc.).
+   Provides glass wrapper, flash messages, internal horizontal pill menu (consistent with Settings, Events, etc.),
+   and block for page-specific content. -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Overhauled -->
+<h1 class="page-title">Inventory Management</h1>
+<p class="page-description">
+    Track church resources, receive stock, perform audits, and monitor low-stock/expiring items.
+</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Internal menu -->
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+    <a href="{{ url_for('inventory.inventory_dashboard') }}"
+       {% if request.endpoint == 'inventory.inventory_dashboard' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Dashboard</a>
+
+    <a href="{{ url_for('inventory.items_list') }}"
+       {% if request.endpoint == 'inventory.items_list' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Items Catalog</a>
+
+    <a href="{{ url_for('inventory.cat_location') }}"
+       {% if request.endpoint == 'inventory.cat_location' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Categories & Locations</a>
+
+    <a href="{{ url_for('inventory.item_manage') }}"
+       {% if request.endpoint == 'inventory.item_manage' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add / Edit Item</a>
+
+    <a href="{{ url_for('inventory.receive_stock') }}"
+       {% if request.endpoint == 'inventory.receive_stock' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Receive Stock</a>
+
+    <a href="{{ url_for('inventory.scan') }}"
+       {% if request.endpoint == 'inventory.scan' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Barcode Scan</a>
+
+    <a href="{{ url_for('inventory.audit_report') }}"
+       {% if request.endpoint == 'inventory.audit_report' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Audit Report</a>
+</div>
+
+{% block inventory_content %}{% endblock %}
+{% endblock %}

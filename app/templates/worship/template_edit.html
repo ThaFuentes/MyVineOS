@@ -1,0 +1,80 @@
+{% extends "worship/base_worship.html" %}
+{% from "worship/_assignment_rows.html" import assignment_rows %}
+{% from "worship/_member_notes.html" import member_notes_block %}
+{% from "worship/_public_links.html" import public_links %}
+
+{% block worship_title %}{{ template.title }} — Weekly Default{% endblock %}
+
+{% block worship_content %}
+<div class="glass-panel" style="padding:0.75rem 1rem; margin-bottom:1rem; border-left:3px solid var(--primary);">
+  <strong>Permanent {{ template.weekday_name }} template</strong> — applies every {{ template.weekday_name }} until a specific date is customized.
+</div>
+
+<h1 style="margin:0 0 1rem; font-size:1.35rem; color:var(--primary);">{{ template.weekday_name }} Worship</h1>
+
+{{ public_links(public_token, 'template') }}
+
+<form method="post" class="glass-panel" style="padding:1rem; margin-bottom:1rem; display:grid; gap:0.85rem;">
+  <input type="hidden" name="action" value="save">
+  <label>Title *
+    <input type="text" name="title" value="{{ template.title }}" required style="width:100%; margin-top:0.25rem;">
+  </label>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.75rem;">
+    <label>Typical service time
+      <input type="time" name="service_time" value="{{ template.service_time.strftime('%H:%M') if template.service_time and template.service_time.strftime else '' }}" style="width:100%; margin-top:0.25rem;">
+    </label>
+    <label>Typical rehearsal
+      <input type="time" name="rehearsal_time" value="{{ template.rehearsal_time.strftime('%H:%M') if template.rehearsal_time and template.rehearsal_time.strftime else '' }}" style="width:100%; margin-top:0.25rem;">
+    </label>
+  </div>
+  <label>Rehearsal location
+    <input type="text" name="rehearsal_location" value="{{ template.rehearsal_location or '' }}" style="width:100%; margin-top:0.25rem;">
+  </label>
+  <label>Team notes
+    <textarea name="notes" rows="3" style="width:100%; margin-top:0.25rem;">{{ template.notes or '' }}</textarea>
+  </label>
+
+  <h3 style="margin:0.5rem 0 0; font-size:1rem;">Team assignments</h3>
+  {{ assignment_rows(template.assignments, members, default_roles) }}
+
+  {{ member_notes_block(template.assignments, member_notes) }}
+
+  <button type="submit" class="btn btn-primary">Save Weekly Template</button>
+</form>
+
+<div class="glass-panel" style="padding:1rem;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+    <h3 style="margin:0; font-size:1rem;">Default songs</h3>
+    <form method="post" style="display:flex; gap:0.5rem; align-items:center;">
+      <input type="hidden" name="action" value="add_song">
+      <select name="song_id" required>
+        <option value="">Add song…</option>
+        {% for s in all_songs %}
+        <option value="{{ s.id }}">{{ s.title }}{% if s.artist %} — {{ s.artist }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+  </div>
+  {% if songs %}
+  <ol style="margin:0; padding-left:1.25rem;">
+    {% for item in songs %}
+    <li style="margin-bottom:0.5rem; display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
+      <span><strong>{{ item.title }}</strong>{% if item.artist %} — {{ item.artist }}{% endif %}</span>
+      <form method="post" style="margin:0;">
+        <input type="hidden" name="action" value="remove_song">
+        <input type="hidden" name="item_id" value="{{ item.id }}">
+        <button type="submit" class="btn btn-secondary" style="font-size:0.75rem; padding:0.2rem 0.5rem;">Remove</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p style="opacity:0.65; margin:0;">No songs on this weekly default yet.</p>
+  {% endif %}
+  <div style="margin-top:1rem;">
+    <a href="{{ url_for('worship.public_prompter', token=public_token) }}" class="btn btn-secondary" target="_blank">Preview prompter</a>
+    <a href="{{ url_for('worship.public_screen', token=public_token) }}" class="btn btn-secondary" target="_blank">Preview public screen</a>
+  </div>
+</div>
+{% endblock %}

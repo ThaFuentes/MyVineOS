@@ -1,0 +1,100 @@
+<!-- app/templates/inventory/dashboard.html -->
+<!-- Full path: WebChurchMan/app/templates/inventory/dashboard.html -->
+<!-- File name: dashboard.html -->
+<!-- Brief, detailed purpose: Inventory dashboard – modern, standardized overview with low stock alerts,
+   expiring items, and recent transactions. Uses glass cards/tables, consistent global classes,
+   formatted dates, and subtle color accents for better readability and visual appeal. -->
+
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<section class="content-section">
+    <h2 class="section-title">Inventory Overview</h2>
+
+    <!-- Low Stock Alerts -->
+    {% if low_stock %}
+        <h3 class="section-subtitle">Low Stock Alerts</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.55rem;">
+            {% for item in low_stock %}
+                <div class="glass-panel" style="text-align:center; border-color: {% if item.total_stock == 0 %}#ff4444{% elif item.total_stock < item.min_stock_level / 2 %}#ff8800{% else %}var(--primary-border){% endif %};">
+                    <div style="font-size:0.85rem; opacity:0.7;">{{ item.name }}</div>
+                    <div style="font-size:1.6rem; font-weight:700; color: {% if item.total_stock == 0 %}#ff4444{% elif item.total_stock < item.min_stock_level / 2 %}#ff8800{% else %}var(--primary){% endif %};">
+                        {{ item.total_stock }}
+                    </div>
+                    <div style="font-size:0.7rem; opacity:0.6;">Min: {{ item.min_stock_level }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="success-text">All items are at or above minimum stock levels.</p>
+    {% endif %}
+
+    <!-- Expiring Soon -->
+    {% if expiring %}
+        <h3 class="section-subtitle">Expiring Soon (next 30 days)</h3>
+        <div class="glass-panel" style="padding:0; overflow:auto;">
+            <table class="data-table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Location</th>
+                        <th>Expires</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in expiring %}
+                        <tr {% if item.quantity_on_hand == 0 %}class="faded"{% endif %}>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.location_name }}</td>
+                            <td>{{ item.formatted_expiration }}</td>
+                            <td>{{ item.quantity_on_hand }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>No items expiring in the next 30 days.</p>
+    {% endif %}
+
+    <!-- Recent Transactions -->
+    <h3 class="section-subtitle">Recent Transactions</h3>
+    {% if recent_transactions %}
+        <div class="glass-panel" style="padding:0; overflow:auto;">
+            <table class="data-table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>User</th>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Change</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in recent_transactions %}
+                        <tr>
+                            <td>{{ t.formatted_date }}</td>
+                            <td>{{ t.user_name or 'System' }}</td>
+                            <td>{{ t.item_name }}</td>
+                            <td>
+                                <span class="tag {{ t.transaction_type }}">
+                                    {{ t.transaction_type|capitalize }}
+                                </span>
+                            </td>
+                            <td style="color: {% if t.quantity_change > 0 %}#00ff88{% else %}#ff4444{% endif %};">
+                                {% if t.quantity_change > 0 %}+{% endif %}{{ t.quantity_change }}
+                            </td>
+                            <td>{{ t.notes or '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>No recent transactions.</p>
+    {% endif %}
+</section>
+{% endblock %}

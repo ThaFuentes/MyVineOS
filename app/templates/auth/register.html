@@ -1,0 +1,122 @@
+<!-- app/templates/auth/register.html -->
+<!-- Full path: myvinechurchonline/app/templates/auth/register.html -->
+<!-- File name: register.html -->
+<!-- Brief, detailed purpose: Dedicated register page (route '/register').
+   FULL REBUILD – mirrors login.html and announcements.html in structure/spacing.
+   Extends unified base_public.html – inherits header, nav, flash, footer, clock.
+   Hero intro (big title, welcoming paragraph) + centered form card.
+   Manual HTML form (no WTForms) – clean, spacious glow-card with cyan accents.
+   Warm, senior-friendly layout with reduced gaps and large text/buttons.
+   Consistent with public listings (hero + content container). -->
+
+{% extends "base_public.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 6rem 2rem 5rem;">
+  <h2 style="font-size: 3.5rem; color: var(--primary); margin-bottom: 2.5rem; text-shadow: 0 0 30px var(--primary);">
+    Join {{ g.settings.get('church_name', 'MyVineChurch.Online') }}
+  </h2>
+
+  <p style="font-size: 1.8rem; max-width: 900px; margin: 0 auto 4rem; line-height: 1.8;">
+    Create an account to connect with our community, submit prayers, dreams, prophecies,<br>
+    view member directory, events, and more. We're excited to welcome you.
+  </p>
+</div>
+
+<div style="padding: 0 2rem 8rem;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <div class="glow-card" style="padding: 3rem 2.5rem; border-radius: 16px; background: rgba(20,20,30,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0,255,255,0.3); box-shadow: 0 0 30px rgba(0,255,255,0.4);">
+
+      <form method="POST" action="{{ url_for('auth.register') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <div style="margin-bottom: 1.5rem;">
+          <label for="first_name" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">First Name *</label>
+          <input type="text" name="first_name" id="first_name" required
+                 style="width: 100%; padding: 1rem; border-radius: 8px; border: 1px solid var(--primary); background: rgba(0,0,0,0.3); color: white; font-size: 1.1rem;"
+                 placeholder="Enter your first name">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="last_name" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">Last Name *</label>
+          <input type="text" name="last_name" id="last_name" required
+                 style="width: 100%; padding: 1rem; border-radius: 8px; border: 1px solid var(--primary); background: rgba(0,0,0,0.3); color: white; font-size: 1.1rem;"
+                 placeholder="Enter your last name">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="email" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">Email *</label>
+          <input type="email" name="email" id="email" required
+                 style="width: 100%; padding: 1rem; border-radius: 8px; border: 1px solid var(--primary); background: rgba(0,0,0,0.3); color: white; font-size: 1.1rem;"
+                 placeholder="your.email@example.com">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="phone" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">Phone</label>
+          <input type="text" name="phone" id="phone"
+                 style="width: 100%; padding: 1rem; border-radius: 8px; border: 1px solid var(--primary); background: rgba(0,0,0,0.3); color: white; font-size: 1.1rem;"
+                 placeholder="Enter your phone number">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="address" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">Address</label>
+          <input type="text" name="address" id="address"
+                 style="width: 100%; padding: 1rem; border-radius: 8px; border: 1px solid var(--primary); background: rgba(0,0,0,0.3); color: white; font-size: 1.1rem;"
+                 placeholder="Enter your address">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="birthday" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">Birthday (optional)</label>
+          <input type="date" name="birthday" id="birthday"
+                 style="width: 100%; padding: 1rem; border-radius: 8px; border: 1px solid var(--primary); background: rgba(0,0,0,0.3); color: white; font-size: 1.1rem;">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="username" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">Username *</label>
+          <input type="text" name="username" id="username" required
+                 style="width: 100%; padding: 1rem; border-radius: 8px; border: 1px solid var(--primary); background: rgba(0,0,0,0.3); color: white; font-size: 1.1rem;"
+                 placeholder="Choose a username">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="password" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">Password *</label>
+          <input type="password" name="password" id="password" required
+                 style="width: 100%; padding: 1rem; border-radius: 8px; border: 1px solid var(--primary); background: rgba(0,0,0,0.3); color: white; font-size: 1.1rem;"
+                 placeholder="Choose a password">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="confirm_password" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">Confirm Password *</label>
+          <input type="password" name="confirm_password" id="confirm_password" required
+                 style="width: 100%; padding: 1rem; border-radius: 8px; border: 1px solid var(--primary); background: rgba(0,0,0,0.3); color: white; font-size: 1.1rem;"
+                 placeholder="Confirm your password">
+        </div>
+
+        <div style="margin-bottom: 2rem; display: flex; flex-direction: column; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.8rem;">
+            <input type="checkbox" name="accepts_emails" id="accepts_emails" checked>
+            <label for="accepts_emails" style="font-size: 1rem;">Accept church emails</label>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.8rem;">
+            <input type="checkbox" name="show_birthday" id="show_birthday">
+            <label for="show_birthday" style="font-size: 1rem;">Show birthday in directory</label>
+          </div>
+        </div>
+
+        <div style="text-align: center;">
+          <button type="submit"
+                  style="width: 100%; padding: 1.3rem; font-size: 1.4rem; font-weight: 600; border-radius: 8px; background: var(--primary); color: #000; border: none; cursor: pointer; box-shadow: 0 0 25px rgba(0,255,255,0.6);">
+            Create Account
+          </button>
+        </div>
+      </form>
+
+      <p style="text-align: center; margin-top: 3rem; color: var(--text-muted); font-size: 1rem;">
+        Already have an account? <a href="{{ url_for('auth.login') }}" style="color: var(--primary);">Login here</a><br>
+        Or <a href="{{ url_for('auth.auth_index') }}" style="color: var(--primary);">continue as guest</a> to explore
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

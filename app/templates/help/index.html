@@ -1,0 +1,88 @@
+{% extends "help/base_help.html" %}
+
+{% block help_content %}
+{% if tab == 'search' %}
+<form method="GET" action="{{ url_for('help.help_index') }}" class="styled-form" style="margin-bottom:1rem;">
+    <input type="hidden" name="tab" value="search">
+    <div class="form-group">
+        <label for="help-search">Search help guides</label>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <input type="search" id="help-search" name="q" value="{{ query }}" placeholder="Try: password, event, donation, check in…" style="flex:1; min-width:200px;" autofocus>
+            <button type="submit" class="btn-primary">Search</button>
+        </div>
+    </div>
+</form>
+
+{% if query %}
+    {% if search_results %}
+    <div style="display:grid; gap:0.65rem;">
+        {% for article in search_results %}
+        <a href="{{ url_for('help.help_article', slug=article.slug) }}" class="glass-panel" style="display:block; padding:0.85rem 1rem; text-decoration:none;">
+            <strong style="color:var(--primary);">{{ article.title }}</strong>
+            {% if article.category_name %}<span style="font-size:0.8rem; opacity:0.65; margin-left:0.5rem;">{{ article.category_name }}</span>{% endif %}
+            {% if article.summary %}<p style="margin:0.35rem 0 0; font-size:0.9rem; opacity:0.85;">{{ article.summary }}</p>{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-data">No guides matched "{{ query }}". Try different words or browse by category.</p>
+    {% endif %}
+{% else %}
+<p class="help-text">Type a keyword above to find step-by-step guides.</p>
+{% endif %}
+
+{% elif tab == 'pinned' %}
+{% if pinned_articles %}
+<div style="display:grid; gap:0.65rem;">
+    {% for article in pinned_articles %}
+    <div class="glass-panel" style="padding:0.85rem 1rem; display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+        <a href="{{ url_for('help.help_article', slug=article.slug) }}" style="text-decoration:none; flex:1;">
+            <strong style="color:var(--primary);">★ {{ article.title }}</strong>
+            {% if article.category_name %}<span style="font-size:0.8rem; opacity:0.65; margin-left:0.5rem;">{{ article.category_name }}</span>{% endif %}
+            {% if article.summary %}<p style="margin:0.35rem 0 0; font-size:0.9rem; opacity:0.85;">{{ article.summary }}</p>{% endif %}
+        </a>
+        <form method="POST" action="{{ url_for('help.help_unpin', article_id=article.id) }}" style="margin:0;">
+            {% include 'partials/csrf_field.html' %}
+            <button type="submit" class="btn-secondary btn-small">Unpin</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel" style="padding:1.25rem; text-align:center;">
+    <p style="margin:0 0 0.75rem;">You have not pinned any guides yet.</p>
+    <p class="help-text" style="margin:0 0 1rem;">Open any guide and click <strong>Pin to my list</strong> to save it here.</p>
+    <a href="{{ url_for('help.help_index', tab='browse') }}" class="btn-primary">Browse guides</a>
+</div>
+{% endif %}
+
+{% else %}
+<p class="help-text" style="margin-bottom:1rem;">Browse guides by category. Church leaders can add and edit content under <strong>Manage Help Content</strong>.</p>
+{% if browse_groups %}
+    {% for group in browse_groups %}
+    <details class="collapsible-section glass" style="margin-bottom:0.65rem;" {% if loop.first %}open{% endif %}>
+        <summary class="collapsible-summary" style="padding:0.75rem 1rem; cursor:pointer;">
+            <strong>{{ group.name }}</strong>
+            <span style="font-size:0.85rem; opacity:0.7; margin-left:0.5rem;">({{ group.articles|length }})</span>
+        </summary>
+        <div style="padding:0.5rem 1rem 1rem;">
+            {% if group.description %}<p class="help-text" style="margin-top:0;">{{ group.description }}</p>{% endif %}
+            <ul style="list-style:none; padding:0; margin:0.5rem 0 0; display:grid; gap:0.45rem;">
+                {% for article in group.articles %}
+                <li>
+                    <a href="{{ url_for('help.help_article', slug=article.slug) }}" style="text-decoration:none; display:flex; align-items:baseline; gap:0.5rem;">
+                        <span style="color:var(--primary); font-weight:600;">{{ article.title }}</span>
+                        {% if article.id in pinned_ids %}<span title="Pinned">★</span>{% endif %}
+                    </a>
+                    {% if article.summary %}<p class="help-text" style="margin:0.15rem 0 0 0;">{{ article.summary }}</p>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </details>
+    {% endfor %}
+{% else %}
+<p class="no-data">No help guides published yet.{% if can_manage %} <a href="{{ url_for('help.manage_index') }}">Add your first guide →</a>{% endif %}</p>
+{% endif %}
+{% endif %}
+{% endblock %}

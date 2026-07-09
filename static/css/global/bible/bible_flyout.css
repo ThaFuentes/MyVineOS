@@ -1,0 +1,178 @@
+/* Shared floating flyout layout for member + pastoral Bible */
+
+.bible-stage {
+  position: relative;
+  width: 100%;
+}
+
+.bible-stage-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0.25rem;
+  z-index: 50;
+}
+
+.bible-stage-toolbar .bible-stage-title {
+  flex: 1 1 140px;
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--primary, #00ffff);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bible-stage-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.bible-flyout-trigger.active {
+  border-color: var(--primary, #00ffff);
+  color: var(--primary, #00ffff);
+}
+
+.bible-stage-main {
+  min-height: 65vh;
+  max-height: none;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  overflow-y: auto;
+  line-height: 1.55;
+}
+
+.bible-stage-main .bible-main-heading {
+  font-size: 0.95rem;
+  color: var(--primary, #00ffff);
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bible-flyout-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1040;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.bible-flyout-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bible-flyout {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: min(92vw, 360px);
+  max-width: 100%;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 18, 22, 0.98);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  transition: transform 0.25s ease;
+  overflow: hidden;
+}
+
+.bible-flyout-left {
+  left: 0;
+  transform: translateX(-105%);
+  border-radius: 0 12px 12px 0;
+}
+
+.bible-flyout-right {
+  right: 0;
+  transform: translateX(105%);
+  border-radius: 12px 0 0 12px;
+}
+
+.bible-flyout.open {
+  transform: translateX(0);
+}
+
+.bible-flyout-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.bible-flyout-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--primary, #00ffff);
+}
+
+.bible-flyout-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.4rem;
+  opacity: 0.75;
+}
+
+.bible-flyout-close:hover {
+  opacity: 1;
+  color: var(--primary, #00ffff);
+}
+
+.bible-flyout-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.85rem 1rem 1.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bible-flyout-body .bible-book-list,
+.bible-flyout-body .member-bible-book-list {
+  max-height: none;
+}
+
+.bible-flyout-body .bible-verse-picker,
+.bible-flyout-body .member-bible-verse-picker {
+  max-height: none;
+}
+
+.bible-flyout-anchor-section {
+  scroll-margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  margin-top: 0.35rem;
+  border-top: 1px solid rgba(0, 255, 255, 0.15);
+}
+
+.bible-flyout-anchor-section.bible-anchor-flash {
+  animation: bible-anchor-pulse 0.9s ease;
+}
+
+@keyframes bible-anchor-pulse {
+  0%, 100% { background: transparent; }
+  30% { background: rgba(0, 255, 255, 0.08); }
+}
+
+@media (min-width: 1100px) {
+  .bible-flyout-backdrop.open {
+    background: rgba(0, 0, 0, 0.35);
+  }
+}

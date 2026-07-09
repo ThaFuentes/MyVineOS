@@ -1,0 +1,230 @@
+<!-- app/templates/sermons/sermons.html -->
+<!-- Full path: WebChurchMan/app/templates/sermons/sermons.html -->
+<!-- File name: sermons.html -->
+<!-- Brief, detailed purpose: Sermons Dashboard / Main Listing page.
+   Now shows actual username in "Uploaded By" column.
+   All original expandable rows, search, filters, and glass styling preserved exactly. -->
+
+{% extends "sermons/base_sermons.html" %}
+
+{% block page_title %}Sermons Dashboard{% endblock %}
+
+{% block page_description %}
+Browse and search all sermons.<br>
+Staff and above can upload new sermons.
+{% endblock %}
+
+{% block sermons_content %}
+
+<!-- Optional Summary Cards -->
+<section class="content-section">
+    <h2 class="section-title">Sermons Summary</h2>
+    <div class="summary-cards">
+        <div class="card glass">
+            <h3>Total Sermons</h3>
+            <p class="large-amount">{{ total_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Public</h3>
+            <p class="large-amount">{{ public_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Private</h3>
+            <p class="large-amount">{{ private_count }}</p>
+        </div>
+    </div>
+</section>
+
+<!-- Top Upload Button -->
+{% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
+<div class="form-actions add-event-top">
+    <a href="{{ url_for('sermons.upload_sermon') }}" class="btn-primary">+ Upload New Sermon</a>
+</div>
+{% endif %}
+
+<!-- Search & Filters -->
+<section class="content-section">
+    <h2 class="section-title">All Sermons</h2>
+
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search Sermons</label>
+                <input type="text" id="searchBox" class="search-input" placeholder="Title, uploader, notes..." autocomplete="off">
+                <p class="help-text">Live search across sermon details</p>
+            </div>
+
+            <div class="form-group filter-group">
+                <label class="control-label">Visibility</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="filter-btn btn-primary">All</button>
+                    <button data-filter="public" class="filter-btn btn-secondary">Public</button>
+                    <button data-filter="private" class="filter-btn btn-secondary">Private</button>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Sermons Table -->
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Uploaded By</th>
+                    <th>Date</th>
+                    <th>Visibility</th>
+                    <th>Comments</th>
+                    {% if session.user_id %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="sermonsBody">
+                {% if sermons|length == 0 %}
+                <tr>
+                    <td colspan="{{ 6 if session.user_id else 5 }}" class="no-data">No sermons found.</td>
+                </tr>
+                {% else %}
+                {% for s in sermons %}
+                <tr class="data-row"
+                    data-visibility="{{ s.visibility }}"
+                    onclick="toggleDetails('details-{{ s.id }}')"
+                    tabindex="0"
+                    role="button"
+                    aria-expanded="false"
+                    onkeydown="handleKeydown(event, 'details-{{ s.id }}')">
+                    <td>
+                        <a href="{{ url_for('sermons.view_sermon', sermon_id=s.id) }}"
+                           class="sermon-title-link">
+                            <strong>{{ s.title }}</strong>
+                        </a>
+                    </td>
+                    <td>{{ s.uploader or 'Unknown' }}</td>   <!-- FIXED: now shows username -->
+                    <td>{{ s.date }}</td>
+                    <td>{{ s.visibility|capitalize }}</td>
+                    <td>{{ s.comment_count }}</td>
+                    {% if session.user_id %}
+                    <td>
+                        <!-- View + Edit + Delete -->
+                        <a href="{{ url_for('sermons.view_sermon', sermon_id=s.id) }}" class="btn-small btn-secondary">View</a>
+
+                        {% if session.user_role in ['Staff', 'Admin', 'Owner'] or session.user_id == s.uploaded_by %}
+                        <a href="{{ url_for('sermons.edit_sermon', sermon_id=s.id) }}" class="btn-small btn-primary">Edit</a>
+                        <form action="{{ url_for('sermons.delete_sermon', sermon_id=s.id) }}" method="post" style="display:inline;">
+                            <button type="submit" class="btn-small btn-danger"
+                                    onclick="return confirm('Delete this sermon? This cannot be undone.');">
+                                Delete
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+
+                <!-- Expandable Details Row (unchanged) -->
+                <tr id="details-{{ s.id }}" class="details-row" style="display:none;" aria-hidden="true">
+                    <td colspan="{{ 6 if session.user_id else 5 }}">
+                        <div class="glow-card narrow">
+                            {% if s.details %}
+                            <section class="detail-section">
+                                <h3 class="detail-heading">Details</h3>
+                                <div class="detail-content">{{ s.details|nl2br|safe }}</div>
+                            </section>
+                            {% endif %}
+
+                            {% if s.notes or s.sermon_file or s.external_link %}
+                            <section class="detail-section">
+                                <h3 class="detail-heading">Media & Notes</h3>
+                                <div class="detail-content">
+                                    {% if s.notes %}<p><a href="{{ url_for('sermons.uploaded_file', filename=s.notes) }}" target="_blank">Download Notes</a></p>{% endif %}
+                                    {% if s.sermon_file %}<p><a href="{{ url_for('sermons.uploaded_file', filename=s.sermon_file) }}" target="_blank">Download Media</a></p>{% endif %}
+                                    {% if s.external_link %}<p><a href="{{ s.external_link }}" target="_blank" rel="noopener">External Link</a></p>{% endif %}
+                                </div>
+                            </section>
+                            {% endif %}
+
+                            <!-- Comments Section -->
+                            <section class="detail-section">
+                                <h3 class="detail-heading">Comments ({{ s.comment_count }})</h3>
+                            </section>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No sermons match the current search and filters.
+    </div>
+</section>
+
+<script>
+  // Your original JS unchanged
+  (function() {
+    const searchBox = document.getElementById('searchBox');
+    const body = document.getElementById('sermonsBody');
+    const noResults = document.getElementById('noResults');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    let visibilityFilter = 'all';
+    let timer;
+
+    function highlightFilters() {
+      filterButtons.forEach(btn => {
+        btn.classList.toggle('btn-primary', btn.dataset.filter === visibilityFilter);
+        btn.classList.toggle('btn-secondary', btn.dataset.filter !== visibilityFilter);
+      });
+    }
+
+    function applyFilters() {
+      const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+      const rows = body.querySelectorAll('.data-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const visibility = row.dataset.visibility || '';
+
+        const matchesSearch = query === '' || text.includes(query);
+        const matchesVisibility = visibilityFilter === 'all' || visibility === visibilityFilter;
+
+        const show = matchesSearch && matchesVisibility;
+        row.style.display = show ? '' : 'none';
+
+        const detailsRow = row.nextElementSibling;
+        if (detailsRow && detailsRow.classList.contains('details-row')) {
+          detailsRow.style.display = 'none';
+        }
+
+        if (show) visibleCount++;
+      });
+
+      noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+      searchBox.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(applyFilters, 300);
+      });
+    }
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        visibilityFilter = btn.dataset.filter;
+        highlightFilters();
+        applyFilters();
+      });
+    });
+
+    highlightFilters();
+    applyFilters();
+  })();
+</script>
+{% endblock %}

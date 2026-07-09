@@ -1,0 +1,55 @@
+<!-- app/templates/attendance/day_detail.html -->
+<!-- Full path: WebChurchMan/app/templates/attendance/day_detail.html -->
+<!-- File name: day_detail.html -->
+<!-- Brief, detailed purpose: Detailed attendance list for a selected date (Staff/Admin/Owner only).
+   Extends base_attendance.html for full module consistency (internal menu, flash handling).
+   Shows nice date header, total count card, glass table of attendees.
+   Uses ONLY global classes – no attendance-specific CSS.
+   Clean, premium look matching the rebuilt site-wide glassmorphism theme. -->
+
+{% extends "attendance/base_attendance.html" %}
+
+{% block attendance_content %}
+<section class="content-section">
+    <h2 class="section-title">Attendance – {{ nice_date }}</h2>
+
+    <!-- Total Count Card -->
+    <div class="summary-cards" style="margin-bottom: 3rem;">
+        <div class="card glass">
+            <h3>Members Checked In</h3>
+            <p class="large-amount">{{ count }}</p>
+        </div>
+    </div>
+
+    {% if attendees %}
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Check-In Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for att in attendees %}
+                <tr>
+                    <td>{{ att.first_name }} {{ att.last_name }}</td>
+                    <td>{{ att.username or '—' }}</td>
+                    <td>{{ att.check_in_time }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="no-data">No check-ins recorded for this date.</p>
+    {% endif %}
+
+    <p style="margin-top: 3rem;">
+        <a href="{{ url_for('attendance.attendance_dashboard') }}" class="btn-secondary">
+            ← Back to Attendance Dashboard
+        </a>
+    </p>
+</section>
+{% endblock %}

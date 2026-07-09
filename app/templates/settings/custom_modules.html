@@ -1,0 +1,81 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+<section class="content-section">
+    <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:1rem;">
+        <h2 class="section-title" style="margin:0;">Church Apps (Custom Modules)</h2>
+        <a href="{{ url_for('settings.custom_modules_create') }}" class="btn-primary">+ Install New App</a>
+    </div>
+
+    <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+        <p class="help-text" style="margin:0 0 0.5rem;">
+            <strong>One-way bulletins, not forums.</strong> Managers post entries; members read them. No comments or chat.
+            Use <strong>Permission Groups</strong> to control who sees the app and who can add/edit entries (Group Manager role).
+        </p>
+        <p class="help-text" style="margin:0;">
+            <strong>Start with:</strong> Bus Routes or Youth Group. “Equipment & Rooms” and “Ministry Calendar” are optional extras
+            if you need an inventory list or a weekly “what meets when” board.
+        </p>
+    </div>
+
+    {% if modules %}
+    <div class="table-wrapper glass" style="margin-top:1rem;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>App</th>
+                    <th>Type</th>
+                    <th>Theme</th>
+                    <th>URL</th>
+                    <th>Access</th>
+                    <th>Status</th>
+                    <th class="actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in modules %}
+                <tr>
+                    <td>
+                        <strong>{{ m.type_icon }} {{ m.name }}</strong>
+                        {% if m.description %}<br><small>{{ m.description[:80] }}{% if m.description|length > 80 %}…{% endif %}</small>{% endif %}
+                    </td>
+                    <td>{{ m.type_name }}</td>
+                    <td>{{ themes[m.theme].label if m.theme in themes else m.theme }}</td>
+                    <td><a href="{{ url_for('custom_modules.module_list', slug=m.slug) }}" target="_blank">/modules/{{ m.slug }}/</a></td>
+                    <td>
+                        {% if m.visibility == 'group' %}
+                            {% if m.group_id %}<a href="{{ url_for('groups.edit_group', group_id=m.group_id) }}">{{ m.group_name or 'Group' }}</a>
+                            {% else %}Group{% endif %}
+                        {% elif m.visibility == 'public' %}Public
+                        {% else %}All members{% endif %}
+                    </td>
+                    <td>{% if m.is_enabled %}<span style="color:var(--cm-accent,#0f0);">Active</span>{% else %}Disabled{% endif %}</td>
+                    <td class="actions">
+                        <a href="{{ url_for('settings.custom_modules_edit', module_id=m.id) }}" class="btn-primary btn-small">Edit</a>
+                        <form action="{{ url_for('settings.custom_modules_delete', module_id=m.id) }}" method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <button type="submit" class="btn-danger btn-small" onclick="return confirm('Delete this app and all its records?');">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="no-data" style="margin-top:1rem;">No custom apps installed yet. Click <strong>Install New App</strong> to create one.</p>
+    {% endif %}
+
+    <h3 class="section-title" style="margin-top:2rem;">Available App Types</h3>
+    <div class="summary-cards" style="margin-top:0.75rem;">
+        {% for t in types %}
+        <div class="card glass" style="padding:0.85rem;">
+            <div style="font-size:1.6rem;">{{ t.icon }}</div>
+            <strong>{{ t.name }}</strong>
+            <p class="help-text" style="margin:0.35rem 0 0;">{{ t.description }}</p>
+            <p class="help-text">Default theme: {{ themes[t.default_theme].label if t.default_theme in themes else t.default_theme }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

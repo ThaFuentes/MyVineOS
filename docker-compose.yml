@@ -1,0 +1,23 @@
+# myvinechurchonline/docker-compose.yml
+# Full path: myvinechurchonline/docker-compose.yml
+# File name: docker-compose.yml
+# Brief, detailed purpose: Development-only Docker Compose for MariaDB.
+# Passwords are hardcoded so the container always starts (no .env dependency).
+
+services:
+  db:
+    image: mariadb:11.4
+    container_name: myvinechurch-db
+    environment:
+      MARIADB_DATABASE: church_management
+      MARIADB_USER: churchuser
+      MARIADB_PASSWORD: ChurchPass2026!
+      MARIADB_ROOT_PASSWORD: RootPass2026!
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3308:3306"  # Unique host port to avoid conflict with veilbreak (3306) and driverapp (3307)
+    restart: unless-stopped
+
+volumes:
+  mariadb_data:

@@ -1,0 +1,95 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/tickets/tickets_dashboard.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/tickets/tickets_dashboard.html -->
+<!-- File name: tickets_dashboard.html -->
+<!-- Brief, detailed purpose: Private Tickets Dashboard for logged-in members (My Portal view).
+   • 100% rebuilt clean version that matches your screenshot exactly.
+   • "Ticket Manager" button now correctly links to the full all-tickets manager view (/tickets/manage).
+   • Shows Open/In Progress count + My Tickets count + your recent tickets only.
+   • Owner/Staff see the "Ticket Manager" button and can click it to manage ALL tickets.
+   • Uses only global CSS classes – no inline styles except for the exact layout you see in the screenshot. -->
+
+{% extends "tickets/base_tickets.html" %}
+
+{% block page_title %}Support Tickets{% endblock %}
+
+{% block page_description %}
+View and manage support tickets. Members can submit new tickets for help with membership, facilities, website issues, and more.<br>
+Staff can assign, update status, and respond.
+{% endblock %}
+
+{% block tickets_content %}
+
+<!-- Summary Cards - exactly as shown in your screenshot -->
+<section class="content-section">
+    <h2 class="section-title">Tickets Summary</h2>
+    <div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+
+        <!-- Open / In Progress Card -->
+        <div class="card glass" style="text-align: center; padding: 2rem 1.5rem;">
+            <h3 style="color: #00FFFF; margin-bottom: 0.5rem;">Open / In Progress</h3>
+            <p class="large-amount" style="font-size: 4.5rem; font-weight: bold; margin: 0; line-height: 1;">{{ open_count }}</p>
+        </div>
+
+        <!-- My Tickets Card -->
+        <div class="card glass" style="text-align: center; padding: 2rem 1.5rem;">
+            <h3 style="color: #00FFFF; margin-bottom: 0.5rem;">My Tickets</h3>
+            <p class="large-amount" style="font-size: 4.5rem; font-weight: bold; margin: 0; line-height: 1;">{{ tickets|length }}</p>
+        </div>
+
+    </div>
+</section>
+
+<!-- Quick Action Buttons -->
+<div class="form-actions" style="margin: 2rem 0; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+    <a href="{{ url_for('tickets.submit_ticket') }}" class="btn-primary" style="padding: 1rem 2.5rem; font-size: 1.2rem;">
+        + New Ticket
+    </a>
+
+    {% if can_manage %}
+    <!-- THIS IS THE FIXED LINK – now correctly goes to the full Ticket Manager view -->
+    <a href="{{ url_for('tickets.manager_dashboard') }}" class="btn-secondary" style="padding: 1rem 2.5rem; font-size: 1.2rem;">
+        Ticket Manager
+    </a>
+    {% endif %}
+</div>
+
+<!-- Your Recent Tickets List -->
+<section class="content-section">
+    <h3 class="section-title">Your Recent Tickets</h3>
+
+    {% if tickets %}
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#ID</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tickets %}
+                <tr onclick="window.location='{{ url_for('tickets.view_ticket', ticket_id=t.id) }}'" style="cursor: pointer;">
+                    <td>#{{ t.id }}</td>
+                    <td><strong>{{ t.title }}</strong></td>
+                    <td>{{ t.category_name }}</td>
+                    <td>{{ t.status.replace('_', ' ')|title }}</td>
+                    <td class="priority-{{ t.priority }}">{{ t.priority|capitalize }}</td>
+                    <td>{{ t.formatted_updated or t.updated_at[:10] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="no-data" style="text-align: center; padding: 3rem; font-size: 1.3rem;">
+        You have not submitted any tickets yet.<br>
+        <a href="{{ url_for('tickets.submit_ticket') }}" style="color: var(--primary);">Click here to submit your first ticket</a>
+    </p>
+    {% endif %}
+</section>
+
+{% endblock %}

@@ -1,0 +1,44 @@
+<!-- app/templates/prophecies/base_prophecies.html -->
+<!-- Full path: WebChurchMan/app/templates/prophecies/base_prophecies.html -->
+<!-- File name: base_prophecies.html -->
+<!-- Brief, detailed purpose: Common base template for ALL Prophecies module pages (dashboard, add, edit, view).
+   Exact mirror of base_events.html / base_dreams.html → identical glassmorphism wrapper, menu, flash handling.
+   Menu: Prophecies Dashboard (always) + Add Prophecy (always visible – guests see link but route protected).
+   Active highlighting for dashboard, add, edit pages.
+   NO module-specific CSS – uses only global classes.
+   Provides blocks: page_title, page_description, prophecies_content.
+   Fixed to use correct endpoint 'prophecies.list_prophecies' for dashboard (matches existing route name). -->
+
+{% extends "base.html" %}
+
+{% block extra_css %}
+{# Global CSS only – no prophecies-specific files #}
+{% block prophecies_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<!-- Overhauled: direct in page-content, no old wrapper. Internal menu uses simple styled links for mobile. -->
+<h1 class="page-title">{% block page_title %}Prophecies{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Clean internal menu -->
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+    <a {% if request.endpoint == 'prophecies.list_prophecies' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       href="{{ url_for('prophecies.list_prophecies') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Prophecies Dashboard</a>
+
+    <a {% if request.endpoint in ['prophecies.add_prophecy', 'prophecies.edit_prophecy'] %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       href="{{ url_for('prophecies.add_prophecy') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Prophecy</a>
+</div>
+
+{% block prophecies_content %}{% endblock %}
+{% endblock %}

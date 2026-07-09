@@ -1,0 +1,60 @@
+/* app/static/css/global/pastoral/podium.css */
+/* Full path: WebChurchMan/app/static/css/global/pastoral/podium.css */
+/* File name: podium.css */
+/* Brief, detailed purpose:
+   Full-screen teleprompter styles for podium_view.html.
+   - Large readable text
+   - Centered narrow column
+   - Fixed bottom controls
+   - High contrast on black */
+
+.podium-container {
+    padding: 4rem 10%;
+    max-width: 1000px;
+    margin: 0 auto;
+    font-size: 2rem;
+    line-height: 1.8;
+    overflow-y: auto;
+    height: 100vh;
+}
+
+.podium-title {
+    font-size: 4rem;
+    font-weight: bold;
+}
+.podium-passage {
+    font-size: 2.5rem;
+    font-style: italic;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+}
+.conclusion-section .section-title { color: var(--cyan); }
+
+.scripture-ref {
+    font-style: italic;
+    font-size: 1.8rem;
+}
+
+.subtle-divider {
+    border-color: #333;
+    margin: 4rem 0;
+}
+
+/* Controls */
+.podium-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: var(--glass-blur);
+    padding: 1rem;
+}
+.speed-slider {
+    width: 150px;
+    accent-color: var(--cyan);
+}

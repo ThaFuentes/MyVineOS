@@ -1,0 +1,95 @@
+{% extends "help/base_help.html" %}
+
+{% block help_page_title %}Manage Help Content{% endblock %}
+{% block help_page_description %}Add categories and write step-by-step guides. Published guides appear in the Help Center for members.{% endblock %}
+
+{% block help_content %}
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+    <a href="{{ url_for('help.manage_category') }}" class="btn-primary">+ Add Category</a>
+    <a href="{{ url_for('help.manage_article') }}" class="btn-primary">+ Add Guide</a>
+</div>
+
+<section style="margin-bottom:1.5rem;">
+    <h2 class="section-title">Categories</h2>
+    <p class="help-text">Categories are the folders members browse. Lower sort numbers appear first.</p>
+    {% if categories %}
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Slug</th>
+                    <th>Guides</th>
+                    <th>Order</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in categories %}
+                <tr>
+                    <td><strong>{{ cat.name }}</strong></td>
+                    <td><code>{{ cat.slug }}</code></td>
+                    <td>{{ cat.article_count }}</td>
+                    <td>{{ cat.sort_order }}</td>
+                    <td>{% if cat.is_published %}Published{% else %}Hidden{% endif %}</td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('help.manage_article') }}?category_id={{ cat.id }}" class="btn-small btn-secondary">+ Guide</a>
+                        <a href="{{ url_for('help.manage_category', category_id=cat.id) }}" class="btn-small btn-primary">Edit</a>
+                        <form method="POST" action="{{ url_for('help.manage_category_delete', category_id=cat.id) }}" style="display:inline;" onsubmit="return confirm('Delete this category? Guides will become uncategorized.');">
+                            {% include 'partials/csrf_field.html' %}
+                            <button type="submit" class="btn-small btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="no-data">No categories yet. <a href="{{ url_for('help.manage_category') }}">Create one →</a></p>
+    {% endif %}
+</section>
+
+<section>
+    <h2 class="section-title">All guides</h2>
+    {% if articles %}
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Order</th>
+                    <th>Audience</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for art in articles %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('help.help_article', slug=art.slug) }}">{{ art.title }}</a>
+                    </td>
+                    <td>{{ art.category_name or '—' }}</td>
+                    <td>{{ art.sort_order }}</td>
+                    <td>{% if art.permission_key %}<code>{{ art.permission_key }}</code>{% else %}Everyone{% endif %}</td>
+                    <td>{% if art.is_published %}Published{% else %}Draft{% endif %}</td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('help.manage_article', article_id=art.id) }}" class="btn-small btn-primary">Edit</a>
+                        <form method="POST" action="{{ url_for('help.manage_article_delete', article_id=art.id) }}" style="display:inline;" onsubmit="return confirm('Delete this guide permanently?');">
+                            {% include 'partials/csrf_field.html' %}
+                            <button type="submit" class="btn-small btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="no-data">No guides yet. <a href="{{ url_for('help.manage_article') }}">Write your first guide →</a></p>
+    {% endif %}
+</section>
+{% endblock %}

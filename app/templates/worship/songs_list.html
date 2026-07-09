@@ -1,0 +1,29 @@
+{% extends "worship/base_worship.html" %}
+
+{% block worship_title %}Song Library{% endblock %}
+
+{% block worship_content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+  <h1 style="margin:0; font-size:1.35rem; color:var(--primary);">Song Library</h1>
+  {% if can_manage %}
+  <a href="{{ url_for('worship.song_new') }}" class="btn btn-primary">+ Add Song</a>
+  {% endif %}
+</div>
+
+{% if songs %}
+<div style="display:grid; gap:0.6rem;">
+  {% for s in songs %}
+  <a href="{{ url_for('worship.song_edit', song_id=s.id) }}" class="glass-panel" style="padding:0.85rem 1rem; text-decoration:none; display:block;">
+    <strong>{{ s.title }}</strong>
+    {% if s.artist %}<span style="opacity:0.7;"> — {{ s.artist }}</span>{% endif %}
+    {% if s.ccli_song_number %}<div style="font-size:0.8rem; opacity:0.55; margin-top:0.2rem;">CCLI {{ s.ccli_song_number }}</div>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel" style="padding:1.5rem; text-align:center; opacity:0.75;">
+  No songs in the library yet.
+  {% if can_manage %}<br><a href="{{ url_for('worship.song_new') }}">Add your first song</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

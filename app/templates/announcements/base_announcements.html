@@ -1,0 +1,42 @@
+<!-- app/templates/announcements/base_announcements.html -->
+<!-- Full path: WebChurchMan/app/templates/announcements/base_announcements.html -->
+<!-- File name: base_announcements.html -->
+<!-- Brief, detailed purpose: Common base template for ALL Announcements module pages.
+   Exact mirror of base_events.html → identical glassmorphism wrapper, menu, flash handling, active highlighting.
+   No module-specific CSS needed. -->
+
+{% extends "base.html" %}
+
+{% block extra_css %}
+{# Global CSS only – loaded in base.html #}
+{% block announcements_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<!-- Overhauled for mobile: clean, no old wrappers -->
+<h1 class="page-title">{% block page_title %}Announcements{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Internal menu, mobile friendly -->
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+    <a {% if request.endpoint == 'announcements.announcements' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       href="{{ url_for('announcements.announcements') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Announcements Dashboard</a>
+
+    {% if user_has_permission('create_announcements') %}
+        <a {% if request.endpoint in ['announcements.create_announcement', 'announcements.edit_announcement'] %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+           href="{{ url_for('announcements.create_announcement') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Announcement</a>
+    {% endif %}
+</div>
+
+{% block announcements_content %}{% endblock %}
+{% endblock %}

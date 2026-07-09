@@ -1,0 +1,195 @@
+<!-- app/templates/attendance/user_signin.html -->
+<!-- Full path: WebChurchMan/app/templates/attendance/user_signin.html -->
+<!-- File name: user_signin.html -->
+<!-- Brief, detailed purpose: Private member self check-in page (logged-in users only).
+   Mobile-optimized, touch-friendly interface with large text/buttons.
+   Captures client-side UTC time (ISO without fractional seconds) for reliable MySQL storage.
+   Displays already-checked-in time converted to user's local timezone via JS.
+   Success flash triggers 4-second auto-redirect to dashboard.
+   Uses .glass-panel (overhauled).
+   All critical sizing kept inline for now; recommend moving font-sizes/padding to static/css/attendance.css later.
+   Theme-aware via data-theme from base.html. -->
+
+{% extends "base.html" %}
+
+{% block title %}Service Check-In{% endblock %}
+
+{% block content %}
+<div class="glass-panel" style="padding:1rem;">
+        <div class="card glass centered-card">
+            <h1 class="page-title">Service Check-In</h1>
+
+            <div class="member-info">
+                <strong>{{ user.first_name }} {{ user.last_name }}</strong><br>
+                <span class="username">@{{ user.username }}</span>
+            </div>
+
+            <div class="date-display">
+                {{ nice_date }}
+            </div>
+
+            <div class="live-clock" id="current-time">--:-- --</div>
+
+            {% if checked_in %}
+                <div class="already-checked-in">
+                    <p class="success-message">✓ You are already checked in today</p>
+                    <p class="checkin-time-display">
+                        at <span id="checkin-time-display">--:-- --</span>
+                    </p>
+                </div>
+            {% else %}
+                <form method="POST" id="checkin-form" class="checkin-form">
+                    <input type="hidden" name="client_checkin" id="client_checkin" value="">
+                    <button type="submit" class="btn-primary checkin-button">
+                        Sign Me In Today
+                    </button>
+                </form>
+            {% endif %}
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                            {% if category == 'success' %}
+                                <p class="redirect-notice">
+                                    Redirecting to dashboard in a few seconds…
+                                </p>
+                                <script>
+                                    setTimeout(() => {
+                                        window.location.href = "{{ url_for('dashboard.dashboard') }}";
+                                    }, 4000);
+                                </script>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="back-link">
+                <a href="{{ url_for('dashboard.dashboard') }}">← Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Live updating local clock (shows member's current time)
+function updateClock() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+    document.getElementById('current-time').textContent = timeStr;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// Capture clean UTC ISO time on form submit (no fractional seconds)
+const form = document.getElementById('checkin-form');
+if (form) {
+    form.addEventListener('submit', function(e) {
+        // Optional: e.preventDefault() + manual submit if you want to add validation later
+        const utcTime = new Date().toISOString().split('.')[0] + 'Z';  // "2026-01-16T10:39:58Z"
+        document.getElementById('client_checkin').value = utcTime;
+    });
+}
+
+// Convert stored UTC check-in time to local display
+const rawCheckin = "{{ check_in_raw|default('', true)|e }}";
+if (rawCheckin) {
+    try {
+        // Server sends ISO-like string (e.g. "2026-01-16 10:39:58" or "2026-01-16T10:39:58Z")
+        let utcDate;
+        if (rawCheckin.includes('T')) {
+            utcDate = new Date(rawCheckin);
+        } else {
+            // Fallback for space-separated format
+            utcDate = new Date(rawCheckin.replace(' ', 'T') + 'Z');
+        }
+
+        if (!isNaN(utcDate)) {
+            const localTime = utcDate.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+            document.getElementById('checkin-time-display').textContent = localTime;
+        }
+    } catch (err) {
+        console.warn('Failed to parse check-in time:', rawCheckin, err);
+    }
+}
+</script>
+
+<style>
+/* Temporary inline styles – move to static/css/attendance.css later */
+.centered-card {
+    max-width: 560px;
+    margin: 2rem auto;
+    padding: 4rem 2.5rem;
+    text-align: center;
+}
+.member-info {
+    font-size: 2.4rem;
+    margin: 2rem 0;
+    line-height: 1.4;
+}
+.username {
+    font-size: 2rem;
+    opacity: 0.8;
+}
+.date-display {
+    font-size: 2rem;
+    margin: 2rem 0;
+    color: #aaa;
+}
+.live-clock {
+    font-size: 3.8rem;
+    color: var(--primary);
+    font-weight: bold;
+    margin: 3rem 0;
+    letter-spacing: 2px;
+}
+.checkin-form {
+    margin: 3rem 0;
+}
+.checkin-button {
+    font-size: 2.6rem !important;
+    padding: 2rem 3rem !important;
+    width: 100%;
+    max-width: 420px;
+}
+.already-checked-in {
+    margin: 3rem 0;
+}
+.success-message {
+    font-size: 2.6rem;
+    color: var(--primary);
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+.checkin-time-display {
+    font-size: 2.2rem;
+    color: #0ff;
+}
+.redirect-notice {
+    font-size: 1.8rem;
+    margin-top: 1.5rem;
+    color: #aaa;
+}
+.back-link {
+    margin-top: 4rem;
+    font-size: 1.8rem;
+}
+.back-link a {
+    color: var(--primary);
+    text-decoration: none;
+}
+.back-link a:hover {
+    text-decoration: underline;
+}
+</style>
+{% endblock %}

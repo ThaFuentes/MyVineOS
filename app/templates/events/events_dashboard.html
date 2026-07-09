@@ -1,0 +1,232 @@
+<!-- app/templates/events/events_dashboard.html -->
+<!-- Full path: WebChurchMan/app/templates/events/events_dashboard.html -->
+<!-- File name: events_dashboard.html -->
+<!-- Brief, detailed purpose: Events Dashboard / Main Listing page – primary entry point for Events module.
+   Extends base_events.html for consistent glass wrapper, menu, flash messages.
+   Summary cards (.card.glass), collapsible search/filters, glass table.
+   + Add New Event at top (manage_events only). Event name links to view_event.
+   Actions column (Edit/Delete) only for manage_events users – buttons now uniform size, side-by-side flex, no overflow.
+   Client-side live search + potluck/date filters preserved. Global classes only.
+   FULL REBUILD: Edit/Delete now works for ALL events (past + future) for Staff/Admin/Owner. -->
+
+{% extends "events/base_events.html" %}
+
+{% block page_title %}Events Dashboard{% endblock %}
+
+{% block page_description %}
+Overview of all church events.<br>
+{% if is_logged_in %}
+    You are viewing all events (public and private).
+{% else %}
+    You are viewing public events only. <a href="{{ url_for('auth.login') }}">Log in</a> to see private events and contribute to potlucks.
+{% endif %}
+{% endblock %}
+
+{% block events_content %}
+
+<!-- Events Summary Cards -->
+<section class="content-section">
+    <h2 class="section-title">Events Summary</h2>
+    <div class="summary-cards">
+        <div class="card glass">
+            <h3>Total Events</h3>
+            <p class="large-amount">{{ total_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Upcoming</h3>
+            <p class="large-amount">{{ upcoming_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Potlucks</h3>
+            <p class="large-amount">{{ potluck_count }}</p>
+        </div>
+    </div>
+</section>
+
+<!-- Main Events Section -->
+<section class="content-section">
+    <h2 class="section-title">All Events</h2>
+
+    <!-- Add New Event Button (top) -->
+    {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
+    <div class="form-actions add-event-top">
+        <a href="{{ url_for('events.add_event') }}" class="btn-primary">+ Add New Event</a>
+    </div>
+    {% endif %}
+
+    <!-- Collapsible Search & Filters -->
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search Events</label>
+                <input type="text" id="searchBox" class="search-input" placeholder="Name, location, description..." autocomplete="off">
+                <p class="help-text">Live search across event details</p>
+            </div>
+            <div class="form-group filter-group">
+                <label class="control-label">Filters</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    <button data-filter="potluck-yes" class="btn btn-small filter-btn btn-secondary">Potlucks</button>
+                    <button data-filter="potluck-no" class="btn btn-small filter-btn btn-secondary">Non-Potlucks</button>
+                    <button data-filter="upcoming" class="btn btn-small filter-btn btn-secondary">Upcoming</button>
+                    <button data-filter="today" class="btn btn-small filter-btn btn-secondary">Today</button>
+                    <button data-filter="past" class="btn btn-small filter-btn btn-secondary">Past</button>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Events Table -->
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Event Name</th>
+                    <th>Date & Time</th>
+                    <th>Location</th>
+                    <th>Visibility</th>
+                    <th>Potluck?</th>
+                    {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="eventsBody">
+                {% if events %}
+                    {% for event in events %}
+                    <tr class="data-row"
+                        data-potluck="{{ 'yes' if event.potluck_enabled else 'no' }}"
+                        data-date="{{ event.event_date or '0000-00-00' }}">
+                        <td>
+                            <a href="{{ url_for('events.view_event', event_id=event.id) }}">
+                                {{ event.event_name or 'Untitled Event' }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ event.event_date }}
+                            {% if event.event_time %} at {{ event.event_time }}{% endif %}
+                        </td>
+                        <td>{{ event.location or 'TBD' }}</td>
+                        <td>{{ event.visibility|capitalize }}</td>
+                        <td>{{ 'Yes' if event.potluck_enabled else 'No' }}</td>
+                        {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
+                        <td class="actions-cell">
+                            <div class="actions-buttons" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:nowrap;">
+                                <a href="{{ url_for('events.edit_event', event_id=event.id) }}" class="btn-primary btn-small">Edit</a>
+                                <form action="{{ url_for('events.delete_event', event_id=event.id) }}" method="post" class="inline-form" style="display:inline;">
+                                    <button type="submit" class="btn-danger btn-small"
+                                            onclick="return confirm('Are you sure you want to delete this event? This action cannot be undone.');">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{{ 5 if not session.user_role in ['Staff', 'Admin', 'Owner'] else 6 }}" class="no-data">
+                            {% if not is_logged_in %}
+                                No public events scheduled at this time.<br>
+                                <a href="{{ url_for('auth.login') }}">Log in</a> to view private events.
+                            {% else %}
+                                No events recorded yet.
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No events match the current search and filters.
+    </div>
+</section>
+
+<script>
+  /* Same script as before – unchanged */
+  (function() {
+    const searchBox = document.getElementById('searchBox');
+    const eventsBody = document.getElementById('eventsBody');
+    const noResults = document.getElementById('noResults');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+
+    let potluckFilter = 'all';
+    let dateFilter = 'all';
+    let timer;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    function highlightFilters() {
+      filterButtons.forEach(btn => {
+        let active = false;
+        if (btn.dataset.filter.startsWith('potluck') || btn.dataset.filter === 'all') {
+          active = (btn.dataset.filter === 'all' && potluckFilter === 'all') ||
+                   (btn.dataset.filter === 'potluck-yes' && potluckFilter === 'yes') ||
+                   (btn.dataset.filter === 'potluck-no' && potluckFilter === 'no');
+        } else {
+          active = btn.dataset.filter === dateFilter;
+        }
+        btn.classList.toggle('btn-primary', active);
+        btn.classList.toggle('btn-secondary', !active);
+      });
+    }
+
+    function applyFilters() {
+      const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+      const rows = eventsBody.querySelectorAll('.data-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const isPotluck = row.dataset.potluck === 'yes';
+        const eventDate = row.dataset.date || '0000-00-00';
+
+        const matchesSearch = query === '' || text.includes(query);
+        const matchesPotluck = potluckFilter === 'all' ||
+                               (potluckFilter === 'yes' && isPotluck) ||
+                               (potluckFilter === 'no' && !isPotluck);
+
+        let matchesDate = true;
+        if (dateFilter === 'upcoming') matchesDate = eventDate > today;
+        else if (dateFilter === 'today') matchesDate = eventDate === today;
+        else if (dateFilter === 'past') matchesDate = eventDate < today;
+
+        const show = matchesSearch && matchesPotluck && matchesDate;
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+      });
+
+      noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+      searchBox.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(applyFilters, 300);
+      });
+    }
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+        if (['all', 'potluck-yes', 'potluck-no'].includes(filter)) {
+          potluckFilter = filter === 'all' ? 'all' : (filter === 'potluck-yes' ? 'yes' : 'no');
+        } else {
+          dateFilter = filter;
+        }
+        highlightFilters();
+        applyFilters();
+      });
+    });
+
+    highlightFilters();
+    applyFilters();
+  })();
+</script>
+{% endblock %}

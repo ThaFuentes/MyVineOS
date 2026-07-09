@@ -1,0 +1,48 @@
+<!-- app/templates/dreams/base_dreams.html -->
+<!-- Full path: WebChurchMan/app/templates/dreams/base_dreams.html -->
+<!-- File name: base_dreams.html -->
+<!-- Brief, detailed purpose: Common base template for ALL Dreams & Visions module pages.
+   Menu: Dashboard (always) + Submit Dream/Vision (only when logged in via session.user_id).
+   Matches Donations/Announcements pattern exactly – simple, clean menu.
+   Endpoint 'dreams.dreams' (fixed). Global classes only. -->
+
+{% extends "base.html" %}
+
+{% block extra_css %}
+{# Global CSS only #}
+{% block dreams_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<!-- Overhauled: clean direct content, mobile friendly internal menu -->
+<h1 class="page-title">{% block page_title %}Dreams & Visions{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Internal menu -->
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+    <a {% if request.endpoint == 'dreams.dreams' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       href="{{ url_for('dreams.dreams') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Dashboard</a>
+
+    {% if session.user_id %}
+        <a {% if request.endpoint in ['dreams.submit_dream', 'dreams.edit_dream'] %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+           href="{{ url_for('dreams.submit_dream') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Submit Dream/Vision</a>
+    {% endif %}
+
+    <!-- Link to legacy add comment page template -->
+    {% if request.view_args and request.view_args.get('dream_id') %}
+    <a href="{{ url_for('dreams.add_comment_page', dream_id=request.view_args.get('dream_id')) }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Comment Page</a>
+    {% endif %}
+</div>
+
+{% block dreams_content %}{% endblock %}
+{% endblock %}

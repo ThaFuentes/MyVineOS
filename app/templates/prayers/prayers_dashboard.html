@@ -1,0 +1,268 @@
+<!-- app/templates/prayers/prayers_dashboard.html -->
+<!-- Full path: myvinechurchonline/app/templates/prayers/prayers_dashboard.html -->
+<!-- File name: prayers_dashboard.html -->
+<!-- Brief, detailed purpose: Main prayers listing dashboard – identical structure and style to events_dashboard.html.
+   Single template serves both logged-in (all prayers + actions) and guest (public-only, read-only) views.
+   Summary cards, always-visible Add button, collapsible search/filters, glass table with client-side live search.
+   Title links to detail view (/prayers/<id>).
+   Actions column shown only to logged-in users with proper permissions.
+   Uses ONLY global classes – no prayers-specific CSS. -->
+
+{% extends "prayers/base_prayers.html" %}
+
+{% block page_title %}Prayers Dashboard{% endblock %}
+
+{% block page_description %}
+{% if is_logged_in %}
+    All prayer requests (public and private) with full management features.
+{% else %}
+    Public prayer requests only. <a href="{{ url_for('auth.login') }}">Log in</a> to view private requests, add responses, and submit private prayers.
+{% endif %}
+{% endblock %}
+
+{% block prayers_content %}
+
+<!-- Summary Cards -->
+<section class="content-section">
+    <h2 class="section-title">Prayers Summary</h2>
+    <div class="summary-cards">
+        <div class="card glass">
+            <h3>Total Requests</h3>
+            <p class="large-amount">{{ total_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Public</h3>
+            <p class="large-amount">{{ public_count }}</p>
+        </div>
+        {% if is_logged_in %}
+        <div class="card glass">
+            <h3>Private</h3>
+            <p class="large-amount">{{ private_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Pending Review</h3>
+            <p class="large-amount">{{ pending_count or 0 }}</p>
+        </div>
+        {% endif %}
+        <div class="card glass">
+            <h3>With Responses</h3>
+            <p class="large-amount">{{ with_responses_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>No Responses</h3>
+            <p class="large-amount">{{ no_responses_count }}</p>
+        </div>
+    </div>
+</section>
+
+<!-- Add Prayer Request Button – always visible (guests can submit public) -->
+<div class="form-actions add-event-top">
+    <a href="{{ url_for('prayers.add_prayer') }}" class="btn-primary">+ Add Prayer Request</a>
+</div>
+
+<!-- Search & Filters -->
+<section class="content-section">
+    <h2 class="section-title">All Prayer Requests</h2>
+
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search</label>
+                <input type="text" id="searchBox" class="search-input" placeholder="Title, creator, description..." autocomplete="off">
+                <p class="help-text">Live search across prayer details</p>
+            </div>
+            <div class="form-group filter-group">
+                <label class="control-label">Filters</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    {% if is_logged_in %}
+                    <button data-filter="public" class="btn btn-small filter-btn btn-secondary">Public</button>
+                    <button data-filter="private" class="btn btn-small filter-btn btn-secondary">Private</button>
+                    {% endif %}
+                    <button data-filter="with-resp" class="btn btn-small filter-btn btn-secondary">With Responses</button>
+                    <button data-filter="no-resp" class="btn btn-small filter-btn btn-secondary">No Responses</button>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Prayers Table -->
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Date Posted</th>
+                    <th>By</th>
+                    {% if is_logged_in %}
+                    <th>Visibility</th>
+                    <th>Status</th>
+                    {% endif %}
+                    <th>Responses</th>
+                    {% if is_logged_in %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="prayersBody">
+                {% if prayers %}
+                    {% for p in prayers %}
+                    <tr class="data-row"
+                        data-visibility="{{ p.visibility }}"
+                        data-responses="{{ 'with' if p.response_count > 0 else 'no' }}">
+                        <td>
+                            <a href="{{ url_for('prayers.view_prayer', prayer_id=p.id) }}">
+                                <strong>{{ p.title }}</strong>
+                            </a>
+                        </td>
+                        <td>{{ p.date_posted.strftime('%b %d, %Y') if p.date_posted else '—' }}</td>
+                        <td>{{ p.creator_name }}</td>
+                        {% if is_logged_in %}
+                        <td>{{ p.visibility|capitalize }}</td>
+                        <td>
+                            {% if p.status == 'pending' %}
+                                <span style="color:#fa0;">Pending</span>
+                            {% elif p.status == 'rejected' %}
+                                <span style="color:#f66;">Rejected</span>
+                            {% else %}
+                                Approved
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td>{{ p.response_count }}</td>
+                        {% if is_logged_in %}
+                        <td class="actions-cell">
+                            {% set can_edit = (p.user_id == current_user_id) or is_staff_plus %}
+                            {% set can_delete = is_admin_owner %}
+                            {% if can_edit or can_delete or (is_admin_owner and p.status == 'pending') %}
+                            <div class="actions-flex">
+                                {% if is_admin_owner and p.status == 'pending' %}
+                                <form action="{{ url_for('prayers.approve_prayer', prayer_id=p.id) }}" method="post" style="display:inline;">
+                                    {% include 'partials/csrf_field.html' %}
+                                    <button type="submit" class="btn-primary btn-small">Approve</button>
+                                </form>
+                                <form action="{{ url_for('prayers.reject_prayer', prayer_id=p.id) }}" method="post" style="display:inline;">
+                                    {% include 'partials/csrf_field.html' %}
+                                    <button type="submit" class="btn-danger btn-small"
+                                            onclick="return confirm('Reject this visitor prayer request?');">Reject</button>
+                                </form>
+                                {% endif %}
+                                {% if can_edit %}
+                                <a href="{{ url_for('prayers.edit_prayer', prayer_id=p.id) }}" class="btn-primary btn-small">Edit</a>
+                                {% endif %}
+                                {% if can_delete %}
+                                <form action="{{ url_for('prayers.delete_prayer', prayer_id=p.id) }}" method="post" style="display:inline;">
+                                    {% include 'partials/csrf_field.html' %}
+                                    <button type="submit" class="btn-danger btn-small"
+                                            onclick="return confirm('Permanently delete this prayer request and all responses?');">
+                                        Delete
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{{ 7 if is_logged_in else 4 }}" class="no-data">
+                            {% if is_logged_in %}
+                                No prayer requests recorded yet.
+                            {% else %}
+                                No public prayer requests at this time.
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No prayer requests match the current search and filters.
+    </div>
+</section>
+
+<script>
+(function() {
+    const searchBox = document.getElementById('searchBox');
+    const body = document.getElementById('prayersBody');
+    const noResults = document.getElementById('noResults');
+    const buttons = document.querySelectorAll('.filter-btn');
+
+    let visibilityFilter = 'all';
+    let responseFilter = 'all';
+    let timer;
+
+    function highlight() {
+        buttons.forEach(b => {
+            let active = false;
+            if (b.dataset.filter === 'all') active = (visibilityFilter === 'all' && responseFilter === 'all');
+            else if (['public', 'private'].includes(b.dataset.filter)) active = visibilityFilter === b.dataset.filter;
+            else if (b.dataset.filter === 'with-resp') active = responseFilter === 'with';
+            else if (b.dataset.filter === 'no-resp') active = responseFilter === 'no';
+            b.classList.toggle('btn-primary', active);
+            b.classList.toggle('btn-secondary', !active);
+        });
+    }
+
+    function apply() {
+        const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+        const rows = body.querySelectorAll('.data-row');
+        let visible = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const vis = row.dataset.visibility;
+            const resp = row.dataset.responses;
+
+            const matchSearch = !query || text.includes(query);
+            const matchVis = visibilityFilter === 'all' || visibilityFilter === vis;
+            const matchResp = responseFilter === 'all' ||
+                              (responseFilter === 'with' && resp === 'with') ||
+                              (responseFilter === 'no' && resp === 'no');
+
+            const show = matchSearch && matchVis && matchResp;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        noResults.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+        searchBox.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(apply, 300);
+        });
+    }
+
+    buttons.forEach(b => {
+        b.addEventListener('click', () => {
+            const f = b.dataset.filter;
+            if (f === 'all') {
+                visibilityFilter = 'all';
+                responseFilter = 'all';
+            } else if (['public', 'private'].includes(f)) {
+                visibilityFilter = f;
+            } else if (f === 'with-resp') {
+                responseFilter = 'with';
+            } else if (f === 'no-resp') {
+                responseFilter = 'no';
+            }
+            highlight();
+            apply();
+        });
+    });
+
+    highlight();
+    apply();
+})();
+</script>
+
+{% endblock %}

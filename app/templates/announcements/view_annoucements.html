@@ -1,0 +1,302 @@
+<!-- app/templates/announcements/announcements_dashboard.html -->
+<!-- Full path: WebChurchMan/app/templates/announcements/announcements_dashboard.html -->
+<!-- File name: announcements_dashboard.html -->
+<!-- Brief, detailed purpose: Announcements Dashboard / Main Listing page – now extends base_announcements.html for perfect consistency with Events/Donations.
+   Glassmorphism layout, summary cards, collapsible search/filters, expandable details (content + comments.html).
+   Email button sends THAT specific announcement only (loads content in backend, pre-fills subject with title).
+   All global classes only. Date display safe (no custom filters). -->
+
+{% extends "announcements/base_announcements.html" %}
+
+{% block page_title %}Announcements Dashboard{% endblock %}
+
+{% block page_description %}
+Overview of all church announcements. Public ones are visible to guests; private require login.<br>
+Use the Email button on any announcement to send it to selected members (or all who accept emails).
+{% endblock %}
+
+{% block announcements_content %}
+
+<!-- Summary Cards -->
+<section class="content-section">
+    <h2 class="section-title">Announcements Summary</h2>
+    <div class="summary-cards">
+        <div class="card glass">
+            <h3>Total</h3>
+            <p class="large-amount">{{ total_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Active</h3>
+            <p class="large-amount">{{ active_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Public</h3>
+            <p class="large-amount">{{ public_count }}</p>
+        </div>
+    </div>
+</section>
+
+<!-- Main List -->
+<section class="content-section">
+    <h2 class="section-title">All Announcements</h2>
+
+    {% if user_has_permission('create_announcements') %}
+    <div class="form-actions add-event-top">
+        <a href="{{ url_for('announcements.create_announcement') }}" class="btn-primary">+ Add New Announcement</a>
+    </div>
+    {% endif %}
+
+    <!-- Search & Filters -->
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search Announcements</label>
+                <input type="text" id="searchBox" class="search-input" placeholder="Title, creator, content..." autocomplete="off">
+                <p class="help-text">Live search across headers</p>
+            </div>
+            <div class="form-group filter-group">
+                <label class="control-label">Status</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    <button data-filter="active" class="btn btn-small filter-btn btn-secondary">Active</button>
+                    <button data-filter="inactive" class="btn btn-small filter-btn btn-secondary">Inactive</button>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Table -->
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Date Posted</th>
+                    <th>Created By</th>
+                    <th>Comments</th>
+                    <th>Status</th>
+                    <th>Visibility</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="annBody">
+                {% if announcements %}
+                    {% for a in announcements %}
+                        <tr class="data-row"
+                            data-status="{{ 'active' if a.is_active else 'inactive' }}"
+                            onclick="toggleDetails('details-{{ a.id }}')"
+                            style="cursor: pointer;">
+                            <td>{{ a.title }}</td>
+                            <td>{{ a.created_at[:19] | replace('T', ' ') }}</td>
+                            <td>{{ a.creator_username }}</td>
+                            <td>{{ a.comment_count }}</td>
+                            <td>
+                                <span class="status-badge {{ 'active' if a.is_active else 'inactive' }}">
+                                    {{ 'Active' if a.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>{{ a.visibility|capitalize }}</td>
+                            <td class="actions-cell" onclick="event.stopPropagation();">
+                                <div class="actions-buttons">
+                                    {% if user_has_permission('moderate_announcements') or current_user.id == a.created_by %}
+                                        <a href="{{ url_for('announcements.edit_announcement', ann_id=a.id) }}" class="btn-primary btn-small">Edit</a>
+                                        <form action="{{ url_for('announcements.delete_announcement', ann_id=a.id) }}" method="post" class="inline-form">
+                                            <button type="submit" class="btn-danger btn-small"
+                                                    onclick="return confirm('Delete this announcement? This cannot be undone.');">
+                                                Delete
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn-primary btn-small"
+                                                onclick="event.stopPropagation(); openEmailModal({{ a.id }}, '{{ a.title|e }}')">
+                                            Email
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="details-row" id="details-{{ a.id }}" style="display:none;">
+                            <td colspan="7" class="details-content">
+                                <div class="potluck-content">
+                                    <section class="detail-section">
+                                        <h3 class="detail-heading">Content</h3>
+                                        <div class="detail-content">{{ a.content|nl2br }}</div>
+                                    </section>
+                                    <section class="detail-section">
+                                        <h3 class="detail-heading">Comments ({{ a.comment_count }})</h3>
+                                        <div class="detail-content">
+                                            {% if a.comments %}
+                                                {% for c in a.comments %}
+                                                    <div class="comment">
+                                                        <strong>{{ c.username|default('Anonymous') }}</strong>
+                                                        <small>({{ c.date_added[:19] | replace('T', ' ') }})</small>
+                                                        <p>{{ c.comment|nl2br }}</p>
+                                                    </div>
+                                                {% endfor %}
+                                            {% else %}
+                                                <p><em>No comments yet.</em></p>
+                                            {% endif %}
+
+                                            {% if a.comments_enabled and is_logged_in %}
+                                                <form action="{{ url_for('announcements.add_comment', ann_id=a.id) }}" method="POST" class="styled-form potluck-add-form">
+                                                    <div class="form-group">
+                                                        <label for="comment-{{ a.id }}">Add a comment</label>
+                                                        <textarea name="comment" id="comment-{{ a.id }}" rows="4" placeholder="Write your comment..." required></textarea>
+                                                    </div>
+                                                    <div class="form-actions">
+                                                        <button type="submit" class="btn-primary">Post Comment</button>
+                                                    </div>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </section>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="no-data">No announcements found.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No announcements match the current search and filters.
+    </div>
+</section>
+
+<!-- Email Modal – sends ONLY the selected announcement -->
+{% if members %}
+<div id="emailModal" class="modal">
+    <div class="modal-content card glass">
+        <span class="close" onclick="closeEmailModal()">&times;</span>
+        <h2>Email This Announcement</h2>
+        <p>The announcement content will be automatically included in the email body.</p>
+        <form id="emailForm" action="" method="POST">
+            <input type="hidden" name="ann_id" id="emailAnnId">
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="sendAll" onchange="toggleMemberList(this.checked)">
+                    Send to <strong>ALL</strong> members who accept emails
+                </label>
+            </div>
+            <div id="memberList" class="member-list">
+                {% for m in members %}
+                    <label class="member-label">
+                        <input type="checkbox" name="member_ids" value="{{ m.id }}" class="member-checkbox">
+                        {{ m.first_name }} {{ m.last_name }} &lt;{{ m.email }}&gt;
+                    </label>
+                {% endfor %}
+            </div>
+            <div class="form-group">
+                <label for="emailSubject">Subject (pre-filled)</label>
+                <input type="text" name="subject" id="emailSubject" required>
+            </div>
+            <div class="form-group">
+                <label for="emailMessage">Additional Message (optional)</label>
+                <textarea name="message" id="emailMessage" rows="5" placeholder="Add any extra notes above or below the announcement content..."></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Send Email</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+  /* Toggle details, modal open/close, member list toggle, search/filter – unchanged from previous version */
+  function toggleDetails(id) {
+    const row = document.getElementById(id);
+    if (!row) return;
+    const isShown = row.style.display === 'table-row';
+    row.style.display = isShown ? 'none' : 'table-row';
+  }
+
+  function openEmailModal(id, title) {
+    document.getElementById('emailAnnId').value = id;
+    document.getElementById('emailSubject').value = `Announcement: ${title}`;
+    document.getElementById('emailMessage').value = '';
+    document.getElementById('sendAll').checked = false;
+    toggleMemberList(false);
+    document.getElementById('emailForm').action = "{{ url_for('announcements.email_announcement', ann_id=0) }}".replace('/0', '/' + id);
+    document.getElementById('emailModal').style.display = 'block';
+  }
+
+  function closeEmailModal() {
+    document.getElementById('emailModal').style.display = 'none';
+  }
+
+  function toggleMemberList(sendAll) {
+    document.querySelectorAll('.member-checkbox').forEach(cb => {
+      cb.disabled = sendAll;
+      if (sendAll) cb.checked = false;
+    });
+  }
+
+  (function() {
+    const searchBox = document.getElementById('searchBox');
+    const body = document.getElementById('annBody');
+    const noResults = document.getElementById('noResults');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    let statusFilter = 'all';
+    let timer;
+
+    function highlightFilters() {
+      filterButtons.forEach(btn => {
+        const active = btn.dataset.filter === statusFilter;
+        btn.classList.toggle('btn-primary', active);
+        btn.classList.toggle('btn-secondary', !active);
+      });
+    }
+
+    function applyFilters() {
+      const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+      const rows = body.querySelectorAll('.data-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const status = row.dataset.status;
+
+        const matchesSearch = query === '' || text.includes(query);
+        const matchesStatus = statusFilter === 'all' || status === statusFilter;
+
+        const show = matchesSearch && matchesStatus;
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+
+        const detailsRow = row.nextElementSibling;
+        if (detailsRow && detailsRow.classList.contains('details-row')) {
+          detailsRow.style.display = show && detailsRow.style.display === 'table-row' ? 'table-row' : 'none';
+        }
+      });
+
+      noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+      searchBox.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(applyFilters, 300);
+      });
+    }
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        statusFilter = btn.dataset.filter;
+        highlightFilters();
+        applyFilters();
+      });
+    });
+
+    highlightFilters();
+    applyFilters();
+  })();
+</script>
+{% endblock %}

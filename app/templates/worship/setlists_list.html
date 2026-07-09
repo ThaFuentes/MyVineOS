@@ -1,0 +1,31 @@
+{% extends "worship/base_worship.html" %}
+
+{% block worship_title %}Setlists{% endblock %}
+
+{% block worship_content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+  <h1 style="margin:0; font-size:1.35rem; color:var(--primary);">Setlists</h1>
+  {% if can_manage %}
+  <a href="{{ url_for('worship.setlist_new') }}" class="btn btn-primary">+ New Setlist</a>
+  {% endif %}
+</div>
+
+{% if setlists %}
+<div style="display:grid; gap:0.6rem;">
+  {% for sl in setlists %}
+  <div class="glass-panel" style="padding:0.85rem 1rem; display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
+    <div style="flex:1; min-width:180px;">
+      <a href="{{ url_for('worship.setlist_edit', setlist_id=sl.id) }}" style="font-weight:600;">{{ sl.title }}</a>
+      {% if sl.service_date %}<div style="font-size:0.85rem; opacity:0.65;">{{ sl.service_date }}</div>{% endif %}
+    </div>
+    <a href="{{ url_for('worship.podium', setlist_id=sl.id) }}" class="btn btn-secondary" style="font-size:0.85rem;">Screen</a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel" style="padding:1.5rem; text-align:center; opacity:0.75;">
+  No setlists yet.
+  {% if can_manage %}<br><a href="{{ url_for('worship.setlist_new') }}">Create one</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

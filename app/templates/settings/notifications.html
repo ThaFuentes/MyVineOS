@@ -1,0 +1,82 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+<section class="content-section">
+    <h2 class="section-title">Registration & Email Notifications</h2>
+    <p class="help-text">Control how new accounts are handled and which automated emails the system sends.</p>
+
+    <form method="post" class="glass-panel styled-form" style="max-width:720px; padding:1rem; margin-bottom:1.5rem;">
+        {% include 'partials/csrf_field.html' %}
+        <h3 class="section-subtitle">New account registration</h3>
+
+        <div class="form-group form-check">
+            <label>
+                <input type="checkbox" name="registration_auto_approve" value="1"
+                    {% if settings.registration_auto_approve %}checked{% endif %}>
+                Auto-approve new registrations (assign Member role immediately)
+            </label>
+            <p class="help-text">When off, new users stay <strong>pending</strong> until an admin approves them in Members → Pending Registrations.</p>
+        </div>
+
+        <div class="form-group form-check">
+            <label>
+                <input type="checkbox" name="registration_require_email_verification" value="1"
+                    {% if settings.registration_require_email_verification %}checked{% endif %}>
+                Require email verification before login
+            </label>
+            <p class="help-text">Sends a verification link to the registrant's email address.</p>
+        </div>
+
+        <h3 class="section-subtitle" style="margin-top:1.25rem;">Automated emails</h3>
+
+        <div class="form-group form-check">
+            <label>
+                <input type="checkbox" name="email_send_donation_receipts" value="1"
+                    {% if settings.email_send_donation_receipts %}checked{% endif %}>
+                Email donation receipts when a donation is recorded
+            </label>
+        </div>
+
+        <div class="form-group form-check">
+            <label>
+                <input type="checkbox" name="email_auto_bill_reminders" value="1"
+                    {% if settings.email_auto_bill_reminders %}checked{% endif %}>
+                Automatic bill payment reminders (daily check)
+            </label>
+            <p class="help-text">Uses each bill's "reminder days before" setting. Manual reminders still work from the bill page.</p>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save settings</button>
+        </div>
+    </form>
+
+    <div class="glass-panel" style="padding:1rem;">
+        <h3 class="section-subtitle">Admin new-registration alerts</h3>
+        <p>Each admin/staff member can opt in on <strong>My Profile → Security</strong> to receive an email when someone registers.</p>
+    </div>
+
+    <div class="glass-panel" style="padding:1rem; margin-top:1rem;">
+        <h3 class="section-subtitle">Email usage map</h3>
+        <p class="help-text">All system emails use your default SMTP account from Settings → Email.</p>
+        <table class="data-table" style="width:100%; margin-top:0.75rem;">
+            <thead>
+                <tr>
+                    <th>Email type</th>
+                    <th>Who receives it</th>
+                    <th>When it sends</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in email_catalog %}
+                <tr>
+                    <td><strong>{{ item.label }}</strong></td>
+                    <td>{{ item.audience }}</td>
+                    <td>{{ item.trigger }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

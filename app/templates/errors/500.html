@@ -1,0 +1,43 @@
+<!-- WebChurchMan/app/templates/errors/500.html -->
+<!-- Full path: WebChurchMan/app/templates/errors/500.html -->
+<!-- File name: 500.html -->
+<!-- Brief, detailed purpose: Simple 500 error page – prevents crash if something else fails.
+   Matches theme. CREATE THIS FILE for completeness. -->
+
+<!DOCTYPE html>
+<html lang="en" data-theme="cyan-glow">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>500 - Server Error | MyVineChurch.Online</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260112">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/base.css') }}?v=20260112">
+  <style>
+    body {
+      background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
+      color: #e0e0e0;
+      font-family: system-ui, sans-serif;
+      text-align: center;
+      padding: 6rem 2rem;
+    }
+    h1 {
+      font-size: 4rem;
+      color: var(--primary);
+      text-shadow: 0 0 25px var(--primary);
+    }
+    p {
+      font-size: 1.6rem;
+      max-width: 800px;
+      margin: 2rem auto;
+    }
+    a {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <h1>500 - Internal Server Error</h1>
+  <p>Something went wrong on our end. Please try again later.</p>
+  <p><a href="{{ url_for('public.public_dashboard.public_dashboard') }}">Return to Gathering Place →</a></p>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/base_public.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/base_public.html -->
+<!-- File name: base_public.html -->
+<!-- Brief, detailed purpose: Dedicated public master layout – EXACT visual match to private base.html gold standard.
+   • Header identical: glowing status left, church title center, clock + action button right
+   • Single glowing pill navigation row (perfectly styled like private tabs – no dropdowns for public)
+   • Mobile hamburger + sliding menu ONLY visible/functional on mobile (completely hidden on desktop → zero double nav)
+   • FIXED: All public links now use hardcoded /public/ paths to bypass url_for naming issues and break the crash loop
+   • Active via request.path
+   • All branding, theme, glass wrapper, flash, footer, clock script identical to private
+   • Year 2026 hard-coded -->
+
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if session.user_theme %}{{ session.user_theme }}{% else %}cyan-glow{% endif %}">
+<head>
+  <meta charset="UTF-8">
+  <!-- Web app / phone app capable metas -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#00ffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MyVine">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
+
+  {% set s = g.settings|default({}) %}
+
+  <title>{% block title %}My Vine Church{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
+
+  <!-- THEME -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260115">
+
+  <!-- COMPLETE GUI OVERHAUL CSS (new mobile-first design) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260708">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/public/base_public.css') }}?v=20260708">
+
+  <!-- overhaul.css primary; legacy scoped if needed -->
+
+  {% block extra_css %}{% endblock %}
+
+  <!-- Dynamic favicon -->
+  {% set fav = s.get('favicon_path') %}
+  <link rel="icon" href="{{ url_for('static', filename='images/' ~ fav if fav else 'favicon.ico') }}">
+
+  <!-- Dynamic branding + dropdown fix (identical to private) -->
+  <style>
+    :root {
+      --primary: {{ s.get('primary_color', '#00FFFF') }};
+      --primary-hover: {{ s.get('primary_hover_color', '#00cccc') }};
+      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
+
+      {% set bg_image = s.get('background_image') %}
+      {% if bg_image %}
+      --bg-page: linear-gradient(rgba(0,0,0,{{ s.get('background_opacity', 0.68) }}),
+                                rgba(0,0,0,{{ s.get('background_opacity', 0.68) }})),
+                 url('{{ url_for('static', filename='images/' ~ bg_image) }}');
+      {% endif %}
+    }
+
+    body {
+      background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
+      background-size: cover;
+      background-attachment: fixed;
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-main);
+      overflow-x: hidden;
+    }
+  </style>
+</head>
+
+<body {% block body_style %}{% endblock %}>
+
+  <!-- NEW OVERHAULED TOP APP BAR for public pages -->
+  <header class="top-bar">
+    <div class="church-name">
+      {{ s.get('church_name') or 'Church Portal' }}
+    </div>
+
+    <div class="user-info">
+      {% if session.get('user_id') %}
+        <a href="/logout" class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Logout</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Login – Register</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Desktop public nav - centered, conditional for logged in to avoid duplicate dashboards/links -->
+  <nav class="top-nav">
+    {% if session.get('user_id') %}
+      <a href="{{ url_for('public.public_dashboard.public_community') }}" class="{{ 'active' if request.endpoint == 'public.public_dashboard.public_community' else '' }}">Home</a>
+    {% else %}
+      <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="{{ 'active' if request.endpoint in ('auth.auth_index', 'public.public_dashboard.public_dashboard') else '' }}">{% if s.get('church_name') %}Welcome to {{ s.get('church_name') }}{% else %}Welcome{% endif %}</a>
+    {% endif %}
+    <a href="{{ url_for('public.public_events.public_events') }}">Events</a>
+    <a href="{{ url_for('public.public_prayers.public_prayers') }}">Prayers</a>
+    <a href="{{ url_for('public.public_sermons.public_sermons') }}">Sermons</a>
+    <a href="{{ url_for('public.public_prophecies.public_prophecies') }}">Prophecies</a>
+    <a href="{{ url_for('public.public_announcements.public_announcements') }}">Announcements</a>
+    {% if s.get('online_donations_enabled') %}<a href="{{ url_for('public.donate') }}">Donate</a>{% endif %}
+    {% if session.get('user_id') %}
+      <a href="{{ url_for('dashboard.dashboard') }}">My Dashboard</a>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}" class="{{ 'active' if request.endpoint in ('auth.login', 'auth.register') else '' }}">Login – Register</a>
+    {% endif %}
+  </nav>
+
+
+
+  <div class="page-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Simple bottom nav for public on phones - cover all public functions -->
+  <nav class="bottom-nav" aria-label="Public navigation">
+    {% if session.get('user_id') %}
+    <a href="{{ url_for('public.public_dashboard.public_community') }}">
+      <span class="icon">🏠</span>
+      <span class="label">Home</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">
+      <span class="icon">🏠</span>
+      <span class="label">Welcome</span>
+    </a>
+    {% endif %}
+    <a href="{{ url_for('public.public_events.public_events') }}">
+      <span class="icon">📅</span>
+      <span class="label">Events</span>
+    </a>
+    <a href="{{ url_for('public.public_prayers.public_prayers') }}">
+      <span class="icon">🙏</span>
+      <span class="label">Prayers</span>
+    </a>
+    <a href="{{ url_for('public.public_sermons.public_sermons') }}">
+      <span class="icon">📖</span>
+      <span class="label">Sermons</span>
+    </a>
+    <a href="{{ url_for('public.public_prophecies.public_prophecies') }}">
+      <span class="icon">🔮</span>
+      <span class="label">Prophecies</span>
+    </a>
+    <a href="{{ url_for('public.public_announcements.public_announcements') }}">
+      <span class="icon">📢</span>
+      <span class="label">Announce</span>
+    </a>
+    {% if session.get('user_id') %}
+    <a href="{{ url_for('dashboard.dashboard') }}">
+      <span class="icon">🏠</span>
+      <span class="label">My Dash</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('auth.login') }}">
+      <span class="icon">🔑</span>
+      <span class="label">Login–Reg</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <footer style="text-align:center; padding:0.5rem 0.5rem 4.25rem; font-size:0.62rem; color:var(--text-muted); opacity:0.45;">
+    <a href="{{ url_for('legal.legal_index') }}" style="color:inherit; text-decoration:none; margin-right:0.75rem;">Legal & Policies</a>
+    © 2026 {{ s.get('church_name') or 'Church Portal' }}
+  </footer>
+
+  {% block scripts %}
+    <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+    <script>
+      function updateClock() {
+        const now = new Date();
+        const clockEl = document.getElementById('clock');
+        if (clockEl) {
+          clockEl.textContent = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+        }
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+    </script>
+  {% endblock %}
+</body>
+</html>

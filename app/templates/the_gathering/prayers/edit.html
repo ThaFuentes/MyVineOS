@@ -1,0 +1,94 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/prayers/edit.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prayers/edit.html -->
+<!-- File name: edit.html -->
+<!-- Brief, detailed purpose: Full Prayer Editor form inside the Gathering Place Manager. -->
+<!-- • Create new OR edit existing prayer. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prayers.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}{% if prayer %}Edit Prayer{% else %}Create New Prayer{% endif %}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">
+            {% if prayer %}
+                ✏️ Edit Prayer #{{ prayer.id }}
+            {% else %}
+                ➕ Create New Prayer
+            {% endif %}
+        </h1>
+
+        <div>
+            <!-- Back to Prayers Manager -->
+            <a href="{{ url_for('the_gathering.prayers.prayers_dashboard') }}" class="btn btn-secondary me-2">
+                ← Back to Prayers Manager
+            </a>
+
+            {% if prayer %}
+            <!-- View on Public -->
+            <a href="{{ url_for('public.public_prayers.public_prayer_detail', prayer_id=prayer.id) }}"
+               target="_blank" class="btn btn-outline-light me-2">
+                👁️ View Public
+            </a>
+
+            <!-- Delete -->
+            <form method="POST" action="{{ url_for('the_gathering.prayers.delete_prayer', prayer_id=prayer.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this prayer and ALL its comments?')">
+                <button type="submit" class="btn btn-danger">🗑️ Delete Prayer</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('the_gathering.prayers.edit_prayer', prayer_id=prayer.id if prayer else None) }}" class="glass p-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        {% if prayer %}
+        <input type="hidden" name="prayer_id" value="{{ prayer.id }}">
+        {% endif %}
+
+        <div class="row g-4">
+            <!-- Basic Info -->
+            <div class="col-lg-8">
+                <div class="mb-4">
+                    <label class="form-label text-light">Prayer Title <span class="text-danger">*</span></label>
+                    <input type="text" name="title" class="form-control"
+                           value="{{ prayer.title or '' }}" required>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-light">Prayer Content <span class="text-danger">*</span></label>
+                    <textarea name="prayer_text" rows="8" class="form-control" required>{{ prayer.prayer_text or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Visibility -->
+            <div class="col-lg-4">
+                <div class="card glass p-4 mb-4">
+                    <div class="form-check form-switch mb-3">
+                        <input type="checkbox" name="visibility" value="public" class="form-check-input"
+                               {% if prayer and prayer.visibility == 'public' %}checked{% endif %}>
+                        <label class="form-check-label text-light">Make this prayer PUBLIC</label>
+                    </div>
+
+                    <div class="alert glass">
+                        <strong>Tip:</strong> Public prayers appear on the guest-facing prayer page.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="mt-5 text-end">
+            <a href="{{ url_for('the_gathering.prayers.prayers_dashboard') }}" class="btn btn-secondary me-3">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg" style="background:var(--primary); color:#000; font-weight:bold;">
+                💾 Save Prayer
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

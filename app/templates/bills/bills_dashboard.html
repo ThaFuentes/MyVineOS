@@ -1,0 +1,252 @@
+<!-- app/templates/bills/bills_dashboard.html -->
+<!-- Full path: WebChurchMan/app/templates/bills/bills_dashboard.html -->
+<!-- File name: bills_dashboard.html -->
+<!-- Brief, detailed purpose: Bills Dashboard / Main Listing page – primary entry point for Recurring Bills module.
+   Extends base_bills.html for consistent glass wrapper, menu, flash messages.
+   Summary cards (.card.glass), collapsible search/filters, glass table.
+   + Add New Bill at top (manage_bills only).
+   Bill name links to view_bill.
+   Actions column (Edit/Delete/Assign) only for managers – buttons uniform size, side-by-side flex.
+   Status column color-coded (overdue: red, paid: green, pending: yellow, partial: orange).
+   Client-side live search + status/due date filters preserved. Global classes only. -->
+
+{% extends "bills/base_bills.html" %}
+
+{% block page_title %}Recurring Bills Dashboard{% endblock %}
+
+{% block page_description %}
+Secure billing vault and payment reminder hub — track due dates, payment history, and locked credentials (utility logins, software keys, account passwords).<br>
+{% if is_manager %}
+    You are viewing all bills (as Staff/Admin/Owner).
+{% else %}
+    You are viewing only bills assigned to you.
+{% endif %}
+{% endblock %}
+
+{% block bills_content %}
+
+<!-- App-style bills stats — counted from the same bills[] rows as the table below -->
+<div style="margin-bottom:0.6rem;">
+  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.3rem; letter-spacing:0.5px;">BILLS SUMMARY</div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:0.55rem;">
+    <div class="glass-panel" style="text-align:center; padding:0.7rem;">
+      <div id="bills-stat-total" style="font-size:1.7rem; font-weight:700; color:var(--primary);">{{ bills|length }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Total Bills</div>
+    </div>
+    <div class="glass-panel" style="text-align:center; padding:0.7rem;">
+      <div id="bills-stat-pending" style="font-size:1.7rem; font-weight:700; color:#ffcc00;">{{ bills|selectattr('is_pending')|list|length }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Pending</div>
+    </div>
+    <div class="glass-panel" style="text-align:center; padding:0.7rem;">
+      <div id="bills-stat-overdue" style="font-size:1.7rem; font-weight:700; color:#ff6666;">{{ bills|selectattr('is_overdue')|list|length }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Overdue</div>
+    </div>
+    <div class="glass-panel" style="text-align:center; padding:0.7rem;">
+      <div id="bills-stat-upcoming" style="font-size:1.7rem; font-weight:700; color:var(--primary);">{{ bills|selectattr('is_upcoming')|list|length }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Upcoming Due</div>
+    </div>
+    <div class="glass-panel" style="text-align:center; padding:0.7rem;">
+      <div id="bills-stat-paid" style="font-size:1.7rem; font-weight:700; color:#66ff99;">{{ paid_this_month|default(0) }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Paid This Month</div>
+    </div>
+  </div>
+</div>
+
+<div class="glass-panel" style="margin-bottom:0.75rem; padding:0.85rem 1rem; border-left:3px solid var(--primary);">
+  <strong>🔐 Secure Vault</strong> — Each bill can store encrypted login credentials and internal notes.
+  Open a bill and use <em>Unlock Credentials</em> (re-authentication required) to reveal utility passwords or software license keys.
+</div>
+
+<!-- Main Bills Section (app list) -->
+<div style="margin-bottom:0.4rem;">
+  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.3rem;">ALL ACCESSIBLE BILLS</div>
+
+    <!-- Add New Bill Button (top) -->
+    {% if user_has_permission('manage_bills') or session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+    <div style="margin-bottom:0.5rem;">
+        <a href="{{ url_for('bills.add_bill') }}" class="btn btn-primary" style="padding:0.35rem 0.8rem; font-size:0.85rem;">+ Add New Bill</a>
+    </div>
+    {% endif %}
+
+    <!-- Collapsible Search & Filters -->
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search Bills</label>
+                <input type="text" id="searchBox" class="search-input" placeholder="Name, vendor, account..." autocomplete="off">
+                <p class="help-text">Live search across bill details</p>
+            </div>
+            <div class="form-group filter-group">
+                <label class="control-label">Filters</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    <button data-filter="pending" class="btn btn-small filter-btn btn-secondary">Pending</button>
+                    <button data-filter="paid" class="btn btn-small filter-btn btn-secondary">Paid</button>
+                    <button data-filter="overdue" class="btn btn-small filter-btn btn-secondary">Overdue</button>
+                    <button data-filter="partial" class="btn btn-small filter-btn btn-secondary">Partial</button>
+                    <button data-filter="upcoming" class="btn btn-small filter-btn btn-secondary">Upcoming</button>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Bills Table -->
+    <div class="glass-panel" style="padding:0; overflow:auto;">
+        <table class="data-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Bill Name</th>
+                    <th>Vendor</th>
+                    <th>Typical Amount</th>
+                    <th>Next Due</th>
+                    <th>Status</th>
+                    {% if is_manager %}
+                    <th>Assigned</th>
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="billsBody">
+                {% if bills %}
+                    {% for bill in bills %}
+                    <tr class="data-row"
+                        data-status="{{ bill.status_lower or (bill.current_status or 'pending')|lower }}"
+                        data-due="{{ bill.due_iso or '9999-99-99' }}"
+                        data-pending="{{ '1' if bill.is_pending else '0' }}"
+                        data-overdue="{{ '1' if bill.is_overdue else '0' }}"
+                        data-upcoming="{{ '1' if bill.is_upcoming else '0' }}">
+                        <td><a href="{{ url_for('bills.view_bill', bill_id=bill.id) }}"><strong>{{ bill.bill_name }}</strong></a></td>
+                        <td>{{ bill.vendor_name or '-' }}</td>
+                        <td>{% if bill.typical_amount %}${{ "%.2f"|format(bill.typical_amount) }}{% else %}-{% endif %}</td>
+                        <td>{{ bill.next_due_date or 'Not set' }}</td>
+                        <td>
+                            <span class="status-badge status-{{ bill.current_status|lower }}">
+                                {{ bill.current_status|capitalize }}
+                            </span>
+                        </td>
+                        {% if is_manager %}
+                        <td>{{ bill.assigned_count|default(0) }}</td>
+                        <td class="actions-cell">
+                            <div class="button-group">
+                                <a href="{{ url_for('bills.edit_bill', bill_id=bill.id) }}" class="btn btn-small btn-primary">Edit</a>
+                                <a href="{{ url_for('bills.assign_bill', bill_id=bill.id) }}" class="btn btn-small btn-secondary">Assign</a>
+                                <form action="{{ url_for('bills.delete_bill', bill_id=bill.id) }}" method="post" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                                    <button type="submit" class="btn btn-small btn-danger"
+                                            onclick="return confirm('Permanently delete this bill and all its history?');">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{{ 7 if is_manager else 5 }}" class="no-data">
+                            No recurring bills recorded yet.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No bills match the current search and filters.
+    </div>
+
+<script>
+  (function() {
+    const searchBox = document.getElementById('searchBox');
+    const billsBody = document.getElementById('billsBody');
+    const noResults = document.getElementById('noResults');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+
+    let statusFilter = 'all';
+    let timer;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    function highlightFilters() {
+      filterButtons.forEach(btn => {
+        let active = (btn.dataset.filter === 'all' && statusFilter === 'all') ||
+                     (btn.dataset.filter === statusFilter);
+        btn.classList.toggle('btn-primary', active);
+        btn.classList.toggle('btn-secondary', !active);
+      });
+    }
+
+    function applyFilters() {
+      const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+      const rows = billsBody.querySelectorAll('.data-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const status = row.dataset.status;
+        const dueDate = row.dataset.due;
+
+        const matchesSearch = query === '' || text.includes(query);
+        const matchesStatus = statusFilter === 'all' ||
+                              (statusFilter === 'upcoming' ? dueDate >= today : status === statusFilter);
+
+        const show = matchesSearch && matchesStatus;
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+      });
+
+      noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+      searchBox.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(applyFilters, 300);
+      });
+    }
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.filter === 'upcoming') {
+          statusFilter = 'upcoming';
+        } else {
+          statusFilter = btn.dataset.filter;
+        }
+        highlightFilters();
+        applyFilters();
+      });
+    });
+
+    function syncBillStats() {
+      const rows = billsBody ? billsBody.querySelectorAll('.data-row') : [];
+      let pending = 0, overdue = 0, upcoming = 0;
+      rows.forEach(row => {
+        if (row.dataset.pending === '1') { pending++; }
+        else if ((row.dataset.status || 'pending') === 'pending') { pending++; }
+        if (row.dataset.overdue === '1') { overdue++; }
+        else if ((row.dataset.status || '') === 'overdue') { overdue++; }
+        if (row.dataset.upcoming === '1') { upcoming++; }
+        else {
+          const due = row.dataset.due || '';
+          if (due && due !== '9999-99-99' && due >= today) upcoming++;
+          else if (due && due < today && row.dataset.status !== 'paid' && row.dataset.status !== 'overdue') overdue++;
+        }
+      });
+      const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = String(n); };
+      set('bills-stat-total', rows.length);
+      set('bills-stat-pending', pending);
+      set('bills-stat-overdue', overdue);
+      set('bills-stat-upcoming', upcoming);
+    }
+
+    highlightFilters();
+    applyFilters();
+    syncBillStats();
+  })();
+</script>
+{% endblock %}

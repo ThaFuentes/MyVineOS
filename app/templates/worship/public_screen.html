@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ plan.title }} — Now Worshipping</title>
+  <style>
+    body { margin:0; background:#0a0a12; color:#fff; font-family:system-ui,sans-serif; }
+    .wrap { min-height:100vh; padding:2rem; text-align:center; }
+    h1 { color:#00e5ff; font-size:clamp(1.8rem,5vw,3rem); margin:0 0 2rem; }
+    ol { list-style:none; padding:0; margin:0; max-width:900px; margin:0 auto; }
+    li { font-size:clamp(1.4rem,4vw,2.4rem); padding:0.65rem 0; border-bottom:1px solid #ffffff18; }
+    .meta { opacity:0.55; font-size:0.45em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>{{ plan.title }}</h1>
+    <ol>
+      {% for s in plan.songs or [] %}
+      <li>
+        {{ loop.index }}. {{ s.title }}
+        {% if s.artist %}<span class="meta"> — {{ s.artist }}</span>{% endif %}
+        {% if s.song_key %}<span class="meta"> · {{ s.song_key }}</span>{% endif %}
+      </li>
+      {% else %}
+      <li style="opacity:0.5;">Setlist coming soon</li>
+      {% endfor %}
+    </ol>
+  </div>
+</body>
+</html>

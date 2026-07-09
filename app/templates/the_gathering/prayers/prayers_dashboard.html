@@ -1,0 +1,133 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/prayers/prayers_dashboard.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prayers/prayers_dashboard.html -->
+<!-- File name: prayers_dashboard.html -->
+<!-- Brief, detailed purpose: Dedicated Prayers Management Dashboard for the Gathering Place Manager. -->
+<!-- • Full list of all prayers with search + filters (All / Public / Private). -->
+<!-- • Per-prayer actions: Edit, View, Delete, Manage Comments, View Public. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prayers.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events_dashboard.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+{% from 'the_gathering/partials/title_preview.html' import title_preview %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">Prayers Manager</h1>
+        <a href="{{ url_for('the_gathering.prayers.edit_prayer') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.5rem 0.9rem; font-size:0.9rem;">
+            + Add New Prayer
+        </a>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <form method="GET" class="glass-panel" style="padding:0.85rem; margin-bottom:1rem;">
+        <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end;">
+            <div style="flex: 2 1 220px; min-width:180px;">
+                <label style="display:block; font-size:0.8rem; margin-bottom:0.25rem; opacity:0.85;">Search Prayers</label>
+                <input type="text" name="search" class="form-control" placeholder="Title or prayer text..." value="{{ search or '' }}" style="width:100%;">
+            </div>
+            <div style="flex: 1 1 120px; min-width:110px;">
+                <label style="display:block; font-size:0.8rem; margin-bottom:0.25rem; opacity:0.85;">Filter</label>
+                <select name="filter" class="form-select" style="width:100%;">
+                    <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Prayers</option>
+                    <option value="public" {% if filter_type == 'public' %}selected{% endif %}>Public Only</option>
+                    <option value="private" {% if filter_type == 'private' %}selected{% endif %}>Private Only</option>
+                    <option value="pending" {% if filter_type == 'pending' %}selected{% endif %}>Pending Approval</option>
+                </select>
+            </div>
+            <div style="flex: 0 0 auto;">
+                <button type="submit" class="btn btn-primary" style="min-height:42px;">Apply Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Prayers Table -->
+    {% if prayers %}
+    <div class="glass-panel" style="padding:0; overflow:auto;">
+        <table class="data-table" style="width:100%; min-width:600px;">
+            <thead>
+                <tr>
+                    <th style="width:40px;">ID</th>
+                    <th>Title</th>
+                    <th>Visibility</th>
+                    <th>Status</th>
+                    <th>Creator</th>
+                    <th>Created</th>
+                    <th>Comments</th>
+                    <th style="width:280px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prayer in prayers %}
+                <tr>
+                    <td><strong>#{{ prayer.id }}</strong></td>
+                    <td>{{ title_preview(prayer.title, prayer.prayer_text or prayer.description) }}</td>
+                    <td>
+                        <span class="badge {% if prayer.visibility == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ prayer.visibility|upper }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {% if prayer.status == 'pending' %}bg-warning{% elif prayer.status == 'rejected' %}bg-danger{% else %}bg-success{% endif %}">
+                            {{ (prayer.status or 'approved')|upper }}
+                        </span>
+                    </td>
+                    <td>{{ prayer.creator_name or 'Anonymous' }}</td>
+                    <td>{{ prayer.created_at | format_manager_datetime }}</td>
+                    <td>
+                        <span class="badge bg-primary">{{ prayer.comment_count or 0 }}</span>
+                    </td>
+                    <td>
+                        <!-- View on Public -->
+                        <a href="{{ url_for('public.public_prayers.public_prayer_detail', prayer_id=prayer.id) }}"
+                           target="_blank" class="btn btn-sm btn-outline-light me-1" title="View Public">
+                            👁️
+                        </a>
+
+                        <!-- Edit Prayer -->
+                        <a href="{{ url_for('the_gathering.prayers.edit_prayer', prayer_id=prayer.id) }}"
+                           class="btn btn-sm btn-primary me-1" title="Edit Prayer">✏️</a>
+
+                        <!-- View Prayer -->
+                        <a href="{{ url_for('the_gathering.prayers.view_prayer', prayer_id=prayer.id) }}"
+                           class="btn btn-sm btn-info me-1" title="View Prayer">📋</a>
+
+                        <!-- Delete Prayer -->
+                        <form method="POST" action="{{ url_for('the_gathering.prayers.delete_prayer', prayer_id=prayer.id) }}" style="display:inline;"
+                              onsubmit="return confirm('Delete this prayer and ALL its comments?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete Prayer">🗑️</button>
+                        </form>
+
+                        {% if prayer.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('the_gathering.prayers.approve_prayer', prayer_id=prayer.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <button type="submit" class="btn btn-sm btn-success" title="Approve">✓</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('the_gathering.prayers.reject_prayer', prayer_id=prayer.id) }}" style="display:inline;"
+                              onsubmit="return confirm('Reject this prayer?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Reject">✗</button>
+                        </form>
+                        {% endif %}
+
+                        <!-- Manage Comments -->
+                        <a href="{{ url_for('the_gathering.prayers.prayer_comments', prayer_id=prayer.id) }}"
+                           class="btn btn-sm btn-warning" title="Manage Comments">💬</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="glass-panel" style="text-align:center; padding:2rem 1rem;">
+        <p style="margin:0; font-size:1.1rem; color:#888;">No prayers found.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,200 @@
+<!-- app/templates/events/edit_event.html -->
+<!-- Full path: WebChurchMan/app/templates/events/edit_event.html -->
+<!-- File name: edit_event.html -->
+<!-- Brief, detailed purpose: Edit Event form – 100% identical to add_event.html layout.
+   Extends base_events.html → same wrapper, menu, flash messages.
+   All fields pre-filled from event object.
+   Uses ONLY global classes (styled-form, form-group, control-label, form-input, btn-primary/btn-secondary).
+   Spacious single-column, logical sections, cyan headings. Route protected server-side.
+   FULL REBUILD: Checkbox renamed to match current DB column "potluck_enabled". -->
+
+{% extends "events/base_events.html" %}
+
+{% block page_title %}Edit Event{% endblock %}
+
+{% block page_description %}
+Update the details of this event.<br>
+Public events appear on the public dashboard.
+{% endblock %}
+
+{% block events_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Edit Event</h2>
+
+    <form method="POST" action="{{ url_for('events.edit_event', event_id=event.id) }}" class="styled-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <div class="form-group">
+            <label for="event_name" class="control-label">Event Name <span class="required">*</span></label>
+            <input type="text" id="event_name" name="event_name" class="form-input" value="{{ event.event_name }}" required placeholder="e.g., Sunday Worship Service">
+            <p class="help-text">Clear, descriptive title for the event.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="event_date" class="control-label">Date <span class="required">*</span></label>
+            <input type="date" id="event_date" name="event_date" class="form-input" value="{{ event.event_date }}" required>
+            <p class="help-text">Date of the event (YYYY-MM-DD).</p>
+        </div>
+
+        <div class="form-group">
+            <label for="event_time" class="control-label">Time (optional)</label>
+            <input type="time" id="event_time" name="event_time" class="form-input" value="{{ event.event_time or '' }}">
+            <p class="help-text">Start time if applicable.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="location" class="control-label">Location (optional)</label>
+            <input type="text" id="location" name="location" class="form-input" value="{{ event.location or '' }}" placeholder="e.g., Main Sanctuary">
+            <p class="help-text">Where the event will take place.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="visibility" class="control-label">Visibility</label>
+            <select id="visibility" name="visibility" class="form-input">
+                <option value="private" {% if event.visibility == 'private' %}selected{% endif %}>Private (members only)</option>
+                <option value="public" {% if event.visibility == 'public' %}selected{% endif %}>Public (visible to all visitors)</option>
+            </select>
+            <p class="help-text">Private events require login to view.</p>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="potluck_enabled" name="potluck_enabled" {% if event.potluck_enabled %}checked{% endif %}>
+                This is a potluck event
+            </label>
+            <p class="help-text">Check if members can sign up to bring food.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="description" class="control-label">Description (optional)</label>
+            <textarea id="description" name="description" rows="4" class="form-input">{{ event.description or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="speaker_host" class="control-label">Speaker / Host (optional)</label>
+            <input type="text" id="speaker_host" name="speaker_host" class="form-input" value="{{ event.speaker_host or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="special_guests" class="control-label">Special Guests (optional)</label>
+            <input type="text" id="special_guests" name="special_guests" class="form-input" value="{{ event.special_guests or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="theme" class="control-label">Theme (optional)</label>
+            <input type="text" id="theme" name="theme" class="form-input" value="{{ event.theme or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="agenda" class="control-label">Agenda / Schedule (optional)</label>
+            <textarea id="agenda" name="agenda" rows="6" class="form-input">{{ event.agenda or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="cost_fees" class="control-label">Cost / Fees (optional)</label>
+            <input type="number" id="cost_fees" name="cost_fees" class="form-input" step="0.01" min="0" value="{{ event.cost_fees or '' }}" placeholder="0.00">
+        </div>
+
+        <div class="form-group">
+            <label for="registration_info" class="control-label">Registration Information (optional)</label>
+            <textarea id="registration_info" name="registration_info" rows="3" class="form-input">{{ event.registration_info or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="parking_info" class="control-label">Parking Information (optional)</label>
+            <textarea id="parking_info" name="parking_info" rows="3" class="form-input">{{ event.parking_info or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="dress_code" class="control-label">Dress Code (optional)</label>
+            <input type="text" id="dress_code" name="dress_code" class="form-input" value="{{ event.dress_code or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="food_beverages" class="control-label">Food & Beverages (optional)</label>
+            <textarea id="food_beverages" name="food_beverages" rows="3" class="form-input">{{ event.food_beverages or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="childcare_availability" class="control-label">Childcare Availability (optional)</label>
+            <textarea id="childcare_availability" name="childcare_availability" rows="3" class="form-input">{{ event.childcare_availability or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="accessibility" class="control-label">Accessibility Information (optional)</label>
+            <textarea id="accessibility" name="accessibility" rows="3" class="form-input">{{ event.accessibility or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="contact_info" class="control-label">Contact Information (optional)</label>
+            <textarea id="contact_info" name="contact_info" rows="3" class="form-input">{{ event.contact_info or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="social_media_hashtag" class="control-label">Social Media Hashtag (optional)</label>
+            <input type="text" id="social_media_hashtag" name="social_media_hashtag" class="form-input" value="{{ event.social_media_hashtag or '' }}" placeholder="#MyVineEvent">
+        </div>
+
+        <div class="form-group">
+            <label for="promotional_materials" class="control-label">Promotional Materials / Links (optional)</label>
+            <textarea id="promotional_materials" name="promotional_materials" rows="3" class="form-input">{{ event.promotional_materials or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="event_sponsor" class="control-label">Event Sponsor (optional)</label>
+            <input type="text" id="event_sponsor" name="event_sponsor" class="form-input" value="{{ event.event_sponsor or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="event_coordinator" class="control-label">Event Coordinator (optional)</label>
+            <input type="text" id="event_coordinator" name="event_coordinator" class="form-input" value="{{ event.event_coordinator or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="announcements_reminders" class="control-label">Announcements / Reminders (optional)</label>
+            <textarea id="announcements_reminders" name="announcements_reminders" rows="3" class="form-input">{{ event.announcements_reminders or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="live_streaming_details" class="control-label">Live Streaming Details (optional)</label>
+            <textarea id="live_streaming_details" name="live_streaming_details" rows="3" class="form-input">{{ event.live_streaming_details or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="feedback_form" class="control-label">Feedback Form Link (optional)</label>
+            <input type="url" id="feedback_form" name="feedback_form" class="form-input" value="{{ event.feedback_form or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="volunteer_opportunities" class="control-label">Volunteer Opportunities (optional)</label>
+            <textarea id="volunteer_opportunities" name="volunteer_opportunities" rows="3" class="form-input">{{ event.volunteer_opportunities or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="donation_info" class="control-label">Donation / Offering Info (optional)</label>
+            <textarea id="donation_info" name="donation_info" rows="3" class="form-input">{{ event.donation_info or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="safety_protocols" class="control-label">Safety Protocols (optional)</label>
+            <textarea id="safety_protocols" name="safety_protocols" rows="3" class="form-input">{{ event.safety_protocols or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="follow_up" class="control-label">Follow-Up Plans (optional)</label>
+            <textarea id="follow_up" name="follow_up" rows="3" class="form-input">{{ event.follow_up or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="event_objectives" class="control-label">Event Objectives (optional)</label>
+            <textarea id="event_objectives" name="event_objectives" rows="4" class="form-input">{{ event.event_objectives or '' }}</textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <a href="{{ url_for('events.events') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+{% endblock %}

@@ -1,0 +1,183 @@
+# =============================================================================
+# MyVineOS – .gitignore
+# =============================================================================
+# Keep secrets, local env, user data, and generated artifacts out of git.
+# Safe to commit: source, templates, theme static assets, requirements, docker
+# compose (dev defaults), README, LICENSE, and .env.example (placeholders only).
+
+# ─── Secrets & environment ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+.flaskenv
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*.secret
+secrets/
+.secrets/
+credentials.json
+service-account*.json
+*credentials*.local.*
+
+# App encryption material (Fernet / local key files) — NEVER commit
+config_key.bin
+config_data.bin
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# ─── Testing / coverage / type checkers ─────────────────────────────────────
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+cover/
+
+# ─── Flask / local runtime ───────────────────────────────────────────────────
+instance/
+.webassets-cache
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# ─── Databases (local / dumps) ───────────────────────────────────────────────
+*.sqlite3
+*.sqlite
+*.db
+church_management.db
+*.sql
+!schema.sql
+!migrations/**/*.sql
+dump.sql
+*.dump
+mysql-data/
+docker-volume/
+mariadb_data/
+
+# ─── User uploads & generated exports ────────────────────────────────────────
+uploads/
+sermons_uploads/
+static/uploads/
+export/
+exports/
+media/uploads/
+
+# Large / generated media often produced at runtime
+*.mp3
+*.mp4
+*.wav
+*.webm
+*.mov
+
+# Generated office/report artifacts (source code does not need these)
+*.pdf
+*.docx
+*.xlsx
+*.xls
+*.csv
+!docs/**/*.csv
+!docs/**/*.pdf
+
+# ─── Archives / accidental project dumps ─────────────────────────────────────
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+myvinechurchonline.zip
+poweredbytop.zip
+
+# ─── IDE / editors ───────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+.vscode/
+*.code-workspace
+.spyderproject
+.spyproject
+.ropeproject
+*.sublime-project
+*.sublime-workspace
+
+# ─── OS junk ─────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+._*
+
+# ─── Docker / local tooling ──────────────────────────────────────────────────
+docker-compose.override.yml
+.docker/
+*.pid
+
+# ─── Project-local analysis / scratch ────────────────────────────────────────
+analysis_data.json
+Unrelated_Helper_Tools/analysis_data.json
+project_structure.txt
+
+# Optional local notes (keep private scratch out of the public repo)
+NOTES.local.md
+TODO.local.md
+scratch/

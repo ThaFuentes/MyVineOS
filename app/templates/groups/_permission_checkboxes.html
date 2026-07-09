@@ -1,0 +1,165 @@
+{# Shared permission checkbox sections for create/edit group forms. #}
+{% set selected = current_permissions|default([]) %}
+{% set grantable = grantable_permissions|default(none) %}
+{% set locked = locked_permissions|default([]) %}
+
+<div class="form-group permissions-group">
+    <label class="section-label">Permissions Granted by Membership <span class="required">(select all that apply)</span></label>
+    {% if permissions_limited|default(false) %}
+    <p class="help-text" style="margin-bottom:1rem;">
+        You can only grant permissions you already have. Permissions set by site Owner, Admin, or Staff
+        that are above your level appear as <strong>locked</strong> and cannot be removed here.
+    </p>
+    {% else %}
+    <p class="help-text" style="margin-bottom:1.5rem;">
+        These are grouped for easier navigation. Expand each section to select permissions.
+    </p>
+    {% endif %}
+
+    <details open class="collapsible-section glass">
+        <summary class="collapsible-summary section-subtitle">Core Content Creation & Moderation</summary>
+        <div class="collapsible-content">
+            <div class="summary-cards permissions-grid">
+                {% for key in ['create_announcements', 'moderate_announcements', 'create_events', 'moderate_events', 'manage_event_registration', 'upload_sermons', 'moderate_sermons', 'moderate_prayers', 'moderate_dreams', 'moderate_prophecies'] %}
+                    {% if key in known_permissions %}
+                        {% if grantable is none or key in grantable %}
+                        <div class="card glass">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
+                                <span class="checkbox-custom"></span>
+                                {{ known_permissions[key] }}
+                            </label>
+                        </div>
+                        {% elif key in locked %}
+                        <div class="card glass" style="opacity:0.85;">
+                            <div class="checkbox-label" style="cursor:default;">
+                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
+                                {{ known_permissions[key] }}
+                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </details>
+
+    <details class="collapsible-section glass">
+        <summary class="collapsible-summary section-subtitle">Financial & Operational</summary>
+        <div class="collapsible-content">
+            <div class="summary-cards permissions-grid">
+                {% for key in ['view_donations', 'manage_donations', 'manage_bills', 'manage_inventory', 'manage_tickets', 'submit_tickets', 'send_emails'] %}
+                    {% if key in known_permissions %}
+                        {% if grantable is none or key in grantable %}
+                        <div class="card glass">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
+                                <span class="checkbox-custom"></span>
+                                {{ known_permissions[key] }}
+                            </label>
+                        </div>
+                        {% elif key in locked %}
+                        <div class="card glass" style="opacity:0.85;">
+                            <div class="checkbox-label" style="cursor:default;">
+                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
+                                {{ known_permissions[key] }}
+                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </details>
+
+    <details class="collapsible-section glass">
+        <summary class="collapsible-summary section-subtitle">Member & Attendance Management</summary>
+        <div class="collapsible-content">
+            <div class="summary-cards permissions-grid">
+                {% for key in ['view_members', 'manage_members', 'manage_family_links', 'manage_attendance'] %}
+                    {% if key in known_permissions %}
+                        {% if grantable is none or key in grantable %}
+                        <div class="card glass">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
+                                <span class="checkbox-custom"></span>
+                                {{ known_permissions[key] }}
+                            </label>
+                        </div>
+                        {% elif key in locked %}
+                        <div class="card glass" style="opacity:0.85;">
+                            <div class="checkbox-label" style="cursor:default;">
+                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
+                                {{ known_permissions[key] }}
+                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </details>
+
+    <details class="collapsible-section glass">
+        <summary class="collapsible-summary section-subtitle">Administration & Settings</summary>
+        <div class="collapsible-content">
+            <div class="summary-cards permissions-grid">
+                {% for key in ['manage_users', 'manage_groups', 'manage_settings', 'manage_help', 'view_audit_logs', 'access_pastoral', 'manage_legal_notices'] %}
+                    {% if key in known_permissions %}
+                        {% if grantable is none or key in grantable %}
+                        <div class="card glass">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
+                                <span class="checkbox-custom"></span>
+                                {{ known_permissions[key] }}
+                            </label>
+                        </div>
+                        {% elif key in locked %}
+                        <div class="card glass" style="opacity:0.85;">
+                            <div class="checkbox-label" style="cursor:default;">
+                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
+                                {{ known_permissions[key] }}
+                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </details>
+
+    {% if app_permission_keys|default([]) %}
+    <details class="collapsible-section glass">
+        <summary class="collapsible-summary section-subtitle">Church Apps</summary>
+        <div class="collapsible-content">
+            <div class="summary-cards permissions-grid">
+                {% for key in app_permission_keys %}
+                    {% if key in known_permissions %}
+                        {% if grantable is none or key in grantable %}
+                        <div class="card glass">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
+                                <span class="checkbox-custom"></span>
+                                {{ known_permissions[key] }}
+                            </label>
+                        </div>
+                        {% elif key in locked %}
+                        <div class="card glass" style="opacity:0.85;">
+                            <div class="checkbox-label" style="cursor:default;">
+                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
+                                {{ known_permissions[key] }}
+                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </details>
+    {% endif %}
+</div>

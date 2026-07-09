@@ -1,0 +1,14 @@
+{% extends "worship/base_worship.html" %}
+{% from "worship/_assignment_rows.html" import assignment_rows %}
+
+{% block worship_title %}Default Roles{% endblock %}
+
+{% block worship_content %}
+<h1 style="margin:0 0 0.5rem; font-size:1.35rem; color:var(--primary);">Default Role Assignments</h1>
+<p style="margin:0 0 1rem; opacity:0.75; font-size:0.9rem;">These auto-fill when you create a new setlist.</p>
+
+<form method="post" class="glass-panel" style="padding:1rem;">
+  {{ assignment_rows(defaults, members, default_roles) }}
+  <button type="submit" class="btn btn-primary" style="margin-top:1rem;">Save Defaults</button>
+</form>
+{% endblock %}

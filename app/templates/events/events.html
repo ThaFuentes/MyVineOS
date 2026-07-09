@@ -1,0 +1,40 @@
+<!-- app/templates/events/events.html -->
+<!-- Full path: WebChurchMan/app/templates/events/events.html -->
+<!-- File name: events.html -->
+<!-- Brief, detailed purpose: DEPRECATED – This old Events listing page is no longer used.
+   The main Events route (/events) now renders events/events_dashboard.html
+   (full mirror of Donations dashboard with glassmorphism wrapper, summary cards, table, global classes).
+   This file was kept only for temporary reference during the rebuild.
+   Action: Safe to delete now – all functionality is in events_dashboard.html + base_events.html. -->
+
+{% comment %}
+This template is fully deprecated and can be deleted.
+
+The new Events Dashboard (events_dashboard.html) provides:
+- Identical structure to Donations dashboard
+- Glass summary cards and table
+- Global classes only (no events-specific CSS)
+- Consistent menu via base_events.html
+
+Direct access to this old file shows a clear deprecation notice for any lingering links.
+Once confirmed no routes point here, delete this file.
+{% endcomment %}
+
+{% extends "base.html" %}
+
+{% block title %}Events (Deprecated){% endblock %}
+
+{% block content %}
+<div class="deprecated-notice" style="text-align:center; padding:4rem; background:#1e1e1e; border-radius:12px; margin:2rem;">
+    <h1 style="color:#00FFFF; font-size:2.5rem;">This Events Page Is Deprecated</h1>
+    <p style="font-size:1.2rem; color:#e0e0e0; max-width:800px; margin:2rem auto;">
+        The Events module has been fully rebuilt for consistency with Donations.<br>
+        The new dashboard uses the same glassmorphism style, global classes, and layout.<br><br>
+        <strong>Please use the current Events Dashboard:</strong><br>
+        <a href="{{ url_for('events.events') }}" style="color:#00FFFF; font-size:1.1rem;">→ Go to Events Dashboard</a>
+    </p>
+    <p style="color:#888; margin-top:3rem;">
+        This file (events.html) is no longer used and can be safely deleted.
+    </p>
+</div>
+{% endblock %}

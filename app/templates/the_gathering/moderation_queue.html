@@ -1,0 +1,153 @@
+{% extends "the_gathering/base.html" %}
+{% from 'the_gathering/partials/title_preview.html' import title_preview %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+        <h1 style="color:var(--primary); margin:0; font-size:1.4rem;">Moderation Hub</h1>
+        <a href="{{ url_for('the_gathering.dashboard.dashboard') }}" class="btn btn-secondary">← Manager Dashboard</a>
+    </div>
+    <p style="opacity:0.8; margin-bottom:1.25rem;">
+        Review visitor prayer requests and moderate all public comments — edit, shadow, or delete inline without leaving this page.
+        Hover titles to preview full content.
+    </p>
+
+    <section class="glass-panel" style="padding:1rem; margin-bottom:1.25rem;">
+        <h3 style="color:#ffcc00; margin-top:0;">🙏 Pending Prayer Requests ({{ pending_prayers|length }})</h3>
+        {% if pending_prayers %}
+        <div style="overflow:auto;">
+            <table class="data-table" style="width:100%; min-width:720px;">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Prayer</th>
+                        <th>From</th>
+                        <th>Posted</th>
+                        <th style="width:220px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pending_prayers %}
+                    <tr>
+                        <td><strong>{{ title_preview(p.title, p.description) }}</strong></td>
+                        <td style="max-width:320px; font-size:0.88rem; opacity:0.9; white-space:pre-wrap;">{{ (p.description or '')|truncate(200, True, '…') }}</td>
+                        <td>{{ p.contributor_name or 'Guest' }}</td>
+                        <td>{{ p.posted_at_nice or p.date_posted }}</td>
+                        <td>
+                            <a href="{{ url_for('the_gathering.prayers.view_prayer', prayer_id=p.id) }}" class="btn btn-sm btn-secondary" title="Full detail">📋</a>
+                            <form method="POST" action="{{ url_for('the_gathering.prayers.approve_prayer', prayer_id=p.id) }}" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                                <button type="submit" class="btn btn-sm btn-success" title="Approve">✓</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('the_gathering.prayers.reject_prayer', prayer_id=p.id) }}" style="display:inline;"
+                                  onsubmit="return confirm('Reject this prayer request?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Reject">✗</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="margin:0; opacity:0.7;">No prayer requests waiting for approval.</p>
+        {% endif %}
+    </section>
+
+    <section class="glass-panel" style="padding:1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+            <h3 style="color:#ffcc00; margin:0;">💬 All Comments ({{ all_comments|length }})</h3>
+        </div>
+
+        <form method="GET" class="glass-panel" style="padding:0.85rem; margin-bottom:1rem;">
+            <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end;">
+                <div style="flex:2 1 220px; min-width:180px;">
+                    <label style="display:block; font-size:0.8rem; margin-bottom:0.25rem; opacity:0.85;">Search</label>
+                    <input type="text" name="search" class="form-control" placeholder="Author, comment, or parent title…" value="{{ search }}" style="width:100%;">
+                </div>
+                <div style="flex:1 1 140px; min-width:120px;">
+                    <label style="display:block; font-size:0.8rem; margin-bottom:0.25rem; opacity:0.85;">Filter</label>
+                    <select name="filter" class="form-select" style="width:100%;">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                        <option value="visible" {% if status_filter == 'visible' %}selected{% endif %}>Visible</option>
+                        <option value="shadowed" {% if status_filter == 'shadowed' %}selected{% endif %}>Shadowed</option>
+                        <option value="edited" {% if status_filter == 'edited' %}selected{% endif %}>Edited by moderator</option>
+                    </select>
+                </div>
+                <div style="flex:0 0 auto;">
+                    <button type="submit" class="btn btn-primary" style="min-height:42px;">Apply</button>
+                </div>
+            </div>
+        </form>
+
+        {% if all_comments %}
+        <div style="overflow:auto;">
+            <table class="data-table" style="width:100%; min-width:900px;">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        <th>Type</th>
+                        <th>On</th>
+                        <th>Author</th>
+                        <th>Comment</th>
+                        <th>Posted</th>
+                        <th>Status</th>
+                        <th style="width:200px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in all_comments %}
+                    <tr {% if c.shadowed %}style="background:rgba(255,204,0,0.06);"{% endif %}>
+                        <td><strong>{{ c.id }}</strong></td>
+                        <td>{{ c.content_type|capitalize }}</td>
+                        <td style="max-width:160px;">
+                            <strong>{{ c.parent_title or ('#' ~ c.parent_id) }}</strong>
+                        </td>
+                        <td>{{ c.name or 'Anonymous' }}</td>
+                        <td style="max-width:360px; white-space:pre-wrap; font-size:0.88rem;">{{ c.body or '' }}</td>
+                        <td style="white-space:nowrap;">{{ c.posted_at_nice or c.posted_at }}</td>
+                        <td>
+                            {% if c.shadowed %}
+                                <span class="badge bg-warning text-dark">👻 Shadowed</span>
+                            {% else %}
+                                <span class="badge bg-success">Visible</span>
+                            {% endif %}
+                            {% if c.edited_by_moderator %}
+                                <br><small class="text-info">✏️ Edited</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% include 'the_gathering/partials/inline_comment_actions.html' %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="margin:0; opacity:0.7;">No comments match this filter.</p>
+        {% endif %}
+    </section>
+</div>
+
+<div id="mgr-edit-overlay" class="mgr-edit-overlay" style="display:none;" onclick="mgrCloseEdit(event)">
+    <div class="mgr-edit-dialog" onclick="event.stopPropagation()">
+        <h4 style="color:var(--primary); margin:0 0 0.75rem;">Edit Comment</h4>
+        <form method="POST" action="{{ post_url }}" id="mgr-edit-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="content_type" id="mgr-edit-content-type">
+            <input type="hidden" name="parent_id" id="mgr-edit-parent-id">
+            <input type="hidden" name="comment_id" id="mgr-edit-comment-id">
+            <textarea name="new_text" id="mgr-edit-text" rows="5" class="form-control mb-2" required></textarea>
+            <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="mgrCloseEdit()">Cancel</button>
+                <button type="submit" class="btn btn-success">Save Edit</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

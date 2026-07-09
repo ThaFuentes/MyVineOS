@@ -1,0 +1,210 @@
+{# app/templates/pastoral/planning_edit.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/planning_edit.html #}
+{# File name: planning_edit.html #}
+{# Brief, detailed purpose:
+#   Editor for a SINGLE dated service plan (override or special event only).
+#   No recurrence UI – recurring services are centrally managed via master templates.
+#   Jump to any date at top.
+#   Pre-fills roles from global defaults on new plans.
+#   Linked sermon dropdown.
+#   Quill notes.
+#   Dynamic role assignments.
+#   FULL REBUILD: Unified under 'plan' dict with plan.service_date.
+#   'today' passed from route for Today/Past badges.
+#   All old recurrence UI removed (now master templates).
+#   Clear messaging reinforces workflow.
+#   Title optional override.
+#   Global defaults notice on new plans.
+#   Preserves all non-recurrence features. #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block extra_head %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/planning.css') }}?v=1">
+{% endblock %}
+
+{% block pastoral_content %}
+<div class="container-fluid py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xxl-8">
+
+            <!-- Jump to Any Date -->
+            <div class="card glass-card mb-4 p-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label text-cyan">Jump to Different Date</label>
+                        <input type="date" class="form-control form-control-dark" id="date-jumper" value="{{ plan.service_date.strftime('%Y-%m-%d') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-cyan w-100" onclick="let d=document.getElementById('date-jumper').value; if(d) window.location='/pastoral/planning/edit/'+d;">
+                            <i class="fas fa-calendar-alt me-2"></i>Go to Date
+                        </button>
+                    </div>
+                    <div class="col-md-5">
+                        <small class="text-muted">
+                            Switch instantly to any date for special events, holidays, or one-time overrides.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="text-cyan mb-3">
+                    Dated Plan{% if plan.id %} – Edit{% else %} – New{% endif %}
+                </h1>
+                <h2 class="display-5 fw-bold text-white">
+                    {{ plan.service_date.strftime('%A, %B %d, %Y') }}
+                    {% if plan.service_date == today %}
+                        <span class="badge bg-success fs-6 ms-3">Today</span>
+                    {% elif plan.service_date < today %}
+                        <span class="badge bg-secondary fs-6 ms-3">Past</span>
+                    {% endif %}
+                </h2>
+                <p class="text-muted lead">
+                    This editor is for <strong>single-date overrides or special events only</strong>.<br>
+                    Regular recurring services are controlled centrally in the
+                    <a href="{{ url_for('pastoral.planning.templates_list') }}" class="text-cyan text-decoration-underline">
+                        Master Templates console
+                    </a>
+                    (edit once → affects all future weeks).
+                </p>
+            </div>
+
+            <!-- Main Editor -->
+            <form method="POST" id="planning-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <div class="card glass-card shadow">
+                    <div class="card-body p-5">
+
+                        <!-- Service Times -->
+                        <div class="mb-5">
+                            <h4 class="text-cyan mb-4">Service Times</h4>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Overall Start Time</label>
+                                    <input type="time" name="start_time" class="form-control form-control-dark"
+                                           value="{{ plan.start_time.strftime('%H:%M') if plan.start_time else '' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Worship Start Time</label>
+                                    <input type="time" name="worship_start_time" class="form-control form-control-dark"
+                                           value="{{ plan.worship_start_time.strftime('%H:%M') if plan.worship_start_time else '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Title (optional override) -->
+                        <div class="mb-4">
+                            <label class="form-label text-cyan fs-5">Service Title / Label (optional override)</label>
+                            <input type="text" name="title" class="form-control form-control-lg form-control-dark"
+                                   value="{{ plan.title }}" placeholder="e.g., Christmas Eve Service, Guest Speaker">
+                            <small class="text-muted">Leave blank to use master template title. Use only for this date.</small>
+                        </div>
+
+                        <!-- Linked Sermon -->
+                        <div class="mb-4">
+                            <label class="form-label text-cyan fs-5">Linked Sermon (optional)</label>
+                            <select name="sermon_id" class="form-select form-control-dark">
+                                <option value="">None</option>
+                                {% for sermon in linkable_sermons %}
+                                <option value="{{ sermon.id }}" {{ 'selected' if plan.pastoral_sermon_id == sermon.id }}>
+                                    {{ sermon.title }} ({{ sermon.service_date.strftime('%b %d, %Y') if sermon.service_date else 'No date' }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Notes / Order of Service -->
+                        <div class="mb-5">
+                            <label class="form-label text-cyan fs-5">Notes / Order of Service</label>
+                            <div id="notes-editor" class="quill-wrapper">{{ plan.notes|safe }}</div>
+                            <input type="hidden" name="notes" id="notes-hidden">
+                        </div>
+
+                        <!-- Role Assignments -->
+                        <div class="mb-5">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="text-cyan mb-0">Role Assignments</h5>
+                                <button type="button" id="add-role-btn" class="btn btn-outline-cyan">
+                                    <i class="fas fa-plus me-2"></i>Add Role
+                                </button>
+                            </div>
+
+                            {% if not plan.id %}
+                            <div class="alert alert-info py-3 mb-4">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>New override:</strong> Roles pre-filled from your
+                                <a href="{{ url_for('pastoral.planning.defaults') }}" class="alert-link">
+                                    Global Default Role Assignments
+                                </a>.
+                                Edit here for this date only.
+                            </div>
+                            {% endif %}
+
+                            <div id="assignments-container">
+                                {% for assignment in plan.assignments %}
+                                    {% include "pastoral/planning_assignment_row.html" %}
+                                {% endfor %}
+
+                                <!-- Hidden row for dynamic add -->
+                                <div class="assignment-row d-none">
+                                    {% with assignment=none %}
+                                        {% include "pastoral/planning_assignment_row.html" %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-grid d-md-flex gap-3 justify-content-md-end">
+                            <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-outline-secondary order-md-1">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg order-md-2">
+                                <i class="fas fa-save me-2"></i>Save Dated Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+    const quill = new Quill('#notes-editor', {
+        theme: 'snow',
+        modules: { toolbar: [['bold', 'italic', 'underline'], [{'list': 'ordered'}, {'list': 'bullet'}], ['link'], ['clean']] }
+    });
+
+    document.getElementById('planning-form').onsubmit = function() {
+        document.getElementById('notes-hidden').value = quill.root.innerHTML;
+    };
+
+    document.getElementById('add-role-btn').addEventListener('click', function() {
+        const container = document.getElementById('assignments-container');
+        const templateRow = container.querySelector('.assignment-row.d-none').cloneNode(true);
+        templateRow.classList.remove('d-none');
+        templateRow.querySelector('input[name="role_name"]').value = '';
+        templateRow.querySelector('select[name="user_id"]').selectedIndex = 0;
+        container.appendChild(templateRow);
+    });
+
+    document.getElementById('assignments-container').addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-role-btn')) {
+            const row = e.target.closest('.assignment-row');
+            if (document.querySelectorAll('#assignments-container .assignment-row:not(.d-none)').length > 1) {
+                row.remove();
+            } else {
+                row.querySelector('input[name="role_name"]').value = '';
+                row.querySelector('select[name="user_id"]').selectedIndex = 0;
+            }
+        }
+    });
+</script>
+{% endblock %}

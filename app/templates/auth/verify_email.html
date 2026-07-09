@@ -1,0 +1,25 @@
+{% extends "auth/base_auth.html" %}
+{% block title %}Email Verification{% endblock %}
+{% block content %}
+<div class="glass-panel" style="max-width:480px; margin:2rem auto; padding:1.5rem; text-align:center;">
+    {% if success %}
+    <h2>Email verified</h2>
+    {% if already %}
+    <p>Your email was already confirmed — you're all set.</p>
+    {% else %}
+    <p>Your email address has been confirmed.</p>
+    {% endif %}
+    <p style="font-size:0.9rem; color:var(--text-muted);">If your account still needs admin approval, you'll be able to log in once it's reviewed.</p>
+    <a href="{{ url_for('auth.login') }}" class="btn-primary">Go to login</a>
+    {% else %}
+    <h2>Verification failed</h2>
+    <p>This link is invalid or has expired.</p>
+    <p style="font-size:0.9rem; color:var(--text-muted); margin:1rem 0;">
+        If you already clicked verify, try logging in first.<br>
+        Otherwise request a fresh link below.
+    </p>
+    <a href="{{ url_for('auth.resend_verification') }}" class="btn-primary">Resend verification email</a>
+    <a href="{{ url_for('auth.login') }}" class="btn-secondary" style="margin-left:0.5rem;">Back to login</a>
+    {% endif %}
+</div>
+{% endblock %}

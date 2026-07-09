@@ -1,0 +1,89 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/prophecies/edit.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prophecies/edit.html -->
+<!-- File name: edit.html -->
+<!-- Brief, detailed purpose: Full Prophecy Editor form inside the Gathering Place Manager. -->
+<!-- • Create new OR edit existing prophecy (title, prophecy_text, visibility). -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prophecies.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/edit.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}{% if prophecy %}Edit Prophecy{% else %}Create New Prophecy{% endif %}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">
+            {% if prophecy %}
+                ✏️ Edit Prophecy #{{ prophecy.id }}
+            {% else %}
+                ➕ Create New Prophecy
+            {% endif %}
+        </h1>
+
+        <div>
+            <!-- Back to Prophecies Manager -->
+            <a href="{{ url_for('the_gathering.prophecies.prophecies_dashboard') }}" class="btn btn-secondary me-2">
+                ← Back to Prophecies Manager
+            </a>
+
+            {% if prophecy %}
+            <!-- View on Public -->
+            <a href="{{ url_for('public.public_prophecies.public_prophecy_detail', prophecy_id=prophecy.id) }}"
+               target="_blank" class="btn btn-outline-light me-2">
+                👁️ View Public
+            </a>
+
+            <!-- Delete -->
+            <form method="POST" action="{{ url_for('the_gathering.prophecies.delete_prophecy', prophecy_id=prophecy.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                  onsubmit="return confirm('PERMANENTLY DELETE this prophecy and ALL its comments?')">
+                <button type="submit" class="btn btn-danger">🗑️ Delete Prophecy</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('the_gathering.prophecies.edit_prophecy', prophecy_id=prophecy.id if prophecy else None) }}" class="glass-panel" style="padding:1rem;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        {% if prophecy %}
+        <input type="hidden" name="prophecy_id" value="{{ prophecy.id }}">
+        {% endif %}
+
+        <div style="display:grid; grid-template-columns:1fr; gap:1rem;">
+            <!-- Title -->
+            <div>
+                <label style="display:block; margin-bottom:0.35rem; font-size:0.9rem; opacity:0.9;">Prophecy Title <span style="color:#f66;">*</span></label>
+                <input type="text" name="title" style="width:100%;" value="{{ prophecy.title or '' }}" required>
+            </div>
+
+            <!-- Prophecy Content -->
+            <div>
+                <label style="display:block; margin-bottom:0.35rem; font-size:0.9rem; opacity:0.9;">Prophecy Content <span style="color:#f66;">*</span></label>
+                <textarea name="prophecy_text" rows="10" style="width:100%;" required>{{ prophecy.prophecy_text or '' }}</textarea>
+            </div>
+
+            <!-- Visibility -->
+            <div class="glass-panel" style="padding:0.9rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.95rem;">
+                    <input type="checkbox" name="visibility" value="public" {% if prophecy and prophecy.visibility == 'public' %}checked{% endif %}>
+                    <span>Make this prophecy PUBLIC</span>
+                </label>
+                <div style="margin-top:0.5rem; font-size:0.8rem; opacity:0.75; background:rgba(255,255,255,0.03); padding:0.5rem; border-radius:8px;">
+                    <strong>Tip:</strong> Public prophecies appear on the guest-facing prophecies page.
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div style="margin-top:1.25rem; display:flex; justify-content:flex-end; gap:0.5rem; flex-wrap:wrap;">
+            <a href="{{ url_for('the_gathering.prophecies.prophecies_dashboard') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold;">
+                💾 Save Prophecy
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

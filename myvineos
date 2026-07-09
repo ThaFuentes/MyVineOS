@@ -1,0 +1,232 @@
+#!/usr/bin/env bash
+#
+# myvineos - One-command development launcher for MyVine OS (church management)
+#
+# Usage:
+#   ./myvineos                 # Normal start (uses Docker MariaDB for dev)
+#   ./myvineos --fresh         # Nuclear reset: destroys DB volume + starts fresh
+#   ./myvineos reset           # Same as --fresh
+#   ./myvineos --help
+#
+# This is the recommended way to run locally.
+# It creates .venv, installs deps, starts DB via docker-compose, waits for readiness,
+# and launches the dev server on http://127.0.0.1:5001 (or $HOST:$PORT)
+#
+# Requirements on your machine:
+#   - python3 + python3-venv
+#   - docker + docker compose (for the dev DB)
+#   - (optional) for production-like: your real MariaDB creds in .env
+#
+# The script forces dev DB creds (from docker-compose.yml) via environment variables
+# so that the existing .env (hosting creds) does not interfere (thanks to dotenv override=False).
+#
+# After first run: register the Owner at the initial setup screen.
+
+set -e
+
+# Colors
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+BLUE="\033[0;34m"
+RED="\033[0;31m"
+NC="\033[0m" # No Color
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_PATH="$PROJECT_ROOT/.venv"
+PYTHON="$VENV_PATH/bin/python"
+PIP="$VENV_PATH/bin/pip"
+
+cd "$PROJECT_ROOT"
+
+# Early check: ensure we can even create venvs (python3-venv package)
+if ! python3 -c "import venv" 2>/dev/null; then
+    echo -e "${RED}ERROR: python3 cannot import 'venv' module.${NC}"
+    echo "On Ubuntu/Debian VMs this usually means the package is missing."
+    echo "Please install it first:"
+    echo "  sudo apt update && sudo apt install -y python3-venv python3-pip"
+    echo "Then re-run: ./myvineos"
+    exit 1
+fi
+
+# === Argument parsing ===
+FRESH_MODE=false
+for arg in "$@"; do
+    case "$arg" in
+        --fresh|reset|--reset)
+            FRESH_MODE=true
+            ;;
+        --help|-h)
+            echo "Usage: ./myvineos [--fresh | reset]"
+            echo ""
+            echo "  ./myvineos          Normal local dev start (Docker DB)"
+            echo "  ./myvineos --fresh  Full reset (wipes MariaDB volume + fresh start)"
+            echo ""
+            echo "The app will be available at http://127.0.0.1:5001 (or HOST/PORT env)"
+            echo "First run as Owner will trigger initial setup."
+            exit 0
+            ;;
+    esac
+done
+
+echo -e "${BLUE}🚀 MyVine OS Launcher${NC}"
+echo -e "Project: ${PROJECT_ROOT}"
+echo ""
+
+if [ "$FRESH_MODE" = true ]; then
+    echo -e "${RED}🔥 FRESH START MODE ACTIVATED${NC}"
+    echo -e "${YELLOW}This will stop the DB container and remove its volume (all data gone).${NC}"
+    echo ""
+    read -p "Are you sure? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Aborted."
+        exit 1
+    fi
+    echo ""
+fi
+
+# 1. Create virtualenv if missing or broken (e.g. previous partial/Windows .venv)
+if [ ! -f "$VENV_PATH/bin/activate" ]; then
+    if [ -d "$VENV_PATH" ]; then
+        echo -e "${YELLOW}Existing .venv directory is incomplete, broken, or for another platform (e.g. Windows). Removing it...${NC}"
+        rm -rf "$VENV_PATH"
+    fi
+    echo -e "${YELLOW}Creating Python virtual environment (.venv)...${NC}"
+    python3 -m venv "$VENV_PATH" || {
+        echo -e "${RED}ERROR: Failed to create virtual environment.${NC}"
+        echo "This is common on Ubuntu/Debian minimal installs."
+        echo "Please run: sudo apt update && sudo apt install -y python3-venv python3-pip"
+        echo "Then try ./myvineos again."
+        exit 1
+    }
+    echo -e "${GREEN}✓ .venv created${NC}"
+fi
+
+# Use full paths to venv binaries (more reliable than sourcing in scripts)
+# We still source for any subshells if needed, but operations use explicit paths.
+# shellcheck disable=SC1091
+source "$VENV_PATH/bin/activate" 2>/dev/null || true
+
+# 2. Install dependencies (idempotent check using venv python)
+if ! "$PYTHON" -c "import flask; import pymysql; import dotenv; import docx; import PyPDF2; import cryptography; import requests" 2>/dev/null; then
+    echo -e "${YELLOW}Installing project dependencies from requirements.txt...${NC}"
+    "$PIP" install -r requirements.txt -q
+    echo -e "${GREEN}✓ Dependencies installed${NC}"
+fi
+
+# 3. Handle .env (prefer .env.example, create from it if no .env)
+if [ ! -f ".env" ]; then
+    if [ -f ".env.example" ]; then
+        cp .env.example .env
+        echo -e "${YELLOW}Created .env from .env.example${NC}"
+    else
+        echo -e "${YELLOW}No .env or .env.example. Creating minimal dev .env...${NC}"
+        cat > .env << 'EOL'
+MYSQL_HOST=127.0.0.1
+MYSQL_USER=churchuser
+MYSQL_PASSWORD=ChurchPass2026!
+MYSQL_DATABASE=church_management
+MYSQL_PORT=3308  # host port mapped from docker (3308:3306 inside container)
+
+SECRET_KEY=dev-insecure-change-this-immediately-2026
+FERNET_KEY=dev-fernet-key-change-in-prod-12345678901234567890123456789012==
+
+DEBUG_MODE=true
+HOST=127.0.0.1
+PORT=5001
+REQUIRE_HTTPS=false  # dev http; change to true (and ensure HTTPS) for prod to enable PBT https enforcement
+EOL
+    fi
+    echo -e "${GREEN}✓ .env ready (dev defaults for Docker). Review/edit for production.${NC}"
+fi
+
+# 4. Fresh reset if requested
+if [ "$FRESH_MODE" = true ]; then
+    echo -e "${YELLOW}Stopping containers and removing volumes (full database wipe)...${NC}"
+    docker compose down -v --remove-orphans 2>/dev/null || true
+    echo -e "${GREEN}✓ Database volume destroyed${NC}"
+    echo ""
+fi
+
+# 5. Start database via Docker Compose (uses docker-compose.yml defaults)
+echo -e "${BLUE}Starting MariaDB (docker compose)...${NC}"
+if ! docker compose up -d db; then
+    echo -e "${RED}ERROR: Failed to start MariaDB container.${NC}"
+    echo "Common causes when using multiple projects in this folder:"
+    echo "  - Port conflict on host (veilbreak uses 3306, driverapp uses 3307, this one now uses 3308)"
+    echo "  - Docker not running or permission issues"
+    echo "  - Existing container myvinechurch-db in bad state"
+    echo ""
+    echo "Debug commands:"
+    echo "  docker ps -a | grep -E 'myvine|church|mariadb'"
+    echo "  docker compose logs db"
+    echo "  docker compose down   # then try again"
+    echo ""
+    echo "You can also run the DB manually: docker compose up -d db"
+    exit 1
+fi
+
+# 6. Wait for MariaDB to accept connections (using dev creds from docker-compose)
+echo -e "${YELLOW}Waiting for MariaDB to be ready...${NC}"
+
+DB_HOST="127.0.0.1"
+DB_PORT="3308"  # matches the port in docker-compose.yml for this project (unique vs other sites: veilbreak=3306, driverapp=3307)
+DB_USER="churchuser"
+DB_PASS="ChurchPass2026!"
+DB_NAME="church_management"
+
+for i in {1..30}; do
+    if "$PYTHON" -c "
+import pymysql, sys
+try:
+    conn = pymysql.connect(
+        host='$DB_HOST',
+        port=$DB_PORT,
+        user='$DB_USER',
+        password='$DB_PASS',
+        database='$DB_NAME',
+        connect_timeout=2
+    )
+    conn.cursor().execute('SELECT 1')
+    conn.close()
+    sys.exit(0)
+except Exception as e:
+    # print(e)  # uncomment for debug
+    sys.exit(1)
+" 2>/dev/null; then
+        echo -e "${GREEN}✓ Database is ready${NC}"
+        break
+    fi
+    sleep 1
+    if [ "$i" -eq 30 ]; then
+        echo -e "${RED}Database did not become ready in time.${NC}"
+        echo "Check: docker compose logs db"
+        echo "You may need to increase wait time or check port mapping."
+        exit 1
+    fi
+done
+
+# 7. Force dev DB credentials via environment (so .env hosting values don't win, because load_dotenv default override=False)
+export MYSQL_HOST="$DB_HOST"
+export MYSQL_USER="$DB_USER"
+export MYSQL_PASSWORD="$DB_PASS"
+export MYSQL_DATABASE="$DB_NAME"
+export MYSQL_PORT="$DB_PORT"  # 3308 for this project's docker mapping
+
+export SECRET_KEY="${SECRET_KEY:-dev-insecure-change-this-immediately-2026}"
+export FERNET_KEY="${FERNET_KEY:-dev-fernet-key-change-in-prod-12345678901234567890123456789012==}"
+export DEBUG_MODE="${DEBUG_MODE:-true}"
+export HOST="${HOST:-127.0.0.1}"
+export PORT="${PORT:-5001}"
+export REQUIRE_HTTPS="${REQUIRE_HTTPS:-false}"  # dev uses http; set true in prod .env for full HTTPS enforcement in PBT
+
+echo ""
+echo -e "${GREEN}Starting MyVine OS development server...${NC}"
+echo -e "  → URL: ${BLUE}http://${HOST}:${PORT}${NC}"
+echo -e "  → First time? You will be taken to Owner registration."
+echo -e "  → Press ${YELLOW}Ctrl+C${NC} to stop."
+echo -e "  → To reset everything: ./myvineos --fresh"
+echo ""
+
+# Use exec for clean signal handling (Ctrl+C)
+exec "$PYTHON" main.py

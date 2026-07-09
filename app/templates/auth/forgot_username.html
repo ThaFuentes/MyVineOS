@@ -1,0 +1,75 @@
+<!-- app/templates/auth/forgot_username.html -->
+<!-- Full path: myvinechurchonline/app/templates/auth/forgot_username.html -->
+<!-- File name: forgot_username.html -->
+<!-- Brief, detailed purpose: Public form for recovering forgotten username via email.
+   Fully standardized – extends unified base_public.html for identical header (guest prompt, Register, clock), full public navigation, dynamic branding/background.
+   Uses global glow-card centered layout shared with all forms.
+   No module-specific CSS or inline styles – everything from global theme/components.
+   Clean, premium centered card on full-screen background (admin-configurable via Settings).
+   Large, senior-friendly text/buttons via global responsive rules.
+   Ready for multi-theme switching. -->
+
+{% extends "base_public.html" %}
+
+{% block content %}
+  <section class="auth-section" style="padding:4rem 2rem 6rem; display:flex; align-items:center; justify-content:center; min-height:80vh;">
+    <div class="glow-card medium auth-card" style="max-width:500px; width:100%; padding:2.5rem 2rem; box-shadow:0 0 30px rgba(0,255,255,0.3);">
+      <!-- Title -->
+      <div style="text-align:center; margin-bottom:1.8rem;">
+        <h2 class="section-title" style="margin:0; font-size:2.2rem; color:var(--primary); text-shadow:0 0 12px var(--primary-glow);">Forgot Username</h2>
+        <p style="margin:0.6rem 0 0; color:var(--text-muted); font-size:1.1rem;">
+          {{ g.settings.get('church_name', 'MyVineChurch.Online') }}
+        </p>
+      </div>
+
+      <!-- Description -->
+      <p style="text-align:center; margin-bottom:2.5rem; font-size:1.15rem; opacity:0.95; line-height:1.6;">
+        Enter your email address below and we'll send your username if an account exists.
+      </p>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages" style="margin-bottom:1.5rem;">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- Form -->
+      <form method="POST" action="{{ url_for('auth.forgot_username') }}" class="styled-form">
+        <div class="form-group">
+          <label for="email" style="color:var(--primary); font-weight:600; margin-bottom:0.4rem; display:block;">
+            Email Address <span class="required">*</span>
+          </label>
+          <input type="email"
+                 id="email"
+                 name="email"
+                 required
+                 autofocus
+                 placeholder="your.email@example.com"
+                 style="width:100%; padding:0.95rem; font-size:1.1rem; background:rgba(255,255,255,0.06); border:1px solid var(--primary); border-radius:8px; color:white;">
+          <small class="help-text" style="display:block; margin-top:0.5rem; opacity:0.8;">
+            We'll send your username to this email if it matches an account.
+          </small>
+        </div>
+
+        <div class="form-actions" style="margin-top:3rem; display:flex; gap:1.5rem; justify-content:center;">
+          <button type="submit" class="btn-primary" style="padding:1.1rem 2.5rem; font-size:1.2rem;">
+            Send Username
+          </button>
+          <a href="{{ url_for('auth.login') }}" class="btn-secondary" style="padding:1.1rem 2.5rem; font-size:1.2rem;">
+            Back to Login
+          </a>
+        </div>
+      </form>
+
+      <!-- Guest reminder -->
+      <p style="text-align:center; margin-top:2.5rem; color:var(--text-muted); font-size:0.95rem;">
+        Just visiting? <a href="{{ url_for('auth.auth_index') }}" style="color:var(--primary);">Continue as guest</a> to explore
+      </p>
+    </div>
+  </section>
+{% endblock %}

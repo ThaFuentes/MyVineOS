@@ -1,0 +1,68 @@
+<!-- app/templates/settings/censored_words.html -->
+<!-- Full path: WebChurchMan/app/templates/settings/censored_words.html -->
+<!-- File name: censored_words.html -->
+<!-- Brief, detailed purpose: Dedicated Settings page for managing the censored words/phrases list.
+   Extends base_settings.html → inherits glass wrapper, internal .menu navigation, flash messages.
+   Primary quick-add (single word/phrase) with case-insensitive duplicate check.
+   Secondary collapsible bulk editor (closed by default).
+   All checks case-insensitive; preserves original fallback defaults.
+   Uses only global CSS classes. -->
+
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Censored Words List</h2>
+    <p class="help-text">
+        Words/phrases to block in guest submissions (potluck signups, prayers, dreams, prophecies).<br>
+        <strong>Filtering is case-insensitive</strong> No matter the casing (upper or lower or mix) it will all match and block it.<br>
+        One entry per line. Leave blank to use built-in defaults.
+    </p>
+
+    <!-- Primary: Quick Add Single Word/Phrase -->
+    <div class="content-section" style="margin-bottom: 4rem;">
+        <h3 class="section-subtitle">Add New Word or Phrase</h3>
+        <form method="POST" class="styled-form inline-form">
+        {% include 'partials/csrf_field.html' %}
+            <div class="form-group" style="flex: 1; min-width: 300px;">
+                <label for="new_word">New Word/Phrase</label>
+                <input type="text" id="new_word" name="new_word" placeholder="e.g., badword" required>
+                <p class="help-text">Case will be preserved for display, but matching is case-insensitive.</p>
+            </div>
+
+            <div class="form-actions" style="align-self: end;">
+                <button type="submit" name="action" value="add_single_censored" class="btn-primary">Add Word</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Secondary: Bulk Editor (Collapsible – closed by default) -->
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <span>Edit Full List (Advanced)</span>
+            <span class="arrow">▼</span>
+        </summary>
+
+        <div class="potluck-content">
+            <form method="POST" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+                <div class="form-group full-width">
+                    <label for="censored_words">Full Censored Words List (one per line)</label>
+                    <textarea id="censored_words" name="censored_words" rows="18">{{ censored_words_text }}</textarea>
+                    <p class="help-text">
+                        Edit or paste multiple entries. Empty lines are ignored.<br>
+                        Saving an empty list will revert to built-in defaults.
+                    </p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" name="action" value="update_censored_words" class="btn-primary">Save Full List</button>
+                    <a href="{{ url_for('settings.censored_words') }}" class="btn-secondary">Cancel / Reload</a>
+                </div>
+            </form>
+        </div>
+    </details>
+</section>
+
+{% endblock %}

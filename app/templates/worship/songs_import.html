@@ -1,0 +1,38 @@
+{% extends "worship/base_worship.html" %}
+
+{% block worship_title %}Import Songs (JSON){% endblock %}
+
+{% block worship_content %}
+<h1 style="margin:0 0 0.5rem; font-size:1.35rem; color:var(--primary);">Bulk import songs</h1>
+<p style="margin:0 0 1rem; opacity:0.75; font-size:0.9rem;">
+  Paste JSON or upload a <code>.json</code> file. Matching title+artist updates existing songs.
+</p>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem; font-size:0.85rem;">
+<pre style="margin:0; white-space:pre-wrap;">{
+  "songs": [
+    {
+      "title": "Amazing Grace",
+      "artist": "Traditional",
+      "ccli_song_number": "22025",
+      "copyright_line": "Public Domain",
+      "lyrics_raw": "[Verse 1]\nAmazing grace...\n\n[Chorus]\n...",
+      "sections": [
+        {"type": "verse", "label": "Verse 1", "content": "Amazing grace...", "sort": 1}
+      ]
+    }
+  ]
+}</pre>
+<p style="margin:0.75rem 0 0; opacity:0.7;"><strong>Verse/chorus detection:</strong> If you only provide <code>lyrics_raw</code>, lines like <code>[Verse 1]</code>, <code>(Chorus)</code>, or <code>Bridge</code> are parsed automatically for the prompter.</p>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="glass-panel" style="padding:1rem; display:grid; gap:0.75rem;">
+  <label>JSON data
+    <textarea name="json_data" rows="14" style="width:100%; font-family:monospace; font-size:0.85rem; margin-top:0.25rem;"></textarea>
+  </label>
+  <label>Or upload file
+    <input type="file" name="json_file" accept=".json,application/json" style="margin-top:0.25rem;">
+  </label>
+  <button type="submit" class="btn btn-primary">Import</button>
+</form>
+{% endblock %}

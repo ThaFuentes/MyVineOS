@@ -1,0 +1,104 @@
+{# app/templates/pastoral/planning_defaults.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/planning_defaults.html #}
+{# File name: planning_defaults.html #}
+{# Brief, detailed purpose:
+#   Dedicated page to manage global default role assignments.
+#   Defaults pre-fill EVERY new service plan (dated overrides, master templates, recurring weeks).
+#   Can be overridden per individual plan/week.
+#   Example: Set Tim as default "Preacher" – he auto-fills in new plans, but edit a specific week to replace him if he's out.
+#   Changes here instantly affect all future new plans (no restart needed).
+#   Dark/cyan theme consistent, responsive.
+#   Uses planning_assignment_row.html partial for dynamic rows. #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Global Default Role Assignments{% endblock %}
+
+{% block pastoral_content %}
+<div class="container-fluid py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xxl-8">
+            <div class="text-center mb-5">
+                <h1 class="text-cyan">Global Default Role Assignments</h1>
+                <p class="text-muted lead">
+                    These defaults automatically pre-fill <strong>every new service plan</strong> you create — including dated overrides and recurring master templates.<br>
+                    You can always override them on a specific week (perfect for guest speakers or substitutions).
+                </p>
+            </div>
+
+            <!-- Helpful info alert -->
+            <div class="alert alert-info py-4 mb-5 text-center border border-cyan shadow-sm">
+                <i class="fas fa-lightbulb fa-2x mb-3 text-cyan d-block"></i>
+                <strong>Pro Tip:</strong> Set your main recurring roles here once (e.g., Preacher → Tim, Worship Leader → Anna)<br>
+                and enjoy "set it and forget it" — all new plans will start with these filled in automatically.
+            </div>
+
+            <div class="card glass-card shadow">
+                <div class="card-body p-5">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="text-cyan mb-0">Default Roles</h4>
+                            <button type="button" id="add-role-btn" class="btn btn-outline-cyan">
+                                <i class="fas fa-plus me-2"></i>Add Role
+                            </button>
+                        </div>
+
+                        <div id="assignments-container">
+                            {% for assignment in defaults %}
+                                {% include "pastoral/planning_assignment_row.html" %}
+                            {% endfor %}
+
+                            <!-- Hidden空白 row for dynamic add -->
+                            <div class="assignment-row d-none">
+                                {% with assignment=none %}
+                                    {% include "pastoral/planning_assignment_row.html" %}
+                                {% endwith %}
+                            </div>
+                        </div>
+
+                        <small class="text-muted d-block mb-4">
+                            <strong>Example:</strong> Set "Preacher" → Tim. He will auto-fill in every new plan.<br>
+                            Empty rows are ignored on save.
+                        </small>
+
+                        <div class="d-grid d-md-flex gap-3 justify-content-md-end mt-5">
+                            <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-outline-secondary btn-lg order-md-1">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Planning
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg order-md-2">
+                                <i class="fas fa-save me-2"></i>Save Global Defaults
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('add-role-btn').addEventListener('click', function() {
+        const container = document.getElementById('assignments-container');
+        const templateRow = container.querySelector('.assignment-row.d-none').cloneNode(true);
+        templateRow.classList.remove('d-none');
+        templateRow.querySelector('input[name="role_name"]').value = '';
+        templateRow.querySelector('select[name="user_id"]').selectedIndex = 0;
+        container.insertBefore(templateRow, this);
+    });
+
+    document.getElementById('assignments-container').addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-role-btn')) {
+            const row = e.target.closest('.assignment-row');
+            if (document.querySelectorAll('#assignments-container .assignment-row:not(.d-none)').length > 1) {
+                row.remove();
+            } else {
+                row.querySelector('input[name="role_name"]').value = '';
+                row.querySelector('select[name="user_id"]').selectedIndex = 0;
+            }
+        }
+    });
+</script>
+{% endblock %}

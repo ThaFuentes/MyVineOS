@@ -1,0 +1,87 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/dreams/edit.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/dreams/edit.html -->
+<!-- File name: edit.html -->
+<!-- Brief, detailed purpose: Full Dream / Vision Editor form inside the Gathering Place Manager. -->
+<!-- • Create new OR edit existing dream/vision (title, dream_text, visibility). -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.dreams.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/edit.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}{% if dream %}Edit Dream / Vision{% else %}Create New Dream / Vision{% endif %}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">
+            {% if dream %}
+                ✏️ Edit Dream / Vision #{{ dream.id }}
+            {% else %}
+                ➕ Create New Dream / Vision
+            {% endif %}
+        </h1>
+
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+            <!-- Back to Dreams Manager -->
+            <a href="{{ url_for('the_gathering.dreams.dreams_dashboard') }}" class="btn btn-secondary" style="padding:0.4rem 0.8rem; font-size:0.85rem;">
+                ← Back
+            </a>
+
+            {% if dream %}
+            <!-- View on Public -->
+            <a href="{{ url_for('public.public_dreams.public_dream_detail', dream_id=dream.id) }}"
+               target="_blank" class="btn btn-secondary" style="padding:0.4rem 0.8rem; font-size:0.85rem;">
+                👁️ View Public
+            </a>
+
+            <!-- Delete -->
+            <form method="POST" action="{{ url_for('the_gathering.dreams.delete_dream', dream_id=dream.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this dream and ALL its comments?')">
+                <button type="submit" class="btn btn-secondary" style="padding:0.4rem 0.8rem; font-size:0.85rem; background:#c33; color:#fff;">🗑️ Delete</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('the_gathering.dreams.edit_dream', dream_id=dream.id if dream else None) }}" class="glass-panel" style="padding:1rem;">
+        {% if dream %}
+        <input type="hidden" name="dream_id" value="{{ dream.id }}">
+        {% endif %}
+
+        <div style="display:grid; grid-template-columns:1fr; gap:1rem;">
+            <!-- Title -->
+            <div>
+                <label style="display:block; margin-bottom:0.35rem; font-size:0.9rem; opacity:0.9;">Dream / Vision Title <span style="color:#f66;">*</span></label>
+                <input type="text" name="title" style="width:100%;" value="{{ dream.title or '' }}" required>
+            </div>
+
+            <!-- Dream Content -->
+            <div>
+                <label style="display:block; margin-bottom:0.35rem; font-size:0.9rem; opacity:0.9;">Dream / Vision Content <span style="color:#f66;">*</span></label>
+                <textarea name="dream_text" rows="10" style="width:100%;" required>{{ dream.dream_text or '' }}</textarea>
+            </div>
+
+            <!-- Visibility -->
+            <div class="glass-panel" style="padding:0.9rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.95rem;">
+                    <input type="checkbox" name="visibility" value="public" {% if dream and dream.visibility == 'public' %}checked{% endif %}>
+                    <span>Make this dream PUBLIC</span>
+                </label>
+                <div style="margin-top:0.5rem; font-size:0.8rem; opacity:0.75; background:rgba(255,255,255,0.03); padding:0.5rem; border-radius:8px;">
+                    <strong>Tip:</strong> Public dreams appear on the guest-facing dreams page.
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div style="margin-top:1.25rem; display:flex; justify-content:flex-end; gap:0.5rem; flex-wrap:wrap;">
+            <a href="{{ url_for('the_gathering.dreams.dreams_dashboard') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold;">
+                💾 Save Dream / Vision
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

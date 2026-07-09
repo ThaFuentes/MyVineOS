@@ -1,0 +1,89 @@
+{% extends "legal/base_legal.html" %}
+
+{% block page_title %}Legal & Policies{% endblock %}
+{% block page_description %}
+Published policies for our online community.
+{% endblock %}
+
+{% block legal_content %}
+{% if can_manage and category_overview %}
+<section class="glass-panel legal-admin-overview" aria-label="Publication status (managers only)">
+    <h3>Manager view — what visitors see</h3>
+    <p class="legal-admin-overview-intro">
+        Only categories marked <strong>Published</strong> appear on this public page.
+        {% set unpublished = category_overview | rejectattr('status', 'equalto', 'published') | list %}
+        {% if unpublished %}
+        {{ unpublished | length }} categor{{ 'y' if unpublished | length == 1 else 'ies' }} still hidden from the public.
+        {% else %}
+        All categories are published.
+        {% endif %}
+    </p>
+    <ul class="legal-admin-status-list">
+        {% for cat in category_overview %}
+        <li class="legal-admin-status-item legal-admin-status-item--{{ cat.status }}">
+            <span class="legal-status legal-status--{{ 'published' if cat.status == 'published' else ('draft' if cat.status == 'draft' else 'empty') }}">
+                {{ cat.status_label }}
+            </span>
+            <span class="legal-admin-status-name">{{ cat.name }}</span>
+            {% if cat.notices %}
+            <a href="{{ url_for('legal.edit_notice', notice_id=cat.notices[0].id) }}" class="legal-admin-status-link">Edit</a>
+            {% if cat.status == 'published' %}
+            <a href="{{ url_for('legal.view_notice', slug=cat.notices[0].slug) }}" class="legal-admin-status-link">View</a>
+            {% endif %}
+            {% else %}
+            <a href="{{ url_for('legal.create_notice', category=cat.slug) }}" class="legal-admin-status-link">Create</a>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    <p class="legal-admin-overview-footer">
+        <a href="{{ url_for('legal.manage_list') }}">Open full manage screen →</a>
+    </p>
+</section>
+{% endif %}
+
+{% if categories %}
+<div class="legal-index-grid">
+    {% for cat in categories %}
+    <section class="glass-panel legal-category-card">
+        <div class="legal-category-header">
+            <h2>{{ cat.category_name }}</h2>
+        </div>
+        {% if cat.category_description %}
+        <p class="legal-category-desc">{{ cat.category_description }}</p>
+        {% endif %}
+
+        {% for notice in cat.notices %}
+        <div class="legal-notice-preview">
+            <h3><a href="{{ url_for('legal.view_notice', slug=notice.slug) }}">{{ notice.title }}</a></h3>
+            {% if notice.summary %}
+            <p>{{ notice.summary }}</p>
+            {% else %}
+            <p class="legal-excerpt">{{ notice.content | truncate(180) }}</p>
+            {% endif %}
+            {% if notice.updated_at %}
+            <small class="legal-meta">Updated {{ notice.updated_at.strftime('%b %d, %Y') }}{% if notice.updated_by_name %} by {{ notice.updated_by_name }}{% endif %}</small>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        {% if cat.category_slug == 'comment_policy' and community_guidelines %}
+        <div class="legal-related-callout">
+            <strong>Related:</strong>
+            <a href="{{ url_for('legal.view_notice', slug=community_guidelines.slug) }}">{{ community_guidelines.title }}</a>
+            — moderation decisions usually reference these guidelines.
+        </div>
+        {% endif %}
+    </section>
+    {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel legal-empty-state">
+    <h2>No policies published yet</h2>
+    <p>There are no active legal notices on file right now.</p>
+    {% if can_manage %}
+    <a href="{{ url_for('legal.manage_list') }}" class="btn-primary">Manage legal notices</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

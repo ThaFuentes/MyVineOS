@@ -1,0 +1,143 @@
+{% extends "the_gathering/base.html" %}
+
+{% block title %}Comments • {{ parent_title or 'Content' }}{% endblock %}
+
+{% block content %}
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">💬 {{ section_label or 'Comments' }}</h1>
+            <h4 class="text-muted">{{ parent_title or 'Item #' ~ parent_id }}</h4>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+            {% if item_view_url %}
+            <a href="{{ item_view_url }}" class="btn btn-secondary">← Item Detail</a>
+            {% endif %}
+            {% if public_url %}
+            <a href="{{ public_url }}" target="_blank" class="btn btn-outline-light">👁️ Public Site</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="GET" class="glass p-3 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label text-light">Search Comments</label>
+                <input type="text" name="search" class="form-control"
+                       placeholder="Search by name or comment text..." value="{{ search or '' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-light">Filter</label>
+                <select name="filter" class="form-select">
+                    <option value="all" {% if filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="visible" {% if filter == 'visible' %}selected{% endif %}>Visible</option>
+                    <option value="shadowed" {% if filter == 'shadowed' %}selected{% endif %}>Shadowed</option>
+                    <option value="edited" {% if filter == 'edited' %}selected{% endif %}>Edited by moderator</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    {% if comments %}
+    <div class="table-wrapper glass">
+        <table class="data-table w-100">
+            <thead>
+                <tr>
+                    <th style="width:50px;">ID</th>
+                    <th>Name</th>
+                    <th>Comment</th>
+                    <th>Date</th>
+                    <th>Reply To</th>
+                    <th>Status</th>
+                    <th style="width:300px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comment in comments %}
+                <tr {% if comment.shadowed %}style="background:rgba(255,204,0,0.08);"{% endif %}>
+                    <td><strong>#{{ comment.id }}</strong></td>
+                    <td>{{ comment.name | censor }}</td>
+                    <td style="max-width:400px;">
+                        <span id="comment-text-{{ comment.id }}">{{ comment.comment_text | nl2br | censor }}</span>
+                        {% if comment.edited_by_moderator %}
+                            <br><small class="text-warning">✏️ Edited by moderator</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ comment.created_at_nice }}</td>
+                    <td>
+                        {% if comment.parent_id %}
+                            <small class="text-muted">Reply #{{ comment.parent_id }}</small>
+                        {% else %}
+                            <span class="text-success">Original</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if comment.shadowed %}
+                            <span class="badge bg-warning text-dark">👻 Shadowed</span>
+                        {% else %}
+                            <span class="badge bg-success">Visible</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary me-1"
+                                onclick="toggleEdit({{ comment.id }})">✏️ Edit</button>
+
+                        {% if comment.shadowed %}
+                        <form method="POST" action="{{ comments_url }}" style="display:inline;"
+                              onsubmit="return confirm('Make this comment visible to everyone?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <input type="hidden" name="action" value="unshadow">
+                            <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                            <button type="submit" class="btn btn-sm btn-info me-1">👁️ Unshadow</button>
+                        </form>
+                        {% else %}
+                        <form method="POST" action="{{ comments_url }}" style="display:inline;"
+                              onsubmit="return confirm('Shadow this comment? Only the poster will see it.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <input type="hidden" name="action" value="shadow">
+                            <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                            <button type="submit" class="btn btn-sm btn-warning me-1">👻 Shadow</button>
+                        </form>
+                        {% endif %}
+
+                        <form method="POST" action="{{ comments_url }}" style="display:inline;"
+                              onsubmit="return confirm('Delete this comment permanently?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                            <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                        </form>
+
+                        <div id="edit-form-{{ comment.id }}" style="display:none; margin-top:0.5rem;">
+                            <form method="POST" action="{{ comments_url }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                                <input type="hidden" name="action" value="edit">
+                                <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                                <textarea name="new_text" rows="3" class="form-control mb-1" required>{{ comment.comment_text }}</textarea>
+                                <button type="submit" class="btn btn-sm btn-success">Save Edit</button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="toggleEdit({{ comment.id }})">Cancel</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="glass p-5 text-center">
+        <p class="mb-0" style="font-size:1.2rem; color:#888;">No comments match this filter.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleEdit(id) {
+    const form = document.getElementById('edit-form-' + id);
+    if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

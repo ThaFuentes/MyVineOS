@@ -1,0 +1,93 @@
+{% extends "help/base_help.html" %}
+
+{% block help_page_title %}{{ 'Edit Guide' if editing else 'Add Guide' }}{% endblock %}
+
+{% block help_content %}
+<form method="POST" class="styled-form glass-panel" style="padding:1.25rem;">
+    {% include 'partials/csrf_field.html' %}
+
+    <div style="display:grid; gap:1rem; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));">
+        <div class="form-group">
+            <label for="title">Guide title <span class="required">*</span></label>
+            <input type="text" id="title" name="title" required
+                   value="{{ (form.title if form else article.title if article else '') }}">
+            <p class="help-text">Clear action title, e.g. "Record a donation"</p>
+        </div>
+
+        <div class="form-group">
+            <label for="slug">URL slug</label>
+            <input type="text" id="slug" name="slug"
+                   value="{{ (form.slug if form else article.slug if article else '') }}">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="summary">One-line summary</label>
+        <input type="text" id="summary" name="summary" maxlength="500"
+               value="{{ (form.summary if form else article.summary if article else '') }}">
+        <p class="help-text">Shown in search results and browse lists.</p>
+    </div>
+
+    <div style="display:grid; gap:1rem; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+        <div class="form-group">
+            <label for="category_id">Category</label>
+            <select id="category_id" name="category_id">
+                <option value="">— Uncategorized —</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}"
+                    {% if (article and article.category_id == cat.id) or (form and (form.get('category_id') or form.category_id)|string == cat.id|string) %}selected{% endif %}>
+                    {{ cat.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="permission_key">Limit to permission (optional)</label>
+            <select id="permission_key" name="permission_key">
+                <option value="">Everyone logged in</option>
+                {% for key, label in permission_choices %}
+                <option value="{{ key }}"
+                    {% if (form and form.permission_key == key) or (article and article.permission_key == key) %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+            <p class="help-text">Only users with this group permission (or Staff/Admin) will see the guide.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="sort_order">Sort order</label>
+            <input type="number" id="sort_order" name="sort_order"
+                   value="{{ (form.sort_order if form else article.sort_order if article else 0) }}">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="body_md">Instructions <span class="required">*</span></label>
+        <textarea id="body_md" name="body_md" rows="18" required
+                  style="font-family:inherit; line-height:1.5;">{{ (form.body_md if form else article.body_md if article else '') }}</textarea>
+        <p class="help-text">
+            Write for real people. Use <code>## Section</code> for headings, numbered lines like <code>1. First step</code>,
+            and bullet lines starting with <code>- </code>. Use <code>**bold**</code> for button names.
+        </p>
+    </div>
+
+    <div class="form-group checkbox-group">
+        <label>
+            <input type="checkbox" name="is_published" value="1"
+                   {% if form %}{% if form.get('is_published') %}checked{% endif %}
+                   {% elif not article or article.is_published %}checked{% endif %}>
+            Published (visible to members)
+        </label>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-primary">{{ 'Save Guide' if editing else 'Create Guide' }}</button>
+        <a href="{{ url_for('help.manage_index') }}" class="btn-secondary">Cancel</a>
+        {% if editing and article %}
+        <a href="{{ url_for('help.help_article', slug=article.slug) }}" class="btn-secondary" style="margin-left:auto;">Preview</a>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}

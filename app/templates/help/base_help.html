@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% include 'partials/my_stuff_nav.html' %}
+<h1 class="page-title">{% block help_page_title %}Help & How-To{% endblock %}</h1>
+<p class="page-description">{% block help_page_description %}Step-by-step guides for using the church portal. Pin the ones you use most.{% endblock %}</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<nav style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+    <a href="{{ url_for('help.help_index', tab='browse') }}"
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if request.endpoint == 'help.help_index' and (request.args.get('tab', 'browse') == 'browse') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Browse</a>
+    <a href="{{ url_for('help.help_index', tab='search') }}"
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if request.endpoint == 'help.help_index' and request.args.get('tab') == 'search' %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Search</a>
+    <a href="{{ url_for('help.help_index', tab='pinned') }}"
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if request.endpoint == 'help.help_index' and request.args.get('tab') == 'pinned' %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">★ Pinned</a>
+    {% if can_manage_help() %}
+    <a href="{{ url_for('help.manage_index') }}"
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; margin-left:auto; {% if request.endpoint and request.endpoint.startswith('help.manage') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,200,80,0.15); color:var(--text-primary); border:1px solid rgba(255,200,80,0.35);{% endif %}">Manage Help Content</a>
+    {% endif %}
+</nav>
+
+{% block help_content %}{% endblock %}
+{% endblock %}

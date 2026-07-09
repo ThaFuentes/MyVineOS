@@ -1,0 +1,63 @@
+<!-- app/templates/email/send_email.html -->
+<!-- Full path: WebChurchMan/app/templates/email/send_email.html -->
+<!-- File name: send_email.html -->
+<!-- Brief, detailed purpose: Manual email sending form for authorized users (Staff/Admin/Owner).
+   Single recipient (individual email) – spacious layout matching Donations add_donation.html.
+   Uses ONLY global classes (styled-form, form-group, control-label, form-input, btn-primary).
+   Glass wrapper via direct base.html extension (no need for base_email since single page).
+   Flash messages, required fields, clean spacing. Group/multi-recipient tool can be separate if needed. -->
+
+{% extends "base.html" %}
+
+{% block title %}Send Email{% endblock %}
+
+{% block content %}
+<div class="glass-panel" style="padding:1rem;">
+        <h1 class="page-title">Send Email</h1>
+        <p class="page-description">
+            Send a manual email to an individual recipient.<br>
+            For group emails, use module-specific tools (e.g., Events, Announcements).
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="content-section">
+            <h2 class="section-title">Compose Email</h2>
+
+            <form method="POST" action="{{ url_for('email.send_email_route') }}" class="styled-form">
+                <div class="form-group">
+                    <label for="to_email" class="control-label">Recipient Email <span class="required">*</span></label>
+                    <input type="email" id="to_email" name="to_email" class="form-input" required
+                           placeholder="recipient@example.com" value="{{ to_email|default('') }}" autocomplete="email">
+                    <p class="help-text">Single recipient only.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="subject" class="control-label">Subject <span class="required">*</span></label>
+                    <input type="text" id="subject" name="subject" class="form-input" required
+                           placeholder="Email subject line" value="{{ subject|default('') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="body" class="control-label">Message Body <span class="required">*</span></label>
+                    <textarea id="body" name="body" rows="12" class="form-input" required
+                              placeholder="Write your message here...">{{ body|default('') }}</textarea>
+                    <p class="help-text">Line breaks are preserved.</p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Send Email</button>
+                    <a href="{{ url_for('dashboard.private_dashboard') }}" class="btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </section>
+    </div>
+{% endblock %}

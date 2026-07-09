@@ -1,0 +1,44 @@
+{% extends "members/base_members.html" %}
+{% block page_title %}Pending Registrations{% endblock %}
+{% block page_description %}Review and approve new self-registrations.{% endblock %}
+{% block members_content %}
+<div class="glass-panel" style="padding:1rem;">
+    {% if pending %}
+    <table class="data-table" style="width:100%;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Registered</th>
+                <th>Email verified</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in pending %}
+            <tr>
+                <td>{{ u.first_name }} {{ u.last_name }}</td>
+                <td>{{ u.username }}</td>
+                <td>{{ u.email }}</td>
+                <td>{% if u.created_at %}{{ u.created_at.strftime('%b %d, %Y') }}{% else %}—{% endif %}</td>
+                <td>{% if u.email_verified %}Yes{% else %}No{% endif %}</td>
+                <td>
+                    <form method="post" action="{{ url_for('members.approve_registration', user_id=u.id) }}" class="inline-form">
+                        {% include 'partials/csrf_field.html' %}
+                        <button type="submit" class="btn-small btn-primary">Approve</button>
+                    </form>
+                    <form method="post" action="{{ url_for('members.reject_registration', user_id=u.id) }}" class="inline-form" onsubmit="return confirm('Reject and delete this registration?');">
+                        {% include 'partials/csrf_field.html' %}
+                        <button type="submit" class="btn-small btn-danger">Reject</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="no-data">No pending registrations.</p>
+    {% endif %}
+</div>
+{% endblock %}

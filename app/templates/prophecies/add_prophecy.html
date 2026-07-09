@@ -1,0 +1,69 @@
+<!-- app/templates/prophecies/add_prophecy.html -->
+<!-- Full path: WebChurchMan/app/templates/prophecies/add_prophecy.html -->
+<!-- File name: add_prophecy.html -->
+<!-- Brief, detailed purpose: Submit Prophecy form – logged-in users only.
+   Extends base_prophecies.html → consistent wrapper, menu with "Prophecies Dashboard" + "Add Prophecy" (active here).
+   Uses ONLY global CSS classes.
+   Visibility dropdown with three options: Public (everyone), Private (members only), Personal (only you).
+   Default = Private (recommended).
+   Form repopulates on validation/censorship errors.
+   Cancel button points to prophecies.list_prophecies (dashboard). -->
+
+{% extends "prophecies/base_prophecies.html" %}
+
+{% block page_title %}Add Prophecy{% endblock %}
+
+{% block page_description %}
+Share a prophetic word with the community.<br>
+Choose visibility: Public (everyone), Private (members only), or Personal (only you).
+{% endblock %}
+
+{% block prophecies_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Submit New Prophecy</h2>
+
+    <form method="POST" action="{{ url_for('prophecies.add_prophecy') }}" class="styled-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+        <div class="form-group">
+            <label for="title" class="control-label">Title <span class="required">*</span></label>
+            <input type="text" id="title" name="title" class="form-input" required
+                   value="{{ request.form.get('title', '') }}" placeholder="Give your prophecy a short title" autofocus>
+            <p class="help-text">A concise title helps others identify the prophecy.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="description" class="control-label">Prophecy <span class="required">*</span></label>
+            <textarea id="description" name="description" rows="12" class="form-input" required
+                      placeholder="Write the full prophecy here...">{{ request.form.get('description', '') }}</textarea>
+            <p class="help-text">Line breaks are preserved. Share as much detail as you feel led.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="visibility" class="control-label">Visibility <span class="required">*</span></label>
+            <select id="visibility" name="visibility" class="form-input" required>
+                <option value="public" {% if request.form.get('visibility') == 'public' %}selected{% endif %}>
+                    Public – visible to everyone (including guests)
+                </option>
+                <option value="private" {% if request.form.get('visibility', 'private') == 'private' %}selected{% endif %}>
+                    Private – visible to logged-in members only (default)
+                </option>
+                <option value="personal" {% if request.form.get('visibility') == 'personal' %}selected{% endif %}>
+                    Personal – visible ONLY to you (the submitter)
+                </option>
+            </select>
+            <p class="help-text">
+                Private is recommended for most prophecies due to their sensitive nature.<br>
+                Personal prophecies are hidden from everyone except you – perfect for private reflection or drafts.
+            </p>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Submit Prophecy</button>
+            <a href="{{ url_for('prophecies.list_prophecies') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+{% endblock %}

@@ -1,0 +1,11 @@
+{# Hover preview for table titles — pass title and preview_text #}
+{% macro title_preview(title, preview_text, max_len=600) %}
+{% if preview_text and preview_text|trim %}
+<span class="mgr-preview-wrap" tabindex="0">
+    <span class="mgr-preview-trigger">{{ title }}</span>
+    <div class="mgr-preview-popup" aria-hidden="true">{{ preview_text|truncate(max_len, True, '…')|e }}</div>
+</span>
+{% else %}
+{{ title }}
+{% endif %}
+{% endmacro %}

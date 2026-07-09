@@ -1,0 +1,91 @@
+<section class="content-section glass-panel" style="padding:1.25rem; margin-top:2rem; border:1px solid rgba(255,200,80,0.35);">
+    <h2 class="section-title">Account Security &amp; Moderation</h2>
+    <p class="help-text">
+        Tools for admins: password reset, login lockouts, shadow ban, and full ban.
+        <strong>Shadow ban</strong> lets the user log in but only see their own content — others cannot see anything they post.
+        <strong>Account lock</strong> blocks login until cleared. <strong>Ban</strong> blocks login entirely.
+    </p>
+
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:1rem 0;">
+        {% if member.is_shadow_banned %}
+        <span style="padding:0.25rem 0.6rem; border-radius:999px; background:#ffcc00; color:#000; font-size:0.85rem;">👻 Shadow banned</span>
+        {% endif %}
+        {% if member.role == 'banned' %}
+        <span style="padding:0.25rem 0.6rem; border-radius:999px; background:#ff6b6b; color:#fff; font-size:0.85rem;">Banned</span>
+        {% endif %}
+        {% if member.login_locked_until %}
+        <span style="padding:0.25rem 0.6rem; border-radius:999px; background:#ff9944; color:#000; font-size:0.85rem;">Login locked until {{ member.login_locked_until }}</span>
+        {% endif %}
+    </div>
+
+    <div style="display:grid; gap:1rem; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));">
+        <form method="POST" action="{{ url_for('members.member_admin_action', member_id=member.id) }}" class="styled-form" style="padding:0.75rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="reset_password">
+            <strong>Reset password</strong>
+            <p class="help-text" style="margin:0.5rem 0;">Generate a new temporary password.</p>
+            <label class="checkbox-label" style="display:block; margin:0.5rem 0;">
+                <input type="checkbox" name="email_password" value="1" checked> Email password to member
+            </label>
+            <button type="submit" class="btn-primary btn-small" onclick="return confirm('Reset password for this member?');">Reset Password</button>
+        </form>
+
+        {% if member.is_shadow_banned %}
+        <form method="POST" action="{{ url_for('members.member_admin_action', member_id=member.id) }}" class="styled-form" style="padding:0.75rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="unshadow_ban">
+            <strong>Remove shadow ban</strong>
+            <p class="help-text" style="margin:0.5rem 0;">Restore normal visibility for this account.</p>
+            <button type="submit" class="btn-secondary btn-small">Unshadow</button>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('members.member_admin_action', member_id=member.id) }}" class="styled-form" style="padding:0.75rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="shadow_ban">
+            <strong>Shadow ban</strong>
+            <p class="help-text" style="margin:0.5rem 0;">Silent moderation — user can log in but is isolated.</p>
+            <button type="submit" class="btn-secondary btn-small" onclick="return confirm('Apply shadow ban? User will not be notified.');">Apply Shadow Ban</button>
+        </form>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('members.member_admin_action', member_id=member.id) }}" class="styled-form" style="padding:0.75rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="lock_account">
+            <strong>Lock account login</strong>
+            <label for="lock_hours" class="help-text">Hours (default 24)</label>
+            <input type="number" id="lock_hours" name="lock_hours" value="24" min="1" max="8760" class="form-input" style="max-width:120px;">
+            <button type="submit" class="btn-secondary btn-small" style="margin-top:0.5rem;">Lock Login</button>
+        </form>
+
+        <form method="POST" action="{{ url_for('members.member_admin_action', member_id=member.id) }}" class="styled-form" style="padding:0.75rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="unlock_account">
+            <strong>Clear account login lock</strong>
+            <p class="help-text" style="margin:0.5rem 0;">Allow this user to log in again.</p>
+            <button type="submit" class="btn-secondary btn-small">Unlock Account</button>
+        </form>
+
+        {% if member.role == 'banned' %}
+        <form method="POST" action="{{ url_for('members.member_admin_action', member_id=member.id) }}" class="styled-form" style="padding:0.75rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="unban">
+            <strong>Unban account</strong>
+            <button type="submit" class="btn-primary btn-small">Restore as Member</button>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('members.member_admin_action', member_id=member.id) }}" class="styled-form" style="padding:0.75rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="ban">
+            <strong>Full ban</strong>
+            <p class="help-text" style="margin:0.5rem 0;">Blocks login completely.</p>
+            <button type="submit" class="btn-secondary btn-small" style="background:#ff6b6b;" onclick="return confirm('Ban this account? They cannot log in.');">Ban Account</button>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if can_manage_users() %}
+    <p style="margin-top:1rem;">
+        <a href="{{ url_for('members.security_lockouts') }}">Manage IP brute-force lockouts →</a>
+    </p>
+    {% endif %}
+</section>

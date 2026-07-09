@@ -1,0 +1,445 @@
+/* myvinechurchonline/static/css/global/components.css */
+/* Full path: myvinechurchonline/static/css/global/components.css */
+/* File name: components.css */
+/* Brief, detailed purpose: Global reusable UI components used across ALL modules.
+   Fully rebuilt to cover EVERY legacy CSS file uploaded.
+   Two complementary visual styles supported (both use same theme variables):
+     • Glassmorphism – translucent panels/cards/tables (perfect for donations/events_tgp dashboards, admin pages)
+     • Glow Card – opaque dark card with subtle cyan border/glow (perfect for content modules: prayers_tgp, dreams_tgp, prophecies_tgp, sermons_tgp, events_tgp list/add, members, profile, announcements_tgp, groups, etc.)
+   All legacy styles are now mapped to these reusable classes – no module-specific CSS needed anymore.
+   Templates should use:
+     - Donations / dashboards: .form-page-wrapper > .form-container (glass) + glass cards/tables
+     - Content/list/add pages: .glow-page-wrapper > .glow-card (with .narrow/.medium/.wide variants) + .btn-pill* for actions
+   Small buttons, filters, collapsible, event poster, top controls, no-data/results all included. */
+
+ /* ===== GLASSMORPHISM SUMMARY / STAT CARDS (Donations/Event Dashboards) ===== */
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.8rem;
+    margin: 2rem 0;
+}
+
+.card.glass {  /* Explicit class for glass cards – default .card is now glow (see below) */
+    background: var(--bg-card-glass);
+    backdrop-filter: var(--blur-card);
+    -webkit-backdrop-filter: var(--blur-card);
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-medium);
+    padding: 1.8rem;
+    text-align: center;
+    box-shadow: var(--shadow-card);
+    transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.card.glass:hover {
+    transform: translateY(-6px);
+    background: rgba(40, 40, 40, 0.65);
+}
+
+.card h3 {
+    font-size: 1.35rem;
+    color: var(--primary);
+    margin-bottom: 0.8rem;
+}
+
+.large-amount {
+    font-size: 2.9rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+/* ===== GLOW CARD LAYOUT – Primary style for content modules ===== */
+.glow-page-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 100vh;
+}
+
+.glow-card {
+    background: var(--bg-glow-card);
+    border: 1px solid var(--border-glow);
+    border-radius: var(--radius-large);
+    padding: 2.5rem 3rem;
+    box-shadow: var(--shadow-glow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.glow-card.narrow {   /* Prayers, dreams_tgp, prophecies_tgp, sermons_tgp, profile (~960px max) */
+    max-width: 960px;
+}
+
+.glow-card.medium {   /* Members, announcements_tgp (~1200px) */
+    max-width: 1200px;
+}
+
+.glow-card.wide {     /* Add/edit event, spacious forms */
+    max-width: none;
+    width: 92vw;
+}
+
+.glow-card .page-title {
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+    font-size: 2.5rem;
+}
+
+/* Top controls (add button, search, filters) – centered */
+.top-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    width: 100%;
+}
+
+.search-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    max-width: 600px;
+}
+
+.search-wrapper input {
+    width: 100%;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--primary);
+    border-radius: 30px;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+/* ===== LARGE PILL BUTTONS (Add/Create/Cancel actions in glow modules) ===== */
+.btn-pill {
+    padding: 14px 32px;
+    background: var(--primary);
+    color: var(--text-on-primary);
+    font-weight: bold;
+    font-size: 1.2em;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: var(--btn-glow-normal);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn-pill:hover {
+    transform: scale(1.05);
+    box-shadow: var(--btn-glow-hover);
+}
+
+.btn-pill-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 2px solid var(--primary);
+    box-shadow: var(--btn-glow-secondary);
+}
+
+.btn-pill-secondary:hover {
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: var(--btn-glow-secondary-hover);
+}
+
+.btn-pill-small {
+    padding: 10px 24px;
+    font-size: 1.1em;
+}
+
+/* ===== DATA TABLES – Dual support (glass for admin, solid-ish for glow content) ===== */
+.table-wrapper.glass {  /* Donations/events_tgp dashboards */
+    overflow-x: auto;
+    background: rgba(35, 35, 35, 0.45);
+    backdrop-filter: var(--blur-card);
+    -webkit-backdrop-filter: var(--blur-card);
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-small);
+    margin: 1.5rem 0;
+}
+
+.table-wrapper {  /* Default for glow cards – no extra glass wrapper needed */
+    overflow-x: auto;
+    margin: 1.5rem 0;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;  /* Transparent in glass wrapper, shows glow card in glow */
+}
+
+.data-table thead {
+    background: var(--bg-header);
+}
+
+.data-table th,
+.data-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+.data-table th {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Actions column */
+.actions-cell {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    min-width: 180px;
+    padding: 1rem 0.5rem;
+}
+
+@media (max-width: 600px) {
+    .actions-cell {
+        flex-wrap: wrap;
+        gap: 0.8rem;
+    }
+}
+
+.data-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+/* Event links in tables */
+.data-table .event-link {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: var(--primary) !important;
+    text-decoration: none;
+    display: block;
+}
+
+.data-table .event-link:hover {
+    color: #33FFFF;
+}
+
+/* No data / no results */
+.no-data,
+.no-results {
+    text-align: center;
+    padding: 3rem;
+    color: #888;
+    font-style: italic;
+    font-size: 1.4rem;
+    opacity: 0.9;
+}
+
+/* ===== FILTER BUTTONS ===== */
+.filter-buttons {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.filter-btn {
+    padding: 0.7rem 1.5rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid #444;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary);
+}
+
+.filter-btn.active {
+    background: var(--primary);
+    color: var(--text-on-primary);
+    border-color: var(--primary);
+    font-weight: bold;
+}
+
+/* ===== SMALL ACTION BUTTONS ===== */
+.btn-small {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: bold;
+    border-radius: var(--radius-small);
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary-small {
+    background: var(--primary);
+    color: var(--text-on-primary);
+}
+
+.btn-primary-small:hover {
+    background: var(--primary-hover);
+}
+
+.btn-danger-small {
+    background: #ff4444;
+    color: white;
+}
+
+.btn-danger-small:hover {
+    background: #cc0000;
+}
+
+/* ===== COLLAPSIBLE SECTIONS (Potluck, Filters) ===== */
+.collapsible-controls,
+.potluck-section {
+    margin-bottom: 2rem;
+}
+
+.collapsible-summary,
+.potluck-summary {
+    cursor: pointer;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-small);
+    font-weight: bold;
+    color: var(--primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.collapsible-summary:hover,
+.potluck-summary:hover {
+    background: var(--bg-hover);
+}
+
+.arrow {
+    font-size: 1.8rem;
+    transition: transform 0.3s ease;
+}
+
+details[open] .arrow {
+    transform: rotate(180deg);
+}
+
+details[open] > summary {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.potluck-content {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: var(--radius-small);
+}
+
+.potluck-add-form {
+    margin-top: 2.5rem;
+    max-width: 600px;
+}
+
+/* ===== EVENT DETAIL POSTER LAYOUT ===== */
+.event-poster {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 4rem;
+}
+
+.event-title {
+    font-size: 3rem;
+    color: var(--primary);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.event-key-info {
+    font-size: 1.3rem;
+    color: var(--text-primary);
+    margin: 1rem 0 0 0;
+}
+
+.event-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.detail-section {
+    margin-bottom: 4rem;
+}
+
+.detail-heading {
+    font-size: 2rem;
+    color: var(--primary);
+    margin-bottom: 1.5rem;
+    font-weight: bold;
+    border-bottom: 2px solid var(--primary-border);
+    padding-bottom: 0.5rem;
+}
+
+.detail-content {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+}
+
+.detail-content p {
+    margin: 1.2rem 0;
+}
+
+.detail-content strong {
+    color: var(--primary);
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .glow-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .glow-card.wide {
+        padding: 2rem 1.5rem;
+    }
+
+    .btn-pill,
+    .btn-pill-secondary {
+        font-size: 1.1em;
+        padding: 12px 24px;
+    }
+
+    .event-header {
+        flex-direction: column;
+    }
+
+    .event-title {
+        font-size: 2.4rem;
+    }
+
+    .potluck-summary {
+        font-size: 1.6rem;
+    }
+}

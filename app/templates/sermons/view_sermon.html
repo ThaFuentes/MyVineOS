@@ -1,0 +1,105 @@
+<!-- app/templates/sermons/view_sermon.html -->
+<!-- Full path: WebChurchMan/app/templates/sermons/view_sermon.html -->
+<!-- File name: view_sermon.html -->
+<!-- Brief, detailed purpose: Full view page for a single sermon.
+   Shows title, details, media/notes/external link, and full comment system.
+   Logged-in users only (public version can be added later if needed).
+   Uses only global classes – consistent with prayers and events. -->
+
+{% extends "sermons/base_sermons.html" %}
+
+{% block page_title %}{{ sermon.title }}{% endblock %}
+
+{% block page_description %}
+Sermon by {{ sermon.uploader }} • {{ sermon.uploaded_at }}
+{% endblock %}
+
+{% block sermons_content %}
+
+<section class="content-section">
+
+    <!-- Sermon Header -->
+    <div class="card glass">
+        <h1 class="section-title">{{ sermon.title }}</h1>
+        <p class="meta">
+            Uploaded by <strong>{{ sermon.uploader }}</strong>
+            on {{ sermon.uploaded_at }} •
+            <span class="badge">{{ sermon.visibility|capitalize }}</span>
+        </p>
+
+        {% if sermon.details %}
+        <div class="detail-section">
+            <h3 class="detail-heading">Details / Notes</h3>
+            <div class="detail-content">{{ sermon.details | nl2br | censor }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Media & Downloads -->
+        <div class="detail-section">
+            <h3 class="detail-heading">Media & Downloads</h3>
+            <div class="detail-content">
+                {% if sermon.notes %}
+                <p><a href="{{ url_for('sermons.uploaded_file', filename=sermon.notes) }}" target="_blank" class="btn-secondary btn-small">📄 Download Notes</a></p>
+                {% endif %}
+                {% if sermon.sermon_file %}
+                <p><a href="{{ url_for('sermons.uploaded_file', filename=sermon.sermon_file) }}" target="_blank" class="btn-secondary btn-small">🎵 Download Media</a></p>
+                {% endif %}
+                {% if sermon.external_link %}
+                <p><a href="{{ sermon.external_link }}" target="_blank" rel="noopener" class="btn-secondary btn-small">🔗 External Link</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments Section -->
+    <h3 class="section-title" style="margin-top: 2.5rem;">Comments & Discussion</h3>
+
+    {% if comments %}
+        <div class="responses-list">
+            {% for c in comments %}
+            <div class="card glass response-item">
+                <p class="meta">
+                    <strong>{{ c.commenter_username or 'Anonymous' }}</strong>
+                    • {{ c.date_added }}
+                </p>
+                <p>{{ c.comment | nl2br | censor }}</p>
+
+                <!-- Edit / Delete for owner or admin -->
+                {% if session.user_id and (c.user_id == session.user_id or session.user_role in ['Admin', 'Owner']) %}
+                <div class="response-actions">
+                    <form action="{{ url_for('sermons.update_comment', sermon_id=sermon.id, comment_id=c.id) }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                        <button type="submit" class="btn-secondary btn-small">Edit</button>
+                    </form>
+                    <form action="{{ url_for('sermons.delete_comment', sermon_id=sermon.id, comment_id=c.id) }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                        <button type="submit" class="btn-danger btn-small"
+                                onclick="return confirm('Delete this comment permanently?');">Delete</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="no-data">No comments yet. Be the first to comment!</p>
+    {% endif %}
+
+    <!-- Add Comment Form -->
+    <div class="card glass" style="margin-top: 2rem;">
+        <h4 class="section-subtitle">Add a Comment</h4>
+        <form action="{{ url_for('sermons.add_comment', sermon_id=sermon.id) }}" method="POST" class="styled-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <div class="form-group">
+                <label class="control-label">Your Comment</label>
+                <textarea name="comment" class="form-input" rows="4" placeholder="Share your thoughts..." required></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Post Comment</button>
+            </div>
+        </form>
+    </div>
+
+</section>
+
+{% endblock %}

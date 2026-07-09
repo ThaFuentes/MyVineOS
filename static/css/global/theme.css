@@ -1,0 +1,99 @@
+/* myvinechurchonline/static/css/global/theme.css */
+/* Full path: myvinechurchonline/static/css/global/theme.css */
+/* File name: theme.css */
+/* Brief, detailed purpose: Central theme definition using CSS variables.
+   Now supports MULTIPLE predefined themes via html[data-theme="..."] attribute.
+   This structure is SASS-ready (variables can be directly ported).
+   Base variables are defined in :root (fallback / shared values).
+   Each theme overrides only what needs to change (primarily accents, glows, backgrounds).
+   3 built-in themes:
+     1. cyan-glow      – Current neon-cyan tech look (default)
+     2. purple-grace   – Royal purple accents, slightly warmer dark – elegant church feel
+     3. amber-hope     – Warm gold/amber accents – uplifting, "holy glow" vibe
+   Admin will later choose site-wide default via Settings.
+   Users can override with personal preference (stored in DB later).
+   All existing CSS files already use these variables → instant theme switching. */
+
+:root {
+    /* Shared / fallback values – used by all themes */
+    --font-main: system-ui, -apple-system, sans-serif;
+
+    --blur: blur(14px);
+    --blur-card: blur(12px);
+
+    --radius-large: 16px;
+    --radius-medium: 12px;
+    --radius-small: 8px;
+    --radius-tiny: 6px;
+
+    --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.75);
+    --shadow-card: 0 6px 20px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+    --text-primary: #e0e0e0;
+    --text-muted: #b0b0b0;
+    --text-on-primary: #121212;
+
+    --bg-page: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    --bg-panel: rgba(30, 30, 30, 0.68);
+    --bg-card: #252525;
+    --bg-hover: #2f2f2f;
+    --bg-header: rgba(42, 42, 42, 0.8);
+}
+
+/* ==================== THEME 1: CYAN GLOW (current default – tech/neon) ==================== */
+html[data-theme="cyan-glow"],
+html:not([data-theme]) { /* fallback if no attribute set */
+    --primary: #00FFFF;
+    --primary-hover: #00cccc;
+    --primary-glow: rgba(0, 255, 255, 0.4);
+    --primary-border: rgba(0, 255, 255, 0.18);
+    --primary-rgb: 0, 255, 255;
+
+    --bg-card-glass: rgba(35, 35, 35, 0.55);
+    --bg-glow-card: rgba(0, 0, 0, 0.88);
+    --border-glow: rgba(0, 255, 255, 0.27);
+
+    --btn-glow-normal: 0 0 20px rgba(0, 255, 255, 0.7);
+    --btn-glow-hover: 0 0 30px #00FFFF;
+    --btn-glow-secondary: 0 0 15px rgba(0, 255, 255, 0.4);
+    --btn-glow-secondary-hover: 0 0 25px rgba(0, 255, 255, 0.7);
+}
+
+/* ==================== THEME 2: PURPLE GRACE (elegant royal church feel) ==================== */
+html[data-theme="purple-grace"] {
+    --primary: #9b5de5;               /* Royal purple */
+    --primary-hover: #7b3fc7;
+    --primary-glow: rgba(155, 93, 229, 0.4);
+    --primary-border: rgba(155, 93, 229, 0.18);
+    --primary-rgb: 155, 93, 229;
+
+    --bg-page: linear-gradient(135deg, #0f0a1a 0%, #1a0f2e 100%);
+    --bg-card-glass: rgba(40, 30, 55, 0.55);
+    --bg-glow-card: rgba(15, 10, 30, 0.88);
+    --border-glow: rgba(155, 93, 229, 0.27);
+
+    --btn-glow-normal: 0 0 20px rgba(155, 93, 229, 0.7);
+    --btn-glow-hover: 0 0 30px #9b5de5;
+    --btn-glow-secondary: 0 0 15px rgba(155, 93, 229, 0.4);
+    --btn-glow-secondary-hover: 0 0 25px rgba(155, 93, 229, 0.7);
+}
+
+/* ==================== THEME 3: AMBER HOPE (warm, uplifting golden glow) ==================== */
+html[data-theme="amber-hope"] {
+    --primary: #ffb84d;               /* Warm amber/gold */
+    --primary-hover: #ff9d1e;
+    --primary-glow: rgba(255, 184, 77, 0.4);
+    --primary-border: rgba(255, 184, 77, 0.18);
+    --primary-rgb: 255, 184, 77;
+
+    --bg-page: linear-gradient(135deg, #1a0f00 0%, #2e1a00 100%);
+    --bg-card-glass: rgba(55, 40, 20, 0.55);
+    --bg-glow-card: rgba(30, 20, 0, 0.88);
+    --border-glow: rgba(255, 184, 77, 0.27);
+
+    --btn-glow-normal: 0 0 20px rgba(255, 184, 77, 0.7);
+    --btn-glow-hover: 0 0 30px #ffb84d;
+    --btn-glow-secondary: 0 0 15px rgba(255, 184, 77, 0.4);
+    --btn-glow-secondary-hover: 0 0 25px rgba(255, 184, 77, 0.7);
+}

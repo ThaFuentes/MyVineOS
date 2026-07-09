@@ -1,0 +1,217 @@
+<!-- app/templates/prophecies/prophecies.html -->
+<!-- Full path: WebChurchMan/app/templates/prophecies/prophecies.html -->
+<!-- File name: prophecies.html -->
+<!-- Brief, detailed purpose: Prophecies Dashboard / Main Listing page.
+   Extends base_prophecies.html → identical glass wrapper, menu, flash handling.
+   Summary cards (total/public/private/personal counts for logged-in).
+   Top + Add Prophecy button (logged-in only).
+   Collapsible search/filters (visibility: all/public/private/personal for logged-in).
+   Glass table with client-side live search.
+   Title links to detail view (/prophecies/<id>).
+   Actions column (edit/delete) for owner/admin.
+   Uses ONLY global classes – no prophecies-specific CSS.
+   Date display uses strftime (safe datetime handling). -->
+
+{% extends "prophecies/base_prophecies.html" %}
+
+{% block page_title %}Prophecies Dashboard{% endblock %}
+
+{% block page_description %}
+Browse and search all prophetic words.<br>
+{% if is_logged_in %}
+    You can submit your own and see all (public, private, personal).
+{% else %}
+    Public prophecies only. <a href="{{ url_for('auth.login') }}">Log in</a> for more.
+{% endif %}
+{% endblock %}
+
+{% block prophecies_content %}
+
+<!-- Summary Cards - app style -->
+<div class="glass-panel">
+  <div style="font-weight:600; margin-bottom:0.5rem;">Prophecies Summary</div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:0.5rem;">
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ prophecy_data|length }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Total</div>
+    </div>
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ prophecy_data|selectattr('visibility', 'equalto', 'public')|list|length }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Public</div>
+    </div>
+    {% if is_logged_in %}
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ prophecy_data|selectattr('visibility', 'equalto', 'private')|list|length }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Private</div>
+    </div>
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ prophecy_data|selectattr('visibility', 'equalto', 'personal')|list|length }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Personal</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Add Prophecy Button – logged-in only -->
+{% if is_logged_in %}
+<div class="form-actions add-event-top">
+    <a href="{{ url_for('prophecies.add_prophecy') }}" class="btn-primary">+ Add Prophecy</a>
+</div>
+{% endif %}
+
+<!-- Search & Filters -->
+<div class="glass-panel">
+  <div style="font-weight:600; margin-bottom:0.4rem;">All Prophecies</div>
+
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search</label>
+                <input type="text" id="searchBox" class="search-input" value="{{ search_query }}" placeholder="Title, description, poster..." autocomplete="off">
+                <p class="help-text">Live search across prophecy details</p>
+            </div>
+            <div class="form-group filter-group">
+                <label class="control-label">Visibility</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    <button data-filter="public" class="btn btn-small filter-btn btn-secondary">Public</button>
+                    {% if is_logged_in %}
+                    <button data-filter="private" class="btn btn-small filter-btn btn-secondary">Private</button>
+                    <button data-filter="personal" class="btn btn-small filter-btn btn-secondary">Personal</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Prophecies Table -->
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Posted By</th>
+                    <th>Date</th>
+                    <th>Visibility</th>
+                    <th>Comments</th>
+                    {% if is_logged_in %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="propheciesBody">
+                {% if prophecy_data %}
+                    {% for p in prophecy_data %}
+                    <tr class="data-row"
+                        data-visibility="{{ p.visibility }}">
+                        <td>
+                            <a href="{{ url_for('prophecies.view_prophecy', prophecy_id=p.id) }}">
+                                <strong>{{ p.title|censor }}</strong>
+                            </a>
+                        </td>
+                        <td>{{ p.poster_name or 'Anonymous' }}</td>
+                        <td>{{ p.date_posted.strftime('%m/%d/%Y') }}</td>
+                        <td>{{ p.visibility|capitalize }}</td>
+                        <td>{{ p.comments|length }}</td>
+                        {% if is_logged_in %}
+                        <td class="actions-cell">
+                            {% set can_edit = (p.user_id == current_user_id) or is_admin_owner %}
+                            {% set can_delete = is_admin_owner %}
+                            {% if can_edit or can_delete %}
+                            <div class="actions-flex">
+                                {% if can_edit %}
+                                <a href="{{ url_for('prophecies.edit_prophecy', prophecy_id=p.id) }}" class="btn-primary btn-small">Edit</a>
+                                {% endif %}
+                                {% if can_delete %}
+                                <form action="{{ url_for('prophecies.delete_prophecy', prophecy_id=p.id) }}" method="post" style="display:inline;">
+                                    <button type="submit" class="btn-danger btn-small"
+                                            onclick="return confirm('Delete this prophecy?');">
+                                        Delete
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{{ 6 if is_logged_in else 5 }}" class="no-data">
+                            No prophecies found.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No prophecies match the current search and filters.
+    </div>
+</section>
+
+<script>
+(function() {
+    const searchBox = document.getElementById('searchBox');
+    const body = document.getElementById('propheciesBody');
+    const noResults = document.getElementById('noResults');
+    const buttons = document.querySelectorAll('.filter-btn');
+
+    let visibilityFilter = 'all';
+    let timer;
+
+    function highlight() {
+        buttons.forEach(b => {
+            const active = (b.dataset.filter === 'all') || (b.dataset.filter === visibilityFilter);
+            b.classList.toggle('btn-primary', active);
+            b.classList.toggle('btn-secondary', !active);
+        });
+    }
+
+    function apply() {
+        const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+        const rows = body.querySelectorAll('.data-row');
+        let visible = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const vis = row.dataset.visibility;
+
+            const matchSearch = !query || text.includes(query);
+            const matchVis = visibilityFilter === 'all' || visibilityFilter === vis;
+
+            const show = matchSearch && matchVis;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        noResults.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+        searchBox.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(apply, 300);
+        });
+    }
+
+    buttons.forEach(b => {
+        b.addEventListener('click', () => {
+            visibilityFilter = b.dataset.filter;
+            highlight();
+            apply();
+        });
+    });
+
+    highlight();
+    apply();
+})();
+</script>
+</div>
+
+{% endblock %}

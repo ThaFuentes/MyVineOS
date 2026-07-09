@@ -1,0 +1,176 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/base.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/base.html -->
+<!-- File name: base.html -->
+<!-- Brief, detailed purpose: Master layout template inherited by all private pages. -->
+<!-- Overhauled for phone app / webapp feel:
+  - Primary nav = fixed bottom bar on phones (Home / Community / My Stuff / Manager)
+  - Sticky top app bar + .page-content viewport
+  - PWA manifest + apple + standalone metas (installable as real app, no browser chrome)
+  - app-shell.js for native tap feedback
+  - Desktop falls back to clean top nav
+  Only the nav active logic + Gathering link updated from very old original. -->
+
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if session.user_theme %}{{ session.user_theme }}{% else %}cyan-glow{% endif %}">
+<head>
+  <meta charset="UTF-8">
+  <!-- Proper mobile viewport + web app / phone app feel -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#00ffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MyVine">
+  <meta name="mobile-web-app-capable" content="yes">
+  {% include 'partials/security_scripts.html' %}
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
+
+  {% set s = g.settings %}
+
+  <title>{% block title %}{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
+
+  <!-- THEME (kept for var(--primary) etc) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260118">
+
+  <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+
+  <!-- Legacy kept only if needed for specific modules; overhaul.css is now primary for layout and mobile. -->
+
+  {% block extra_css %}{% endblock %}
+
+  <!-- Dynamic favicon -->
+  {% set fav = s.get('favicon_path') %}
+  <link rel="icon" href="{{ url_for('static', filename='images/' ~ fav if fav else 'favicon.ico') }}">
+
+  <!-- Dynamic branding overrides (theme vars) -->
+  <style>
+    :root {
+      --primary: {{ s.get('primary_color', '#00FFFF') }};
+      --primary-hover: {{ s.get('primary_hover_color', '#00cccc') }};
+      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
+
+      {% set bg_image = s.get('background_image') %}
+      {% if bg_image %}
+      --bg-page: linear-gradient(rgba(0,0,0,{{ s.get('background_opacity', 0.68) }}),
+                                rgba(0,0,0,{{ s.get('background_opacity', 0.68) }})),
+                 url('{{ url_for('static', filename='images/' ~ bg_image) }}');
+      {% endif %}
+    }
+
+    /* Minimal body reset - overhaul.css handles most layout now */
+    body {
+      background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
+      background-size: cover;
+      background-attachment: fixed;
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-main);
+      overflow-x: hidden;
+    }
+  </style>
+
+</head>
+
+<body {% block body_style %}{% endblock %}>
+
+  <!-- NEW OVERHAULED TOP APP BAR (mobile-first, clean) -->
+  <header class="top-bar">
+    <div class="church-name">
+      {{ s.get('church_name') or 'Church Portal' }}
+    </div>
+
+    <div class="user-info">
+      {% if session.get('user_id') %}
+        <div class="user-chip">
+          👤 {{ session.username|default('Member') }}
+          <span style="opacity:0.7; font-size:0.75em;">{{ session.user_role|default('') }}</span>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Logout</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Login</a>
+      {% endif %}
+      <div class="clock desktop-only" id="clock" style="font-size:0.8rem; margin-left:0.5rem; opacity:0.7;">--:--</div>
+    </div>
+  </header>
+
+  <!-- Desktop top nav — grouped dropdowns when signed in (mobile uses bottom nav) -->
+  <nav class="top-nav">
+    {% if session.get('user_id') %}
+      {% include 'partials/nav_private_groups.html' %}
+    {% else %}
+      <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">Home</a>
+      <a href="{{ url_for('auth.login') }}">Login</a>
+      <a href="{{ url_for('auth.auth_index') }}">Welcome</a>
+    {% endif %}
+  </nav>
+
+
+
+
+
+  <!-- Bottom fixed nav - the core of the complete mobile GUI overhaul -->
+  {% if session.get('user_id') %}
+  <nav class="bottom-nav" aria-label="Primary mobile navigation">
+    <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard.dashboard' else '' }}">
+      <span class="icon">🏠</span>
+      <span class="label">Home</span>
+    </a>
+    <a href="{{ url_for('events.events') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('events','prayers','sermons','dreams','prophecies','announcements'))) else '' }}">
+      <span class="icon">👥</span>
+      <span class="label">Community</span>
+    </a>
+    <a href="{{ url_for('profile.profile') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('profile','help','settings','attendance','groups','log','support_tickets'))) else '' }}">
+      <span class="icon">👤</span>
+      <span class="label">My Stuff</span>
+    </a>
+    <a href="{{ url_for('the_gathering.index') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith('the_gathering')) else '' }}">
+      <span class="icon">🛠️</span>
+      <span class="label">Manager</span>
+    </a>
+  </nav>
+  {% endif %}
+
+  <!-- NEW CLEAN CONTENT WRAPPER -->
+  <div class="page-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <footer style="text-align:center; padding:0.6rem 0.5rem 4.75rem; font-size:0.65rem; color:var(--text-muted); opacity:0.45;">
+    <a href="{{ url_for('legal.legal_index') }}" style="color:inherit; text-decoration:none; margin-right:0.75rem;">Legal & Policies</a>
+    © {{ g.get('current_year', '2026') }} {{ s.get('church_name') or 'Church Portal' }}
+  </footer>
+
+  {% block scripts %}
+    <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+    <script>
+      function updateClock() {
+        const now = new Date();
+        const clockEl = document.getElementById('clock');
+        if (clockEl) {
+          clockEl.textContent = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+        }
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+    </script>
+  {% endblock %}
+</body>
+</html>

@@ -1,0 +1,58 @@
+{% extends "help/base_help.html" %}
+
+{% block help_page_title %}{{ article.title }}{% endblock %}
+{% block help_page_description %}{% if article.summary %}{{ article.summary }}{% else %}How-to guide{% endif %}{% endblock %}
+
+{% block help_content %}
+<div style="font-size:0.85rem; opacity:0.7; margin-bottom:0.75rem;">
+    <a href="{{ url_for('help.help_index', tab='browse') }}" style="color:var(--primary);">Help</a>
+    {% if article.category_name %}
+    → {{ article.category_name }}
+    {% endif %}
+</div>
+
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+    {% if is_pinned %}
+    <form method="POST" action="{{ url_for('help.help_unpin', article_id=article.id) }}" style="margin:0;">
+        {% include 'partials/csrf_field.html' %}
+        <button type="submit" class="btn-secondary">★ Pinned — click to remove</button>
+    </form>
+    {% else %}
+    <form method="POST" action="{{ url_for('help.help_pin', article_id=article.id) }}" style="margin:0;">
+        {% include 'partials/csrf_field.html' %}
+        <button type="submit" class="btn-primary">☆ Pin to my list</button>
+    </form>
+    {% endif %}
+    {% if can_manage %}
+    <a href="{{ url_for('help.manage_article', article_id=article.id) }}" class="btn-secondary">Edit this guide</a>
+    {% endif %}
+</div>
+
+<article class="glass-panel help-article-body" style="padding:1.25rem 1.5rem; line-height:1.65;">
+    {{ body_html }}
+</article>
+
+{% if related %}
+<section style="margin-top:1.5rem;">
+    <h3 style="font-size:1rem; margin-bottom:0.65rem;">Related guides</h3>
+    <div style="display:grid; gap:0.5rem;">
+        {% for r in related %}
+        <a href="{{ url_for('help.help_article', slug=r.slug) }}" class="glass-panel" style="padding:0.65rem 0.85rem; text-decoration:none;">
+            <strong style="color:var(--primary);">{{ r.title }}</strong>
+            {% if r.summary %}<span style="display:block; font-size:0.88rem; opacity:0.8; margin-top:0.2rem;">{{ r.summary }}</span>{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<style>
+.help-article-body h3 { margin:1.25rem 0 0.5rem; color:var(--primary); font-size:1.1rem; }
+.help-article-body h4 { margin:1rem 0 0.4rem; font-size:1rem; }
+.help-article-body p { margin:0.5rem 0; }
+.help-article-body ul, .help-article-body ol { margin:0.5rem 0 0.75rem 1.25rem; }
+.help-article-body li { margin:0.35rem 0; }
+.help-article-body code { background:rgba(255,255,255,0.08); padding:0.1rem 0.35rem; border-radius:4px; font-size:0.9em; }
+.help-article-body strong { color:var(--text-primary); }
+</style>
+{% endblock %}

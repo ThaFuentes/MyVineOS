@@ -1,0 +1,267 @@
+<!-- app/templates/bills/edit_bill.html -->
+<!-- Full path: WebChurchMan/app/templates/bills/edit_bill.html -->
+<!-- File name: edit_bill.html -->
+<!-- Brief, detailed purpose: Add/Edit recurring bill form (same template used for both).
+   Extends base_bills.html.
+   Collapsible sections with localStorage persistence (like add_event.html).
+   Duplicate Save/Cancel buttons top & bottom.
+   Pre-filled on edit.
+   NO JSON INPUT – Additional Links now use repeatable normal input fields (label + URL) with Add/Remove buttons.
+   All fields use global classes.
+   Frequency affects due_day/due_month visibility via simple JS. -->
+
+{% extends "bills/base_bills.html" %}
+
+{% block page_title %}{% if bill %}Edit{% else %}Add New{% endif %} Recurring Bill{% endblock %}
+
+{% block page_description %}
+{% if bill %}Update recurring bill details.{% else %}Create a new recurring bill for tracking and reminders.{% endif %}
+{% endblock %}
+
+{% block bills_content %}
+
+<section class="content-section">
+    <h2 class="section-title">{% if bill %}Edit{% else %}Add{% endif %} Recurring Bill</h2>
+
+    <!-- Top Actions -->
+    <div class="form-actions" style="margin-bottom:2rem; text-align:center;">
+        <button type="submit" form="bill-form" class="btn-primary">Save Bill</button>
+        <a href="{{ url_for('bills.bills') }}" class="btn-secondary">Cancel</a>
+    </div>
+
+    <form id="bill-form" method="POST" action="{% if bill %}{{ url_for('bills.edit_bill', bill_id=bill.id) }}{% else %}{{ url_for('bills.add_bill') }}{% endif %}" class="styled-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+        <!-- Basic Info (open by default) -->
+        <details open id="section-basic" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Basic Information</summary>
+            <div class="collapsible-content">
+                <div class="form-group">
+                    <label for="bill_name" class="control-label">Bill Name <span class="required">*</span></label>
+                    <input type="text" id="bill_name" name="bill_name" class="form-input" required
+                           value="{{ bill.bill_name if bill else request.form.get('bill_name', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="vendor_name" class="control-label">Vendor / Payee</label>
+                    <input type="text" id="vendor_name" name="vendor_name" class="form-input"
+                           value="{{ bill.vendor_name if bill else request.form.get('vendor_name', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="description" class="control-label">Description</label>
+                    <textarea id="description" name="description" rows="3" class="form-input">{{ bill.description if bill else request.form.get('description', '') }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="typical_amount" class="control-label">Typical Amount</label>
+                    <input type="number" step="0.01" id="typical_amount" name="typical_amount" class="form-input"
+                           value="{{ bill.typical_amount if bill else request.form.get('typical_amount', '') }}">
+                </div>
+            </div>
+        </details>
+
+        <!-- Payment Schedule -->
+        <details open id="section-schedule" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Payment Schedule</summary>
+            <div class="collapsible-content">
+                <div class="form-group">
+                    <label for="frequency" class="control-label">Frequency <span class="required">*</span></label>
+                    <select id="frequency" name="frequency" class="form-input" onchange="updateDueFields()">
+                        {% set freq = bill.frequency if bill else request.form.get('frequency', 'monthly') %}
+                        <option value="daily" {% if freq == 'daily' %}selected{% endif %}>Daily</option>
+                        <option value="weekly" {% if freq == 'weekly' %}selected{% endif %}>Weekly</option>
+                        <option value="biweekly" {% if freq == 'biweekly' %}selected{% endif %}>Biweekly</option>
+                        <option value="monthly" {% if freq == 'monthly' %}selected{% endif %}>Monthly</option>
+                        <option value="quarterly" {% if freq == 'quarterly' %}selected{% endif %}>Quarterly</option>
+                        <option value="yearly" {% if freq == 'yearly' %}selected{% endif %}>Yearly</option>
+                    </select>
+                </div>
+                <div class="form-group" id="due_day_group">
+                    <label for="due_day" class="control-label">Due Day (1-31 or 0-6 for weekly)</label>
+                    <input type="number" id="due_day" name="due_day" class="form-input"
+                           value="{{ bill.due_day if bill else request.form.get('due_day', '') }}">
+                </div>
+                <div class="form-group" id="due_month_group" style="display:none;">
+                    <label for="due_month" class="control-label">Due Month (1-12, yearly only)</label>
+                    <input type="number" min="1" max="12" id="due_month" name="due_month" class="form-input"
+                           value="{{ bill.due_month if bill else request.form.get('due_month', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="reminder_days_before" class="control-label">Reminder Days Before</label>
+                    <input type="number" min="0" id="reminder_days_before" name="reminder_days_before" class="form-input"
+                           value="{{ bill.reminder_days_before|default(7) if bill else request.form.get('reminder_days_before', 7) }}">
+                </div>
+                <div class="form-group">
+                    <label for="reminder_email" class="control-label">Reminder Email (optional)</label>
+                    <input type="text" id="reminder_email" name="reminder_email" class="form-input"
+                           placeholder="billing@church.org or email1@x.com, email2@x.com"
+                           value="{{ bill.reminder_email if bill else request.form.get('reminder_email', '') }}">
+                    <p class="help-text">Always notified on reminders, in addition to assigned users who opt in under Profile → Security.</p>
+                </div>
+                <div class="form-group">
+                    <label for="next_due_date" class="control-label">Next Due Date</label>
+                    <input type="date" id="next_due_date" name="next_due_date" class="form-input"
+                           value="{{ bill.next_due_date if bill else request.form.get('next_due_date', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="current_status" class="control-label">Current Status</label>
+                    <select id="current_status" name="current_status" class="form-input">
+                        {% set status = bill.current_status if bill else request.form.get('current_status', 'pending') %}
+                        <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="paid" {% if status == 'paid' %}selected{% endif %}>Paid</option>
+                        <option value="overdue" {% if status == 'overdue' %}selected{% endif %}>Overdue</option>
+                        <option value="partial" {% if status == 'partial' %}selected{% endif %}>Partial</option>
+                    </select>
+                </div>
+            </div>
+        </details>
+
+        <!-- Contact & Links -->
+        <details id="section-contact" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Contact & Links</summary>
+            <div class="collapsible-content">
+                <div class="form-group">
+                    <label for="account_number" class="control-label">Account Number</label>
+                    <input type="text" id="account_number" name="account_number" class="form-input"
+                           value="{{ bill.account_number if bill else request.form.get('account_number', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="customer_number" class="control-label">Customer Number</label>
+                    <input type="text" id="customer_number" name="customer_number" class="form-input"
+                           value="{{ bill.customer_number if bill else request.form.get('customer_number', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="phone1" class="control-label">Phone 1</label>
+                    <input type="text" id="phone1" name="phone1" class="form-input"
+                           value="{{ bill.phone1 if bill else request.form.get('phone1', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="phone2" class="control-label">Phone 2</label>
+                    <input type="text" id="phone2" name="phone2" class="form-input"
+                           value="{{ bill.phone2 if bill else request.form.get('phone2', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="address" class="control-label">Address</label>
+                    <textarea id="address" name="address" rows="3" class="form-input">{{ bill.address if bill else request.form.get('address', '') }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="payment_url" class="control-label">Payment URL</label>
+                    <input type="url" id="payment_url" name="payment_url" class="form-input"
+                           value="{{ bill.payment_url if bill else request.form.get('payment_url', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="login_url" class="control-label">Login URL</label>
+                    <input type="url" id="login_url" name="login_url" class="form-input"
+                           value="{{ bill.login_url if bill else request.form.get('login_url', '') }}">
+                </div>
+            </div>
+        </details>
+
+        <!-- Credentials -->
+        <details id="section-creds" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Login Credentials (optional)</summary>
+            <div class="collapsible-content">
+                <div class="form-group">
+                    <label for="username" class="control-label">Username</label>
+                    <input type="text" id="username" name="username" class="form-input" autocomplete="off"
+                           value="{{ bill.username if bill else '' }}" placeholder="Leave blank to keep existing">
+                    <p class="help-text">Leave blank to preserve current username.</p>
+                </div>
+                <div class="form-group">
+                    <label for="password" class="control-label">Password</label>
+                    <input type="password" id="password" name="password" class="form-input" autocomplete="new-password"
+                           placeholder="Leave blank to keep existing">
+                    <p class="help-text">Leave blank to preserve current password.</p>
+                </div>
+            </div>
+        </details>
+
+        <!-- Additional Links & Notes -->
+        <details id="section-extra" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Additional Links & Notes</summary>
+            <div class="collapsible-content">
+
+                <!-- Repeatable Additional Links (NO JSON) -->
+                <div class="form-group">
+                    <label class="control-label">Additional Links (optional)</label>
+                    <p class="help-text">Add one or more helpful links with a clear label.</p>
+
+                    <div id="links-container">
+                        {% for link in additional_links %}
+                        <div class="link-pair" style="display:flex; gap:1rem; margin-bottom:1rem; align-items:center;">
+                            <input type="text" name="link_label" class="form-input" value="{{ link.label }}" placeholder="Label (e.g. Customer Portal)" style="flex:1;">
+                            <input type="url" name="link_url" class="form-input" value="{{ link.url }}" placeholder="https://..." style="flex:2;">
+                            <button type="button" class="btn-secondary btn-small remove-link">Remove</button>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <button type="button" id="add-link-btn" class="btn-secondary btn-small">+ Add Link</button>
+                </div>
+
+                <!-- Internal Notes -->
+                <div class="form-group">
+                    <label for="notes" class="control-label">Internal Notes</label>
+                    <textarea id="notes" name="notes" rows="4" class="form-input">{{ bill.notes if bill else request.form.get('notes', '') }}</textarea>
+                </div>
+            </div>
+        </details>
+
+        <!-- Bottom Actions -->
+        <div class="form-actions" style="margin-top:3rem; text-align:center;">
+            <button type="submit" class="btn-primary">Save Bill</button>
+            <a href="{{ url_for('bills.bills') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+<script>
+  // Frequency → due field visibility
+  function updateDueFields() {
+    const freq = document.getElementById('frequency').value;
+    document.getElementById('due_day_group').style.display = (freq === 'daily') ? 'none' : 'block';
+    document.getElementById('due_month_group').style.display = (freq === 'yearly') ? 'block' : 'none';
+  }
+  updateDueFields();
+
+  // Collapsible state persistence
+  document.addEventListener('DOMContentLoaded', function () {
+    const sections = ['basic', 'schedule', 'contact', 'creds', 'extra'];
+    sections.forEach(section => {
+      const details = document.getElementById(`section-${section}`);
+      if (!details) return;
+      const key = `bill-form-section-${section}`;
+      if (localStorage.getItem(key) === 'closed') details.removeAttribute('open');
+      details.addEventListener('toggle', () => {
+        localStorage.setItem(key, details.open ? 'open' : 'closed');
+      });
+    });
+  });
+
+  // Additional Links – Add/Remove rows
+  const linksContainer = document.getElementById('links-container');
+  const addLinkBtn = document.getElementById('add-link-btn');
+
+  addLinkBtn.onclick = function () {
+    const pair = document.createElement('div');
+    pair.className = 'link-pair';
+    pair.style = 'display:flex; gap:1rem; margin-bottom:1rem; align-items:center;';
+    pair.innerHTML = `
+      <input type="text" name="link_label" class="form-input" placeholder="Label (e.g. Customer Portal)" style="flex:1;">
+      <input type="url" name="link_url" class="form-input" placeholder="https://..." style="flex:2;">
+      <button type="button" class="btn-secondary btn-small remove-link">Remove</button>
+    `;
+    linksContainer.appendChild(pair);
+  };
+
+  linksContainer.addEventListener('click', function (e) {
+    if (e.target && e.target.classList.contains('remove-link')) {
+      linksContainer.removeChild(e.target.parentNode);
+    }
+  });
+
+  // Start with at least one empty row if none exist
+  if (linksContainer.children.length === 0) {
+    addLinkBtn.click();
+  }
+</script>
+
+{% endblock %}

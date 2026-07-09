@@ -1,0 +1,278 @@
+/* static/css/events_tgp/events_pages.css */
+/* Full path: myvinechurchonline/static/css/events_tgp/events_pages.css */
+/* File name: events_pages.css */
+/* Purpose: Exact mirror of donations_pages.css for Events module.
+   Styles tables, cards, expandable rows, search controls, and page elements.
+   Glassmorphism with cyan accents – consistent with Donations.
+   UPDATED:
+     - Filter buttons: Proper padding, spacing, hover/active states (cyan when active).
+     - Action buttons: Small versions (.btn-small) match top .btn-primary (cyan, bold, rounded) but ~30% smaller.
+     - Delete button: Red background for clear destructive intent.
+     - Increased gaps/padding for better visual separation. */
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.8rem;
+    margin: 2rem 0;
+}
+
+.card {
+    background: rgba(35, 35, 35, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 255, 255, 0.18);
+    border-radius: 10px;
+    padding: 1.8rem;
+    text-align: center;
+    box-shadow: 0 6px 16px rgba(0, 255, 255, 0.08);
+    transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    background: rgba(40, 40, 40, 0.65);
+}
+
+.card h3 {
+    font-size: 1.35rem;
+    color: #00FFFF;
+    margin-bottom: 0.8rem;
+}
+
+.large-amount {
+    font-size: 2.9rem;
+    font-weight: bold;
+    color: #00FFFF;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    background: rgba(35, 35, 35, 0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 255, 0.12);
+    border-radius: 8px;
+    margin: 1.5rem 0;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;
+}
+
+.data-table thead {
+    background: rgba(42, 42, 42, 0.7);
+}
+
+.data-table th,
+.data-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+.data-table th {
+    color: #00FFFF;
+    font-weight: 600;
+}
+
+/* Actions column – min width and centering */
+.data-table th.actions-header,
+.actions-cell {
+    min-width: 180px;
+    text-align: center;
+    padding: 1rem 0.5rem;
+}
+
+/* Edit & Delete buttons side-by-side */
+.actions-cell {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap; /* Keep side-by-side */
+}
+
+@media (max-width: 600px) {
+    .actions-cell {
+        flex-wrap: wrap;
+        gap: 0.8rem;
+    }
+}
+
+/* Inline form for Delete – no margin interference */
+.actions-cell .inline-form {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+.data-table tbody tr:hover {
+    background: rgba(47, 47, 47, 0.65);
+}
+
+.no-data {
+    text-align: center;
+    padding: 2.5rem;
+    color: #888;
+    font-style: italic;
+}
+
+/* Event Name Links – larger, bold, always cyan */
+.data-table .event-link {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #00FFFF !important;
+    text-decoration: none;
+    display: block;
+}
+
+.data-table .event-link:hover {
+    color: #33FFFF;
+    text-decoration: none;
+}
+
+.data-table .event-link:visited,
+.data-table .event-link:active {
+    color: #00FFFF !important;
+    text-decoration: none;
+}
+
+/* Search controls */
+.search-controls {
+    background: rgba(35, 35, 35, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 255, 0.12);
+}
+
+/* Filter buttons – properly spaced, padded, with active/hover states */
+.filter-buttons {
+    display: flex;
+    gap: 1.2rem;               /* Increased for clear separation */
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1.2rem;
+}
+
+.filter-btn {
+    padding: 0.7rem 1.5rem;
+    background: #252525;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    background: #333;
+    border-color: #00FFFF;
+    color: #e0e0e0;
+}
+
+.filter-btn.active {
+    background: #00FFFF;
+    color: #121212;
+    border-color: #00FFFF;
+    font-weight: bold;
+}
+
+/* Small action buttons – match top .btn-primary but smaller */
+.btn-small {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: bold;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary-small {
+    background: #00FFFF;
+    color: #121212;
+}
+
+.btn-primary-small:hover {
+    background: #00cccc;
+}
+
+.btn-danger-small {
+    background: #ff4444;
+    color: white;
+}
+
+.btn-danger-small:hover {
+    background: #cc0000;
+}
+
+/* Extra spacing in actions cell */
+.actions-cell .btn-small {
+    margin: 0 0.4rem;
+}
+
+@media (max-width: 600px) {
+    .actions-cell {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+    .actions-cell .btn-small {
+        width: 100%;
+        text-align: center;
+        margin: 0;
+    }
+}
+
+/* Add button top alignment */
+.add-event-top {
+    margin-bottom: 1.5rem;
+    text-align: right;
+}
+
+/* No results spacing */
+.no-data#noResults {
+    margin-top: 2rem;
+}
+
+/* Collapsible controls */
+.collapsible-controls {
+    margin-bottom: 2rem;
+}
+
+.collapsible-summary {
+    cursor: pointer;
+    padding: 1rem;
+    background: #252525;
+    border-radius: 8px;
+    font-weight: bold;
+    color: #00FFFF;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.collapsible-summary:hover {
+    background: #2f2f2f;
+}
+
+.arrow {
+    transition: transform 0.3s ease;
+}
+
+details[open] .arrow {
+    transform: rotate(180deg);
+}
+
+details[open] > summary {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}

@@ -1,0 +1,295 @@
+<!-- app/templates/announcements/announcements_dashboard.html -->
+<!-- Full path: WebChurchMan/app/templates/announcements/announcements_dashboard.html -->
+<!-- File name: announcements_dashboard.html -->
+<!-- Brief, detailed purpose: Announcements Dashboard – exact mirror of events_dashboard.html structure and styling.
+   Summary cards, + Add button (can_manage only), collapsible search/filters with live search + button filters.
+   Glass table in table-wrapper glass, uniform button sizes in actions cell (flex no-wrap).
+   Title clickable to toggle expandable details row (content + comments.html + add comment form).
+   Uses ONLY global classes – matches Events/Donations perfectly (dark glassmorphism, cyan accents).
+   No inline styles except initial hide/display none. -->
+
+{% extends "announcements/base_announcements.html" %}
+
+{% block page_title %}Announcements Dashboard{% endblock %}
+
+{% block page_description %}
+Overview of all church announcements.<br>
+{% if is_logged_in %}
+    You are viewing all announcements (public and private).
+{% else %}
+    You are viewing public announcements only. <a href="{{ url_for('auth.login') }}">Log in</a> to see private announcements.
+{% endif %}
+{% endblock %}
+
+{% block announcements_content %}
+
+<!-- Summary Cards -->
+<section class="content-section">
+    <h2 class="section-title">Announcements Summary</h2>
+    <div class="summary-cards">
+        <div class="card glass">
+            <h3>Total</h3>
+            <p class="large-amount">{{ total_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Active</h3>
+            <p class="large-amount">{{ active_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Public</h3>
+            <p class="large-amount">{{ public_count }}</p>
+        </div>
+    </div>
+</section>
+
+<!-- Add New Announcement Button -->
+{% if can_manage %}
+<div class="form-actions add-event-top">
+    <a href="{{ url_for('announcements.create_announcement') }}" class="btn-primary">+ Add New Announcement</a>
+</div>
+{% endif %}
+
+<!-- Search & Filters + Table -->
+<section class="content-section">
+    <h2 class="section-title">All Announcements</h2>
+
+    <details class="collapsible-controls" open>
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search Announcements</label>
+                <input type="text" id="searchBox" class="search-input" placeholder="Title, content, creator..." autocomplete="off">
+                <p class="help-text">Live search across announcement details</p>
+            </div>
+            <div class="form-group filter-group">
+                <label class="control-label">Filters</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    <button data-filter="active" class="btn btn-small filter-btn btn-secondary">Active</button>
+                    <button data-filter="inactive" class="btn btn-small filter-btn btn-secondary">Inactive</button>
+                    <button data-filter="public" class="btn btn-small filter-btn btn-secondary">Public</button>
+                    <button data-filter="private" class="btn btn-small filter-btn btn-secondary">Private</button>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Date Posted</th>
+                    <th>Created By</th>
+                    <th>Comments</th>
+                    <th>Status</th>
+                    <th>Visibility</th>
+                    {% if can_manage %}<th>Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody id="annBody">
+                {% for ann in announcements_list %}
+                <tr class="data-row"
+                    data-status="{{ 'active' if ann['is_active'] else 'inactive' }}"
+                    data-visibility="{{ ann['visibility'] }}">
+                    <td class="title-cell">
+                        <a href="javascript:void(0)" onclick="toggleDetails('details-{{ ann['id'] }}')">
+                            {{ ann['title'] }}
+                        </a>
+                    </td>
+                    <td>{{ ann['created_at'] }}</td>
+                    <td>{{ ann['creator_name'] }}</td>
+                    <td>{{ ann['comment_count'] }}</td>
+                    <td>{{ 'Active' if ann['is_active'] else 'Inactive' }}</td>
+                    <td>{{ ann['visibility'] | capitalize }}</td>
+                    {% if can_manage %}
+                    <td class="actions-cell">
+                        <div class="actions-buttons" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:nowrap;">
+                            <a href="{{ url_for('announcements.edit_announcement', ann_id=ann['id']) }}" class="btn-primary btn-small">Edit</a>
+                            <form action="{{ url_for('announcements.delete_announcement', ann_id=ann['id']) }}" method="post" class="inline-form" style="display:inline;">
+                                <button type="submit" class="btn-danger btn-small"
+                                        onclick="return confirm('Permanently delete this announcement?');">
+                                    Delete
+                                </button>
+                            </form>
+                            <button onclick="openEmailModal({{ ann['id'] }}, '{{ ann['title'] | escape_js }}')" class="btn-primary btn-small">Email</button>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                <tr class="details-row" id="details-{{ ann['id'] }}" style="display:none;">
+                    <td colspan="{{ 7 if can_manage else 6 }}">
+                        <div class="details-content glass">
+                            <h4>Content</h4>
+                            <p class="announcement-content">{{ ann['content'] | nl2br }}</p>
+
+                            <h4>Comments ({{ ann['comment_count'] }})</h4>
+                            {% if ann['comments'] %}
+                                {% for comment in ann['comments'] %}
+                                <div class="comment glass">
+                                    <strong>{{ comment['commenter_name'] }}</strong> <em>({{ comment['date_added'] }})</em>
+                                    <p>{{ comment['comment'] | nl2br }}</p>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="help-text">No comments yet.</p>
+                            {% endif %}
+
+                            {% if is_logged_in and ann['comments_enabled'] %}
+                            <div class="add-comment">
+                                <form method="POST" action="{{ url_for('announcements.add_comment', ann_id=ann['id']) }}">
+                                    <textarea name="comment" rows="4" placeholder="Add a comment..." required class="styled-textarea"></textarea>
+                                    <button type="submit" class="btn-primary">Post Comment</button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No announcements match the current search and filters.
+    </div>
+</section>
+
+<!-- Email Modal (only shown for can_manage) -->
+{% if can_manage and members %}
+<div id="emailModal" class="modal" style="display:none;">
+    <div class="modal-content glass">
+        <span class="close" onclick="closeEmailModal()">×</span>
+        <h2>Email Announcement</h2>
+        <form method="POST" id="emailForm">
+            <input type="hidden" name="ann_id" id="modalAnnId">
+            <div class="form-group">
+                <label for="subject">Subject</label>
+                <input type="text" id="subject" name="subject" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label for="message">Intro Message (optional)</label>
+                <textarea id="message" name="message" rows="5" class="form-input"></textarea>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="sendAll" name="sendAll" onclick="toggleMemberList(this.checked)">
+                    Send to all members with email
+                </label>
+            </div>
+            <div id="memberList" class="member-list">
+                {% for member in members %}
+                <label class="checkbox-label">
+                    <input type="checkbox" class="member-checkbox" name="member_ids" value="{{ member['id'] }}">
+                    {{ member['name'] }} ({{ member['email'] }})
+                </label>
+                {% endfor %}
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Send Email</button>
+                <button type="button" onclick="closeEmailModal()" class="btn-secondary">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function toggleDetails(id) {
+    const row = document.getElementById(id);
+    row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
+}
+
+function openEmailModal(id, title) {
+    document.getElementById('modalAnnId').value = id;
+    document.getElementById('subject').value = title;
+    document.getElementById('emailForm').action = '{{ url_for("announcements.email_announcement", ann_id=0) }}'.replace('/0', '/' + id);
+    document.getElementById('emailModal').style.display = 'block';
+}
+
+function closeEmailModal() {
+    document.getElementById('emailModal').style.display = 'none';
+}
+
+function toggleMemberList(checked) {
+    document.querySelectorAll('.member-checkbox').forEach(cb => {
+        cb.disabled = checked;
+        if (checked) cb.checked = false;
+    });
+}
+
+(function() {
+    const searchBox = document.getElementById('searchBox');
+    const body = document.getElementById('annBody');
+    const noResults = document.getElementById('noResults');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    let statusFilter = 'all';
+    let visibilityFilter = 'all';
+    let timer;
+
+    function highlightFilters() {
+        filterButtons.forEach(btn => {
+            let active = btn.dataset.filter === 'all' ||
+                         (['active', 'inactive'].includes(btn.dataset.filter) && btn.dataset.filter === statusFilter) ||
+                         (['public', 'private'].includes(btn.dataset.filter) && btn.dataset.filter === visibilityFilter);
+            btn.classList.toggle('btn-primary', active);
+            btn.classList.toggle('btn-secondary', !active);
+        });
+    }
+
+    function applyFilters() {
+        const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+        const rows = body.querySelectorAll('.data-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const status = row.dataset.status;
+            const visibility = row.dataset.visibility;
+
+            const matchesSearch = query === '' || text.includes(query);
+            const matchesStatus = statusFilter === 'all' || status === statusFilter;
+            const matchesVisibility = visibilityFilter === 'all' || visibility === visibilityFilter;
+
+            const show = matchesSearch && matchesStatus && matchesVisibility;
+            row.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+
+            // Close details on filter
+            const details = row.nextElementSibling;
+            if (details && details.classList.contains('details-row')) {
+                details.style.display = 'none';
+            }
+        });
+
+        noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+        searchBox.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(applyFilters, 300);
+        });
+    }
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const filter = btn.dataset.filter;
+            if (['all', 'active', 'inactive'].includes(filter)) {
+                statusFilter = filter === 'all' ? 'all' : filter;
+            } else {
+                visibilityFilter = filter;
+            }
+            highlightFilters();
+            applyFilters();
+        });
+    });
+
+    highlightFilters();
+    applyFilters();
+})();
+</script>
+{% endblock %}

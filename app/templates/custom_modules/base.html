@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom_modules/themes.css') }}?v=20260709">
+{% endblock %}
+
+{% block content %}
+<div class="cm-page cm-theme-{{ module.theme|default('ocean') }}"
+     style="--cm-accent: {{ module.theme_config.accent }}; --cm-icon-bg: {{ module.theme_config.icon_bg }}; --cm-header-grad: {{ module.theme_config.header_grad }};">
+
+    <header class="cm-header glass-panel">
+        <div class="cm-header-icon">{{ module.type_icon|default('📋') }}</div>
+        <div class="cm-header-text">
+            <div class="cm-breadcrumb">
+                <a href="{{ url_for('dashboard.dashboard') }}">Dashboard</a>
+                <span>/</span>
+                <span>{{ module.name }}</span>
+            </div>
+            <h1 class="cm-title">{{ module.name }}</h1>
+            {% if module.description %}
+            <p class="cm-desc">{{ module.description }}</p>
+            {% endif %}
+            <div class="cm-meta">
+                <span class="cm-badge">{{ module.type_name }}</span>
+                <span class="cm-badge cm-theme-badge">{{ module.theme_config.label|default(module.theme) }} theme</span>
+                {% if module.visibility == 'group' and module.group_name %}
+                <span class="cm-badge">Group: {{ module.group_name }}</span>
+                {% elif module.visibility == 'public' %}
+                <span class="cm-badge">Public</span>
+                {% else %}
+                <span class="cm-badge">Members</span>
+                {% endif %}
+            </div>
+        </div>
+        {% if can_manage %}
+        <div class="cm-header-actions">
+            <a href="{{ url_for('custom_modules.add_record', slug=module.slug) }}" class="btn-primary">+ Add {{ schema.record_label|default('Record') }}</a>
+        </div>
+        {% endif %}
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block module_content %}{% endblock %}
+</div>
+{% endblock %}

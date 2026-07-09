@@ -1,0 +1,64 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+<section class="content-section">
+    <h2 class="section-title">AI Provider Configuration</h2>
+    <p class="help-text">
+        Configure each AI provider independently. Enable only the services you use.
+        The <strong>default provider</strong> powers sermon AI tools in the Pastoral area.
+    </p>
+
+    <form method="POST" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+
+        {% for p in providers %}
+        <div class="form-grid" style="margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div class="form-group full-width">
+                <h3 style="margin:0; text-transform:capitalize;">{{ p.provider }}{% if p.provider == 'openai' %} (ChatGPT){% elif p.provider == 'grok' %} (xAI){% elif p.provider == 'gemini' %} (Google){% endif %}</h3>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="enabled_{{ p.provider }}" value="1" {% if p.enabled %}checked{% endif %}>
+                    Enabled
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="radio" name="default_provider" value="{{ p.provider }}" {% if p.is_default %}checked{% endif %}>
+                    Default for Pastoral AI
+                </label>
+            </div>
+
+            {% if p.provider != 'ollama' %}
+            <div class="form-group full-width">
+                <label for="api_key_{{ p.provider }}">API Key</label>
+                <input type="password" name="api_key_{{ p.provider }}" id="api_key_{{ p.provider }}"
+                       placeholder="{% if p.has_key %}Configured — leave blank to keep{% else %}Enter API key{% endif %}"
+                       autocomplete="new-password">
+            </div>
+            {% else %}
+            <div class="form-group full-width">
+                <label for="base_url_ollama">Ollama Base URL</label>
+                <input type="text" name="base_url_ollama" id="base_url_ollama" value="{{ p.base_url }}">
+                <p class="help-text">Local Ollama — no API key required when enabled.</p>
+            </div>
+            {% endif %}
+
+            <div class="form-group full-width">
+                <label for="model_{{ p.provider }}">Default Model (optional)</label>
+                <input type="text" name="model_{{ p.provider }}" id="model_{{ p.provider }}"
+                       value="{{ p.model_default }}"
+                       placeholder="{% if p.provider == 'grok' %}grok-beta{% elif p.provider == 'openai' %}gpt-4o-mini{% elif p.provider == 'gemini' %}gemini-1.5-flash{% else %}llama3.1{% endif %}">
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save AI Settings</button>
+            <a href="{{ url_for('settings.general') }}" class="btn-secondary">Back to Settings</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

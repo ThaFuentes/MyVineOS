@@ -1,0 +1,278 @@
+<!-- app/templates/bills/view_bill.html -->
+<!-- Full path: MyVineChurch/app/templates/bills/view_bill.html -->
+<!-- File name: view_bill.html -->
+<!-- Brief, detailed purpose: Complete rich full-page single bill detail view.
+   Secure credential reveal with a strong inline-styled modal (no reliance on external CSS for visibility). -->
+
+{% extends "bills/base_bills.html" %}
+
+{% block page_title %}{{ bill.bill_name|title }}{% endblock %}
+
+{% block page_description %}
+Billing record and secure credential vault for {{ bill.bill_name }} — payment schedule, history, and locked account access.
+{% endblock %}
+
+{% block bills_content %}
+
+<section class="content-section">
+
+    <!-- Header -->
+    <div class="event-header-flex">
+        <div class="event-title-info">
+            <h2 class="page-title">{{ bill.bill_name|title }}</h2>
+            <p class="event-key-info">
+                {% if bill.vendor_name %}Vendor: {{ bill.vendor_name }} • {% endif %}
+                Typical: ${{ "%.2f"|format(bill.typical_amount or 0) }} •
+                Next Due: {{ bill.next_due_date or 'Not set' }} •
+                Status: <span class="status-badge status-{{ bill.current_status|lower }}">{{ bill.current_status|capitalize }}</span>
+            </p>
+        </div>
+
+        {% if is_manager %}
+        <div class="event-actions">
+            <a href="{{ url_for('bills.edit_bill', bill_id=bill.id) }}" class="btn-primary">Edit Bill</a>
+            <a href="{{ url_for('bills.assign_bill', bill_id=bill.id) }}" class="btn-secondary">Assign Users</a>
+            <form action="{{ url_for('bills.send_reminder', bill_id=bill.id) }}" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <button type="submit" class="btn-secondary">Send Reminder</button>
+            </form>
+            <form action="{{ url_for('bills.delete_bill', bill_id=bill.id) }}" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <button type="submit" class="btn-danger"
+                        onclick="return confirm('Permanently delete this bill and all history?');">
+                    Delete Bill
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Description & Notes -->
+    {% if bill.description or bill.notes %}
+    <section class="content-section">
+        <h3 class="section-title">Description & Notes</h3>
+        <div class="card glass">
+            {% if bill.description %}<p><strong>Description:</strong><br>{{ bill.description | nl2br | censor }}</p>{% endif %}
+            {% if bill.notes %}<p><strong>Internal Notes:</strong><br>{{ bill.notes | nl2br | censor }}</p>{% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Payment Schedule -->
+    <section class="content-section">
+        <h3 class="section-title">Payment Schedule</h3>
+        <div class="card glass">
+            <p><strong>Frequency:</strong> {{ bill.frequency|capitalize }}</p>
+            {% if bill.due_day %}<p><strong>Due Day:</strong> {{ bill.due_day }}</p>{% endif %}
+            {% if bill.due_month %}<p><strong>Due Month:</strong> {{ bill.due_month }}</p>{% endif %}
+            <p><strong>Reminder Days Before:</strong> {{ bill.reminder_days_before or 7 }}</p>
+            <p><strong>Next Due Date:</strong> {{ bill.next_due_date or 'Not set' }}</p>
+        </div>
+    </section>
+
+    <!-- Contact Information -->
+    {% if bill.account_number or bill.customer_number or bill.phone1 or bill.phone2 or bill.address %}
+    <section class="content-section">
+        <h3 class="section-title">Contact Information</h3>
+        <div class="card glass">
+            {% if bill.account_number %}<p><strong>Account Number:</strong> {{ bill.account_number }}</p>{% endif %}
+            {% if bill.customer_number %}<p><strong>Customer Number:</strong> {{ bill.customer_number }}</p>{% endif %}
+            {% if bill.phone1 %}<p><strong>Phone 1:</strong> {{ bill.phone1 }}</p>{% endif %}
+            {% if bill.phone2 %}<p><strong>Phone 2:</strong> {{ bill.phone2 }}</p>{% endif %}
+            {% if bill.address %}<p><strong>Address:</strong><br>{{ bill.address | nl2br }}</p>{% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- SECURE VAULT: LOGIN CREDENTIALS & KEYS -->
+    <details class="collapsible-section glass">
+        <summary class="collapsible-summary section-title">Secure Vault — Credentials &amp; Keys <span style="color:#ff4444;">(Locked)</span></summary>
+        <div class="collapsible-content">
+            <div id="credentials-locked" class="card glass">
+                <p><strong>Protected storage for utility logins, portal passwords, and software license keys.</strong></p>
+                <p>Credentials are encrypted at rest. Only assigned users and managers may unlock them after re-entering their account password.</p>
+                <button onclick="showRevealModal({{ bill.id }})" class="btn-primary">🔓 Unlock Credentials</button>
+            </div>
+
+            <div id="credentials-unlocked" class="card glass" style="display:none;">
+                {% if bill.username %}
+                <p><strong>Username:</strong> <span id="shown-username">{{ bill.username }}</span></p>
+                {% endif %}
+                {% if bill.password %}
+                <p><strong>Password:</strong> <span id="shown-password">{{ bill.password }}</span></p>
+                {% endif %}
+                <button onclick="lockAgain()" class="btn-secondary">🔒 Lock Again</button>
+            </div>
+
+            {% if not bill.username and not bill.password %}
+            <div class="card glass">
+                <p><em>No username or password saved for this bill.</em></p>
+            </div>
+            {% endif %}
+        </div>
+    </details>
+
+    <!-- Useful Links -->
+    {% if bill.payment_url or bill.login_url %}
+    <section class="content-section">
+        <h3 class="section-title">Useful Links</h3>
+        <div class="card glass">
+            {% if bill.payment_url %}<p><strong>Payment Link:</strong> <a href="{{ bill.payment_url }}" target="_blank">{{ bill.payment_url }}</a></p>{% endif %}
+            {% if bill.login_url %}<p><strong>Login Link:</strong> <a href="{{ bill.login_url }}" target="_blank">{{ bill.login_url }}</a></p>{% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Record Payment -->
+    <section class="content-section">
+        <h3 class="section-title">Record a Payment</h3>
+        <form method="POST" action="{{ url_for('bills.record_payment', bill_id=bill.id) }}" class="styled-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <div class="form-group">
+                <label for="amount" class="control-label">Amount Paid <span class="required">*</span></label>
+                <input type="number" step="0.01" id="amount" name="amount" class="form-input" required placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label for="payment_date" class="control-label">Payment Date</label>
+                <input type="date" id="payment_date" name="payment_date" class="form-input" value="{{ today_str }}">
+            </div>
+            <div class="form-group">
+                <label for="notes" class="control-label">Notes (optional)</label>
+                <textarea id="notes" name="notes" rows="3" class="form-input"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Record Payment</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Payment History -->
+    {% if history %}
+    <section class="content-section">
+        <h3 class="section-title">Payment History</h3>
+        <div class="table-wrapper glass">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Paid By</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in history %}
+                    <tr>
+                        <td>{{ h.payment_date }}</td>
+                        <td>${{ "%.2f"|format(h.amount) }}</td>
+                        <td>{{ h.paid_by_name or 'Unknown' }}</td>
+                        <td>{{ h.notes | censor or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Assigned Users -->
+    {% if assignments %}
+    <section class="content-section">
+        <h3 class="section-title">Assigned Users ({{ assignments|length }})</h3>
+        <div class="table-wrapper glass">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Reminders</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assignments %}
+                    <tr>
+                        <td>{{ a.first_name }} {{ a.last_name }}</td>
+                        <td>{{ a.username }}</td>
+                        <td>{{ a.email }}</td>
+                        <td>{% if a.remind_me %}Yes{% else %}No{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+</section>
+
+<!-- SECURE REVEAL MODAL - Strong inline styles for reliability -->
+<div id="revealModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#1e1e2e; border:2px solid #00ffff; border-radius:12px; width:90%; max-width:420px; padding:2rem; text-align:center;">
+        <h2 style="margin-top:0; color:#00ffff;">Unlock Credentials</h2>
+        <p style="margin-bottom:1.5rem;">Enter your account password to view the saved credentials.</p>
+
+        <form id="revealForm" onsubmit="handleReveal(event)">
+            <input type="hidden" id="revealCsrf" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" id="revealBillId">
+            <input type="password" id="revealPassword" style="width:100%; padding:12px; font-size:1.1rem; border-radius:8px; border:1px solid #00ffff; background:#2a2a3a; color:white; margin-bottom:1rem;" placeholder="Your password" required>
+            <div style="display:flex; gap:1rem; justify-content:center;">
+                <button type="submit" style="background:#00ffff; color:#000; padding:12px 24px; border:none; border-radius:8px; font-weight:bold;">Unlock</button>
+                <button type="button" onclick="closeRevealModal()" style="background:#444; color:white; padding:12px 24px; border:none; border-radius:8px;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showRevealModal(billId) {
+    console.log("Opening reveal modal for bill ID:", billId);
+    document.getElementById('revealBillId').value = billId;
+    document.getElementById('revealPassword').value = '';
+    document.getElementById('revealModal').style.display = 'flex';
+}
+
+function closeRevealModal() {
+    document.getElementById('revealModal').style.display = 'none';
+}
+
+function handleReveal(e) {
+    e.preventDefault();
+    const billId = document.getElementById('revealBillId').value;
+    const password = document.getElementById('revealPassword').value;
+
+    console.log("Sending unlock request for bill", billId);
+
+    const csrf = document.getElementById('revealCsrf').value;
+    fetch(`/bills/reveal_credentials/${billId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrf
+        },
+        body: JSON.stringify({ password: password })
+    })
+    .then(r => r.json())
+    .then(data => {
+        console.log("Server response:", data);
+        if (data.success) {
+            closeRevealModal();
+            document.getElementById('credentials-locked').style.display = 'none';
+            document.getElementById('credentials-unlocked').style.display = 'block';
+        } else {
+            alert('Incorrect password. Access denied.');
+        }
+    })
+    .catch(err => {
+        console.error("Fetch error:", err);
+        alert('Error contacting server.');
+    });
+}
+
+function lockAgain() {
+    document.getElementById('credentials-locked').style.display = 'block';
+    document.getElementById('credentials-unlocked').style.display = 'none';
+}
+</script>
+
+{% endblock %}

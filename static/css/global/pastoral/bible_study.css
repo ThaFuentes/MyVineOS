@@ -1,0 +1,155 @@
+.bible-sermon-bar {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+}
+
+.bible-sermon-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.bible-sermon-field {
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+
+.bible-sermon-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bible-book-tabs {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.bible-book-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.5rem;
+}
+
+.bible-book-list button {
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.bible-book-list button:hover,
+.bible-book-list button.active {
+  background: rgba(0, 255, 255, 0.12);
+  color: #00ffff;
+}
+
+.bible-verse-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.bible-verse-picker button {
+  min-width: 2rem;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.78rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  cursor: pointer;
+}
+
+.bible-verse-picker button:hover,
+.bible-verse-picker button.active {
+  border-color: rgba(0, 255, 255, 0.45);
+  background: rgba(0, 255, 255, 0.12);
+  color: #00ffff;
+}
+
+.bible-verse-line {
+  margin-bottom: 0.85rem;
+  line-height: 1.55;
+  padding: 0.35rem 0.25rem;
+  border-radius: 8px;
+  scroll-margin-top: 4rem;
+}
+
+.bible-verse-line.verse-highlight {
+  background: rgba(0, 255, 255, 0.08);
+  outline: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.bible-verse-num {
+  color: #00ffff;
+  font-weight: 700;
+  margin-right: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.strongs-word {
+  border-bottom: 1px dotted rgba(0, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.strongs-word:hover {
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.bible-search-results .result-item,
+.bible-stage-main .result-item,
+.bible-stage-main .strongs-hit {
+  padding: 0.65rem 0.5rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bible-stage-main .result-item:hover,
+.bible-stage-main .strongs-hit:hover {
+  border-color: rgba(0, 255, 255, 0.35);
+}
+
+.strongs-entry h6 {
+  color: #00ffff;
+}
+
+.content-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.content-actions button {
+  font-size: 0.7rem;
+  padding: 0.12rem 0.45rem;
+}
+
+.bible-toast {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 1200;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  background: rgba(0, 40, 40, 0.95);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  color: #e8ffff;
+  font-size: 0.85rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.bible-toast.show {
+  opacity: 1;
+}

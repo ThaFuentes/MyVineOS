@@ -1,0 +1,196 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/events/potluck.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/events/potluck.html -->
+<!-- File name: potluck.html -->
+<!-- Brief, detailed purpose: Full Potluck Contribution Manager for a specific event inside the Gathering Place Manager. -->
+<!-- • Displays every potluck signup with name, item, quantity, note, and timestamp. -->
+<!-- • Per-item actions: Edit Contribution + Delete Contribution. -->
+<!-- • Form to add a new contribution directly from the manager. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.events.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}Potluck • {{ event_name or 'Event' }}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">🍲 Potluck Contributions</h1>
+            <h4 class="text-muted">{{ event_name or 'Event #' ~ event_id }}</h4>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+            <a href="{{ url_for('the_gathering.events.view_event', event_id=event_id) }}" class="btn btn-secondary">
+                ← Event Detail
+            </a>
+            <a href="{{ url_for('public.public_events.public_event_detail', event_id=event_id) }}"
+               target="_blank" class="btn btn-outline-light">
+                👁️ Public Site
+            </a>
+        </div>
+    </div>
+
+    <div class="glass-panel" style="margin-bottom:0.9rem; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.75rem;">
+        <div>
+            <strong style="color:var(--primary);">Public potluck signups:</strong>
+            {% if event.potluck_enabled %}
+                <span class="badge bg-success" style="margin-left:0.5rem;">Enabled</span>
+                <p style="margin:0.35rem 0 0; font-size:0.85rem; opacity:0.75;">Guests can sign up on the public event page.</p>
+            {% else %}
+                <span class="badge bg-warning text-dark" style="margin-left:0.5rem;">Disabled</span>
+                <p style="margin:0.35rem 0 0; font-size:0.85rem; opacity:0.75;">Hidden on the public site. Contributions below are kept for your records.</p>
+            {% endif %}
+        </div>
+        <div>
+            {% if event.potluck_enabled %}
+            <form method="POST" action="{{ url_for('the_gathering.events.event_potluck', event_id=event_id) }}" style="display:inline;"
+                  onsubmit="return confirm('Turn off potluck signups on the public event page? Existing entries stay here.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <input type="hidden" name="action" value="toggle_potluck">
+                <input type="hidden" name="enable" value="0">
+                <button type="submit" class="btn btn-warning">🚫 Disable Public Potluck</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('the_gathering.events.event_potluck', event_id=event_id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <input type="hidden" name="action" value="toggle_potluck">
+                <input type="hidden" name="enable" value="1">
+                <button type="submit" class="btn btn-success">✅ Enable Public Potluck</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add New Contribution Form -->
+    <div class="glass-panel" style="margin-bottom:0.9rem;">
+        <h5 class="mb-3" style="color:var(--primary);">➕ Add New Contribution</h5>
+        <form method="POST" action="{{ url_for('the_gathering.events.event_potluck', event_id=event_id) }}" style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="add_potluck">
+
+            <div class="col-md-3">
+                <label class="form-label text-light">Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control" required placeholder="Contributor name">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-light">Item <span class="text-danger">*</span></label>
+                <input type="text" name="item" class="form-control" required placeholder="e.g. Potato salad">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-light">Quantity</label>
+                <input type="text" name="quantity" class="form-control" placeholder="Serves 10">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-light">Note</label>
+                <input type="text" name="note" class="form-control" placeholder="Gluten-free, etc.">
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Add</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Potluck Contributions Table -->
+    {% if signups %}
+    <div class="table-wrapper glass">
+        <table class="data-table w-100">
+            <thead>
+                <tr>
+                    <th style="width:60px;">ID</th>
+                    <th>Name</th>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Note</th>
+                    <th>Date Added</th>
+                    <th style="width:220px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for signup in signups %}
+                <tr>
+                    <td><strong>#{{ signup.id }}</strong></td>
+                    <td>{{ signup.name | censor }}</td>
+                    <td>{{ signup.item | censor }}</td>
+                    <td>{{ signup.quantity | censor | default('—') }}</td>
+                    <td>{{ signup.note | censor | default('—') }}</td>
+                    <td>{{ signup.created_at | format_manager_datetime }}</td>
+                    <td>
+                        <!-- Edit Contribution -->
+                        <button onclick="editPotluck({{ signup.id }}, '{{ signup.name|escape }}', '{{ signup.item|escape }}', '{{ signup.quantity|escape }}', '{{ signup.note|escape }}')"
+                                class="btn btn-sm btn-primary me-1">✏️ Edit</button>
+
+                        <!-- Delete Contribution -->
+                        <form method="POST" action="{{ url_for('the_gathering.events.event_potluck', event_id=event_id) }}" style="display:inline;"
+                              onsubmit="return confirm('Delete this potluck contribution permanently?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <input type="hidden" name="action" value="delete_potluck">
+                            <input type="hidden" name="signup_id" value="{{ signup.id }}">
+                            <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="glass p-5 text-center">
+        <p class="mb-0" style="font-size:1.4rem; color:#888;">No potluck contributions yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Simple inline edit modal -->
+<div id="editPotluckModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; align-items:center; justify-content:center;">
+    <div class="glass p-5" style="max-width:520px; width:90%;">
+        <h5 class="mb-4" style="color:var(--primary);">Edit Potluck Contribution</h5>
+        <form method="POST" action="{{ url_for('the_gathering.events.event_potluck', event_id=event_id) }}" id="editForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="edit_potluck">
+            <input type="hidden" name="signup_id" id="modal_signup_id">
+
+            <div class="mb-3">
+                <label class="form-label text-light">Name</label>
+                <input type="text" name="name" id="modal_name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-light">Item</label>
+                <input type="text" name="item" id="modal_item" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-light">Quantity</label>
+                <input type="text" name="quantity" id="modal_quantity" class="form-control">
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-light">Note</label>
+                <input type="text" name="note" id="modal_note" class="form-control">
+            </div>
+
+            <div class="text-end">
+                <button type="button" onclick="closeModal()" class="btn btn-secondary me-3">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function editPotluck(id, name, item, quantity, note) {
+        document.getElementById('modal_signup_id').value = id;
+        document.getElementById('modal_name').value = name;
+        document.getElementById('modal_item').value = item;
+        document.getElementById('modal_quantity').value = quantity || '';
+        document.getElementById('modal_note').value = note || '';
+        document.getElementById('editPotluckModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('editPotluckModal').style.display = 'none';
+    }
+
+    console.log('✅ Potluck Manager loaded for event {{ event_id }}');
+</script>
+
+{% endblock %}

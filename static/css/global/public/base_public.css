@@ -1,0 +1,141 @@
+/* WebChurchMan/static/css/global/base_public.css */
+/* Full path: WebChurchMan/static/css/global/base_public.css */
+/* File name: base_public.css */
+/* Brief, detailed purpose: Dedicated styles for public-facing pages (public dashboard_tgp, login, register).
+   Enhances the "church" atmosphere while staying 100% within the dark glassmorphism + cyan (#00FFFF) theme:
+     • Subtle cross overlay in hero (very low opacity, soft glow).
+     • Inspirational Bible verse styling (italic, soft glow).
+     • Elegant church details card with cyan border/glow.
+     • Stronger cyan glow on headings, hover lift on cards.
+     • Larger, glowing welcome text.
+     • All styles use existing variables – no color changes.
+   Designed to work with base_public.html and public_dashboard.html.
+   Background remains controlled by var(--bg-page) from settings (admin can upload church image). */
+
+.public-hero {
+  position: relative;
+  text-align: center;
+  padding: 6rem 2rem 4rem;
+  overflow: hidden;
+}
+
+.public-hero::before {
+  content: '✝';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32rem;
+  color: var(--primary);
+  opacity: 0.06;
+  pointer-events: none;
+  z-index: 0;
+  text-shadow: 0 0 30px var(--primary);
+}
+
+.public-hero h2 {
+  font-size: clamp(1.75rem, 7vw, 3.2rem);
+  color: var(--primary);
+  text-shadow: 0 0 25px var(--primary);
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.public-hero .verse {
+  font-size: 1.9rem;
+  font-style: italic;
+  color: #aaffff;
+  margin: 2.5rem auto;
+  max-width: 900px;
+  opacity: 0.92;
+  line-height: 1.7;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.public-hero .verse small {
+  display: block;
+  margin-top: 1rem;
+  font-size: 1.4rem;
+  color: #88eeee;
+}
+
+.public-hero p {
+  font-size: 1.6rem;
+  max-width: 1000px;
+  margin: 2.5rem auto 4rem;
+  opacity: 0.95;
+  line-height: 1.7;
+  position: relative;
+  z-index: 1;
+}
+
+.church-details {
+  background: rgba(0, 255, 255, 0.08);
+  border: 1px solid var(--primary);
+  border-radius: 24px;
+  padding: 2.5rem;
+  max-width: 650px;
+  margin: 4rem auto;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.25);
+  position: relative;
+  z-index: 1;
+}
+
+.church-details p {
+  margin: 0.8rem 0;
+  font-size: 1.5rem;
+  color: #ddffff;
+}
+
+/* Enhanced glass cards for public content */
+.summary-cards .card.glass {
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.18);
+  transition: all 0.4s ease;
+}
+
+.summary-cards .card.glass:hover {
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.35);
+  transform: translateY(-8px);
+  border-color: var(--primary);
+}
+
+.section-title {
+  color: var(--primary);
+  text-shadow: 0 0 20px var(--primary);
+  font-size: 2.2rem;
+  margin-bottom: 1.8rem;
+}
+
+/* Big announcements_tgp card */
+.big-announcements .glow-card {
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 35px rgba(0, 255, 255, 0.22);
+}
+
+.announcement-item strong {
+  font-size: 1.8rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .public-hero {
+    padding: 3rem 1rem 2rem;
+  }
+  .public-hero h2 {
+    font-size: clamp(1.6rem, 7vw, 2.4rem);
+  }
+  .public-hero .verse {
+    font-size: 1.1rem;
+  }
+  .public-hero p {
+    font-size: 1rem;
+  }
+  .church-details {
+    padding: 2rem;
+    margin: 3rem auto;
+  }
+}

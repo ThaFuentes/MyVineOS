@@ -1,0 +1,182 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/base.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/base.html -->
+<!-- File name: base.html -->
+<!-- Brief, detailed purpose: Dedicated base layout for the Gathering Place Manager (The-Gathering). -->
+<!-- • Management-only header, navigation, and styling (cyan glass theme). -->
+<!-- • Does NOT inherit from the main site base.html — completely separate for admin/staff use. -->
+<!-- • Sticky top nav with direct links to all sections. -->
+<!-- • Flash messages, responsive design, and logout link. -->
+<!-- • All manager pages extend this file. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Web app / phone app capable (manager mode) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#00ffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MyVine Manager">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
+    <title>{% block title %}Gathering Place Manager{% endblock %} | MyVineChurch.online</title>
+
+    <!-- THEME -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
+
+    <!-- COMPLETE GUI OVERHAUL (new mobile-first) primary -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202606">
+
+    <style>
+        :root {
+            --primary: #00FFFF;
+        }
+        /* Minimal for manager; overhaul.css handles responsive layout, spacing, bottom-nav etc. */
+        body {
+            background: #0a0a0a;
+            color: #eee;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        /* Hover title preview — manager tables */
+        .mgr-preview-wrap {
+            position: relative;
+            display: inline;
+        }
+        .mgr-preview-trigger {
+            color: var(--primary);
+            cursor: help;
+            border-bottom: 1px dotted rgba(0, 255, 255, 0.45);
+        }
+        /* Inline popup is content source only — shown via fixed float (manager.js) */
+        .mgr-preview-wrap .mgr-preview-popup {
+            display: none !important;
+        }
+        .mgr-preview-popup,
+        #mgr-preview-float {
+            position: fixed;
+            z-index: 3000;
+            min-width: 200px;
+            max-width: 400px;
+            max-height: min(260px, 50vh);
+            overflow-y: auto;
+            padding: 0.7rem 0.9rem;
+            background: rgba(12, 14, 22, 0.98);
+            border: 1px solid rgba(0, 255, 255, 0.35);
+            border-radius: 8px;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+            font-size: 0.84rem;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #eee;
+            pointer-events: none;
+        }
+        #mgr-preview-float {
+            display: none;
+        }
+        #mgr-preview-float.mgr-preview-visible {
+            display: block;
+        }
+        /* Edit comment modal */
+        .mgr-edit-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.72);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .mgr-edit-dialog {
+            width: 100%;
+            max-width: 520px;
+            background: #141820;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 1.25rem;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        }
+        .mgr-inline-actions .btn { min-height: auto; }
+    </style>
+</head>
+<body>
+
+<!-- HEADER - using new overhaul top-bar for mobile consistency (manager mode) -->
+<header class="top-bar">
+    <div class="church-name">
+        <strong>THE GATHERING</strong> <span style="font-size:0.75em; opacity:0.65;">Manager</span>
+    </div>
+
+    <div class="user-info">
+        <span style="color:var(--primary); font-size:0.78rem;">👤 {{ current_user or 'Manager' }}</span>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.22rem 0.5rem; font-size:0.72rem; min-height:auto; border-color:#ff6666; color:#ff6666;">Logout</a>
+    </div>
+</header>
+
+<!-- MAIN CONTENT - flashes inside for consistency with main base -->
+<div class="page-content">
+    {% include 'the_gathering/partials/manager_breadcrumb.html' %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}
+    <!-- Child templates go here -->
+    {% endblock %}
+</div>
+
+<!-- Bottom nav for manager area on phones - manager-specific primary nav (overhaul) -->
+<nav class="bottom-nav" aria-label="Manager navigation">
+  <a href="/the_gathering/">
+    <span class="icon">📊</span>
+    <span class="label">Dashboard</span>
+  </a>
+  <a href="/the_gathering/dashboard/moderation">
+    <span class="icon">⚠️</span>
+    <span class="label">Queue</span>
+  </a>
+  <a href="/the_gathering/events/">
+    <span class="icon">📅</span>
+    <span class="label">Events</span>
+  </a>
+  <a href="/the_gathering/prayers/">
+    <span class="icon">🙏</span>
+    <span class="label">Prayers</span>
+  </a>
+  <a href="/the_gathering/sermons/">
+    <span class="icon">📖</span>
+    <span class="label">Sermons</span>
+  </a>
+  <a href="/the_gathering/dreams/">
+    <span class="icon">🌟</span>
+    <span class="label">Dreams</span>
+  </a>
+  <a href="/the_gathering/prophecies/">
+    <span class="icon">🔮</span>
+    <span class="label">Prophecies</span>
+  </a>
+  <a href="/the_gathering/announcements/">
+    <span class="icon">📢</span>
+    <span class="label">Announce</span>
+  </a>
+</nav>
+
+<!-- Footer (minimal, extra pad for bottom nav) - subdued in app mode -->
+<footer style="text-align:center; padding:1rem 0.5rem 4rem; color:#555; font-size:0.65rem; opacity:0.35;">
+    Gathering Place Manager © MyVineChurch.online
+</footer>
+
+<script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+<script src="{{ url_for('static', filename='js/manager.js') }}?v=20260709"></script>
+</body>
+</html>

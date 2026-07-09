@@ -1,0 +1,183 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+<section class="content-section">
+    <h2 class="section-title">{{ 'Edit' if module else 'Install' }} Church App</h2>
+
+    <div class="glass-panel" style="padding:1rem; margin-bottom:1rem; max-width:760px;">
+        <strong>What is this?</strong>
+        <p class="help-text" style="margin:0.5rem 0 0;">
+            A <em>one-way bulletin board</em> — managers post entries (bus stops, youth events, etc.) and members read them.
+            This is <strong>not</strong> a forum: no comments, replies, or member posts unless you make them a Group Manager.
+        </p>
+        <p class="help-text" style="margin:0.5rem 0 0;">
+            <strong>Recommended:</strong> check “Create a permission group” below. That creates a group in
+            <a href="{{ url_for('groups.list_groups') }}">Permission Groups</a> where you add viewers and managers.
+        </p>
+    </div>
+
+    <form method="POST" class="styled-form glass-panel" style="padding:1rem; max-width:760px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+        <div class="form-group">
+            <label for="type_key">App Type <span class="required">*</span></label>
+            <select id="type_key" name="type_key" class="form-input" required {% if module %}disabled{% endif %}>
+                {% for t in types %}
+                <option value="{{ t.type_key }}" data-theme="{{ t.default_theme }}"
+                    {% if module and module.type_key == t.type_key %}selected{% elif not module and loop.first %}selected{% endif %}>
+                    {{ t.icon }} {{ t.name }} — {{ t.description[:60] }}{% if t.description|length > 60 %}…{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            {% if module %}
+            <input type="hidden" name="type_key" value="{{ module.type_key }}">
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="name">Display Name <span class="required">*</span></label>
+            <input type="text" id="name" name="name" class="form-input" required
+                   value="{{ module.name if module else '' }}"
+                   placeholder="e.g. Sunday Bus – North Route">
+            <p class="help-text">Shown on dashboard and page header — your church chooses the name.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="slug">URL Slug <span class="required">*</span></label>
+            <input type="text" id="slug" name="slug" class="form-input" required
+                   value="{{ module.slug if module else '' }}"
+                   placeholder="sunday-bus-north" pattern="[a-z0-9][a-z0-9-]*">
+            <p class="help-text">Page URL: <code>/modules/<em>your-slug</em>/</code></p>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" class="form-input" rows="3">{{ module.description if module else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="theme">Theme</label>
+            <select id="theme" name="theme" class="form-input">
+                {% for key, th in themes.items() %}
+                <option value="{{ key }}" {% if (module and module.theme == key) or (not module and loop.first) %}selected{% endif %}>
+                    {{ th.label }}
+                </option>
+                {% endfor %}
+            </select>
+            <p class="help-text">Colors and accent styling for this app's pages and dashboard tile.</p>
+        </div>
+
+        {% if not module %}
+        <div class="form-group" style="padding:0.75rem; border:1px solid rgba(0,255,255,0.2); border-radius:8px;">
+            <label class="checkbox-label">
+                <input type="checkbox" name="create_group" id="create_group" checked>
+                <span class="checkbox-custom"></span>
+                <strong>Create a permission group for this app (recommended)</strong>
+            </label>
+            <p class="help-text" style="margin:0.35rem 0 0 1.75rem;">
+                Creates <code>App: [your name]</code> in Permission Groups. You are added as Group Manager.
+                Then add members (viewers) and promote others to Group Manager (can add/edit/delete entries).
+            </p>
+        </div>
+        {% elif module.group_id %}
+        <p class="help-text">
+            Permission group:
+            <a href="{{ url_for('groups.edit_group', group_id=module.group_id) }}">{{ module.group_name or 'View group' }}</a>
+            — add members and managers there.
+        </p>
+        {% endif %}
+
+        <div class="form-group" id="visibility-row">
+            <label for="visibility">Who Can View</label>
+            <select id="visibility" name="visibility" class="form-input">
+                <option value="members" {% if not module or module.visibility == 'members' %}selected{% endif %}>All logged-in members</option>
+                <option value="public" {% if module and module.visibility == 'public' %}selected{% endif %}>Public (anyone)</option>
+                <option value="group" {% if module and module.visibility == 'group' %}selected{% endif %}>Specific group only</option>
+            </select>
+            <p class="help-text" id="visibility-hint">If you created a permission group, leave this on “Specific group only”.</p>
+        </div>
+
+        <div class="form-group" id="group-access-row">
+            <label for="group_id">Access Group</label>
+            <select id="group_id" name="group_id" class="form-input">
+                <option value="">— Select group —</option>
+                {% for g in groups %}
+                <option value="{{ g.id }}" {% if module and module.group_id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                {% endfor %}
+            </select>
+            <p class="help-text">Required when visibility is "Specific group only".</p>
+        </div>
+
+        <div class="form-group">
+            <label for="manage_group_id">Who Can Add/Edit Records (optional)</label>
+            <select id="manage_group_id" name="manage_group_id" class="form-input">
+                <option value="">Owner / Admin / Staff only</option>
+                {% for g in groups %}
+                <option value="{{ g.id }}" {% if module and module.manage_group_id == g.id %}selected{% endif %}>{{ g.name }} (Group Managers)</option>
+                {% endfor %}
+            </select>
+            <p class="help-text">Members with <strong>Group Manager</strong> role in this group can add, edit, and delete records.</p>
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="show_on_dashboard" {% if not module or module.show_on_dashboard %}checked{% endif %}>
+                <span class="checkbox-custom"></span> Show on dashboard home screen
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="is_enabled" {% if not module or module.is_enabled %}checked{% endif %}>
+                <span class="checkbox-custom"></span> App enabled
+            </label>
+        </div>
+
+        <div class="form-actions" style="display:flex; gap:0.5rem;">
+            <button type="submit" class="btn-primary">{{ 'Save' if module else 'Install' }} App</button>
+            <a href="{{ url_for('settings.custom_modules_list') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+<script>
+(function() {
+  const vis = document.getElementById('visibility');
+  const groupRow = document.getElementById('group-access-row');
+  const visRow = document.getElementById('visibility-row');
+  const createGroup = document.getElementById('create_group');
+  const typeSelect = document.getElementById('type_key');
+  const themeSelect = document.getElementById('theme');
+  const nameInput = document.getElementById('name');
+  const slugInput = document.getElementById('slug');
+
+  function toggleGroup() {
+    const autoGroup = createGroup && createGroup.checked;
+    if (autoGroup && vis) {
+      vis.value = 'group';
+      if (visRow) visRow.style.opacity = '0.55';
+    } else if (visRow) {
+      visRow.style.opacity = '1';
+    }
+    if (!vis || !groupRow) return;
+    groupRow.style.display = (vis.value === 'group' && !autoGroup) ? 'block' : 'none';
+  }
+  vis?.addEventListener('change', toggleGroup);
+  createGroup?.addEventListener('change', toggleGroup);
+  toggleGroup();
+
+  typeSelect?.addEventListener('change', () => {
+    const opt = typeSelect.selectedOptions[0];
+    if (opt && themeSelect && !{{ 'true' if module else 'false' }}) {
+      themeSelect.value = opt.dataset.theme || 'ocean';
+    }
+  });
+
+  nameInput?.addEventListener('blur', () => {
+    if (slugInput && !slugInput.value && nameInput.value) {
+      slugInput.value = nameInput.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+  });
+})();
+</script>
+{% endblock %}

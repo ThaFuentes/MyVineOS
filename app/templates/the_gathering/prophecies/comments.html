@@ -1,0 +1,141 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/prophecies/comments.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/prophecies/comments.html -->
+<!-- File name: comments.html -->
+<!-- Brief, detailed purpose: Comment moderation page for a specific prophecy inside the Gathering Place Manager. -->
+<!-- • Full table of all comments (top-level + replies). -->
+<!-- • Actions: Approve / Edit / Delete any comment. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.prophecies.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/comments.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}Comments • {{ prophecy.title or 'Prophecy' }}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">💬 Prophecy Comments</h1>
+            <h4 class="text-muted">{{ prophecy.title or 'Prophecy #' ~ prophecy_id }}</h4>
+        </div>
+
+        <div>
+            <!-- Back to Prophecies Manager -->
+            <a href="{{ url_for('the_gathering.prophecies.prophecies_dashboard') }}" class="btn btn-secondary me-2">
+                ← Back to Prophecies Manager
+            </a>
+
+            <!-- View on Public Site -->
+            <a href="{{ url_for('public.public_prophecies.public_prophecy_detail', prophecy_id=prophecy_id) }}"
+               target="_blank" class="btn btn-outline-light">
+                👁️ View on Public Site
+            </a>
+        </div>
+    </div>
+
+    <!-- Search/Filter inside comments -->
+    <form method="GET" class="glass p-3 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label text-light">Search Comments</label>
+                <input type="text" name="search" class="form-control"
+                       placeholder="Search by name or comment text..." value="{{ search or '' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-light">Status</label>
+                <select name="filter" class="form-select">
+                    <option value="all">All Comments</option>
+                    <option value="pending" {% if filter == 'pending' %}selected{% endif %}>Pending Only</option>
+                    <option value="approved" {% if filter == 'approved' %}selected{% endif %}>Approved Only</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Comments Table -->
+    {% if comments %}
+    <div class="glass-panel" style="padding:0; overflow:auto;">
+        <table class="data-table" style="width:100%; min-width:620px;">
+            <thead>
+                <tr>
+                    <th style="width:60px;">ID</th>
+                    <th>Name</th>
+                    <th>Comment</th>
+                    <th>Date</th>
+                    <th>Reply To</th>
+                    <th>Status</th>
+                    <th style="width:260px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comment in comments %}
+                <tr>
+                    <td><strong>#{{ comment.id }}</strong></td>
+                    <td>{{ comment.name | censor }}</td>
+                    <td style="max-width:420px;">
+                        {{ comment.comment_text | nl2br | censor }}
+                        {% if comment.has_censored_content %}
+                            <span class="badge bg-warning ms-2">⚠️ Censored</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ comment.created_at_nice }}</td>
+                    <td>
+                        {% if comment.parent_id %}
+                            <small class="text-muted">Reply to #{{ comment.parent_id }}</small>
+                        {% else %}
+                            <span class="text-success">Original</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if comment.moderated %}
+                            <span class="badge bg-success">Approved</span>
+                        {% else %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <!-- Approve -->
+                        {% if not comment.moderated %}
+                        <form method="POST" action="{{ url_for('the_gathering.prophecies.prophecy_comments', prophecy_id=prophecy_id) }}" style="display:inline;"
+                              onsubmit="return confirm('Approve this comment?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <input type="hidden" name="action" value="approve">
+                            <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                            <button type="submit" class="btn btn-sm btn-success me-1">✅ Approve</button>
+                        </form>
+                        {% endif %}
+
+                        <!-- Edit (placeholder) -->
+                        <button onclick="alert('Edit comment coming in next update')"
+                                class="btn btn-sm btn-primary me-1">✏️</button>
+
+                        <!-- Delete -->
+                        <form method="POST" action="{{ url_for('the_gathering.prophecies.prophecy_comments', prophecy_id=prophecy_id) }}" style="display:inline;"
+                              onsubmit="return confirm('Delete this comment permanently?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                            <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="glass p-5 text-center">
+        <p class="mb-0" style="font-size:1.4rem; color:#888;">No comments yet for this prophecy.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    console.log('✅ Prophecy Comments Manager loaded for prophecy {{ prophecy_id }}');
+</script>
+
+{% endblock %}

@@ -1,0 +1,101 @@
+{# app/templates/pastoral/podium_view.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/podium_view.html #}
+{# File name: podium_view.html #}
+{# Brief, detailed purpose:
+#   Full-screen teleprompter / podium mode for live service.
+#   Automatically loads the sermon linked to today's service plan.
+#   Fallback: most recent sermon.
+#   Large, readable text with per-browser font size persistence (localStorage).
+#   Teleprompter controls: play/pause (space), speed slider (arrows), timer, reset (R), auto-fullscreen.
+#   Dark theme, cyan accents. #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Podium Mode – {{ sermon.title if sermon else 'No Sermon Loaded' }}{% endblock %}
+
+{% block pastoral_content %}
+<div id="podium-container" class="h-screen overflow-y-auto bg-black text-white p-8">
+    <div id="podium-content" class="max-w-4xl mx-auto" style="font-size: 40px; line-height: 1.8; text-align: left;">
+        {% if sermon %}
+            <h1 class="text-6xl text-center mb-12 text-cyan">{{ sermon.title }}</h1>
+            {% if sermon.primary_passage %}
+                <h2 class="text-4xl text-center mb-8 text-cyan">{{ sermon.primary_passage }}</h2>
+            {% endif %}
+
+            {% for section in sections %}
+                <div class="mb-16">
+                    <h2 class="text-5xl mb-6 text-cyan">{{ section.title or 'Untitled Section' }}</h2>
+                    {% if section.scripture_reference %}
+                        <p class="text-3xl mb-4 text-cyan-300">{{ section.scripture_reference }}</p>
+                    {% endif %}
+                    <div class="text-4xl mb-8 leading-relaxed">{{ section.content|safe }}</div>
+                    {% if section.notes %}
+                        <details class="mt-4">
+                            <summary class="text-2xl cursor-pointer text-cyan-400">Preacher Notes</summary>
+                            <div class="text-3xl mt-4 text-gray-300">{{ section.notes|safe }}</div>
+                        </details>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            {% if sermon.conclusion_text %}
+                <h2 class="text-5xl mb-6 text-cyan">Conclusion</h2>
+                <div class="text-4xl mb-12 leading-relaxed">{{ sermon.conclusion_text|safe }}</div>
+            {% endif %}
+        {% else %}
+            <h1 class="text-6xl text-center text-cyan">No Sermon Scheduled for Today</h1>
+            <p class="text-3xl text-center mt-12">Link a sermon to today's service plan or select one manually from the Sermons list.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Fixed Bottom Controls -->
+<div class="fixed bottom-0 left-0 right-0 bg-black border-top border-3 border-cyan p-4 z-10">
+    <div class="max-w-4xl mx-auto d-flex justify-content-between align-items-center gap-4 flex-wrap">
+        <button id="play-pause-btn" class="btn btn-lg btn-cyan">
+            <i class="fas fa-play"></i>
+        </button>
+
+        <div class="flex-grow-1 text-center">
+            <label class="me-2">Speed: <span id="speed-display">1.0x</span></label>
+            <input type="range" id="speed-slider" class="form-range w-50" min="0.3" max="3" step="0.1" value="1.0">
+        </div>
+
+        <div class="text-center">
+            <label class="me-2">Font Size:</label>
+            <input type="range" id="font-size-slider" class="form-range w-25" min="20" max="80" step="2" value="40">
+        </div>
+
+        <div class="text-3xl text-center">
+            Timer: <span id="timer">00:00</span>
+        </div>
+
+        <button id="reset-btn" class="btn btn-outline-cyan btn-lg">
+            Reset
+        </button>
+
+        <button id="exit-fullscreen-btn" class="btn btn-outline-secondary btn-lg">
+            Exit Fullscreen
+        </button>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/global/pastoral/podium.js') }}"></script>
+<script>
+    // Font size persistence + live update
+    const content = document.getElementById('podium-content');
+    const fontSlider = document.getElementById('font-size-slider');
+
+    let savedSize = localStorage.getItem('podiumFontSize');
+    if (savedSize) {
+        fontSlider.value = savedSize;
+        content.style.fontSize = savedSize + 'px';
+    }
+
+    fontSlider.addEventListener('input', (e) => {
+        const size = e.target.value;
+        content.style.fontSize = size + 'px';
+        localStorage.setItem('podiumFontSize', size);
+    });
+</script>
+{% endblock %}

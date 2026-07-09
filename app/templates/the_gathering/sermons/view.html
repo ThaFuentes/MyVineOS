@@ -1,0 +1,98 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/sermons/view.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/sermons/view.html -->
+<!-- File name: view.html -->
+<!-- Brief, detailed purpose: Read-only detailed view of a single sermon inside the Gathering Place Manager. -->
+<!-- • Shows every field from the sermons table in a clean layout. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.sermons.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}View Sermon • {{ sermon.title }}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">📖 Sermon Detail</h1>
+            <h2 class="text-light">{{ sermon.title }}</h2>
+        </div>
+
+        <div style="display:flex; gap:0.5rem;">
+            <!-- Back to Sermons Manager -->
+            <a href="{{ url_for('the_gathering.sermons.sermons_dashboard') }}" class="btn btn-secondary">
+                ← Back to Sermons
+            </a>
+
+            <!-- Edit Sermon -->
+            <a href="{{ url_for('the_gathering.sermons.edit_sermon', sermon_id=sermon.id) }}" class="btn btn-primary">
+                ✏️ Edit Sermon
+            </a>
+
+            <!-- Manage Comments -->
+            <a href="{{ url_for('the_gathering.sermons.sermon_comments', sermon_id=sermon.id) }}" class="btn btn-warning">
+                💬 Manage Comments ({{ comment_count or 0 }})
+            </a>
+
+            <!-- View on Public Site -->
+            <a href="{{ url_for('public.public_sermons.public_sermon_detail', sermon_id=sermon.id) }}"
+               target="_blank" class="btn btn-outline-light">
+                👁️ View Public
+            </a>
+
+            <!-- Delete Sermon -->
+            <form method="POST" action="{{ url_for('the_gathering.sermons.delete_sermon', sermon_id=sermon.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this sermon and ALL its comments?')">
+                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="glass p-4 mb-5">
+        <!-- Meta Row -->
+        <div class="row mb-4" style="font-size:1.1rem;">
+            <div class="col-md-3">
+                <strong>Visibility:</strong>
+                <span class="badge {% if sermon.visibility == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
+                    {{ sermon.visibility|upper }}
+                </span>
+            </div>
+            <div class="col-md-3">
+                <strong>Creator:</strong> {{ sermon.creator_name or 'Anonymous' }}
+            </div>
+            <div class="col-md-3">
+                <strong>Created:</strong> {{ sermon.created_at | format_manager_datetime }}
+            </div>
+            <div class="col-md-3">
+                <strong>Scripture:</strong> {{ sermon.scripture or '—' }}
+            </div>
+        </div>
+
+        <!-- Notes (if any) -->
+        {% if sermon.notes %}
+        <div class="mb-4">
+            <h5 class="text-light">Notes / Summary</h5>
+            <div class="glass-panel">{{ sermon.notes | nl2br | safe }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Full Sermon Content -->
+        <div class="mb-5">
+            <h5 class="text-light">Sermon Content</h5>
+            <div class="glass-panel">{{ sermon.sermon_text | nl2br | safe }}</div>
+        </div>
+
+        <!-- Created / Updated Info -->
+        <div class="text-muted small mt-4">
+            Created by {{ sermon.creator_name or 'Anonymous' }} on {{ sermon.created_at | format_manager_datetime }}<br>
+            Last updated: {{ sermon.updated_at | format_manager_datetime }}
+        </div>
+    </div>
+</div>
+
+<script>
+    console.log('✅ Sermon View loaded for sermon #{{ sermon.id }}');
+</script>
+
+{% endblock %}

@@ -1,0 +1,43 @@
+<!-- app/templates/bills/base_bills.html -->
+<!-- Full path: WebChurchMan/app/templates/bills/base_bills.html -->
+<!-- File name: base_bills.html -->
+<!-- Brief, detailed purpose: Common base template for ALL Bills module pages (dashboard, add, edit, view, assign).
+   Exact mirror of base_events.html / base_prayers.html / base_donations.html → identical glassmorphism wrapper, menu, flash handling.
+   NO module-specific CSS – uses only global classes.
+   Menu: Bills Dashboard (always) + Add Bill (only with manage_bills permission). -->
+
+{% extends "base.html" %}
+
+{% block extra_css %}
+{# Global CSS only – no bills-specific files #}
+{% block bills_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<!-- Overhauled -->
+<h1 class="page-title">{% block page_title %}Recurring Bills{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Internal menu -->
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+    <a {% if request.endpoint == 'bills.bills' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       href="{{ url_for('bills.bills') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Bills Dashboard</a>
+
+    {% if user_has_permission('manage_bills') or session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+        <a {% if request.endpoint in ['bills.add_bill', 'bills.edit_bill'] %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+           href="{{ url_for('bills.add_bill') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Bill</a>
+    {% endif %}
+</div>
+
+{% block bills_content %}{% endblock %}
+{% endblock %}

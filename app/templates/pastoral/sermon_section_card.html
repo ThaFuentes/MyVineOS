@@ -1,0 +1,51 @@
+{# Single editable sermon section — uses unified fields partial. #}
+
+{% set section = section|default({
+    'id': '',
+    'title': '',
+    'section_type': 'point',
+    'scripture_reference': '',
+    'source': '',
+    'content': '',
+    'notes': '',
+    'vault_tags': '',
+    'vault_visibility': 'private'
+}) %}
+
+<div class="section-card card glass-card mb-4 position-relative" data-section-id="{{ section.id }}">
+    <div class="card-header d-flex align-items-center gap-2 bg-dark py-2 flex-wrap">
+        <button type="button" class="btn btn-sm btn-outline-secondary move-up" title="Move up">
+            <i class="fas fa-arrow-up"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary move-down" title="Move down">
+            <i class="fas fa-arrow-down"></i>
+        </button>
+
+        <h5 class="mb-0 text-cyan flex-grow-1 section-header-title" style="min-width:180px;">
+            Section {{ loop.index if loop else '' }}: {{ section.title|default('Untitled') }}
+        </h5>
+
+        <div class="section-card-actions d-flex flex-wrap gap-1 ms-auto">
+            <button type="button" class="btn btn-sm btn-success save-section-vault-and-sermon"
+                    title="Save to Vault and keep in this sermon">
+                Vault &amp; Sermon
+            </button>
+            <button type="button" class="btn btn-sm btn-cyan save-section-to-vault"
+                    title="Save to Vault only (section stays in this sermon)">
+                <i class="fas fa-archive me-1"></i>Vault
+            </button>
+            <span class="section-save-hint text-muted" title="This section is part of your sermon as you edit">Save to sermon</span>
+            <button type="button" class="btn btn-sm btn-outline-cyan save-to-illustrations"
+                    title="Save content to Illustrations Library">
+                <i class="fas fa-bookmark me-1"></i>Illustrations
+            </button>
+            <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove section">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="card-body section-form-root" data-section-root>
+        {% include "pastoral/sermon_section_fields.html" %}
+    </div>
+</div>

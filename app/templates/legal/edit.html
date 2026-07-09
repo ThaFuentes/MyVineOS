@@ -1,0 +1,81 @@
+{% extends "legal/base_legal.html" %}
+
+{% block page_title %}{% if notice %}Edit Notice{% else %}Add Notice{% endif %}{% endblock %}
+{% block page_description %}
+{% if notice %}
+Update this notice. Uncheck Active to keep it as a draft hidden from the public page.
+{% else %}
+Create a new notice. Starter text is provided when available — edit it to match your church.
+{% endif %}
+{% endblock %}
+
+{% block legal_content %}
+<form method="post" class="glass-panel styled-form legal-edit-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-group">
+        <label for="category_id">Category</label>
+        <select id="category_id" name="category_id" required {% if lock_category %}disabled{% endif %}>
+            {% for c in categories %}
+            <option value="{{ c.id }}"
+                {% if notice and notice.category_id == c.id %}selected
+                {% elif preselect_category_id and preselect_category_id == c.id %}selected{% endif %}>
+                {{ c.name }}
+            </option>
+            {% endfor %}
+        </select>
+        {% if lock_category %}
+        <input type="hidden" name="category_id" value="{{ preselect_category_id }}">
+        {% endif %}
+        <p class="help-text">Each category can have one or more notices. Visitors see all active notices in that category.</p>
+    </div>
+
+    <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required maxlength="255"
+               value="{{ notice.title if notice else starter_title }}">
+    </div>
+
+    <div class="form-group">
+        <label for="summary">Short summary (optional)</label>
+        <input type="text" id="summary" name="summary" maxlength="500"
+               value="{{ notice.summary if notice and notice.summary else '' }}"
+               placeholder="One-line description shown on the index">
+    </div>
+
+    <div class="form-group">
+        <label for="content">Content</label>
+        <textarea id="content" name="content" rows="16" required>{{ notice.content if notice else starter_content }}</textarea>
+        <p class="help-text">Plain text. Line breaks are preserved.</p>
+    </div>
+
+    <div class="form-row legal-edit-meta">
+        <div class="form-group">
+            <label for="sort_order">Sort order</label>
+            <input type="number" id="sort_order" name="sort_order" min="0" max="999"
+                   value="{{ notice.sort_order if notice else 0 }}">
+        </div>
+        <div class="form-group form-check">
+            <label>
+                <input type="checkbox" name="is_active" value="1"
+                    {% if not notice or notice.is_active %}checked{% endif %}>
+                Active — show on public legal page
+            </label>
+        </div>
+    </div>
+
+    <div class="form-actions legal-edit-actions">
+        <button type="submit" class="btn-primary">Save notice</button>
+        <a href="{{ url_for('legal.manage_list') }}" class="btn-secondary">Back to manage</a>
+        {% if notice %}
+            {% if notice.is_active %}
+            <a href="{{ url_for('legal.view_notice', slug=notice.slug) }}" class="btn-secondary" target="_blank" rel="noopener">View live</a>
+            {% endif %}
+            <form method="post" action="{{ url_for('legal.delete_notice', notice_id=notice.id) }}" class="inline-form" onsubmit="return confirm('Delete this notice permanently?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-small btn-danger">Delete</button>
+            </form>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}

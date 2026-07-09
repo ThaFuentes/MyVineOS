@@ -1,0 +1,60 @@
+{% extends "custom_modules/base.html" %}
+
+{% block module_content %}
+<section class="content-section">
+    <h2 class="section-title">{{ 'Edit' if record else 'Add' }} {{ schema.record_label|default('Record') }}</h2>
+
+    <form method="POST" action="{{ form_action }}" class="styled-form glass-panel" style="padding:1rem; max-width:720px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+        {% for field in schema.fields %}
+        <div class="form-group">
+            <label for="field_{{ field.key }}">{{ field.label }}{% if field.required %} <span class="required">*</span>{% endif %}</label>
+
+            {% set val = record.data.get(field.key) if record else '' %}
+
+            {% if field.type == 'textarea' %}
+            <textarea id="field_{{ field.key }}" name="{{ field.key }}" rows="4" class="form-input" {% if field.required %}required{% endif %}>{{ val }}</textarea>
+
+            {% elif field.type == 'select' %}
+            <select id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" {% if field.required %}required{% endif %}>
+                <option value="">— Select —</option>
+                {% for opt in field.options or [] %}
+                <option value="{{ opt }}" {% if val == opt %}selected{% endif %}>{{ opt }}</option>
+                {% endfor %}
+            </select>
+
+            {% elif field.type == 'number' %}
+            <input type="number" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" step="any" {% if field.required %}required{% endif %}>
+
+            {% elif field.type == 'date' %}
+            <input type="date" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" {% if field.required %}required{% endif %}>
+
+            {% elif field.type == 'time' %}
+            <input type="time" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" {% if field.required %}required{% endif %}>
+
+            {% elif field.type == 'email' %}
+            <input type="email" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" {% if field.required %}required{% endif %}>
+
+            {% elif field.type == 'url' %}
+            <input type="url" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" {% if field.required %}required{% endif %}>
+
+            {% elif field.type == 'boolean' %}
+            <label class="checkbox-label">
+                <input type="checkbox" id="field_{{ field.key }}" name="{{ field.key }}" value="1" {% if val %}checked{% endif %}>
+                <span class="checkbox-custom"></span> Yes
+            </label>
+
+            {% else %}
+            <input type="text" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" {% if field.required %}required{% endif %}>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="form-actions" style="display:flex; gap:0.5rem;">
+            <button type="submit" class="btn-primary">{{ 'Update' if record else 'Add' }} {{ schema.record_label|default('Record') }}</button>
+            <a href="{{ url_for('custom_modules.module_list', slug=module.slug) }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

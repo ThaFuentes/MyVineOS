@@ -1,0 +1,130 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/events/events_dashboard.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/events/events_dashboard.html -->
+<!-- File name: events_dashboard.html -->
+<!-- Brief, detailed purpose: Dedicated Events Management Dashboard for the Gathering Place Manager. -->
+<!-- • Full list of all events with search + filters. -->
+<!-- • Per-event actions: Edit, Delete, Manage Potluck, Manage Comments, View Public. -->
+<!-- • Updated ALL url_for calls to the new nested blueprint: the_gathering.events.* -->
+<!-- • 100% rebuilt entire file with correct new routes. -->
+
+{% extends "the_gathering/base.html" %}
+{% from 'the_gathering/partials/title_preview.html' import title_preview %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">Events Manager</h1>
+        <a href="{{ url_for('the_gathering.events.edit_event') }}" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold; padding:0.5rem 0.9rem; font-size:0.9rem;">
+            + Add New Event
+        </a>
+    </div>
+
+    <!-- Search & Filter Bar (mobile friendly flex, no Bootstrap cols) -->
+    <form method="GET" class="glass-panel" style="padding:0.85rem; margin-bottom:1rem;">
+        <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end;">
+            <div style="flex: 2 1 220px; min-width:180px;">
+                <label style="display:block; font-size:0.8rem; margin-bottom:0.25rem; opacity:0.85;">Search Events</label>
+                <input type="text" name="search" class="form-control" placeholder="Event name or location..." value="{{ search or '' }}" style="width:100%;">
+            </div>
+            <div style="flex: 1 1 120px; min-width:110px;">
+                <label style="display:block; font-size:0.8rem; margin-bottom:0.25rem; opacity:0.85;">Filter</label>
+                <select name="filter" class="form-select" style="width:100%;">
+                    <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Events</option>
+                    <option value="upcoming" {% if filter_type == 'upcoming' %}selected{% endif %}>Upcoming Only</option>
+                    <option value="past" {% if filter_type == 'past' %}selected{% endif %}>Past Events</option>
+                </select>
+            </div>
+            <div style="flex: 0 0 auto;">
+                <button type="submit" class="btn btn-primary" style="min-height:42px;">Apply Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Events Table -->
+    {% if events %}
+    <div class="glass-panel" style="padding:0; overflow:auto;">
+        <table class="data-table" style="width:100%; min-width:720px;">
+            <thead>
+                <tr>
+                    <th style="width:40px;">ID</th>
+                    <th>Event Name</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Location</th>
+                    <th>Visibility</th>
+                    <th>Creator</th>
+                    <th>Potluck</th>
+                    <th>Comments</th>
+                    <th style="width:280px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                <tr>
+                    <td><strong>#{{ event.id }}</strong></td>
+                    <td>{{ title_preview(event.event_name, event.description) }}</td>
+                    <td>{{ event.event_date }}</td>
+                    <td>{{ event.event_time or '—' }}</td>
+                    <td>{{ event.location or '—' }}</td>
+                    <td>
+                        <span class="badge {% if event.visibility == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ event.visibility|upper }}
+                        </span>
+                    </td>
+                    <td>{{ event.creator_name or 'Anonymous' }}</td>
+                    <td>
+                        {% if event.potluck_enabled %}
+                            <span class="badge bg-info">Enabled</span>
+                            <small class="d-block text-muted">{{ event.potluck_count or 0 }} signups</small>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-primary">{{ event.comment_count or 0 }}</span>
+                    </td>
+                    <td>
+                        <!-- View on Public -->
+                        <a href="{{ url_for('public.public_events.public_event_detail', event_id=event.id) }}"
+                           target="_blank" class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="View Public">
+                            👁️
+                        </a>
+
+                        <!-- Edit Event -->
+                        <a href="{{ url_for('the_gathering.events.edit_event', event_id=event.id) }}"
+                           class="btn btn-primary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="Edit Event">✏️</a>
+
+                        <!-- View Event -->
+                        <a href="{{ url_for('the_gathering.events.view_event', event_id=event.id) }}"
+                           class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="View Event">📋</a>
+
+                        <!-- Delete Event -->
+                        <form method="POST" action="{{ url_for('the_gathering.events.delete_event', event_id=event.id) }}" style="display:inline;"
+                              onsubmit="return confirm('Delete this event and ALL its potluck items + comments?')">
+                            <button type="submit" class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem; background:#c33; color:#fff;" title="Delete Event">🗑️</button>
+                        </form>
+
+                        <!-- Manage Potluck -->
+                        <a href="{{ url_for('the_gathering.events.event_potluck', event_id=event.id) }}"
+                           class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem;" title="Manage Potluck Items">🍲</a>
+
+                        <!-- Manage Comments -->
+                        <a href="{{ url_for('the_gathering.events.event_comments', event_id=event.id) }}"
+                           class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem; background:#c90; color:#000;" title="Manage Comments">💬</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="glass-panel" style="text-align:center; padding:2rem 1rem;">
+        <p style="margin:0; font-size:1.1rem; color:#888;">No events found.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

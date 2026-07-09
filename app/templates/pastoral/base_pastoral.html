@@ -1,0 +1,112 @@
+{# app/templates/pastoral/base_pastoral.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/base_pastoral.html #}
+{# File name: base_pastoral.html #}
+{# Brief, detailed purpose: Standalone master layout for ALL Pastoral Area pages.
+#   • Fixed dark header with glowing "Pastoral Command Center" title
+#   • Compact, responsive navigation with key quick-links:
+#     - Pastoral Dashboard
+#     - Planning
+#     - Sermon Library (list for selection/editing)
+#     - Podium Mode → sermon selection list (today's linked sermon highlighted)
+#     - Main Dashboard (back to public/private main)
+#   • Maintains consistent dark/cyan theme (#00FFFF accents)
+#   • Child pages control content below header via {% block pastoral_content %}
+#   • FIXED: Removed outdated Font Awesome integrity hash (prevents "Failed to find valid digest" error)
+#   • UPDATED: Font Awesome 6.6.0 (latest stable as of Jan 2026)
+#   • All inline styles extracted to static/css/global/pastoral/base_pastoral.css
+#   • Bootstrap 5.3.3 JS bundle included (required for modals, toasts, dropdowns)
+#}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if session.user_theme %}{{ session.user_theme }}{% else %}cyan-glow{% endif %}">
+<head>
+  <meta charset="UTF-8">
+  <!-- Web app / phone app capable (pastoral mode) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#00ffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pastoral">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
+  <title>{% block title %}Pastoral Command Center{% endblock %} – MyVineChurch.Online OS</title>
+
+  <!-- THEME + OVERHAUL (mobile first, no more Bootstrap primary for layout) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260604d">
+
+  <!-- Font Awesome (kept for icons in pastoral content) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+  <!-- Pastoral specific overrides if any (kept after overhaul for icons etc) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/base_pastoral.css') }}">
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Overhauled top bar (consistent with main GUI) -->
+  <header class="top-bar">
+    <div class="church-name" style="max-width:60%;">Pastoral Command Center</div>
+    <div class="user-info" style="gap:0.35rem;">
+      <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;">📊</a>
+      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;">📅</a>
+      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;">📖</a>
+      <a href="{{ url_for('pastoral.podium.index') }}" class="btn btn-primary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;">🎤 Podium</a>
+      <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;">❤️ Care</a>
+      <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;">📝 Illustrations</a>
+      <a href="{{ url_for('pastoral.bible.bible_study') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;">📜 Bible</a>
+      {% if session.get('user_role') in ['Admin', 'Owner'] %}
+      <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Bible translations">📥</a>
+      {% endif %}
+      <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-secondary" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;">🏠 Main</a>
+    </div>
+  </header>
+
+  <!-- Content wrapper from overhaul -->
+  <div class="page-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block pastoral_content %}{% endblock %}
+  </div>
+
+  <!-- Bottom nav for pastoral on phones (consistent mobile GUI) - full functions -->
+  <nav class="bottom-nav" aria-label="Pastoral mobile nav">
+    <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="{{ 'active' if request.endpoint == 'pastoral.dashboard_pastoral' else '' }}">
+      <span class="icon">📊</span>
+      <span class="label">Dash</span>
+    </a>
+    <a href="{{ url_for('pastoral.planning.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.planning') else '' }}">
+      <span class="icon">📅</span>
+      <span class="label">Plan</span>
+    </a>
+    <a href="{{ url_for('pastoral.sermons.list') }}" class="{{ 'active' if request.endpoint and (request.endpoint.startswith('pastoral.sermons') or request.endpoint.startswith('pastoral.podium')) else '' }}">
+      <span class="icon">📖</span>
+      <span class="label">Sermons</span>
+    </a>
+    <a href="{{ url_for('pastoral.podium.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.podium') else '' }}">
+      <span class="icon">🎤</span>
+      <span class="label">Podium</span>
+    </a>
+    <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.care') else '' }}">
+      <span class="icon">❤️</span>
+      <span class="label">Care</span>
+    </a>
+    <a href="{{ url_for('pastoral.illustrations.library') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.illustrations') else '' }}">
+      <span class="icon">📝</span>
+      <span class="label">Illustrations</span>
+    </a>
+  </nav>
+
+  <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

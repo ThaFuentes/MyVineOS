@@ -1,0 +1,58 @@
+{% extends "worship/base_worship.html" %}
+{% from "worship/_public_links.html" import public_links %}
+
+{% block worship_title %}Plan — {{ date_str }}{% endblock %}
+
+{% block worship_content %}
+<h1 style="margin:0 0 0.5rem; font-size:1.35rem; color:var(--primary);">{{ date_str }}</h1>
+
+{% if plan and plan.source == 'template' %}
+<div class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:1rem; border-left:3px solid #f0c040;">
+  Using the <strong>{{ plan.weekday_name }} weekly default</strong>: “{{ plan.title }}”.
+  {% if can_manage %}
+  <form method="post" style="margin-top:0.75rem;">
+    <input type="hidden" name="action" value="customize">
+    <button type="submit" class="btn btn-primary">Customize this date only</button>
+    <a href="{{ url_for('worship.template_edit', weekday=plan.weekday) }}" class="btn btn-secondary">Edit weekly default</a>
+  </form>
+  {% endif %}
+</div>
+{% elif not plan %}
+<div class="glass-panel" style="padding:1rem; opacity:0.75;">No plan or weekly template for this date.</div>
+{% endif %}
+
+{% if plan %}
+{{ public_links(public_token, 'plan') }}
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h2 style="margin:0 0 0.5rem;">{{ plan.title }}</h2>
+  {% if plan.rehearsal_time %}<p>Rehearsal: {{ plan.rehearsal_time }}</p>{% endif %}
+  {% if plan.service_time %}<p>Service: {{ plan.service_time }}</p>{% endif %}
+  {% if plan.notes %}<p style="opacity:0.85;">{{ plan.notes }}</p>{% endif %}
+</div>
+
+{% if plan.assignments %}
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h3 style="margin:0 0 0.5rem;">Team</h3>
+  <ul style="margin:0; padding-left:1.1rem;">
+    {% for a in plan.assignments %}
+    <li>{{ a.role_name }}: <strong>{{ a.user_full_name }}</strong>
+      {% if a.role_in_group == 'leader' %}<span style="color:var(--primary); font-size:0.8rem;"> (Group Manager)</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="glass-panel" style="padding:1rem;">
+  <h3 style="margin:0 0 0.5rem;">Setlist</h3>
+  <ol style="margin:0; padding-left:1.25rem;">
+    {% for s in plan.songs or [] %}
+    <li style="margin-bottom:0.35rem;"><strong>{{ s.title }}</strong>{% if s.artist %} — {{ s.artist }}{% endif %}</li>
+    {% else %}
+    <li style="list-style:none; opacity:0.6;">No songs yet.</li>
+    {% endfor %}
+  </ol>
+</div>
+{% endif %}
+{% endblock %}

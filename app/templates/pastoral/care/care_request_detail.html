@@ -1,0 +1,138 @@
+{# app/templates/pastoral/care/care_request_detail.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/care/care_request_detail.html #}
+{# File name: care_request_detail.html #}
+{# Brief, detailed purpose: View and manage a single pastoral care request. #}
+{#   - Shows request details, assigned pastors, notes timeline #}
+{#   - Forms: add note, assign/remove pastor, update status #}
+{#   - Dark theme, cyan accents, inherits base_pastoral.html #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block pastoral_content %}
+<div class="glass-panel">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+    <h2 style="margin:0;">Care Request Details</h2>
+    <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="font-size:0.85rem; min-height:38px;">← Back to Care</a>
+  </div>
+</div>
+
+<!-- Request Info -->
+<div class="glass-panel">
+  <div style="font-size:1.05rem; font-weight:600; margin-bottom:0.5rem; color:var(--primary);">
+    {{ request.title or request.request_type|capitalize }}
+  </div>
+  <div style="display:grid; grid-template-columns: 120px 1fr; gap:0.35rem 0.6rem; font-size:0.92rem;">
+    <div style="opacity:0.65;">Member</div><div>{{ request.member_name }}</div>
+    <div style="opacity:0.65;">Type</div><div>{{ request.request_type|capitalize }}</div>
+    <div style="opacity:0.65;">Urgency</div><div><span style="padding:0.1rem 0.4rem; border-radius:999px; background:rgba(255,180,80,0.2); font-size:0.8rem;">{{ request.urgency|capitalize }}</span></div>
+    <div style="opacity:0.65;">Status</div><div><span style="padding:0.1rem 0.4rem; border-radius:999px; background:rgba(255,255,255,0.1); font-size:0.8rem;">{{ request.status|replace('_',' ')|capitalize }}</span></div>
+    <div style="opacity:0.65;">Submitted</div><div>{{ request.created_at|relative_time }}</div>
+    <div style="opacity:0.65;">Description</div><div style="white-space:pre-wrap;">{{ request.description|nl2br }}</div>
+  </div>
+</div>
+
+<!-- Assigned Pastors + inline assign form (no collapse, always available; no BS dep) -->
+<div class="glass-panel">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+    <strong>Assigned Pastors/Staff</strong>
+  </div>
+
+  {% if assignments %}
+    {% for ass in assignments %}
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; padding:0.4rem 0; border-top:1px solid rgba(255,255,255,0.06);">
+      <div>
+        <strong>{{ ass.pastor_name }}</strong>
+        {% if ass.is_primary %}<span style="font-size:0.7rem; padding:0 0.35rem; background:#0a0; border-radius:4px; margin-left:0.3rem;">Primary</span>{% endif %}
+        {% if ass.notes %}<div style="font-size:0.8rem; opacity:0.7;">{{ ass.notes }}</div>{% endif %}
+      </div>
+      <form action="{{ url_for('pastoral.care.care_remove_assignment', assignment_id=ass.id) }}" method="POST" style="margin:0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <button type="submit" class="btn btn-secondary" style="min-height:36px; padding:0 0.6rem; font-size:0.8rem; background:#522;" onclick="return confirm('Remove {{ ass.pastor_name }}?');">✕</button>
+      </form>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="opacity:0.6; padding:0.3rem 0;">No assignments yet.</div>
+  {% endif %}
+
+  <!-- Assign form always visible below list (simple, robust) -->
+  <div style="margin-top:0.75rem; padding-top:0.6rem; border-top:1px dashed rgba(0,255,255,0.2);">
+    <div style="font-weight:600; font-size:0.9rem; margin-bottom:0.35rem;">Assign New</div>
+    <form action="{{ url_for('pastoral.care.care_assign', request_id=request.id) }}" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
+        <div style="flex:2; min-width:160px;">
+          <select name="pastor_id" required style="width:100%; padding:0.45rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
+            <option value="">-- Select Pastor/Staff --</option>
+            {% for pastor in pastoral_team %}
+              <option value="{{ pastor.id }}">{{ pastor.first_name }} {{ pastor.last_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; min-width:120px;">
+          <input type="checkbox" name="is_primary" value="1"> Primary
+        </label>
+        <div style="flex:1; min-width:140px;">
+          <input type="text" name="notes" placeholder="Notes (opt)" style="width:100%; padding:0.45rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="min-height:40px; padding:0 1rem;">Assign</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Notes -->
+<div class="glass-panel">
+  <strong style="display:block; margin-bottom:0.5rem;">Confidential Notes</strong>
+
+  {% if notes %}
+    {% for note in notes %}
+    <div style="padding:0.5rem 0; border-top:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+        <strong>{{ note.author_name }}</strong>
+        <small style="opacity:0.6;">{{ note.created_at|relative_time }}</small>
+      </div>
+      <p style="margin:0.35rem 0 0.1rem; white-space:pre-wrap;">{{ note.note|nl2br }}</p>
+      {% if note.is_private %}<small style="color:#ffcc66;">(Private to team)</small>{% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="opacity:0.6; padding:0.4rem 0;">No notes yet.</div>
+  {% endif %}
+
+  <!-- Add Note form + CSRF -->
+  <form action="{{ url_for('pastoral.care.care_add_note', request_id=request.id) }}" method="POST" style="margin-top:0.75rem; padding-top:0.6rem; border-top:1px dashed rgba(0,255,255,0.2);">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <div class="form-group">
+      <label style="display:block; font-weight:600; margin-bottom:0.25rem;">Add Note</label>
+      <textarea name="note" rows="4" required style="width:100%; padding:0.55rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);" placeholder="Enter confidential notes..."></textarea>
+    </div>
+    <label style="display:flex; align-items:center; gap:0.35rem; margin:0.4rem 0; font-size:0.9rem;">
+      <input type="checkbox" name="is_private" value="1" checked> Keep private to pastoral team
+    </label>
+    <button type="submit" class="btn btn-primary" style="min-height:42px;">Add Note</button>
+  </form>
+</div>
+
+<!-- Quick Status -->
+<div class="glass-panel">
+  <form action="{{ url_for('pastoral.care.care_edit', request_id=request.id) }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+      <span style="font-weight:600;">Quick Status:</span>
+      <select name="status" style="padding:0.4rem 0.6rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
+        <option value="open" {% if request.status == 'open' %}selected{% endif %}>Open</option>
+        <option value="assigned" {% if request.status == 'assigned' %}selected{% endif %}>Assigned</option>
+        <option value="in_progress" {% if request.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+        <option value="followed_up" {% if request.status == 'followed_up' %}selected{% endif %}>Followed Up</option>
+        <option value="closed" {% if request.status == 'closed' %}selected{% endif %}>Closed</option>
+      </select>
+      <button type="submit" class="btn btn-secondary">Update Status</button>
+    </div>
+  </form>
+</div>
+
+<div style="text-align:center; margin:0.5rem 0;">
+  <a href="{{ url_for('pastoral.care.care_dashboard') }}" style="font-size:0.8rem; opacity:0.6;">← Back to Care Dashboard</a>
+</div>
+{% endblock %}

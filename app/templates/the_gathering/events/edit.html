@@ -1,0 +1,158 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/events/edit.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/events/edit.html -->
+<!-- File name: edit.html -->
+<!-- Brief, detailed purpose: Full Event Editor form inside the Gathering Place Manager. -->
+<!-- • Create new OR edit existing event (all fields from your events table). -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.events.* -->
+<!-- • 100% rebuilt entire file with correct new routes. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}{% if event %}Edit Event{% else %}Create New Event{% endif %}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">
+            {% if event %}
+                ✏️ Edit Event #{{ event.id }}
+            {% else %}
+                ➕ Create New Event
+            {% endif %}
+        </h1>
+
+        <div>
+            <!-- Back to Events Manager -->
+            <a href="{{ url_for('the_gathering.events.events_dashboard') }}" class="btn btn-secondary me-2">
+                ← Back to Events Manager
+            </a>
+
+            {% if event %}
+            <!-- View on Public -->
+            <a href="{{ url_for('public.public_events.public_event_detail', event_id=event.id) }}"
+               target="_blank" class="btn btn-outline-light me-2">
+                👁️ View Public
+            </a>
+
+            <!-- Delete -->
+            <form method="POST" action="{{ url_for('the_gathering.events.delete_event', event_id=event.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this event and ALL potluck items + comments?')">
+                <button type="submit" class="btn btn-danger">🗑️ Delete Event</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('the_gathering.events.edit_event', event_id=event.id if event else None) }}" class="glass p-4">
+        {% if event %}
+        <input type="hidden" name="event_id" value="{{ event.id }}">
+        {% endif %}
+
+        <div class="row g-4">
+            <!-- Basic Info -->
+            <div class="col-lg-8">
+                <div class="mb-4">
+                    <label class="form-label text-light">Event Name <span class="text-danger">*</span></label>
+                    <input type="text" name="event_name" class="form-control"
+                           value="{{ event.event_name or '' }}" required>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-light">Event Date <span class="text-danger">*</span></label>
+                        <input type="date" name="event_date" class="form-control"
+                               value="{{ event.event_date or '' }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-light">Event Time</label>
+                        <input type="text" name="event_time" class="form-control"
+                               value="{{ event.event_time or '' }}" placeholder="e.g. 10:30 AM">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-light">Location</label>
+                        <input type="text" name="location" class="form-control"
+                               value="{{ event.location or '' }}">
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <label class="form-label text-light">Description</label>
+                    <textarea name="description" rows="5" class="form-control">{{ event.description or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Visibility & Potluck -->
+            <div class="col-lg-4">
+                <div class="card glass p-4 mb-4">
+                    <div class="form-check form-switch mb-3">
+                        <input type="checkbox" name="visibility" value="public" class="form-check-input"
+                               {% if event and event.visibility == 'public' %}checked{% endif %}>
+                        <label class="form-check-label text-light">Make this event PUBLIC</label>
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input type="checkbox" name="potluck_enabled" value="1" class="form-check-input"
+                               {% if event and event.potluck_enabled %}checked{% endif %}>
+                        <label class="form-check-label text-light">Enable Potluck Signups</label>
+                    </div>
+                </div>
+
+                <div class="alert glass">
+                    <strong>Tip:</strong> Public events appear on the guest-facing /public-events/ page.
+                </div>
+            </div>
+
+            <!-- All expanded fields (grouped exactly like your public detail page) -->
+            <div class="col-12">
+                <h5 class="text-light mb-3">Additional Event Details</h5>
+
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label text-light">Speaker / Host</label>
+                        <input type="text" name="speaker_host" class="form-control" value="{{ event.speaker_host or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-light">Special Guests</label>
+                        <input type="text" name="special_guests" class="form-control" value="{{ event.special_guests or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-light">Theme</label>
+                        <input type="text" name="theme" class="form-control" value="{{ event.theme or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-light">Event Sponsor</label>
+                        <input type="text" name="event_sponsor" class="form-control" value="{{ event.event_sponsor or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-light">Event Coordinator</label>
+                        <input type="text" name="event_coordinator" class="form-control" value="{{ event.event_coordinator or '' }}">
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <label class="form-label text-light">Agenda / Schedule</label>
+                        <textarea name="agenda" rows="3" class="form-control">{{ event.agenda or '' }}</textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-light">Registration Info</label>
+                        <textarea name="registration_info" rows="2" class="form-control">{{ event.registration_info or '' }}</textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-light">Live Streaming Details</label>
+                        <textarea name="live_streaming_details" rows="2" class="form-control">{{ event.live_streaming_details or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="mt-5 text-end">
+            <a href="{{ url_for('the_gathering.events.events_dashboard') }}" class="btn btn-secondary me-3">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg" style="background:var(--primary); color:#000; font-weight:bold;">
+                💾 Save Event
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

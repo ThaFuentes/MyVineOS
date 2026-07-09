@@ -1,0 +1,132 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/events/view.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/events/view.html -->
+<!-- File name: view.html -->
+<!-- Brief, detailed purpose: Read-only detailed view of a single event inside the Gathering Place Manager. -->
+<!-- • Shows every field from the events table in a clean layout. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.events.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}View Event • {{ event.event_name }}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">📅 Event Detail</h1>
+            <h2 class="text-light">{{ event.event_name }}</h2>
+        </div>
+
+        <div style="display:flex; gap:0.5rem;">
+            <!-- Back to Events Manager -->
+            <a href="{{ url_for('the_gathering.events.events_dashboard') }}" class="btn btn-secondary">
+                ← Back to Events
+            </a>
+
+            <!-- Edit Event -->
+            <a href="{{ url_for('the_gathering.events.edit_event', event_id=event.id) }}" class="btn btn-primary">
+                ✏️ Edit Event
+            </a>
+
+            <!-- Manage Potluck -->
+            <a href="{{ url_for('the_gathering.events.event_potluck', event_id=event.id) }}" class="btn btn-info">
+                🍲 Manage Potluck
+            </a>
+
+            <!-- Manage Comments -->
+            <a href="{{ url_for('the_gathering.events.event_comments', event_id=event.id) }}" class="btn btn-warning">
+                💬 Manage Comments ({{ comment_count or 0 }})
+            </a>
+
+            <!-- View on Public Site -->
+            <a href="{{ url_for('public.public_events.public_event_detail', event_id=event.id) }}"
+               target="_blank" class="btn btn-outline-light">
+                👁️ View Public
+            </a>
+
+            <!-- Delete Event -->
+            <form method="POST" action="{{ url_for('the_gathering.events.delete_event', event_id=event.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this event and ALL its data?')">
+                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="glass p-4 mb-5">
+        <!-- Meta Row -->
+        <div class="row mb-4" style="font-size:1.1rem;">
+            <div class="col-md-3"><strong>Date:</strong> {{ event.event_date }}</div>
+            <div class="col-md-3"><strong>Time:</strong> {{ event.event_time or '—' }}</div>
+            <div class="col-md-3"><strong>Location:</strong> {{ event.location or '—' }}</div>
+            <div class="col-md-3"><strong>Visibility:</strong>
+                <span class="badge {% if event.visibility == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
+                    {{ event.visibility|upper }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Description -->
+        {% if event.description %}
+        <div class="mb-5">
+            <h5 class="text-light">Description</h5>
+            <div class="card glass p-4">{{ event.description | nl2br | safe }}</div>
+        </div>
+        {% endif %}
+
+        <!-- People & Theme -->
+        {% if event.speaker_host or event.special_guests or event.theme or event.event_sponsor or event.event_coordinator %}
+        <div class="mb-5">
+            <h5 class="text-light">People &amp; Theme</h5>
+            <div class="row g-3">
+                {% if event.speaker_host %}<div class="col-md-6"><strong>Speaker/Host:</strong> {{ event.speaker_host }}</div>{% endif %}
+                {% if event.special_guests %}<div class="col-md-6"><strong>Special Guests:</strong> {{ event.special_guests }}</div>{% endif %}
+                {% if event.theme %}<div class="col-md-6"><strong>Theme:</strong> {{ event.theme }}</div>{% endif %}
+                {% if event.event_sponsor %}<div class="col-md-6"><strong>Sponsor:</strong> {{ event.event_sponsor }}</div>{% endif %}
+                {% if event.event_coordinator %}<div class="col-md-6"><strong>Coordinator:</strong> {{ event.event_coordinator }}</div>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Logistics -->
+        {% if event.agenda or event.registration_info or event.cost_fees or event.parking_info or event.dress_code or event.food_beverages or event.childcare_availability or event.accessibility %}
+        <div class="mb-5">
+            <h5 class="text-light">Logistics</h5>
+            <div class="row g-3">
+                {% if event.agenda %}<div class="col-12"><strong>Agenda:</strong> {{ event.agenda | nl2br }}</div>{% endif %}
+                {% if event.registration_info %}<div class="col-12"><strong>Registration:</strong> {{ event.registration_info | nl2br }}</div>{% endif %}
+                {% if event.cost_fees %}<div class="col-12"><strong>Cost/Fees:</strong> ${{ event.cost_fees }}</div>{% endif %}
+                {% if event.parking_info %}<div class="col-12"><strong>Parking:</strong> {{ event.parking_info | nl2br }}</div>{% endif %}
+                {% if event.dress_code %}<div class="col-12"><strong>Dress Code:</strong> {{ event.dress_code }}</div>{% endif %}
+                {% if event.food_beverages %}<div class="col-12"><strong>Food/Beverages:</strong> {{ event.food_beverages | nl2br }}</div>{% endif %}
+                {% if event.childcare_availability %}<div class="col-12"><strong>Childcare:</strong> {{ event.childcare_availability }}</div>{% endif %}
+                {% if event.accessibility %}<div class="col-12"><strong>Accessibility:</strong> {{ event.accessibility | nl2br }}</div>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Potluck Summary -->
+        {% if event.potluck_enabled %}
+        <div class="mb-5">
+            <h5 class="text-light">🍲 Potluck Enabled</h5>
+            <p class="text-muted">There are <strong>{{ signup_count or 0 }}</strong> contributions.</p>
+            <a href="{{ url_for('the_gathering.events.event_potluck', event_id=event.id) }}" class="btn btn-info">
+                Manage All Potluck Contributions →
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Created / Updated Info -->
+        <div class="text-muted small mt-4">
+            Created by {{ event.creator_name or 'Anonymous' }} on {{ event.created_at | format_manager_datetime }}<br>
+            Last updated: {{ event.updated_at | format_manager_datetime }}
+        </div>
+    </div>
+</div>
+
+<script>
+    console.log('✅ Event View loaded for event #{{ event.id }}');
+</script>
+
+{% endblock %}

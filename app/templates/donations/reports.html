@@ -1,0 +1,224 @@
+{% extends "donations/base_donations.html" %}
+
+{% set month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] %}
+
+{% block page_title %}Donation Reports{% endblock %}
+
+{% block page_description %}
+Giving summaries by year, month, payment method, and donor type. Search-friendly donor breakdown included.
+{% endblock %}
+
+{% block donations_content %}
+
+<div style="margin-bottom:0.6rem;">
+  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.3rem; letter-spacing:0.5px;">REPORTS — SELECT YEAR / MONTH</div>
+
+  <form method="GET" action="{{ url_for('donations.reports') }}" style="max-width:900px; margin:0 auto;">
+        <div class="form-group">
+            <label for="year-select" class="control-label">Year <span class="required">*</span></label>
+            <select name="year" id="year-select" class="form-input" required>
+                <option value="">-- Select Year --</option>
+                {% for y in years %}
+                    <option value="{{ y }}" {% if selected_year and selected_year|int == y|int %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="month-select" class="control-label">Month (optional)</label>
+            <select name="month" id="month-select" class="form-input">
+                <option value="">-- All Months --</option>
+                {% for i in range(1,13) %}
+                    {% set m = "%02d"|format(i) %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ month_names[i-1] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="donor-type-filter" class="control-label">Donor Type (optional)</label>
+            <select name="donor_type" id="donor-type-filter" class="form-input">
+                <option value="">All Donors</option>
+                <option value="member" {% if donor_type_filter == 'member' %}selected{% endif %}>Members only</option>
+                <option value="guest" {% if donor_type_filter == 'guest' %}selected{% endif %}>Guests / non-members</option>
+                <option value="business" {% if donor_type_filter == 'business' %}selected{% endif %}>Business</option>
+            </select>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Generate Report</button>
+        </div>
+    </form>
+</div>
+
+{% if selected_year %}
+<section class="content-section">
+    <h2 class="section-title" style="text-align:center; margin:2rem 0;">
+        Donation Report for {{ selected_year }}
+        {% if selected_month %} — {{ month_names[selected_month|int - 1] }}{% endif %}
+        {% if donor_type_filter %} ({{ donor_type_filter|capitalize }} donors){% endif %}
+    </h2>
+</section>
+
+<section class="content-section">
+    <h2 class="section-title">Overall Totals</h2>
+    <div class="summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.75rem;">
+        <div class="card glass" style="text-align:center; padding:1rem;">
+            <h3 style="margin:0 0 0.5rem; font-size:0.85rem;">Total Amount</h3>
+            <p class="large-amount" style="margin:0; font-size:1.6rem; color:var(--primary);">${{ "%.2f"|format(total_amount|default(0.0)) }}</p>
+        </div>
+        <div class="card glass" style="text-align:center; padding:1rem;">
+            <h3 style="margin:0 0 0.5rem; font-size:0.85rem;"># Donations</h3>
+            <p class="large-amount" style="margin:0; font-size:1.6rem; color:var(--primary);">{{ total_count|default(0) }}</p>
+        </div>
+        <div class="card glass" style="text-align:center; padding:1rem;">
+            <h3 style="margin:0 0 0.5rem; font-size:0.85rem;">Members</h3>
+            <p style="margin:0; font-size:1.3rem;">${{ "%.2f"|format(member_total|default(0.0)) }}</p>
+        </div>
+        <div class="card glass" style="text-align:center; padding:1rem;">
+            <h3 style="margin:0 0 0.5rem; font-size:0.85rem;">Guests</h3>
+            <p style="margin:0; font-size:1.3rem;">${{ "%.2f"|format(guest_total|default(0.0)) }}</p>
+        </div>
+        <div class="card glass" style="text-align:center; padding:1rem;">
+            <h3 style="margin:0 0 0.5rem; font-size:0.85rem;">Business</h3>
+            <p style="margin:0; font-size:1.3rem;">${{ "%.2f"|format(business_total|default(0.0)) }}</p>
+        </div>
+    </div>
+</section>
+
+{% if top_donors %}
+<section class="content-section">
+    <h2 class="section-title">Top Donors</h2>
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Donor</th>
+                    <th>Type</th>
+                    <th>Total</th>
+                    <th># Gifts</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in top_donors %}
+                <tr>
+                    <td>{{ d.name }}</td>
+                    <td>{{ (d.donor_type or 'guest')|capitalize }}</td>
+                    <td>${{ "%.2f"|format(d.total_amount) }}</td>
+                    <td>{{ d.donation_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+
+<section class="content-section">
+    <h2 class="section-title">Individual Donations</h2>
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Contact</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Method</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if donations %}
+                    {% for d in donations %}
+                        <tr>
+                            <td>{{ d.name }}{% if d.username %}<br><small>@{{ d.username }}</small>{% endif %}</td>
+                            <td>{{ (d.donor_type or 'guest')|capitalize }}</td>
+                            <td style="font-size:0.85rem;">{{ d.contact_email or '—' }}</td>
+                            <td>${{ "%.2f"|format(d.amount) }}</td>
+                            <td>{{ d.date[:10] if d.date else '—' }}</td>
+                            <td>{{ d.method }}</td>
+                            <td>{{ d.notes|default('')|truncate(80) }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="7" class="no-data">No donations found for this period.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% if not selected_month %}
+<section class="content-section">
+    <h2 class="section-title">Monthly Breakdown for {{ selected_year }}</h2>
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr><th>Month</th><th>Total Amount</th><th># Donations</th></tr>
+            </thead>
+            <tbody>
+                {% for m in monthly_totals %}
+                <tr>
+                    <td>{{ m.month }}</td>
+                    <td>${{ "%.2f"|format(m.total_amount) }}</td>
+                    <td>{{ m.total_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+
+<section class="content-section">
+    <h2 class="section-title">Payment Method Breakdown</h2>
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr><th>Method</th><th>Total Amount</th><th>Count</th></tr>
+            </thead>
+            <tbody>
+                {% if donation_types %}
+                    {% for t in donation_types %}
+                    <tr>
+                        <td>{{ t.method }}</td>
+                        <td>${{ "%.2f"|format(t.total_amount) }}</td>
+                        <td>{{ t.total_count }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="3" class="no-data">No method data.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="content-section">
+    <h2 class="section-title">Donor Type Breakdown</h2>
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr><th>Type</th><th>Total Amount</th><th>Count</th></tr>
+            </thead>
+            <tbody>
+                {% if donor_type_breakdown %}
+                    {% for t in donor_type_breakdown %}
+                    <tr>
+                        <td>{{ (t.donor_type or 'guest')|capitalize }}</td>
+                        <td>${{ "%.2f"|format(t.total_amount) }}</td>
+                        <td>{{ t.total_count }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="3" class="no-data">No donor type data.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}

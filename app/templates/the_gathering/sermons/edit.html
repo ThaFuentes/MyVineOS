@@ -1,0 +1,102 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/sermons/edit.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/sermons/edit.html -->
+<!-- File name: edit.html -->
+<!-- Brief, detailed purpose: Full Sermon Editor form inside the Gathering Place Manager. -->
+<!-- • Create new OR edit existing sermon (title, scripture, notes, sermon_text, visibility). -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.sermons.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/edit.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}{% if sermon %}Edit Sermon{% else %}Create New Sermon{% endif %}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">
+            {% if sermon %}
+                ✏️ Edit Sermon #{{ sermon.id }}
+            {% else %}
+                ➕ Create New Sermon
+            {% endif %}
+        </h1>
+
+        <div>
+            <!-- Back to Sermons Manager -->
+            <a href="{{ url_for('the_gathering.sermons.sermons_dashboard') }}" class="btn btn-secondary me-2">
+                ← Back to Sermons Manager
+            </a>
+
+            {% if sermon %}
+            <!-- View on Public -->
+            <a href="{{ url_for('public.public_sermons.public_sermon_detail', sermon_id=sermon.id) }}"
+               target="_blank" class="btn btn-outline-light me-2">
+                👁️ View Public
+            </a>
+
+            <!-- Delete -->
+            <form method="POST" action="{{ url_for('the_gathering.sermons.delete_sermon', sermon_id=sermon.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this sermon and ALL its comments?')">
+                <button type="submit" class="btn btn-danger">🗑️ Delete Sermon</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('the_gathering.sermons.edit_sermon', sermon_id=sermon.id if sermon else None) }}" class="glass p-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        {% if sermon %}
+        <input type="hidden" name="sermon_id" value="{{ sermon.id }}">
+        {% endif %}
+
+        <div class="row g-4">
+            <!-- Title -->
+            <div class="col-12">
+                <label class="form-label text-light">Sermon Title <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control"
+                       value="{{ sermon.title or '' }}" required>
+            </div>
+
+            <!-- Scripture Reference -->
+            <div class="col-md-6">
+                <label class="form-label text-light">Scripture Reference</label>
+                <input type="text" name="scripture" class="form-control"
+                       value="{{ sermon.scripture or '' }}" placeholder="e.g. John 3:16">
+            </div>
+
+            <!-- Visibility -->
+            <div class="col-md-6">
+                <div class="glass-panel">
+                    <div class="form-check form-switch">
+                        <input type="checkbox" name="visibility" value="public" class="form-check-input"
+                               {% if sermon and sermon.visibility == 'public' %}checked{% endif %}>
+                        <label class="form-check-label text-light">Make this sermon PUBLIC</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="col-12">
+                <label class="form-label text-light">Notes / Summary</label>
+                <textarea name="notes" rows="3" class="form-control">{{ sermon.notes or '' }}</textarea>
+            </div>
+
+            <!-- Sermon Content -->
+            <div class="col-12">
+                <label class="form-label text-light">Sermon Content <span class="text-danger">*</span></label>
+                <textarea name="sermon_text" rows="12" class="form-control" required>{{ sermon.sermon_text or '' }}</textarea>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="mt-5 text-end">
+            <a href="{{ url_for('the_gathering.sermons.sermons_dashboard') }}" class="btn btn-secondary me-3">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg" style="background:var(--primary); color:#000; font-weight:bold;">
+                💾 Save Sermon
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

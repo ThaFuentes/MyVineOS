@@ -1,0 +1,96 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/announcements/edit.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/announcements/edit.html -->
+<!-- File name: edit.html -->
+<!-- Brief, detailed purpose: Full Announcement Editor form inside the Gathering Place Manager. -->
+<!-- • Create new OR edit existing announcement (title, content, visibility, pinned, expiration). -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.announcements.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/edit.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}{% if announcement %}Edit Announcement{% else %}Create New Announcement{% endif %}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">
+            {% if announcement %}
+                ✏️ Edit Announcement #{{ announcement.id }}
+            {% else %}
+                ➕ Create New Announcement
+            {% endif %}
+        </h1>
+
+        <div>
+            <!-- Back to Announcements Manager -->
+            <a href="{{ url_for('the_gathering.announcements.announcements_dashboard') }}" class="btn btn-secondary me-2">
+                ← Back to Announcements Manager
+            </a>
+
+            {% if announcement %}
+            <!-- View on Public -->
+            <a href="{{ url_for('public.public_announcements.public_announcement_detail', ann_id=announcement.id) }}"
+               target="_blank" class="btn btn-outline-light me-2">
+                👁️ View Public
+            </a>
+
+            <!-- Delete -->
+            <form method="POST" action="{{ url_for('the_gathering.announcements.delete_announcement', announcement_id=announcement.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this announcement and ALL its comments?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <button type="submit" class="btn btn-danger">🗑️ Delete Announcement</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('the_gathering.announcements.edit_announcement', announcement_id=announcement.id if announcement else None) }}" class="glass-panel" style="padding:1rem;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        {% if announcement %}
+        <input type="hidden" name="announcement_id" value="{{ announcement.id }}">
+        {% endif %}
+
+        <div style="display:grid; grid-template-columns:1fr; gap:1rem;">
+            <!-- Title -->
+            <div>
+                <label class="form-label text-light">Announcement Title <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control"
+                       value="{{ announcement.title or '' }}" required>
+            </div>
+
+            <!-- Content -->
+            <div>
+                <label class="form-label text-light">Announcement Content <span class="text-danger">*</span></label>
+                <textarea name="content" rows="8" class="form-control" required>{{ announcement.content or '' }}</textarea>
+            </div>
+
+            <!-- Visibility + Pinned -->
+            <div>
+                <div class="glass-panel">
+                    <div class="form-check form-switch mb-3">
+                        <input type="checkbox" name="visibility" value="public" class="form-check-input"
+                               {% if announcement and announcement.visibility == 'public' %}checked{% endif %}>
+                        <label class="form-check-label text-light">Make this announcement PUBLIC</label>
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input type="checkbox" name="is_pinned" value="1" class="form-check-input"
+                               {% if announcement and announcement.is_pinned %}checked{% endif %}>
+                        <label class="form-check-label text-light">📌 Pin this announcement (show at top)</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div style="margin-top:1.25rem; display:flex; justify-content:flex-end; gap:0.5rem; flex-wrap:wrap;">
+            <a href="{{ url_for('the_gathering.announcements.announcements_dashboard') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" style="background:var(--primary); color:#000; font-weight:bold;">
+                💾 Save Announcement
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

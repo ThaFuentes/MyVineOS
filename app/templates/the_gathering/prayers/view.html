@@ -1,0 +1,67 @@
+{% extends "the_gathering/base.html" %}
+
+{% block title %}View Prayer • {{ prayer.title }}{% endblock %}
+
+{% block content %}
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">🙏 Prayer Detail</h1>
+            <h2 class="text-light">{{ prayer.title }}</h2>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+            <a href="{{ url_for('the_gathering.prayers.edit_prayer', prayer_id=prayer.id) }}" class="btn btn-primary">
+                ✏️ Edit
+            </a>
+            <a href="{{ url_for('the_gathering.prayers.prayer_comments', prayer_id=prayer.id) }}" class="btn btn-warning">
+                💬 Responses ({{ comment_count or 0 }})
+            </a>
+            <a href="{{ url_for('public.public_prayers.public_prayer_detail', prayer_id=prayer.id) }}"
+               target="_blank" class="btn btn-outline-light">
+                👁️ Public
+            </a>
+            {% if prayer.status == 'pending' %}
+            <form method="POST" action="{{ url_for('the_gathering.prayers.approve_prayer', prayer_id=prayer.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <button type="submit" class="btn btn-success">✅ Approve</button>
+            </form>
+            <form method="POST" action="{{ url_for('the_gathering.prayers.reject_prayer', prayer_id=prayer.id) }}" style="display:inline;"
+                  onsubmit="return confirm('Reject this prayer request?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <button type="submit" class="btn btn-warning">❌ Reject</button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('the_gathering.prayers.delete_prayer', prayer_id=prayer.id) }}" style="display:inline;"
+                  onsubmit="return confirm('Permanently delete this prayer and all responses?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <button type="submit" class="btn btn-danger">🗑️</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="glass p-4 mb-5">
+        <div class="row mb-4" style="font-size:1.05rem;">
+            <div class="col-md-3"><strong>Visibility:</strong>
+                <span class="badge {% if prayer.visibility == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
+                    {{ prayer.visibility|upper }}
+                </span>
+            </div>
+            <div class="col-md-3"><strong>Status:</strong>
+                <span class="badge {% if prayer.status == 'pending' %}bg-warning text-dark{% elif prayer.status == 'rejected' %}bg-danger{% else %}bg-success{% endif %}">
+                    {{ (prayer.status or 'approved')|upper }}
+                </span>
+            </div>
+            <div class="col-md-3"><strong>Author:</strong> {{ prayer.creator_name or 'Anonymous' }}</div>
+            <div class="col-md-3"><strong>Posted:</strong> {{ prayer.created_at | format_manager_datetime }}</div>
+        </div>
+
+        {% if prayer.prayer_text or prayer.description %}
+        <div class="mb-4">
+            <h5 class="text-light">Prayer Request</h5>
+            <div class="card glass p-4">{{ (prayer.prayer_text or prayer.description) | nl2br | censor }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "legal/base_legal.html" %}
+
+{% block page_title %}{{ notice.title }}{% endblock %}
+{% block page_description %}{{ notice.category_name }}{% endblock %}
+
+{% block legal_content %}
+<article class="glass-panel legal-article">
+    <header class="legal-article-header">
+        <span class="legal-category-badge">{{ notice.category_name }}</span>
+        <h2>{{ notice.title }}</h2>
+        {% if notice.updated_at %}
+        <p class="legal-meta">
+            Last updated {{ notice.updated_at.strftime('%B %d, %Y') }}
+            {% if notice.updated_by_name %}by {{ notice.updated_by_name }}{% endif %}
+        </p>
+        {% endif %}
+    </header>
+
+    {% if notice.category_slug == 'comment_policy' and community_guidelines %}
+    <div class="legal-related-callout legal-related-callout--prominent">
+        <span class="legal-related-icon">📋</span>
+        <div>
+            <strong>Community Guidelines on file</strong>
+            <p>When we moderate comments, we usually explain that content does not align with our
+            <a href="{{ url_for('legal.view_notice', slug=community_guidelines.slug) }}">{{ community_guidelines.title }}</a>.
+            We still reserve the right to remove content with or without explanation.</p>
+        </div>
+    </div>
+    {% elif notice.category_slug == 'comment_policy' and can_manage %}
+    <div class="legal-related-callout legal-related-callout--muted">
+        <strong>Manager note:</strong> Community Guidelines are not published yet.
+        <a href="{{ url_for('legal.create_notice') }}?category=community_guidelines">Add them</a>
+        so the comment policy can link visitors to your participation standards.
+    </div>
+    {% endif %}
+
+    {% if notice.summary %}
+    <p class="legal-summary">{{ notice.summary }}</p>
+    {% endif %}
+
+    <div class="legal-body">{{ notice.content | nl2br }}</div>
+</article>
+
+{% if related %}
+<aside class="glass-panel legal-related-list">
+    <h3>Other policies</h3>
+    <ul>
+        {% for item in related %}
+        <li>
+            <a href="{{ url_for('legal.view_notice', slug=item.slug) }}">{{ item.title }}</a>
+            <small>{{ item.category_name }}</small>
+        </li>
+        {% endfor %}
+    </ul>
+</aside>
+{% endif %}
+
+<p class="legal-back-link"><a href="{{ url_for('legal.legal_index') }}">← All policies</a></p>
+{% endblock %}

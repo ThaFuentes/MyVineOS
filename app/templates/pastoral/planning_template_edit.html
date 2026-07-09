@@ -1,0 +1,198 @@
+{# app/templates/pastoral/planning_template_edit.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/planning_template_edit.html #}
+{# File name: planning_template_edit.html #}
+{# Brief, detailed purpose:
+#   Create or edit a recurring master template.
+#   FULL REBUILD: Weekday selection only on new (required); fixed/read-only on edit.
+#   Added "Forced Notes" – critical lines prepended to EVERY plan (plain weeks auto, dated overrides optional safe append).
+#   Propagation checkbox with preview of affected dated plans (append-only missing lines).
+#   Strong, repeated global impact messaging – changes affect ALL future weeks indefinitely.
+#   Title optional override in dated plans (protected).
+#   Roles/notes changes instant on plain weeks; safe optional propagation.
+#   Future-proof for worship team (roles free-text). #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block extra_head %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+{% endblock %}
+
+{% block pastoral_content %}
+<div class="container-fluid py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xxl-8">
+            <h1 class="text-center text-cyan mb-4">
+                {{ 'New Recurring Master Template' if is_new else 'Edit Master Template: ' ~ template.title }}
+            </h1>
+
+            <div class="alert alert-success border border-cyan shadow-lg mb-4">
+                <h4 class="text-cyan mb-2"><i class="fas fa-exclamation-triangle me-2"></i>MASTER TEMPLATE – GLOBAL IMPACT</h4>
+                <p class="mb-0">
+                    <strong>Any change saved here instantly applies to EVERY future week</strong> using this template — forever, until edited again or overridden.<br><br>
+                    This is the central control for all recurring "{{ template.title if not is_new else 'this service type' }}" weeks.<br>
+                    Use dated plan editor only for one-off special events.
+                </p>
+            </div>
+
+            {% if not is_new %}
+            <div class="alert alert-info mb-4">
+                <strong>Scope:</strong> This template controls <strong>all future {{ weekday_names[template.weekday] }} services</strong>.
+            </div>
+            {% endif %}
+
+            <form method="POST" id="planning-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <div class="card glass-card mb-4">
+                    <div class="card-body">
+                        {% if is_new %}
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-12">
+                                <label class="form-label text-cyan">Weekday this template applies to <span class="text-danger">*</span></label>
+                                <select name="weekday" class="form-select form-control-dark" required>
+                                    <option value="" disabled selected>Choose the day this recurring service happens</option>
+                                    {% for name in weekday_names %}
+                                    <option value="{{ loop.index0 }}">{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Example: "Sunday" for Sunday services, "Wednesday" for mid-week.</small>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-12">
+                                <label class="form-label text-cyan">Service Title <span class="text-danger">*</span></label>
+                                <input type="text" name="title" class="form-control form-control-lg form-control-dark"
+                                       value="{{ template.title }}" required placeholder="e.g., Sunday Morning Worship">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-cyan">Overall Start Time</label>
+                                <input type="time" name="start_time" class="form-control form-control-dark"
+                                       value="{{ template.start_time.strftime('%H:%M') if template.start_time else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-cyan">Worship Start Time</label>
+                                <input type="time" name="worship_start_time" class="form-control form-control-dark"
+                                       value="{{ template.worship_start_time.strftime('%H:%M') if template.worship_start_time else '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-cyan">Default Linked Sermon (optional)</label>
+                            <select name="sermon_id" class="form-select form-control-dark">
+                                <option value="">None</option>
+                                {% for sermon in sermons %}
+                                <option value="{{ sermon.id }}" {{ 'selected' if template.pastoral_sermon_id == sermon.id }}>
+                                    {{ sermon.title }} ({{ sermon.service_date or 'No date' }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-5">
+                            <label class="form-label text-cyan fs-5">Regular Notes / Order of Service</label>
+                            <div id="notes-editor" class="quill-wrapper">{{ template.notes|safe }}</div>
+                            <input type="hidden" name="notes" id="notes-hidden">
+                            <small class="text-muted">Standard notes – appear in all weeks (overridable on dated plans).</small>
+                        </div>
+
+                        <div class="mb-5">
+                            <h5 class="text-cyan">Forced Notes – Critical (appear in EVERY plan)</h5>
+                            <p class="text-muted mb-3">
+                                These lines are <strong>forced into every plan</strong> (prepended automatically on plain weeks).<br>
+                                Use for ongoing critical info: e.g., "KITCHEN SINK DOESNT WORK – contact maintenance".
+                            </p>
+                            <textarea name="forced_notes" class="form-control form-control-dark" rows="6"
+                                      placeholder="One critical line per row...">{{ template.forced_notes }}</textarea>
+                        </div>
+
+                        <div class="mb-5">
+                            <h5 class="text-cyan">Default Role Assignments</h5>
+                            <p class="text-muted small">Auto-fill every week (overridable on dated plans).</p>
+                            <div id="assignments-container">
+                                {% for assignment in assignments %}
+                                    {% include "pastoral/planning_assignment_row.html" %}
+                                {% endfor %}
+
+                                <div class="assignment-row d-none">
+                                    {% with assignment=none %}
+                                        {% include "pastoral/planning_assignment_row.html" %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                            <button type="button" id="add-role-btn" class="btn btn-outline-cyan btn-sm mt-2">
+                                <i class="fas fa-plus"></i> Add Role
+                            </button>
+                        </div>
+
+                        {% if not is_new and affected_plans %}
+                        <div class="card border-cyan mb-4">
+                            <div class="card-body">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="propagate_forced" id="propagate-forced" value="1">
+                                    <label class="form-check-label text-white" for="propagate-forced">
+                                        <strong>Propagate new/missing forced notes to existing dated plans</strong> (append only, {{ affected_plans|length }} plans affected)
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Affected future dated plans: {{ affected_plans|join(', ') }}<br>
+                                    Only missing lines added – custom content preserved.
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-footer text-end">
+                        <a href="{{ url_for('pastoral.planning.templates_list') }}" class="btn btn-outline-secondary me-2">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save me-2"></i>Save Master Template → Affects ALL Future Weeks
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+    const quill = new Quill('#notes-editor', {
+        theme: 'snow',
+        modules: { toolbar: [['bold', 'italic', 'underline'], [{'list': 'ordered'}, {'list': 'bullet'}], ['link'], ['clean']] }
+    });
+
+    document.getElementById('planning-form').onsubmit = function() {
+        document.getElementById('notes-hidden').value = quill.root.innerHTML;
+    };
+
+    // Dynamic role rows
+    document.getElementById('add-role-btn').addEventListener('click', function() {
+        const container = document.getElementById('assignments-container');
+        const templateRow = container.querySelector('.assignment-row.d-none').cloneNode(true);
+        templateRow.classList.remove('d-none');
+        templateRow.querySelector('input[name="role_name"]').value = '';
+        templateRow.querySelector('select[name="user_id"]').selectedIndex = 0;
+        container.insertBefore(templateRow, this);
+    });
+
+    document.getElementById('assignments-container').addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-role-btn')) {
+            const row = e.target.closest('.assignment-row');
+            if (document.querySelectorAll('#assignments-container .assignment-row:not(.d-none)').length > 1) {
+                row.remove();
+            } else {
+                row.querySelector('input[name="role_name"]').value = '';
+                row.querySelector('select[name="user_id"]').selectedIndex = 0;
+            }
+        }
+    });
+</script>
+{% endblock %}

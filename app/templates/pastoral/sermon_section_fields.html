@@ -1,0 +1,92 @@
+{# Unified sermon section fields — modal + inline cards (same layout). #}
+{% set section = section|default({
+    'title': '', 'section_type': 'point', 'scripture_reference': '', 'source': '',
+    'content': '', 'notes': '', 'vault_tags': '', 'vault_visibility': 'private'
+}) %}
+{% set quill_id = quill_id|default('') %}
+{% set show_optional_hint = show_optional_hint|default(false) %}
+
+<div class="sermon-section-fields">
+  {# Type | Title | Visibility — one row on desktop #}
+  <div class="row g-3 section-row-meta">
+    <div class="col-12 col-md-4 col-lg-3">
+      <div class="input-group">
+        <label class="fw-bold text-cyan small">Section Type</label>
+        <select class="form-select form-control-dark section-type">
+          <option value="introduction" {{ 'selected' if section.section_type == 'introduction' }}>Introduction</option>
+          <option value="point" {{ 'selected' if section.section_type == 'point' or not section.section_type }}>Main Point</option>
+          <option value="scripture" {{ 'selected' if section.section_type == 'scripture' }}>Scripture</option>
+          <option value="application" {{ 'selected' if section.section_type == 'application' }}>Application</option>
+          <option value="illustration" {{ 'selected' if section.section_type == 'illustration' }}>Illustration</option>
+          <option value="conclusion" {{ 'selected' if section.section_type == 'conclusion' }}>Conclusion</option>
+          <option value="other" {{ 'selected' if section.section_type == 'other' }}>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="input-group">
+        <label class="fw-bold text-cyan small">Title <span class="text-muted fw-normal">(optional)</span></label>
+        <input type="text" class="form-control form-control-dark section-title"
+               value="{{ section.title }}"
+               placeholder="e.g. Grace in the Storm, Opening Story">
+      </div>
+    </div>
+    <div class="col-12 col-md-12 col-lg-3">
+      <div class="input-group">
+        <label class="fw-bold text-cyan small">Vault Visibility</label>
+        <select class="form-select form-control-dark section-vault-visibility">
+          <option value="private" {{ 'selected' if section.vault_visibility|default('private') == 'private' }}>Private (only me)</option>
+          <option value="pastoral_group" {{ 'selected' if section.vault_visibility == 'pastoral_group' }}>Shared with Pastoral Group</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  {# Full-width scripture — pastors often list multiple passages #}
+  <div class="input-group">
+    <label class="fw-bold text-cyan small">Scripture Reference</label>
+    <textarea class="form-control form-control-dark section-scripture section-field-wide" rows="3"
+              placeholder="e.g. John 3:16–18; Romans 8:28–30; Psalm 23 — list every passage for this section">{{ section.scripture_reference }}</textarea>
+  </div>
+
+  <div class="input-group">
+    <label class="fw-bold text-cyan small">Source / Reference</label>
+    <textarea class="form-control form-control-dark section-source section-field-source section-field-wide" rows="4"
+              placeholder="Books, articles, conversations, stories — paste everything you want to keep visible while you write">{{ section.source }}</textarea>
+  </div>
+
+  <div class="input-group">
+    <label class="fw-bold text-cyan small">Vault Tags <span class="text-muted fw-normal">(comma-separated)</span></label>
+    <input type="text" class="form-control form-control-dark section-vault-tags"
+           value="{{ section.vault_tags }}"
+           placeholder="grace, testimony, application, easter-2026">
+  </div>
+
+  <div class="input-group section-content-group">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+      <label class="fw-bold text-cyan small mb-0">Sermon Content{% if show_optional_hint %} <span class="text-muted fw-normal">(optional — drafts OK)</span>{% endif %}</label>
+      <div class="section-content-undo-bar d-flex align-items-center gap-1" title="Undo/redo while writing this section">
+        <button type="button" class="btn btn-sm btn-outline-secondary section-undo-btn" disabled aria-label="Undo">
+          <i class="fas fa-undo"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary section-redo-btn" disabled aria-label="Redo">
+          <i class="fas fa-redo"></i>
+        </button>
+        <span class="text-muted small">Ctrl+Z · Ctrl+Y</span>
+      </div>
+    </div>
+    <div class="quill-wrapper section-quill-wrap">
+      {% if quill_id %}
+      <div id="{{ quill_id }}" class="section-quill-editor">{% if section.content %}{{ section.content|safe }}{% endif %}</div>
+      {% else %}
+      <div class="section-quill-editor">{% if section.content %}{{ section.content|safe }}{% endif %}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="input-group mb-0">
+    <label class="fw-bold text-cyan small">Private Notes <span class="text-muted fw-normal">(preaching cues — not stored in Vault body)</span></label>
+    <textarea class="form-control form-control-dark section-notes section-field-notes section-field-wide" rows="5"
+              placeholder="Delivery reminders, timing, emphasis, stage directions — full width for your prep">{{ section.notes }}</textarea>
+  </div>
+</div>

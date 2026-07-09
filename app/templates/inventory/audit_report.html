@@ -1,0 +1,47 @@
+<!-- app/templates/inventory/audit_report.html -->
+<!-- Full path: WebChurchMan/app/templates/inventory/audit_report.html -->
+<!-- File name: audit_report.html -->
+<!-- Brief, detailed purpose: Shows current audit counts vs system stock with discrepancies. -->
+
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<section class="content-section">
+    <h2 class="section-title">Current Audit Report</h2>
+
+    {% if report %}
+        <div class="table-wrapper glass">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Unit</th>
+                        <th>Counted</th>
+                        <th>System Stock</th>
+                        <th>Discrepancy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in report %}
+                        <tr {% if row.discrepancy != 0 %}style="background:rgba(255,0,0,0.2);"{% endif %}>
+                            <td>{{ row.name }}</td>
+                            <td>{{ row.unit }}</td>
+                            <td>{{ row.counted }}</td>
+                            <td>{{ row.current }}</td>
+                            <td>{{ row.discrepancy }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="text-align:center; margin-top:2rem;">
+            <form action="{{ url_for('inventory.clear_audit') }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn-danger">Clear Audit</button>
+            </form>
+        </div>
+    {% else %}
+        <p class="no-data">No current audit data – start scanning in Audit mode.</p>
+    {% endif %}
+</section>
+{% endblock %}

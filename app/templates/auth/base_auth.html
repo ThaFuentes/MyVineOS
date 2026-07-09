@@ -1,0 +1,151 @@
+<!-- app/templates/auth/base_auth.html -->
+<!-- Full path: myvinechurchonline/app/templates/auth/base_auth.html -->
+<!-- File name: base_auth.html -->
+<!-- Brief, detailed purpose: FULL REBUILD – Standalone base template for ALL public and authentication pages (login, register, forgot password, public dashboard, public events/sermons/announcements/prayers/dreams/prophecies views, etc.).
+   Does NOT extend base.html – fully independent to avoid any conflict with logged-in pages.
+   Header layout matches base_public.html exactly:
+     • Left: "Browsing as Guest – Click to Login" button (styled identically to original Continue as Guest – same glow, border, hover)
+     • Center: Site title
+     • Right: Register button (primary style, same as old Login button) + clock
+   Navigation: FULL public navigation (Home, Events, Sermons, Prayers, Announcements, Dreams, Prophecies + conditional Donate) – identical to base_public.html.
+   All styling uses the exact same modular global CSS files and --primary variable as logged-in pages → perfect color/glow matching.
+   Includes full head (themes, dynamic settings, favicon), flash messages, footer, clock script.
+   Active state highlighting works correctly for both public views and auth pages.
+   This base is now identical to base_public.html – use it for all public/auth pages to eliminate duplication. -->
+
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if session.user_theme %}{{ session.user_theme }}{% else %}cyan-glow{% endif %}">
+<head>
+  <meta charset="UTF-8">
+  <!-- Web app / phone app capable metas (auth + public guest mode) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#00ffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MyVine">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
+
+  {% set s = g.settings %}
+
+  <title>{% block title %}{% endblock %} | {{ s.get('church_name', 'MyVineChurch.Online') }}</title>
+
+  <!-- Global CSS – identical to base_public.html -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260115">
+  <!-- COMPLETE GUI OVERHAUL -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202606">
+  <!-- Legacy for transition -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/base.css') }}?v=20260115">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/layout.css') }}?v=20260115">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/forms.css') }}?v=20260115">
+
+  {% block extra_css %}{% endblock %}
+
+  <!-- Dynamic favicon -->
+  {% set fav = s.get('favicon_path') %}
+  <link rel="icon" href="{{ url_for('static', filename='images/' ~ fav if fav else 'favicon.ico') }}">
+
+  <!-- Dynamic branding overrides – identical to base_public.html -->
+  <style>
+    :root {
+      --primary: {{ s.get('primary_color', '#00FFFF') }};
+      --primary-hover: {{ s.get('primary_hover_color', '#00cccc') }};
+      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
+
+      {% set bg_image = s.get('background_image') %}
+      {% if bg_image %}
+      --bg-page: linear-gradient(rgba(0,0,0,{{ s.get('background_opacity', 0.68) }}),
+                                rgba(0,0,0,{{ s.get('background_opacity', 0.68) }})),
+                 url('{{ url_for('static', filename='images/' ~ bg_image) }}');
+      {% endif %}
+    }
+
+    body {
+      background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
+      background-size: cover;
+      background-attachment: fixed;
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-main);
+      color: #e0e0e0;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- NEW TOP BAR for auth/public pages -->
+  <header class="top-bar">
+    <div class="church-name">
+      {{ s.get('church_name', 'MyVineChurch.Online') }}
+    </div>
+
+    <div class="user-info">
+      <a href="{{ url_for('auth.register') }}" class="btn btn-primary" style="padding:0.25rem 0.6rem; font-size:0.78rem; min-height:auto;">Register</a>
+      <div class="clock" id="clock" style="font-size:0.8rem; opacity:0.7;">--:--</div>
+    </div>
+  </header>
+
+  <!-- Desktop public nav - centered, conditional -->
+  <nav class="top-nav">
+    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">Home</a>
+    <a href="{{ url_for('public.public_events.public_events') }}">Events</a>
+    <a href="{{ url_for('public.public_sermons.public_sermons') }}">Sermons</a>
+    <a href="{{ url_for('public.public_prayers.public_prayers') }}">Prayers</a>
+    <a href="{{ url_for('public.public_announcements.public_announcements') }}">Announcements</a>
+    <a href="{{ url_for('public.public_dreams.public_dreams') }}">Dreams</a>
+    <a href="{{ url_for('public.public_prophecies.public_prophecies') }}">Prophecies</a>
+    {% if g.settings.get('online_donations_enabled') %}<a href="{{ url_for('public.donate') }}">Donate</a>{% endif %}
+    {% if session.get('user_id') %}
+      <a href="{{ url_for('dashboard.dashboard') }}">My Dashboard</a>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}">Login</a>
+    {% endif %}
+  </nav>
+
+  <!-- MAIN CONTENT using new wrapper -->
+  <div class="page-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer">
+    © {{ g.get('current_year', '2026') }} {{ s.get('church_name', 'MyVineChurch.Online') }} |
+    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="footer-link">Public Home</a>
+  </footer>
+
+  <!-- ==================== CLOCK SCRIPT ==================== -->
+  {% block scripts %}
+    <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+    <script>
+      function updateClock() {
+        const now = new Date();
+        const clockEl = document.getElementById('clock');
+        if (clockEl) {
+          clockEl.textContent = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+        }
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+    </script>
+  {% endblock %}
+</body>
+</html>

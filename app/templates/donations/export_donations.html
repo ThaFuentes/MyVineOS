@@ -1,0 +1,115 @@
+{% extends "donations/base_donations.html" %}
+
+{% block page_title %}Export Donations{% endblock %}
+
+{% block page_description %}
+Generate professional DOCX contribution receipts for tax purposes. Files are saved to disk — not emailed.
+{% endblock %}
+
+{% block donations_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Export Options</h2>
+
+    <form method="POST" action="{{ url_for('donations.export_individual') }}" class="styled-form" style="max-width:900px; margin:2rem auto;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <h3 class="section-subtitle">Individual Contribution Receipts (DOCX per member)</h3>
+        <p class="help-text">Select a year and one or more members. Each selected member receives a separate receipt file.</p>
+
+        <div class="form-group">
+            <label for="year-individual" class="control-label">Year <span class="required">*</span></label>
+            <select name="year" id="year-individual" class="form-input" required onchange="loadMembers(this.value)">
+                <option value="">-- Select Year --</option>
+                {% for y in years %}
+                    <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="control-label">Members with donations <span class="required">*</span></label>
+            <div id="member-picker" class="card glass" style="max-height:280px; overflow-y:auto; padding:0.75rem;">
+                <p class="help-text" id="member-picker-hint">Select a year to load members.</p>
+            </div>
+            <p class="help-text">
+                <button type="button" class="btn-small btn-secondary" onclick="selectAllMembers()">Select All</button>
+                <button type="button" class="btn-small btn-secondary" onclick="clearAllMembers()">Clear All</button>
+            </p>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Generate Individual Receipts</button>
+        </div>
+    </form>
+
+    <form method="POST" action="{{ url_for('donations.export_yearly') }}" class="styled-form" style="max-width:900px; margin:2rem auto;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <h3 class="section-subtitle">Yearly Contribution Summary (single DOCX)</h3>
+        <p class="help-text">One document with all donors and itemized totals for the selected year.</p>
+
+        <div class="form-group">
+            <label for="year-yearly" class="control-label">Year <span class="required">*</span></label>
+            <select name="year" id="year-yearly" class="form-input" required>
+                <option value="">-- Select Year --</option>
+                {% for y in years %}
+                    <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Generate Yearly Summary</button>
+        </div>
+    </form>
+</section>
+
+<script>
+  const membersUrl = '{{ url_for('donations.members_with_donations') }}';
+
+  function renderMembers(members) {
+    const box = document.getElementById('member-picker');
+    const hint = document.getElementById('member-picker-hint');
+    if (!members.length) {
+      box.innerHTML = '<p class="no-data">No members with donations for this year.</p>';
+      return;
+    }
+    hint.style.display = 'none';
+    box.innerHTML = members.map(m => `
+      <label style="display:block; padding:0.35rem 0; cursor:pointer;">
+        <input type="checkbox" name="member_ids" value="${m.id}" class="member-checkbox">
+        ${m.first_name} ${m.last_name}
+      </label>
+    `).join('');
+  }
+
+  function loadMembers(year) {
+    const box = document.getElementById('member-picker');
+    const hint = document.getElementById('member-picker-hint');
+    if (!year) {
+      box.innerHTML = '';
+      hint.style.display = 'block';
+      hint.textContent = 'Select a year to load members.';
+      return;
+    }
+    box.innerHTML = '<p class="help-text">Loading…</p>';
+    fetch(`${membersUrl}?year=${encodeURIComponent(year)}`)
+      .then(r => r.json())
+      .then(renderMembers)
+      .catch(() => { box.innerHTML = '<p class="no-data">Could not load members.</p>'; });
+  }
+
+  function selectAllMembers() {
+    document.querySelectorAll('.member-checkbox').forEach(cb => cb.checked = true);
+  }
+
+  function clearAllMembers() {
+    document.querySelectorAll('.member-checkbox').forEach(cb => cb.checked = false);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const yearSelect = document.getElementById('year-individual');
+    if (yearSelect.value) loadMembers(yearSelect.value);
+  });
+</script>
+
+{% endblock %}

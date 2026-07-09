@@ -1,0 +1,97 @@
+{% extends "legal/base_legal.html" %}
+
+{% block page_title %}Manage Legal Notices{% endblock %}
+{% block page_description %}
+{{ published_count }} of {{ total_categories }} categories are live publicly.
+{{ total_notices }} notice{{ 's' if total_notices != 1 else '' }} total — edit, publish, or delete any of them below.
+{% endblock %}
+
+{% block legal_content %}
+<div class="legal-manage-actions">
+    <a href="{{ url_for('legal.create_notice') }}" class="btn-primary">+ Add Notice</a>
+    <a href="{{ url_for('legal.legal_index') }}" class="btn-secondary">View public page</a>
+</div>
+
+<div class="legal-manage-category-list">
+    {% for cat in categories %}
+    <section class="glass-panel legal-manage-category" id="category-{{ cat.slug }}">
+        <header class="legal-manage-category-header">
+            <div>
+                <h3>{{ cat.name }}</h3>
+                {% if cat.description %}
+                <p class="legal-manage-category-desc">{{ cat.description }}</p>
+                {% endif %}
+            </div>
+            <div class="legal-manage-category-header-actions">
+                <span class="legal-status legal-status--{{ 'published' if cat.status == 'published' else ('draft' if cat.status == 'draft' else 'empty') }}">
+                    {{ cat.status_label }}
+                </span>
+                <a href="{{ url_for('legal.create_notice', category=cat.slug) }}" class="btn-small">+ Add</a>
+                {% if cat.notices %}
+                <a href="{{ url_for('legal.edit_notice', notice_id=cat.notices[0].id) }}" class="btn-small">Edit primary</a>
+                {% else %}
+                <a href="{{ url_for('legal.create_notice', category=cat.slug) }}" class="btn-small btn-primary">Create</a>
+                {% endif %}
+            </div>
+        </header>
+
+        {% if cat.notices %}
+        <div class="legal-manage-notice-table-wrap">
+            <table class="legal-manage-table legal-manage-table--nested">
+                <thead>
+                    <tr>
+                        <th>Notice</th>
+                        <th>Visibility</th>
+                        <th>Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for n in cat.notices %}
+                    <tr>
+                        <td>
+                            <strong>{{ n.title }}</strong>
+                            <br><small>/legal/notice/{{ n.slug }}</small>
+                        </td>
+                        <td>
+                            {% if n.is_active %}
+                            <span class="legal-status legal-status--published">Live</span>
+                            {% else %}
+                            <span class="legal-status legal-status--draft">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td>{% if n.updated_at %}{{ n.updated_at.strftime('%b %d, %Y') }}{% else %}—{% endif %}</td>
+                        <td class="legal-manage-actions-cell">
+                            <a href="{{ url_for('legal.edit_notice', notice_id=n.id) }}" class="btn-small">Edit</a>
+                            {% if n.is_active %}
+                            <a href="{{ url_for('legal.view_notice', slug=n.slug) }}" class="btn-small" target="_blank" rel="noopener">View</a>
+                            <form method="post" action="{{ url_for('legal.toggle_notice', notice_id=n.id) }}" class="inline-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-small">Unpublish</button>
+                            </form>
+                            {% else %}
+                            <form method="post" action="{{ url_for('legal.toggle_notice', notice_id=n.id) }}" class="inline-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-small btn-primary">Publish</button>
+                            </form>
+                            {% endif %}
+                            <form method="post" action="{{ url_for('legal.delete_notice', notice_id=n.id) }}" class="inline-form" onsubmit="return confirm('Delete “{{ n.title }}”? This cannot be undone.');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-small btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="legal-manage-empty-category">
+            <p>No notice exists for this category yet.</p>
+            <a href="{{ url_for('legal.create_notice', category=cat.slug) }}" class="btn-primary">Create {{ cat.name }}</a>
+        </div>
+        {% endif %}
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

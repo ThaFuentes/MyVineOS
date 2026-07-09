@@ -1,0 +1,95 @@
+<!-- app/templates/prayers/view_prayer.html -->
+<!-- Full path: MyVineChurch/app/templates/prayers/view_prayer.html -->
+<!-- File name: view_prayer.html -->
+<!-- Brief, detailed purpose: Private view of a single prayer request + all responses.
+   Logged-in users only.
+   Shows prayer details, all responses (including guest responses).
+   Users can edit/delete their own responses.
+   Admins / moderators can edit/delete any response (including guest responses). -->
+
+{% extends "prayers/base_prayers.html" %}
+
+{% block page_title %}{{ prayer.title }}{% endblock %}
+
+{% block page_description %}
+Prayer request by {{ prayer.creator_name }} • {{ prayer.formatted_date }}
+{% endblock %}
+
+{% block prayers_content %}
+
+<section class="content-section">
+
+    <!-- Prayer Request -->
+    <div class="card glass">
+        <h2 class="section-title">{{ prayer.title }}</h2>
+        <p class="meta">
+            Posted by <strong>{{ prayer.creator_name }}</strong>
+            on {{ prayer.formatted_date }}
+        </p>
+        <div class="prayer-body">
+            {{ prayer.description | nl2br | censor }}
+        </div>
+    </div>
+
+    <!-- Responses -->
+    <h3 class="section-title" style="margin-top: 2.5rem;">Responses & Prayers Added</h3>
+
+    {% if responses %}
+        <div class="responses-list">
+            {% for r in responses %}
+            <div class="card glass response-item">
+                <p class="meta">
+                    <strong>{{ r.responder_name }}</strong>
+                    • {{ r.formatted_date }}
+                </p>
+                <p>{{ r.prayer | nl2br | censor }}</p>
+
+                <!-- Edit / Delete buttons (owner or moderator) -->
+                {% if is_logged_in and (r.user_id == session.user_id or user_has_permission('moderate_prayers') or session.user_role in ['Admin', 'Owner']) %}
+                <div class="response-actions">
+                    <!-- Edit button -->
+                    <form action="{{ url_for('prayers.edit_response', prayer_id=prayer.id, response_id=r.id) }}"
+                          method="POST" style="display:inline;">
+                        {% include 'partials/csrf_field.html' %}
+                        <input type="hidden" name="response_text" value="{{ r.prayer }}">
+                        <button type="submit" class="btn-secondary btn-small">Edit</button>
+                    </form>
+
+                    <!-- Delete button -->
+                    <form action="{{ url_for('prayers.delete_response', prayer_id=prayer.id, response_id=r.id) }}"
+                          method="POST" style="display:inline;">
+                        {% include 'partials/csrf_field.html' %}
+                        <button type="submit" class="btn-danger btn-small"
+                                onclick="return confirm('Delete this response permanently?');">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="no-data">No responses yet.</p>
+    {% endif %}
+
+    <!-- Add New Response Form -->
+    <div class="card glass" style="margin-top: 2rem;">
+        <h4 class="section-subtitle">Add Your Prayer Response</h4>
+
+        <form action="{{ url_for('prayers.view_prayer', prayer_id=prayer.id) }}" method="POST" class="styled-form">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="response">
+            <div class="form-group">
+                <label class="control-label">Your Response</label>
+                <textarea name="prayer" class="form-input" rows="4" placeholder="Share your thoughts or prayer..." required></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Post Response</button>
+            </div>
+        </form>
+    </div>
+
+</section>
+
+{% endblock %}

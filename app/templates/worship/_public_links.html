@@ -1,0 +1,11 @@
+{% macro public_links(public_token, kind) %}
+{% if public_token and can_manage %}
+<div class="glass-panel" style="padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.88rem;">
+  <strong>Public / sanctuary links</strong> (share token links — no login)
+  <ul style="margin:0.5rem 0 0; padding-left:1.1rem;">
+    <li><strong>Auditorium screen</strong> (titles only): <a href="{{ url_for('worship.public_screen', token=public_token) }}" target="_blank">{{ url_for('worship.public_screen', token=public_token, _external=True) }}</a></li>
+    <li><strong>Prompter</strong> (full lyrics): <a href="{{ url_for('worship.public_prompter', token=public_token) }}" target="_blank">{{ url_for('worship.public_prompter', token=public_token, _external=True) }}</a></li>
+  </ul>
+</div>
+{% endif %}
+{% endmacro %}

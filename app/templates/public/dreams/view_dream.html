@@ -1,0 +1,155 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/public/dreams/view_dream.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/public/dreams/view_dream.html -->
+<!-- File name: view_dream.html -->
+<!-- Brief, detailed purpose: Public single dream/vision detail page for unauthenticated guests. -->
+<!-- 100% rebuilt to match the Events gold standard (event_detail.html) exactly. -->
+<!-- Uses all data passed from public_dream_detail route (title, description, notes, creator_name, comments.html, etc.). -->
+<!-- Includes one-level replies, guest comment form, flash messages, and correct nested blueprint URLs. -->
+
+{% extends "base_public.html" %}
+
+{% block title %}{{ dream.title|title }}{% endblock %}
+
+{% block content %}
+
+<!-- Dream Header -->
+<section class="content-section dream-header">
+    <h1 class="page-title">{{ dream.title|title }}</h1>
+
+    <!-- Horizontal meta row (matches Events gold standard) -->
+    <div class="dream-meta" style="display: flex; flex-wrap: wrap; gap: 1.8rem 2.5rem; align-items: baseline; justify-content: center; font-size: 1.15rem; color: #ddd; margin-top: 0.8rem;">
+        <div><strong>Shared on:</strong> {{ dream.date_posted.strftime('%B %d, %Y') if dream.date_posted else 'Unknown' }}</div>
+        <div><strong>By:</strong> {{ dream.creator_name or dream.poster_name or dream.contributor_name or 'Anonymous' }}</div>
+    </div>
+</section>
+
+
+
+<div class="content-wrapper">
+
+    <!-- Description -->
+    {% if dream.description %}
+    <section class="content-section">
+        <h3 class="section-title">The Dream / Vision</h3>
+        <div class="card glass">
+            {{ dream.description | nl2br | censor }}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Notes (if any) -->
+    {% if dream.notes %}
+    <section class="content-section">
+        <h3 class="section-title">Additional Notes</h3>
+        <div class="card glass">
+            {{ dream.notes | nl2br | censor }}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Category -->
+    {% if dream.category %}
+    <section class="content-section">
+        <h3 class="section-title">Category</h3>
+        <div class="card glass">
+            {{ dream.category }}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- ==================== COMMENTS WITH SIMPLE ONE-LEVEL REPLIES ==================== -->
+    <section class="content-section">
+        <h3 class="section-title">Community Comments & Replies</h3>
+
+        {% if dream.comments %}
+        <div class="card glass">
+            {% for comment in dream.comments if not comment.parent_id %}
+                <!-- Top-level comment -->
+                <div class="comment-item" style="margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1);">
+                    <p><strong>{{ comment.name | censor }}</strong>
+                       <small style="color:#888;">{{ comment.date }}</small></p>
+                    <p>{{ comment.comment | nl2br | censor }}</p>
+
+                    <!-- Reply button -->
+                    <button onclick="toggleReplyForm({{ comment.id }})"
+                            style="margin-top:0.8rem; padding:0.4rem 1rem; font-size:0.9rem; background:rgba(0,255,255,0.1); color:var(--primary); border:1px solid var(--primary); border-radius:6px; cursor:pointer;">
+                        Reply
+                    </button>
+
+                    <!-- Reply form -->
+                    <div id="reply-form-{{ comment.id }}" style="display:none; margin-top:1rem; padding:1rem; background:rgba(255,255,255,0.05); border-radius:8px;">
+                        <form action="{{ url_for('public.public_dreams.public_dream_detail', dream_id=dream.id) }}" method="POST">
+                            <input type="hidden" name="action" value="reply">
+                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                            <div style="margin-bottom:0.8rem;">
+                                <label style="display:block; color:var(--primary); margin-bottom:0.4rem;">Your Name <span style="color:#ff4444;">*</span></label>
+                                <input type="text" name="contributor_name" class="form-input" required
+                                       style="width:100%; padding:1rem; background:rgba(255,255,255,0.1); border:1px solid var(--primary); color:white; border-radius:8px;"
+                                       placeholder="Guest name or nickname">
+                            </div>
+                            <div style="margin-bottom:0.8rem;">
+                                <label style="display:block; color:var(--primary); margin-bottom:0.4rem;">Your Reply</label>
+                                <textarea name="comment" rows="3" class="form-input" required
+                                          style="width:100%; padding:1rem; background:rgba(255,255,255,0.1); border:1px solid var(--primary); color:white; border-radius:8px;"
+                                          placeholder="Write your reply..."></textarea>
+                            </div>
+                            <button type="submit"
+                                    style="padding:0.8rem 2rem; background:var(--primary); color:#000; font-weight:bold; border:none; border-radius:8px; cursor:pointer;">
+                                Post Reply
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- One-level replies -->
+                {% for reply in dream.comments if reply.parent_id == comment.id %}
+                <div class="comment-item" style="margin-left:2rem; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1); border-left:3px solid var(--primary); padding-left:1rem;">
+                    <p><strong>{{ reply.name | censor }}</strong>
+                       <small style="color:#888;">{{ reply.date }}</small></p>
+                    <p>{{ reply.comment | nl2br | censor }}</p>
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-data">No comments yet — be the first to respond!</p>
+        {% endif %}
+
+        <!-- Main Guest Comment Form -->
+        <form action="{{ url_for('public.public_dreams.public_dream_detail', dream_id=dream.id) }}" method="POST" style="margin-top: 2rem;">
+            <input type="hidden" name="action" value="comment">
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; color: var(--primary); margin-bottom: 0.4rem;">Your Name <span style="color: #ff4444;">*</span></label>
+              <input type="text" name="contributor_name" class="form-input"
+                     style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); color: white; border-radius: 8px;"
+                     placeholder="Guest name or nickname" required>
+            </div>
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; color: var(--primary); margin-bottom: 0.4rem;">Your Comment</label>
+              <textarea name="comment" rows="4" class="form-input"
+                        style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); color: white; border-radius: 8px;"
+                        placeholder="Share your thoughts or interpretation..." required></textarea>
+            </div>
+            <button type="submit"
+                    style="padding: 1rem 2.5rem; background: var(--primary); color: #000; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
+              Post Comment
+            </button>
+        </form>
+    </section>
+
+</div>
+
+<!-- Back to Dreams list -->
+<div class="form-actions" style="margin-top:3rem;">
+    <a href="{{ url_for('public.public_dreams.public_dreams') }}" class="btn-secondary">← Back to All Dreams & Visions</a>
+</div>
+
+<script>
+  // Toggle reply forms
+  function toggleReplyForm(commentId) {
+    const form = document.getElementById('reply-form-' + commentId);
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+</script>
+
+{% endblock %}

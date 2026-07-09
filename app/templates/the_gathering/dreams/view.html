@@ -1,0 +1,83 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/the_gathering/dreams/view.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/the_gathering/dreams/view.html -->
+<!-- File name: view.html -->
+<!-- Brief, detailed purpose: Read-only detailed view of a single dream/vision inside the Gathering Place Manager. -->
+<!-- • Shows every field from the dreams table in a clean layout. -->
+<!-- • ALL url_for calls updated to the new nested blueprint: the_gathering.dreams.* -->
+<!-- • 100% rebuilt entire file to match the new sub-blueprint structure and events/view.html styling. -->
+
+{% extends "the_gathering/base.html" %}
+
+{% block title %}View Dream • {{ dream.title }}{% endblock %}
+
+{% block content %}
+
+<div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+            <h1 style="color:var(--primary); margin:0; font-size:1.3rem;">🌙 Dream / Vision Detail</h1>
+            <h2 class="text-light">{{ dream.title }}</h2>
+        </div>
+
+        <div style="display:flex; gap:0.5rem;">
+            <!-- Back to Dreams Manager -->
+            <a href="{{ url_for('the_gathering.dreams.dreams_dashboard') }}" class="btn btn-secondary">
+                ← Back to Dreams
+            </a>
+
+            <!-- Edit Dream -->
+            <a href="{{ url_for('the_gathering.dreams.edit_dream', dream_id=dream.id) }}" class="btn btn-primary">
+                ✏️ Edit Dream
+            </a>
+
+            <!-- Manage Comments -->
+            <a href="{{ url_for('the_gathering.dreams.dream_comments', dream_id=dream.id) }}" class="btn btn-warning">
+                💬 Manage Comments ({{ comment_count or 0 }})
+            </a>
+
+            <!-- View on Public Site -->
+            <a href="{{ url_for('public.public_dreams.public_dream_detail', dream_id=dream.id) }}"
+               target="_blank" class="btn btn-outline-light">
+                👁️ View Public
+            </a>
+
+            <!-- Delete Dream -->
+            <form method="POST" action="{{ url_for('the_gathering.dreams.delete_dream', dream_id=dream.id) }}" style="display:inline;"
+                  onsubmit="return confirm('PERMANENTLY DELETE this dream and ALL its comments?')">
+                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="glass-panel" style="padding:1rem; margin-bottom:1.25rem;">
+        <!-- Meta info - flex wrap for mobile -->
+        <div style="display:flex; flex-wrap:wrap; gap:1rem; font-size:0.95rem; margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div>
+                <strong>Visibility:</strong>
+                <span style="padding:0.1rem 0.5rem; border-radius:999px; font-size:0.8rem; {% if dream.visibility == 'public' %}background:#0a3; color:#fff;{% else %}background:#555;{% endif %}">
+                    {{ dream.visibility|upper }}
+                </span>
+            </div>
+            <div><strong>Creator:</strong> {{ dream.creator_name or 'Anonymous' }}</div>
+            <div><strong>Created:</strong> {{ dream.created_at | format_manager_datetime }}</div>
+        </div>
+
+        <!-- Full Dream Content -->
+        <div style="margin-bottom:1rem;">
+            <div style="font-size:0.85rem; opacity:0.7; margin-bottom:0.35rem;">Dream / Vision Content</div>
+            <div class="glass-panel" style="padding:0.9rem; white-space:pre-wrap; line-height:1.5;">{{ dream.dream_text | nl2br | safe }}</div>
+        </div>
+
+        <!-- Created / Updated Info -->
+        <div style="font-size:0.75rem; opacity:0.6; margin-top:0.5rem;">
+            Created by {{ dream.creator_name or 'Anonymous' }} on {{ dream.created_at | format_manager_datetime }}<br>
+            Last updated: {{ dream.updated_at | format_manager_datetime }}
+        </div>
+    </div>
+</div>
+
+<script>
+    console.log('✅ Dream View loaded for dream #{{ dream.id }}');
+</script>
+
+{% endblock %}

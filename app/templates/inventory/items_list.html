@@ -1,0 +1,48 @@
+<!-- app/templates/inventory/items_list.html -->
+<!-- Full path: WebChurchMan/app/templates/inventory/items_list.html -->
+<!-- File name: items_list.html -->
+<!-- Brief, detailed purpose: Searchable catalog of all items with current total stock. -->
+
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<section class="content-section">
+    <h2 class="section-title">Items Catalog</h2>
+
+    <form method="GET" class="inline-form styled-form">
+        <div class="form-group search-group">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or barcode..." class="search-input">
+            <button type="submit" class="btn-primary">Search</button>
+        </div>
+    </form>
+
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Barcode</th>
+                    <th>Total Stock</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.category_name }}</td>
+                        <td>{{ item.barcode_upc_ean or '-' }}</td>
+                        <td>{{ item.total_stock }}</td>
+                        <td class="actions-cell">
+                            <a href="{{ url_for('inventory.item_manage', item_id=item.id) }}" class="btn-small btn-primary">Edit</a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="no-data">No items found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

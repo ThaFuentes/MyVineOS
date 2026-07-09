@@ -1,0 +1,43 @@
+<!-- app/templates/inventory/item_form.html -->
+<!-- Full path: WebChurchMan/app/templates/inventory/item_form.html -->
+<!-- File name: item_form.html -->
+<!-- Brief, detailed purpose: Add/Edit item form – includes single barcode scan button for convenience. -->
+
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<section class="content-section">
+    <h2 class="section-title">{{ 'Edit' if item else 'Add New' }} Item</h2>
+
+    <form method="POST" class="styled-form">
+        <div class="form-group">
+            <label>Name <span class="required">*</span></label>
+            <input type="text" name="name" value="{{ item.name if item }}" required class="form-input">
+        </div>
+
+        <div class="form-group">
+            <label>Category <span class="required">*</span></label>
+            <select name="category_id" required class="form-input">
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if item and item.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Barcode (UPC/EAN)</label>
+            <div class="inline-form">
+                <input type="text" name="barcode_upc_ean" value="{{ item.barcode_upc_ean if item }}" class="form-input" id="barcode-input">
+                <button type="button" id="scan-single-btn" class="btn-secondary">Scan Barcode</button>
+            </div>
+        </div>
+
+        <!-- Add other fields here as needed (pack_quantity, unit_of_measure, min_stock_level, etc.) -->
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Item</button>
+            <a href="{{ url_for('inventory.items_list') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

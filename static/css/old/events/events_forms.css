@@ -1,0 +1,136 @@
+/* myvinechurchonline/static/css/donations_forms.css */
+/* Full path: myvinechurchonline/static/css/donations_forms.css */
+/* Purpose: Styles all form elements across the Donations module (Add Donation, filters on Reports/Export/View-All, etc.).
+   Provides good spacing, high-contrast inputs, cyan focus glow, help text, required markers, and the member-search dropdown. */
+
+.styled-form {
+    display: grid;
+    gap: 1.8rem;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: end;
+    justify-content: center;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    color: #00FFFF;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    background: #252525;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #00FFFF;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.help-text {
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    margin-top: 0.4rem;
+    line-height: 1.4;
+}
+
+.required {
+    color: #ff6666;
+}
+
+/* Member search dropdown on Add Donation */
+.member-search {
+    position: relative;
+}
+
+#member-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 320px;
+    overflow-y: auto;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 8px;
+    z-index: 10;
+    margin-top: 0.3rem;
+}
+
+.member-result-item {
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+    transition: background 0.2s ease;
+}
+
+.member-result-item:hover {
+    background: #00FFFF;
+    color: #121212;
+}
+
+.member-result-item:last-child {
+    border-bottom: none;
+}
+
+/* Compliance info box on Add Donation */
+.compliance-info {
+    background: #252525;
+    padding: 1.8rem;
+    border-radius: 10px;
+    border: 1px solid #444;
+    margin-top: 2rem;
+}
+
+.compliance-info h3 {
+    color: #00FFFF;
+    margin-bottom: 1rem;
+}
+
+.compliance-info .statement {
+    font-style: italic;
+    margin-top: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .styled-form,
+    .inline-form {
+        padding: 0 1rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        padding: 0.8rem;
+    }
+}

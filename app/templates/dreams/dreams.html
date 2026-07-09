@@ -1,0 +1,217 @@
+<!-- app/templates/dreams/dreams.html -->
+<!-- Full path: WebChurchMan/app/templates/dreams/dreams.html -->
+<!-- File name: dreams.html -->
+<!-- Brief, detailed purpose: Dreams & Visions Dashboard / Main Listing page.
+   Extends base_dreams.html → identical glass wrapper, menu, flash handling.
+   Summary cards, top submit button (logged-in only), collapsible search/filters, glass table.
+   Client-side live search + visibility filters.
+   Title links to detail view (/dreams/<id>).
+   Uses ONLY global classes – no dreams-specific CSS.
+   Date display fixed to use strftime (no slicing on datetime objects). -->
+
+{% extends "dreams/base_dreams.html" %}
+
+{% block page_title %}Dreams & Visions Dashboard{% endblock %}
+
+{% block page_description %}
+Browse and search all dreams & visions.<br>
+{% if is_logged_in %}
+    You can submit your own and see all (public, private, personal).
+{% else %}
+    Public dreams & visions only. <a href="{{ url_for('auth.login') }}">Log in</a> for more.
+{% endif %}
+{% endblock %}
+
+{% block dreams_content %}
+
+<!-- Summary Cards -->
+<section class="content-section">
+    <h2 class="section-title">Dreams & Visions Summary</h2>
+    <div class="summary-cards">
+        <div class="card glass">
+            <h3>Total</h3>
+            <p class="large-amount">{{ dream_data|length }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Public</h3>
+            <p class="large-amount">{{ dream_data|selectattr('visibility', 'equalto', 'public')|list|length }}</p>
+        </div>
+        {% if is_logged_in %}
+        <div class="card glass">
+            <h3>Private</h3>
+            <p class="large-amount">{{ dream_data|selectattr('visibility', 'equalto', 'private')|list|length }}</p>
+        </div>
+        <div class="card glass">
+            <h3>Personal</h3>
+            <p class="large-amount">{{ dream_data|selectattr('visibility', 'equalto', 'personal')|list|length }}</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Submit Button – logged-in only -->
+{% if is_logged_in %}
+<div class="form-actions add-event-top">
+    <a href="{{ url_for('dreams.submit_dream') }}" class="btn-primary">+ Submit Dream / Vision</a>
+</div>
+{% endif %}
+
+<!-- Search & Filters -->
+<section class="content-section">
+    <h2 class="section-title">All Dreams & Visions</h2>
+
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search</label>
+                <input type="text" id="searchBox" class="search-input" value="{{ search_query }}" placeholder="Title, description, notes..." autocomplete="off">
+                <p class="help-text">Live search across dream details</p>
+            </div>
+            <div class="form-group filter-group">
+                <label class="control-label">Visibility</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    <button data-filter="public" class="btn btn-small filter-btn btn-secondary">Public</button>
+                    {% if is_logged_in %}
+                    <button data-filter="private" class="btn btn-small filter-btn btn-secondary">Private</button>
+                    <button data-filter="personal" class="btn btn-small filter-btn btn-secondary">Personal</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Dreams Table -->
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Date Occurred</th>
+                    <th>Posted</th>
+                    <th>By</th>
+                    <th>Visibility</th>
+                    <th>Comments</th>
+                    {% if is_logged_in %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="dreamsBody">
+                {% if dream_data %}
+                    {% for d in dream_data %}
+                    <tr class="data-row"
+                        data-visibility="{{ d.visibility }}">
+                        <td>
+                            <a href="{{ url_for('dreams.view_dream', dream_id=d.id) }}">
+                                <strong>{{ d.title }}</strong>
+                            </a>
+                        </td>
+                        <td>{{ d.type|capitalize if d.type else '—' }}</td>
+                        <td>{{ d.date_occurred_text or '—' }}</td>
+                        <td>{{ d.date_posted.strftime('%m/%d/%Y') }}</td>
+                        <td>{{ d.poster_name or 'Anonymous' }}</td>
+                        <td>{{ d.visibility|capitalize }}</td>
+                        <td>{{ d.comments|length }}</td>
+                        {% if is_logged_in %}
+                        <td class="actions-cell">
+                            {% set can_edit = (d.user_id == current_user_id) or is_admin_owner %}
+                            {% set can_delete = is_admin_owner %}
+                            {% if can_edit or can_delete %}
+                            <div class="actions-flex">
+                                {% if can_edit %}
+                                <a href="{{ url_for('dreams.edit_dream', dream_id=d.id) }}" class="btn-primary btn-small">Edit</a>
+                                {% endif %}
+                                {% if can_delete %}
+                                <form action="{{ url_for('dreams.delete_dream', dream_id=d.id) }}" method="post" style="display:inline;">
+                                    <button type="submit" class="btn-danger btn-small"
+                                            onclick="return confirm('Delete this dream?');">
+                                        Delete
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{{ 8 if is_logged_in else 7 }}" class="no-data">
+                            No dreams & visions found.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No dreams match the current search and filters.
+    </div>
+</section>
+
+<script>
+(function() {
+    const searchBox = document.getElementById('searchBox');
+    const body = document.getElementById('dreamsBody');
+    const noResults = document.getElementById('noResults');
+    const buttons = document.querySelectorAll('.filter-btn');
+
+    let visibilityFilter = 'all';
+    let timer;
+
+    function highlight() {
+        buttons.forEach(b => {
+            const active = (b.dataset.filter === 'all') || (b.dataset.filter === visibilityFilter);
+            b.classList.toggle('btn-primary', active);
+            b.classList.toggle('btn-secondary', !active);
+        });
+    }
+
+    function apply() {
+        const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+        const rows = body.querySelectorAll('.data-row');
+        let visible = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const vis = row.dataset.visibility;
+
+            const matchSearch = !query || text.includes(query);
+            const matchVis = visibilityFilter === 'all' || visibilityFilter === vis;
+
+            const show = matchSearch && matchVis;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        noResults.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+        searchBox.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(apply, 300);
+        });
+    }
+
+    buttons.forEach(b => {
+        b.addEventListener('click', () => {
+            visibilityFilter = b.dataset.filter;
+            highlight();
+            apply();
+        });
+    });
+
+    highlight();
+    apply();
+})();
+</script>
+
+{% endblock %}

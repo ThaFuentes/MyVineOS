@@ -1,0 +1,43 @@
+{% extends "custom_modules/base.html" %}
+
+{% block module_content %}
+<section class="content-section">
+    <h2 class="section-title">{{ schema.list_label|default('Records') }}</h2>
+
+    {% if records %}
+    <div class="cm-records-grid">
+        {% for rec in records %}
+        <article class="cm-record-card glass-panel">
+            <h3 class="cm-record-title">{{ rec.title }}</h3>
+            <dl class="cm-record-fields">
+                {% for field in schema.fields %}
+                    {% set val = rec.data.get(field.key) %}
+                    {% if val is not none and val != '' and val != false %}
+                    <div class="cm-field-row">
+                        <dt>{{ field.label }}</dt>
+                        <dd>
+                            {% if field.type == 'textarea' %}{{ val|nl2br }}{% else %}{{ val }}{% endif %}
+                        </dd>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </dl>
+            {% if can_manage %}
+            <div class="cm-record-actions">
+                <a href="{{ url_for('custom_modules.edit_record', slug=module.slug, record_id=rec.id) }}" class="btn-primary btn-small">Edit</a>
+                <form action="{{ url_for('custom_modules.delete_record_route', slug=module.slug, record_id=rec.id) }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                    <button type="submit" class="btn-danger btn-small" onclick="return confirm('Delete this record?');">Delete</button>
+                </form>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-data">No {{ schema.list_label|default('records')|lower }} yet.
+        {% if can_manage %}<a href="{{ url_for('custom_modules.add_record', slug=module.slug) }}">Add the first one</a>.{% endif %}
+    </p>
+    {% endif %}
+</section>
+{% endblock %}

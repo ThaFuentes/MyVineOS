@@ -1,0 +1,103 @@
+/* app/static/css/global/pastoral/pastoral.css */
+/* Full path: WebChurchMan/app/static/css/global/pastoral/pastoral.css */
+/* File name: pastoral.css */
+/* Brief, detailed purpose:
+   Core shared styles for the entire Pastoral Area.
+   - Dark theme (#121212 base, #1e1e1e cards)
+   - Cyan (#00FFFF) primary accents
+   - Glass-morphism cards (.glass-card)
+   - Pastoral internal pill navigation
+   - Shared typography, badges, buttons, responsive utilities
+   - Imported by base_pastoral.html (and optionally others) */
+
+:root {
+    --bg-dark: #0d0d0d;
+    --card-bg: rgba(30, 30, 30, 0.85);
+    --text-primary: #e0e0e0;
+    --text-muted: #aaaaaa;
+    --cyan: #00ffff;
+    --cyan-dark: #00cccc;
+    --border: #333333;
+    --glass-blur: blur(12px);
+}
+
+/* Pastoral wrapper backgrounds */
+.pastoral-content-wrapper {
+    background: var(--bg-dark);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+body {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+}
+
+/* Glass Card Base */
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+/* Cyan Buttons */
+.btn-cyan {
+    background: var(--cyan);
+    color: #000;
+    border: none;
+    font-weight: 600;
+}
+.btn-cyan:hover {
+    background: var(--cyan-dark);
+    color: #000;
+}
+.btn-outline-cyan {
+    border-color: var(--cyan);
+    color: var(--cyan);
+}
+.btn-outline-cyan:hover {
+    background: var(--cyan);
+    color: #000;
+}
+
+/* Badges */
+.bg-cyan {
+    background: var(--cyan) !important;
+    color: #000;
+}
+
+/* Pastoral Internal Nav Pills */
+.pastoral-nav-pills .nav-link {
+    color: var(--text-muted);
+    border-radius: 50px;
+    margin: 0 0.5rem;
+    padding: 0.5rem 1.2rem;
+}
+.pastoral-nav-pills .nav-link:hover,
+.pastoral-nav-pills .nav-link.active {
+    background: var(--cyan);
+    color: #000;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5 { color: #fff; }
+.text-cyan { color: var(--cyan); }
+
+/* Scrollbars */
+.small-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.small-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.small-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--cyan);
+    border-radius: 3px;
+}
+
+/* Quick fixes for Bootstrap overrides */
+.table-dark { background: #1e1e1e; }
+.alert { border: none; }

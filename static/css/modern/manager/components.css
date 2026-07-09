@@ -1,0 +1,133 @@
+/* MYVINECHURCH.ONLINE/static/css/modern/manager/components.css */
+/* Full path: MYVINECHURCH.ONLINE/static/css/modern/manager/components.css */
+/* File name: components.css */
+/* Brief, detailed purpose: Modern reusable UI components for ALL Manager area pages. */
+/* • Exact same naming schema as global/components.css for perfect consistency. */
+/* • Glassmorphism 2.0 + glow cards, improved mobile experience, hover animations. */
+/* • Covers cards, tables, buttons, filters, activity feed, etc. */
+/* • Uses ONLY modern manager/theme.css variables. */
+/* • Kept under 300 lines. */
+
+.card.glass {
+    background: var(--bg-panel);
+    backdrop-filter: var(--blur-card);
+    -webkit-backdrop-filter: var(--blur-card);
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-medium);
+    padding: 1.8rem;
+    box-shadow: var(--shadow-card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card.glass:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-large);
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+/* Glow cards for content-heavy manager sections */
+.glow-card {
+    background: var(--bg-card);
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-large);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-card);
+}
+
+/* Modern buttons */
+.btn-primary {
+    padding: 0.9rem 2.2rem;
+    background: var(--primary);
+    color: var(--text-on-primary);
+    border: none;
+    border-radius: var(--radius-small);
+    font-weight: 600;
+    box-shadow: 0 0 20px var(--primary-glow);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px var(--primary-glow);
+}
+
+/* Tables */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 1.1rem 1rem;
+    border-bottom: 1px solid var(--primary-border);
+    text-align: left;
+}
+
+.data-table th {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.data-table tbody tr:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+/* Activity feed & recent items */
+.activity-feed {
+    max-height: 520px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--primary-border);
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+/* Filter buttons */
+.filter-btn {
+    padding: 0.7rem 1.6rem;
+    background: var(--bg-card);
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-tiny);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.filter-btn.active,
+.filter-btn:hover {
+    background: var(--primary);
+    color: var(--text-on-primary);
+    border-color: var(--primary);
+}
+
+/* Responsive adjustments for manager area */
+@media (max-width: 768px) {
+    .summary-cards {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .card.glass,
+    .glow-card {
+        padding: 1.5rem;
+    }
+
+    .btn-primary {
+        width: 100%;
+        text-align: center;
+    }
+}

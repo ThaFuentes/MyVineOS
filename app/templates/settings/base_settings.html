@@ -1,0 +1,43 @@
+<!-- app/templates/settings/base_settings.html -->
+<!-- Common base for all Settings pages: sub-nav pills + content block -->
+
+{% extends "base.html" %}
+
+{% block content %}
+{% include 'partials/my_stuff_nav.html' %}
+<h1 class="page-title">Settings</h1>
+<p class="page-description">Global application configuration — Admin/Owner and granted users only.</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<nav class="settings-nav" aria-label="Settings sections">
+    <a href="{{ url_for('settings.general') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.general' else '' }}">Church & General</a>
+    <a href="{{ url_for('settings.timezone') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.timezone' else '' }}">Timezone</a>
+    <a href="{{ url_for('settings.email') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.email' else '' }}">Email</a>
+    <a href="{{ url_for('settings.notifications') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.notifications' else '' }}">Notifications</a>
+    <a href="{{ url_for('settings.ai') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.ai' else '' }}">AI Insights</a>
+    <a href="{{ url_for('settings.online_giving') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.online_giving' else '' }}">Online Giving</a>
+    <a href="{{ url_for('settings.censored_words') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.censored_words' else '' }}">Censored Words</a>
+    {% if session.get('user_role') in ['Owner', 'Admin'] %}
+    <a href="{{ url_for('settings.custom_modules_list') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('settings.custom_modules') else '' }}">Church Apps</a>
+    {% endif %}
+</nav>
+
+{% block settings_content %}{% endblock %}
+{% endblock %}

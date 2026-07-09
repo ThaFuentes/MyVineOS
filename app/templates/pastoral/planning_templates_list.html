@@ -1,0 +1,105 @@
+{# app/templates/pastoral/planning_templates_list.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/planning_templates_list.html #}
+{# File name: planning_templates_list.html #}
+{# Brief, detailed purpose:
+#   Centralized console for all recurring master templates.
+#   Displays weekday, title, times, linked sermon title, override count.
+#   Actions: Edit, Delete.
+#   NEW: "Refresh plain weeks" button per template (deletes identical dated overrides after today – safe cleanup of legacy rows).
+#   Strong messaging: master templates control all future weeks.
+#   Polished dark/cyan theme, responsive table, empty state guidance.
+#   Fully rebuilt for clarity, smoothness, and new cleanup feature. #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Recurring Master Templates{% endblock %}
+
+{% block pastoral_content %}
+<div class="container-fluid py-5">
+    <div class="text-center mb-5">
+        <h1 class="text-cyan">Recurring Master Templates</h1>
+        <p class="text-muted lead">
+            <strong>One master template per weekday</strong> sets your standard service time (shown on the public welcome page).<br>
+            Edit a template once → instantly affects <strong>every future week</strong> unless you create a <strong>dated override</strong> for a specific Sunday/week.<br>
+            Use <a href="{{ url_for('pastoral.planning.index') }}">Service Planning</a> → Edit on a date to customize that week only.
+        </p>
+        <a href="{{ url_for('pastoral.planning.template_edit') }}" class="btn btn-success btn-lg shadow">
+            <i class="fas fa-plus me-2"></i>New Master Template
+        </a>
+    </div>
+
+    {% if templates %}
+    <div class="card glass-card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Weekday</th>
+                        <th>Title</th>
+                        <th>Start Time</th>
+                        <th>Worship Start</th>
+                        <th>Linked Sermon</th>
+                        <th>Future Overrides</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in templates %}
+                    <tr>
+                        <td class="fw-bold text-cyan">{{ weekday_names[t.weekday] }}</td>
+                        <td>{{ t.title }}</td>
+                        <td>{{ t.start_time.strftime('%I:%M %p')|lower if t.start_time else '—' }}</td>
+                        <td>{{ t.worship_start_time.strftime('%I:%M %p')|lower if t.worship_start_time else '—' }}</td>
+                        <td>
+                            {% if t.linked_sermon_title %}
+                                <a href="{{ url_for('pastoral.sermons.edit', sermon_id=t.pastoral_sermon_id) }}" class="text-cyan text-decoration-underline">
+                                    {{ t.linked_sermon_title }}
+                                </a>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ t.override_count }}</span>
+                            {% if t.override_count > 0 %}
+                                <form method="POST" action="{{ url_for('pastoral.planning.template_refresh', template_id=t.id) }}"
+                                      class="d-inline ms-2" onsubmit="return confirm('Refresh all future plain weeks for {{ t.title }}?\nThis deletes {{ t.override_count }} identical override rows (manual edits preserved).');">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Delete identical future overrides so latest template applies">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('pastoral.planning.template_edit', template_id=t.id) }}"
+                               class="btn btn-sm btn-outline-cyan me-2">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </a>
+                            <form method="POST" action="{{ url_for('pastoral.planning.template_delete', template_id=t.id) }}"
+                                  class="d-inline" onsubmit="return confirm('Permanently delete master template {{ t.title }}?\nAll future weeks will lose this template (overrides preserved).');">
+                                <button typo="submit" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-calendar-week fa-5x text-muted mb-4 opacity-50"></i>
+        <h3 class="text-muted">No Master Templates Yet</h3>
+        <p class="text-muted mb-4">
+            Create your first recurring template (e.g., Sunday Morning Worship).<br>
+            It will automatically apply to every future week of that type.
+        </p>
+        <a href="{{ url_for('pastoral.planning.template_edit') }}" class="btn btn-success btn-lg">
+            <i class="fas fa-plus me-2"></i>Create First Template
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

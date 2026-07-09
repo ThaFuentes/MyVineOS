@@ -1,0 +1,108 @@
+{# app/templates/pastoral/illustration_edit_card.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/illustration_edit_card.html #}
+{# File name: illustration_edit_card.html #}
+{# Brief, detailed purpose:
+#   Reusable full-size editable card for creating or editing a single illustration.
+#   Source/Reference is now a multi-line textarea – completely free text.
+#   Accepts books, conversations, people, notes, anything – NO URL REQUIRED EVER.
+#   No type="url", no pattern, no client validation – saves exactly what you type.
+#   Route already treats it as plain string – no server validation. #}
+
+<div class="card glass-card mb-5" id="illustration-edit-card" style="display: none;">
+    <div class="card-header bg-dark d-flex align-items-center justify-content-between">
+        <h4 class="mb-0 text-cyan" id="edit-card-title">
+            {% if illustration %}
+                Edit Illustration
+            {% else %}
+                Add New Illustration
+            {% endif %}
+        </h4>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="cancel-edit-btn">
+            <i class="fas fa-times"></i> Cancel
+        </button>
+    </div>
+
+    <div class="card-body">
+        <form method="POST" id="illustration-form">
+            <!-- Hidden ID for edit mode -->
+            {% if illustration %}
+                <input type="hidden" name="illustration_id" value="{{ illustration.id }}">
+            {% endif %}
+
+            <!-- Hidden input for Quill content (set by JS on submit) -->
+            <input type="hidden" name="content" id="content-hidden">
+
+            <!-- Title -->
+            <div class="mb-3">
+                <label class="form-label text-cyan">Title <span class="text-danger">*</span></label>
+                <input type="text"
+                       name="title"
+                       class="form-control form-control-dark"
+                       placeholder="e.g. The Prodigal Son Returns"
+                       value="{{ illustration.title if illustration else '' }}"
+                       required>
+            </div>
+
+            <!-- Tags (comma-separated) -->
+            <div class="mb-3">
+                <label class="form-label text-cyan">Tags</label>
+                <input type="text"
+                       name="tags"
+                       class="form-control form-control-dark"
+                       placeholder="grace, forgiveness, family, parable (comma-separated)"
+                       value="{{ illustration.tags_input if illustration else '' }}">
+                <small class="text-muted">Separate tags with commas</small>
+            </div>
+
+            <!-- Source / Reference – multi-line textarea, completely free text -->
+            <div class="mb-3">
+                <label class="form-label text-cyan">Source / Reference</label>
+                <textarea name="source"
+                          class="form-control form-control-dark"
+                          rows="4"
+                          placeholder="e.g. Experiencing God by Henry Blackaby (p. 132)
+Conversation with Pastor Mike on Jan 15, 2026
+Overheard at coffee shop
+Personal journal entry – March 2025">{{ illustration.source if illustration else '' }}</textarea>
+                <small class="text-muted">Any text you want – book & page, person & date, conversation, journal, etc. NO URL REQUIRED EVER.</small>
+            </div>
+
+            <!-- Visibility – defaults to Private for new -->
+            <div class="mb-3">
+                <label class="form-label text-cyan">Visibility</label>
+                <select name="visibility" class="form-select form-control-dark">
+                    <option value="private" {% if illustration and illustration.user_id is not none or not illustration %}selected{% endif %}>
+                        Private (only me)
+                    </option>
+                    <option value="pastoral_group" {% if illustration and illustration.user_id is none %}selected{% endif %}>
+                        Shared with Pastoral Group
+                    </option>
+                </select>
+            </div>
+
+            <!-- Quill Rich Text Content Editor -->
+            <div class="mb-4">
+                <label class="form-label text-cyan">Content <span class="text-danger">*</span></label>
+                <div class="quill-wrapper" style="background: #1a1a1a; border: 3px solid #333; border-radius: 0.5rem;">
+                    <div class="quill-editor" style="height: 450px;">
+                        {{ illustration.content|safe if illustration else '' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="text-end">
+                <button type="button" class="btn btn-outline-secondary me-2" id="cancel-edit-btn-bottom">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-cyan" id="save-btn">
+                    {% if illustration %}
+                        Update Illustration
+                    {% else %}
+                        Save Illustration
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

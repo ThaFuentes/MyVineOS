@@ -1,0 +1,61 @@
+<!-- app/templates/announcements/create_announcement.html -->
+<!-- Full path: WebChurchMan/app/templates/announcements/create_announcement.html -->
+<!-- File name: add_announcement.html -->
+<!-- Brief, detailed purpose: Add Announcement form – spacious, matches Events add/edit style exactly.
+   Uses global form classes only. -->
+
+{% extends "announcements/base_announcements.html" %}
+
+{% block page_title %}Add New Announcement{% endblock %}
+
+{% block page_description %}
+Create a new announcement. Required fields marked with <span class="required">*</span>.
+{% endblock %}
+
+{% block announcements_content %}
+<section class="content-section">
+    <h2 class="section-title">New Announcement</h2>
+
+    <form method="POST" action="{{ url_for('announcements.create_announcement') }}" class="styled-form">
+        <div class="form-group">
+            <label for="title" class="control-label">Title <span class="required">*</span></label>
+            <input type="text" id="title" name="title" required placeholder="e.g., Sunday Service Reminder">
+            <p class="help-text">Clear, concise title.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="content" class="control-label">Content <span class="required">*</span></label>
+            <textarea id="content" name="content" rows="10" required placeholder="Full announcement text..."></textarea>
+            <p class="help-text">Supports line breaks. Markdown not required.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="visibility" class="control-label">Visibility</label>
+            <select id="visibility" name="visibility">
+                <option value="private" selected>Private (members only)</option>
+                <option value="public">Public (visible to all visitors)</option>
+            </select>
+            <p class="help-text">Public announcements appear on the public site.</p>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="is_active" name="is_active" checked>
+                Active (show in list)
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="comments_enabled" name="comments_enabled" checked>
+                Allow comments
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Create Announcement</button>
+            <a href="{{ url_for('announcements.announcements') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

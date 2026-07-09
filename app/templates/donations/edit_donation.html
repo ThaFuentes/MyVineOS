@@ -1,0 +1,96 @@
+{% extends "donations/base_donations.html" %}
+
+{% block page_title %}Edit Donation{% endblock %}
+
+{% block page_description %}
+Update an existing donation record. Changes are reflected in reports and exported receipts.
+{% endblock %}
+
+{% block donations_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Edit Donation #{{ donation.id }}</h2>
+
+    <form method="POST" action="{{ url_for('donations.edit_donation', donation_id=donation.id) }}" class="styled-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <input type="hidden" name="user_id" value="{{ form.user_id if form is defined else (donation.user_id or '') }}">
+        <input type="hidden" name="donor_type" value="{{ form.donor_type if form is defined else (donation.donor_type or 'guest') }}">
+
+        <div class="form-group">
+            <label class="control-label">Donor Type</label>
+            <p class="help-text" style="margin:0;">
+                <span class="badge {% if (donation.donor_type or 'guest') == 'member' %}bg-success{% elif donation.donor_type == 'business' %}bg-info{% else %}bg-secondary{% endif %}">
+                    {{ (donation.donor_type or 'guest')|capitalize }}
+                </span>
+                {% if donation.username %} — linked to @{{ donation.username }}{% elif donation.user_id %} — member #{{ donation.user_id }}{% endif %}
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label for="name" class="control-label">Donor Name <span class="required">*</span></label>
+            <input type="text" id="name" name="name" class="form-input" required
+                   value="{{ form.name if form is defined else donation.name }}">
+        </div>
+
+        <div class="form-group">
+            <label for="donor_email" class="control-label">Email</label>
+            <input type="email" id="donor_email" name="donor_email" class="form-input"
+                   value="{{ form.donor_email if form is defined else (donation.donor_email or donation.member_email or '') }}">
+        </div>
+
+        <div class="form-group">
+            <label for="donor_phone" class="control-label">Phone</label>
+            <input type="tel" id="donor_phone" name="donor_phone" class="form-input"
+                   value="{{ form.donor_phone if form is defined else (donation.donor_phone or donation.member_phone or '') }}">
+        </div>
+
+        <div class="form-group">
+            <label for="amount" class="control-label">Amount <span class="required">*</span></label>
+            <input type="number" id="amount" name="amount" class="form-input" step="0.01" min="0.01" required
+                   value="{{ form.amount if form is defined else donation.amount }}">
+        </div>
+
+        <div class="form-group">
+            <label for="date" class="control-label">Date <span class="required">*</span></label>
+            <input type="date" id="date" name="date" class="form-input" required
+                   value="{{ form.date if form is defined else donation.date }}">
+        </div>
+
+        <div class="form-group">
+            <label for="method" class="control-label">Method <span class="required">*</span></label>
+            {% set current_method = form.method if form is defined else donation.method %}
+            <select id="method" name="method" class="form-input" required>
+                <option value="">-- Select Method --</option>
+                {% for m in ['Cash', 'Check', 'Online', 'Bank Transfer', 'Other'] %}
+                    <option value="{{ m }}" {% if current_method == m %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="confirmation_number" class="control-label">Confirmation / Check #</label>
+            <input type="text" id="confirmation_number" name="confirmation_number" class="form-input"
+                   value="{{ form.confirmation_number if form is defined else (donation.confirmation_number or '') }}">
+        </div>
+
+        <div class="form-group">
+            <label for="notes" class="control-label">Notes</label>
+            <textarea id="notes" name="notes" rows="5" class="form-input">{{ form.notes if form is defined else (donation.notes or '') }}</textarea>
+        </div>
+
+        <div class="form-group">
+            {% set gsp_checked = (form and 'goods_services_provided' in form) or (not form and donation.goods_services_provided) %}
+            <label>
+                <input type="checkbox" name="goods_services_provided" value="1" {% if gsp_checked %}checked{% endif %}>
+                Goods or services were provided in exchange
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <a href="{{ url_for('donations.view_all_donations') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+{% endblock %}

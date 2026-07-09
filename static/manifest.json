@@ -1,0 +1,51 @@
+{
+  "name": "MyVine Church",
+  "short_name": "MyVine",
+  "description": "MyVineChurch.Online - Church community, prayers, events, sermons, dreams & management app",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00ffff",
+  "categories": ["religion", "social", "productivity"],
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/static/images/dashboard_bg1.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/images/dashboard_bg2.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Community",
+      "short_name": "Community",
+      "description": "Events, prayers, sermons, dreams, prophecies",
+      "url": "/events",
+      "icons": [{ "src": "/static/images/event.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Stuff",
+      "short_name": "Profile",
+      "description": "Your profile, attendance, tickets",
+      "url": "/profile",
+      "icons": [{ "src": "/static/images/img.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Manager",
+      "short_name": "Manager",
+      "description": "The Gathering admin tools",
+      "url": "/the_gathering/",
+      "icons": [{ "src": "/static/images/members_directory.png", "sizes": "192x192" }]
+    }
+  ]
+}

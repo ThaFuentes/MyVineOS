@@ -1,0 +1,1393 @@
+/* ============================================================
+   MYVINE OS - COMPLETE GUI OVERHAUL v2
+   Careful, mobile-first, clean, non-bunched design
+   Takes the existing glassmorphism + CSS var theme and makes it phone nice
+   Bottom nav primary for mobile, clean top bar, stacked content, generous spacing
+   ============================================================ */
+
+/* --- Strong mobile friendly resets --- */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-main, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.55;
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom);
+  /* Prevent bunching from old fixed elements */
+  overflow-x: hidden;
+}
+
+/* Generous default spacing to prevent "bunched up" feel on phone */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 0.6rem 0;
+  line-height: 1.25;
+}
+
+p, ul, ol, dl {
+  margin: 0 0 0.75rem 0;
+}
+
+ul, ol {
+  padding-left: 1.25rem;
+}
+
+img, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* --- Top App Bar --- */
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: var(--bg-header, rgba(30, 30, 30, 0.92));
+  backdrop-filter: var(--blur, blur(12px));
+  border-bottom: 1px solid var(--primary-border, rgba(0,255,255,0.25));
+  min-height: 52px;
+  font-size: 0.95rem;
+}
+
+.top-bar .church-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 48%;
+}
+
+/* On phones the top bar title acts more like an app title - shorter + no clock */
+@media (max-width: 767px) {
+  .top-bar .church-name {
+    font-size: 0.92rem;
+    max-width: 42%;
+  }
+  .desktop-only,
+  .top-bar .clock {
+    display: none !important;
+  }
+}
+
+.top-bar .user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.top-bar .user-chip {
+  background: rgba(255,255,255,0.06);
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 140px;
+  overflow: hidden;
+}
+
+/* --- Main Content - prevent bunching with good padding and child spacing --- */
+.page-content {
+  padding: 0.85rem 1rem 1.5rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.page-content > * + * {
+  margin-top: 1rem;
+}
+
+@media (min-width: 640px) {
+  .page-content {
+    padding: 1rem 1.25rem 1.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .page-content {
+    padding: 1.25rem 1.5rem 2rem;
+    max-width: 860px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-content {
+    max-width: 980px;
+  }
+}
+
+/* Glass panels and cards with breathing room */
+.glass-panel,
+.glass {
+  background: var(--bg-panel, rgba(30,30,30,0.68));
+  backdrop-filter: var(--blur, blur(12px));
+  border: 1px solid var(--primary-border, rgba(0,255,255,0.18));
+  border-radius: var(--radius-large, 16px);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-card, 0 6px 20px rgba(0,0,0,0.3));
+}
+
+@media (min-width: 768px) {
+  .glass-panel,
+  .glass {
+    padding: 1.15rem;
+  }
+}
+
+/* Item cards for lists (events, dreams, etc) - stacked on phone */
+.item-card,
+.card {
+  background: var(--bg-card, #252525);
+  border: 1px solid var(--primary-border, rgba(0,255,255,0.15));
+  border-radius: var(--radius-medium, 12px);
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.65rem;
+}
+
+/* --- Bottom Navigation - primary mobile UI, clean, not bunched --- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  display: flex;
+  background: var(--bg-header, rgba(30,30,30,0.95));
+  backdrop-filter: var(--blur, blur(14px));
+  border-top: 1px solid var(--primary-border, rgba(0,255,255,0.25));
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -1px 8px rgba(0,0,0,0.35);
+}
+
+.bottom-nav a {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.2rem 0.35rem;
+  font-size: 0.65rem;
+  text-decoration: none;
+  color: var(--text-muted, #b0b0b0);
+  min-height: 58px;
+  gap: 1px;
+  transition: color 0.15s ease;
+}
+
+.bottom-nav a.active,
+.bottom-nav a:active {
+  color: var(--primary);
+  font-weight: 600;
+  background: rgba(0, 255, 255, 0.08);
+  border-radius: 8px;
+  margin: 2px;
+}
+
+.bottom-nav .icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.bottom-nav .label {
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  margin-top: 1px;
+}
+
+/* Desktop: hide bottom, show top-nav */
+@media (min-width: 768px) {
+  .bottom-nav {
+    display: none;
+  }
+}
+
+/* Top nav for desktop/wide */
+.top-nav {
+  display: none;
+  background: var(--bg-header, rgba(30,30,30,0.75));
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--primary-border);
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .top-nav a {
+    padding: 0.4rem 0.7rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    text-decoration: none;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  .top-nav a:hover {
+    background: rgba(255,255,255,0.05);
+  }
+
+  .top-nav > a.active {
+    background: var(--primary);
+    color: var(--text-on-primary);
+    font-weight: 600;
+  }
+
+  /* Grouped nav dropdowns */
+  .nav-group {
+    position: relative;
+  }
+
+  .nav-group-toggle {
+    padding: 0.4rem 0.7rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    text-decoration: none;
+    color: var(--text-primary);
+    white-space: nowrap;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: background 0.15s ease;
+  }
+
+  .nav-group-toggle:hover,
+  .nav-group.open .nav-group-toggle {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .nav-group.active > .nav-group-toggle {
+    background: var(--primary);
+    color: var(--text-on-primary);
+    font-weight: 600;
+  }
+
+  .nav-caret {
+    font-size: 0.7rem;
+    opacity: 0.85;
+    transition: transform 0.15s ease;
+  }
+
+  .nav-group.open .nav-caret {
+    transform: rotate(180deg);
+  }
+
+  .nav-group-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 11rem;
+    background: var(--bg-header, rgba(28, 28, 28, 0.98));
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.25));
+    border-radius: 12px;
+    padding: 0.35rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    z-index: 1100;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .nav-group.open .nav-group-menu,
+  .nav-group:focus-within .nav-group-menu {
+    display: flex;
+  }
+
+  .nav-group-menu a {
+    display: block;
+    padding: 0.5rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    text-decoration: none;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  .nav-group-menu a:hover {
+    background: rgba(0, 255, 255, 0.12);
+  }
+
+  .nav-group-menu a.active {
+    background: rgba(0, 255, 255, 0.22);
+    color: var(--primary);
+    font-weight: 600;
+  }
+}
+
+/* --- Forms and general content to avoid bunching --- */
+.form-group,
+label + input,
+label + select,
+label + textarea {
+  margin-bottom: 0.85rem;
+}
+
+input, select, textarea, button {
+  font-size: 1rem;
+  padding: 0.55rem 0.7rem;
+}
+
+button, .btn, .btn-primary, .btn-secondary {
+  min-height: 44px;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-medium, 12px);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: transform 0.08s ease;
+}
+
+button:active, .btn:active {
+  transform: scale(0.985);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--text-on-primary);
+}
+
+.btn-secondary {
+  background: var(--bg-card, #252525);
+  color: var(--text-primary);
+  border: 1px solid var(--primary-border, rgba(0,255,255,0.2));
+}
+
+/* Tables on mobile - no bunch, scroll or cards */
+@media (max-width: 767px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table tr {
+    display: block;
+    margin-bottom: 0.6rem;
+    background: var(--bg-card, #252525);
+    border: 1px solid var(--primary-border, rgba(0,255,255,0.15));
+    border-radius: var(--radius-medium);
+    padding: 0.6rem 0.75rem;
+  }
+
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border: none;
+  }
+
+  .data-table td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 0.75rem;
+    flex: 0 0 38%;
+  }
+}
+
+/* Legacy class overrides - only hide top-level old desktop navs/wrappers that are no longer used in the shell.
+   Do not hide if they are inside .page-content (for gradual migration of sub pages). */
+body > .header,
+body > .tabs,
+body > .form-page-wrapper,
+body > .form-container,
+body > .dropdown,
+body > .dropdown-content {
+  display: none !important;
+}
+
+/* If old wrappers are still used inside content, make them look decent with new spacing */
+.page-content .form-page-wrapper,
+.page-content .form-container {
+  all: revert;
+  padding: 0;
+  margin: 0;
+  max-width: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* Final anti-bunch for common elements */
+main > * + * {
+  margin-top: 0.9rem;
+}
+
+.flash-messages {
+  margin-bottom: 0.75rem;
+}
+
+footer {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  opacity: 0.65;
+  text-align: center;
+}
+
+/* Basic support for common d-flex / Bootstrap remnants in the_gathering and other pages to prevent layout bunch/break */
+.d-flex {
+  display: flex;
+}
+.justify-content-between {
+  justify-content: space-between;
+}
+.align-items-center {
+  align-items: center;
+}
+.gap-2 {
+  gap: 0.5rem;
+}
+.gap-3 {
+  gap: 0.75rem;
+}
+.gap-4 {
+  gap: 1rem;
+}
+.mb-4 {
+  margin-bottom: 1rem;
+}
+.py-3 {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+/* Make sure old manager-header doesn't add extra bunching if present */
+.manager-header {
+  display: none; /* replaced by top-bar in base */
+}
+
+/* ============================================================
+   PHONE APP / WEBAPP ENHANCEMENTS (make it feel less "websitey")
+   - Standalone / installed mode (Add to Home Screen)
+   - Stronger mobile app shell behavior
+   ============================================================ */
+
+/* When installed as standalone app (PWA) or in full-screen-ish mode */
+@media (display-mode: standalone) {
+  .top-bar {
+    padding-top: calc(0.65rem + env(safe-area-inset-top));
+  }
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
+  /* Hide traditional website footer in true app mode on phones */
+  footer {
+    display: none;
+  }
+}
+
+/* On phones, the footer is mostly website chrome — push it below bottom-nav and make tiny */
+@media (max-width: 767px) {
+  footer {
+    padding: 0.75rem 0.5rem calc(4.5rem + env(safe-area-inset-bottom));
+    font-size: 0.65rem;
+    opacity: 0.45;
+  }
+}
+
+/* Make bottom-nav feel even more native on phones (larger, better tap feedback) */
+@media (max-width: 767px) {
+  .bottom-nav a {
+    min-height: 60px;
+    font-size: 0.62rem;
+  }
+  .bottom-nav .icon {
+    font-size: 1.35rem;
+  }
+  .bottom-nav a:active {
+    background: rgba(255,255,255,0.06);
+    transform: scale(0.96);
+  }
+}
+
+/* Top bar in app mode: slightly more compact + status bar friendly */
+.top-bar {
+  padding-top: calc(0.55rem + env(safe-area-inset-top, 0px));
+}
+
+/* Reduce "website" long page feel: make page-content the primary scrolling surface */
+.page-content {
+  min-height: calc(100vh - 120px);
+}
+
+/* When user is in a "manager" or focused app section, hide some global website footer chrome */
+body.the-gathering footer,
+body.pastoral footer {
+  opacity: 0.3;
+}
+
+/* Optional subtle app-shell class that JS can add */
+body.standalone .top-bar {
+  border-bottom-color: var(--primary-border, rgba(0,255,255,0.4));
+}
+
+/* Stronger phone app feel: on narrow screens, make content feel like full app views, not web pages */
+@media (max-width: 767px) {
+  .page-content {
+    padding: 0.6rem 0.75rem 1.25rem;
+  }
+  .glass-panel {
+    border-radius: 14px;
+    padding: 0.85rem;
+  }
+  .item-card {
+    padding: 0.7rem 0.85rem;
+  }
+  /* Make lists feel like native app rows */
+  .glass-panel ul, .glass-panel ol {
+    padding-left: 1rem;
+  }
+  .glass-panel li {
+    padding: 0.35rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .glass-panel li:last-child {
+    border-bottom: none;
+  }
+}
+
+/* When in standalone app mode on phone, the experience is even more app-y */
+@media (max-width: 767px) and (display-mode: standalone) {
+  .top-bar .church-name {
+    font-size: 0.88rem;
+  }
+  .page-content > main > * + * {
+    margin-top: 0.85rem;
+  }
+}
+
+/* ========================================
+   SERMON EDITOR - Desktop Webpage Style
+   Full width, grid main+sidebar, pro inputs, smooth section flow
+   ======================================== */
+
+/* Main editor — full width (no bottom/side vault panel) */
+.sermon-editor {
+  max-width: none;
+  width: 100%;
+  padding: 1.5rem 2rem;
+  display: block;
+}
+
+/* Override page-content max-width for the full-width sermon editor */
+.page-content:has(.sermon-editor) {
+  max-width: 100% !important;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (max-width: 1200px) {
+  .sermon-editor {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Professional input groups */
+.sermon-editor .input-group {
+  margin-bottom: 1.25rem;
+}
+
+.sermon-editor .input-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #e0e0e0;
+  font-size: 0.92rem;
+  letter-spacing: 0.3px;
+}
+
+.sermon-editor input[type="text"],
+.sermon-editor textarea,
+.sermon-editor select {
+  width: 100%;
+  padding: 12px 14px;
+  background: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  color: #f0f0f0;
+  font-size: 1.02rem;
+  line-height: 1.45;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.sermon-editor input:focus,
+.sermon-editor textarea:focus,
+.sermon-editor select:focus {
+  border-color: #00d4ff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12);
+  background: #222;
+}
+
+/* Section cards - clean, reorderable */
+.section-card {
+  background: #1f1f1f;
+  border: 1px solid rgba(0,255,255,0.12);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+  position: relative;
+}
+
+.section-card .card-header {
+  background: #2a2a2a;
+  padding: 0.4rem 0.6rem;
+  margin: -0.9rem -1rem 0.6rem;
+  border-radius: 10px 10px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-card h5 {
+  font-size: 0.95rem;
+  margin: 0;
+  flex: 1;
+}
+
+/* Top-right quick menu (sections toolbar) */
+.sermon-quick-menu {
+  min-width: min(100%, 520px);
+  max-width: 100%;
+}
+
+.sermon-quick-menu-actions {
+  margin-left: auto;
+}
+
+.quick-preview-panel {
+  display: none;
+  background: #141414;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.quick-preview-panel.show {
+  display: block;
+}
+
+.quick-preview-mini {
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #ccc;
+}
+
+.section-content-undo-bar .btn {
+  min-width: 2.1rem;
+}
+
+.section-content-group .section-quill-wrap {
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 8px;
+}
+
+.sections-add-footer {
+  border-top: 1px dashed rgba(0, 255, 255, 0.2);
+}
+
+/* Floating status message (no Bootstrap toast — avoids layout bleed) */
+.sermon-toast-popup {
+  display: none;
+  position: fixed;
+  bottom: 5.5rem;
+  right: 1.25rem;
+  z-index: 1200;
+  max-width: 320px;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #111;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.sermon-toast-popup.sermon-toast-visible {
+  display: block;
+}
+
+.sermon-toast-popup.sermon-toast-success {
+  background: #5dd39e;
+  border: 1px solid #3cb371;
+}
+
+.sermon-toast-popup.sermon-toast-error {
+  background: #f08080;
+  border: 1px solid #c44;
+  color: #1a1a1a;
+}
+
+.section-card.section-card-highlight {
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.55), 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: box-shadow 0.25s ease;
+}
+
+/* Sticky save button */
+#save-btn {
+  font-size: 1.05rem;
+  padding: 0.6rem 1.6rem;
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.25);
+}
+
+.save-bar {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 50;
+  background: rgba(20,20,20,0.95);
+  padding: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(0,255,255,0.15);
+  backdrop-filter: blur(6px);
+}
+
+/* Add Section Modal - clean and professional, matching sermon builder areas */
+#addSectionModal .modal-content {
+  background: var(--bg-card, rgba(30,30,30,0.95));
+  backdrop-filter: var(--glass-blur, blur(12px));
+  border: 1px solid var(--border-cyan, rgba(0,255,255,0.25));
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+#addSectionModal .modal-header {
+  background: rgba(20,20,20,0.85);
+  border-bottom: 1px solid var(--border-cyan, rgba(0,255,255,0.15));
+  padding: 1rem 1.25rem;
+}
+
+#addSectionModal .modal-body {
+  padding: 1.5rem 1.75rem;
+  background: transparent;
+}
+
+#addSectionModal .modal-footer {
+  background: rgba(20,20,20,0.85);
+  border-top: 1px solid var(--border-cyan, rgba(0,255,255,0.15));
+  padding: 1rem 1.25rem;
+}
+
+#addSectionModal .input-group {
+  margin-bottom: 1.1rem;
+}
+
+#addSectionModal .input-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: var(--text-light, #e0e0e0);
+  font-size: 0.9rem;
+  letter-spacing: 0.2px;
+}
+
+#addSectionModal .form-control,
+#addSectionModal .form-select,
+#addSectionModal textarea {
+  background: #1f1f1f;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  color: #f0f0f0;
+  font-size: 0.98rem;
+  padding: 10px 12px;
+  transition: all 0.2s ease;
+}
+
+#addSectionModal .form-control:focus,
+#addSectionModal .form-select:focus,
+#addSectionModal textarea:focus {
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12);
+  background: #252525;
+}
+
+#addSectionModal .modal-title {
+  font-weight: 500;
+  color: var(--cyan, #00d4ff);
+}
+
+/* Sermon preview (inline quick panel + pop-out window) */
+.sermon-preview-pane,
+.quick-preview-mini {
+  color: #d8d8d8;
+}
+
+.sermon-preview-doc .preview-title {
+  font-size: 1.15rem;
+  color: #00d4ff;
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.sermon-preview-doc .preview-passage {
+  color: #aaa;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.sermon-preview-doc .preview-block {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.sermon-preview-doc .preview-block h6 {
+  color: #00d4ff;
+  font-size: 0.82rem;
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sermon-preview-doc .preview-badge {
+  font-size: 0.7rem;
+  background: rgba(0, 212, 255, 0.15);
+  color: #7ee8ff;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  margin-left: 0.35rem;
+  text-transform: capitalize;
+}
+
+.sermon-preview-doc .preview-scripture {
+  color: #b8d4ff;
+  font-size: 0.88rem;
+  margin: 0.25rem 0;
+}
+
+.sermon-preview-doc .preview-content {
+  margin-top: 0.35rem;
+}
+
+.sermon-preview-doc .preview-content p {
+  margin-bottom: 0.4rem;
+}
+
+.sermon-preview-doc .preview-prep-notes {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  background: rgba(255, 200, 0, 0.08);
+  border-left: 3px solid #c9a227;
+  font-size: 0.82rem;
+  color: #ccc;
+}
+
+.section-content-undo-bar span.text-muted {
+  font-size: 0.72rem;
+}
+
+/* Better spacing for desktop */
+@media (min-width: 1024px) {
+  .sermon-editor .glass-panel,
+  .sermon-editor .glass-card {
+    padding: 1.4rem;
+  }
+}
+
+/* ========================================
+   ENLARGED CONTENT AREAS for full sermon scripts
+   (per pastor feedback: not email-sized, ready for long content)
+   ======================================== */
+
+/* Unified Section Builder modal + inline cards (desktop pastoral) */
+#addSectionModal .sermon-section-fields .input-group {
+  margin-bottom: 1rem;
+}
+
+#addSectionModal .section-quill-wrap,
+#addSectionModal .section-quill-editor,
+#addSectionModal #modal-section-quill,
+#addSectionModal .ql-container,
+#addSectionModal .ql-editor {
+  min-height: 380px !important;
+  font-size: 1.05rem !important;
+  line-height: 1.65 !important;
+}
+
+#addSectionModal .ql-editor {
+  padding: 14px 16px !important;
+  min-height: 340px !important;
+}
+
+.section-card .section-quill-wrap,
+.section-card .section-quill-editor,
+.section-card .ql-container,
+.section-card .ql-editor {
+  min-height: 320px !important;
+  font-size: 1rem !important;
+  line-height: 1.6 !important;
+}
+
+.section-card .ql-editor {
+  padding: 12px 14px !important;
+}
+
+.section-card-actions .btn-cyan {
+  font-weight: 600;
+}
+
+.sermon-section-fields .input-group label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Full-width pastoral text areas — scripture, source, notes */
+.sermon-section-fields .section-field-wide {
+  width: 100%;
+  resize: vertical;
+}
+
+.sermon-section-fields .section-scripture {
+  min-height: 88px;
+  line-height: 1.5;
+  font-size: 1rem;
+}
+
+.sermon-section-fields .section-field-source {
+  min-height: 120px;
+  line-height: 1.55;
+  font-size: 1rem;
+}
+
+.sermon-section-fields .section-field-notes {
+  min-height: 140px;
+  line-height: 1.55;
+  font-size: 1rem;
+}
+
+/* Type | Title | Visibility on one row when space allows */
+@media (min-width: 992px) {
+  .sermon-section-fields .section-row-meta {
+    align-items: flex-end;
+  }
+}
+
+.section-card-actions .btn-success {
+  font-weight: 600;
+}
+
+.section-card-actions .section-save-hint {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  align-self: center;
+  white-space: nowrap;
+  padding: 0 0.15rem;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+#addSectionModal .modal-footer .btn-success {
+  min-width: 220px;
+}
+
+/* Header / Footer / Notes in main editor - generous for prep content */
+.sermon-editor textarea[name="header_text"],
+.sermon-editor textarea[name="footer_text"],
+.sermon-editor textarea[name="notes"],
+.sermon-editor #sermon-header-text,
+.sermon-editor #sermon-footer-text,
+.sermon-editor #sermon-notes {
+  font-size: 1rem !important;
+  line-height: 1.55 !important;
+}
+
+/* General inputs in sermon areas are larger than tiny email fields */
+.sermon-editor .input-group input[type="text"],
+.sermon-editor .input-group textarea,
+.sermon-editor .input-group select {
+  font-size: 1rem;
+  padding: 10px 13px;
+  min-height: 42px;
+}
+.sermon-editor textarea {
+  min-height: 80px;
+}
+
+/* ============================================================
+   SETTINGS & SHARED FORM LAYOUT
+   form-grid was referenced across templates but never defined
+   after the overhaul CSS migration — this restores polished forms.
+   ============================================================ */
+
+.page-title {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  color: var(--primary);
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+}
+
+.page-description {
+  color: var(--text-muted, #aaa);
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.content-section {
+  margin: 1.5rem 0 2rem;
+}
+
+.section-title {
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  color: var(--primary);
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+}
+
+.section-subtitle {
+  font-size: 1.1rem;
+  color: var(--primary);
+  margin: 0 0 1rem;
+  font-weight: 600;
+}
+
+.help-text {
+  font-size: 0.9rem;
+  color: var(--text-muted, #aaa);
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+
+.help-text.small {
+  font-size: 0.82rem;
+}
+
+.help-text.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88rem;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.15));
+}
+
+.styled-form {
+  display: block;
+  max-width: none;
+  margin: 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  display: block;
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-card, #252525);
+  border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.2));
+  border-radius: var(--radius-medium, 10px);
+  color: var(--text-primary, #eee);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.12);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  align-items: center;
+}
+
+.required {
+  color: var(--danger-color, #ff6b6b);
+}
+
+.form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.form-check-input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.2rem;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+
+.form-check-label {
+  color: var(--text-primary, #eee);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+/* Settings sub-navigation */
+.settings-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  background: var(--bg-card, #252525);
+  border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.15));
+  border-radius: 12px;
+  padding: 0.45rem;
+  margin-bottom: 1.25rem;
+}
+
+.settings-nav-link {
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  font-size: 0.88rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary, #eee);
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings-nav-link:hover {
+  background: rgba(0, 255, 255, 0.12);
+}
+
+.settings-nav-link.active {
+  background: var(--primary);
+  color: var(--text-on-primary, #000);
+  font-weight: 600;
+}
+
+/* Settings page cards */
+.settings-card {
+  background: var(--bg-panel, rgba(30, 30, 30, 0.68));
+  backdrop-filter: var(--blur, blur(12px));
+  border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.18));
+  border-radius: var(--radius-large, 16px);
+  padding: 1.15rem 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-card, 0 6px 20px rgba(0, 0, 0, 0.3));
+}
+
+.settings-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--primary-border, rgba(0, 255, 255, 0.12));
+}
+
+.settings-preview {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.settings-preview-item strong {
+  display: block;
+  color: var(--primary);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+}
+
+.settings-preview-item span,
+.settings-preview-item p {
+  margin: 0;
+  color: var(--text-primary, #ddd);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.settings-preview-empty {
+  color: var(--text-muted, #888);
+  font-style: italic;
+  margin: 0;
+}
+
+.settings-advanced summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 600;
+  padding: 0.65rem 0;
+  list-style: none;
+}
+
+.settings-advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-advanced summary::before {
+  content: '▸ ';
+}
+
+.settings-advanced[open] summary::before {
+  content: '▾ ';
+}
+
+.settings-advanced .settings-card-body {
+  padding-top: 0.5rem;
+}
+
+/* ============================================================
+   PUBLIC VISITOR PAGES — phone-first polish
+   Most guests browse on mobile; tighten grids, type, and forms.
+   ============================================================ */
+@media (max-width: 767px) {
+  .landing-hero {
+    padding: 2rem 1rem 1.25rem !important;
+  }
+
+  .landing-hero h1 {
+    font-size: clamp(1.75rem, 8vw, 2.5rem) !important;
+  }
+
+  .landing-hero p {
+    font-size: 1rem !important;
+    padding: 0 0.25rem;
+  }
+
+  /* Listing grids use minmax(380px) inline — force single column on phones */
+  .prayer-grid,
+  .events-grid,
+  .sermons-grid,
+  .dreams-grid,
+  .announcements-grid,
+  .prophecies-grid,
+  [class$="-grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .glow-card {
+    padding: 1.25rem 1rem !important;
+    border-radius: 14px !important;
+  }
+
+  /* Public listing page titles (Prayers, Events, etc.) */
+  .page-content main > div:first-child h2,
+  .page-content main > section:first-child h1 {
+    font-size: clamp(1.6rem, 7vw, 2.25rem) !important;
+  }
+
+  .page-content main > div:first-child p {
+    font-size: 1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  /* Stack card meta rows on narrow screens */
+  .prayer-card h3,
+  .event-card h3,
+  .sermon-card h3 {
+    font-size: 1.35rem !important;
+  }
+
+  .prayer-meta,
+  .event-meta {
+    font-size: 0.95rem !important;
+  }
+
+  /* Prayer request form + public detail forms */
+  .page-content input[type="text"],
+  .page-content input[type="email"],
+  .page-content textarea,
+  .page-content select,
+  .page-content .form-input {
+    font-size: 16px !important; /* prevents iOS zoom-on-focus */
+    min-height: 44px;
+  }
+
+  .page-content button[type="submit"],
+  .page-content .btn-primary {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  /* Event detail horizontal meta → stack */
+  .event-meta {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Extra bottom space so fixed nav never covers CTAs */
+  .page-content main {
+    padding-bottom: 0.5rem;
+  }
+}

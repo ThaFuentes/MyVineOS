@@ -1,0 +1,48 @@
+{# Inline comment moderation — requires: c (comment row), post_url #}
+<div class="mgr-inline-actions" style="display:flex; flex-wrap:wrap; gap:0.25rem; align-items:center;">
+    {% if c.shadowed %}
+    <span class="badge bg-warning text-dark" title="Shadowed">👻</span>
+    {% endif %}
+    {% if c.edited_by_moderator %}
+    <span class="badge bg-info" title="Edited by moderator">✏️</span>
+    {% endif %}
+
+    <button type="button" class="btn btn-sm btn-primary"
+            onclick="mgrOpenEdit({{ c.id }}, {{ c.body|tojson }}, {{ c.content_type|tojson }}, {{ c.parent_id }})" title="Edit">✏️</button>
+
+    {% if c.shadowed %}
+    <form method="POST" action="{{ post_url }}" style="display:inline;"
+          onsubmit="return confirm('Make visible to everyone?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <input type="hidden" name="action" value="unshadow">
+        <input type="hidden" name="content_type" value="{{ c.content_type }}">
+        <input type="hidden" name="parent_id" value="{{ c.parent_id }}">
+        <input type="hidden" name="comment_id" value="{{ c.id }}">
+        <button type="submit" class="btn btn-sm btn-info" title="Unshadow">👁️</button>
+    </form>
+    {% else %}
+    <form method="POST" action="{{ post_url }}" style="display:inline;"
+          onsubmit="return confirm('Shadow this comment? Only the poster will see it.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <input type="hidden" name="action" value="shadow">
+        <input type="hidden" name="content_type" value="{{ c.content_type }}">
+        <input type="hidden" name="parent_id" value="{{ c.parent_id }}">
+        <input type="hidden" name="comment_id" value="{{ c.id }}">
+        <button type="submit" class="btn btn-sm btn-warning" title="Shadow">👻</button>
+    </form>
+    {% endif %}
+
+    <form method="POST" action="{{ post_url }}" style="display:inline;"
+          onsubmit="return confirm('Delete permanently?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="content_type" value="{{ c.content_type }}">
+        <input type="hidden" name="parent_id" value="{{ c.parent_id }}">
+        <input type="hidden" name="comment_id" value="{{ c.id }}">
+        <button type="submit" class="btn btn-sm btn-danger" title="Delete">🗑️</button>
+    </form>
+
+    {% if c.section_url %}
+    <a href="{{ c.section_url }}" class="btn btn-sm btn-secondary" title="Open in section">↗</a>
+    {% endif %}
+</div>

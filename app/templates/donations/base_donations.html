@@ -1,0 +1,55 @@
+<!-- app/templates/donations/base_donations.html -->
+<!-- Full path: WebChurchMan/app/templates/donations/base_donations.html -->
+<!-- File name: base_donations.html -->
+<!-- Brief, detailed purpose: Common base template for ALL Donations module pages (dashboard, add, view all, reports, export).
+   Exact mirror of base_events.html → identical glassmorphism wrapper, flash handling, menu structure.
+   NO module-specific CSS – uses only global classes.
+   Menu: Dashboard (always, route restricted to Staff+) + Add Donation/View All (Staff+) + Reports/Export (Admin/Owner).
+   Active highlighting for all endpoints. -->
+
+{% extends "base.html" %}
+
+{% block extra_css %}
+{# Global CSS only – no donations-specific files #}
+{% block donations_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<!-- Overhauled -->
+<h1 class="page-title">{% block page_title %}Donations{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Internal menu -->
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+    <a {% if request.endpoint == 'donations.donations_dashboard' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+       href="{{ url_for('donations.donations_dashboard') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Dashboard</a>
+
+    {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
+        <a {% if request.endpoint == 'donations.add_donation' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+           href="{{ url_for('donations.add_donation') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Donation</a>
+
+        <a {% if request.endpoint == 'donations.view_all_donations' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+           href="{{ url_for('donations.view_all_donations') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">View All</a>
+    {% endif %}
+
+    {% if session.user_role in ['Admin', 'Owner'] %}
+        <a {% if request.endpoint == 'donations.reports' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+           href="{{ url_for('donations.reports') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Reports</a>
+
+        <a {% if request.endpoint == 'donations.export_page' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+           href="{{ url_for('donations.export_page') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Export</a>
+    {% endif %}
+</div>
+
+{% block donations_content %}{% endblock %}
+{% endblock %}

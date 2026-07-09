@@ -1,0 +1,294 @@
+<!-- app/templates/events/add_event.html -->
+<!-- Full path: WebChurchMan/app/templates/events/add_event.html -->
+<!-- File name: add_event.html -->
+<!-- Brief, detailed purpose: Add New Event form – extends base_events.html for full consistency.
+   Spacious single-column layout, global form classes only.
+   All fields preserved.
+   FULL REBUILD: Logical grouping into collapsible <details> sections.
+   Sections remember open/closed state via localStorage (persists per browser).
+   Basic Info open by default, others closed – fast access to required fields and Create button.
+   Duplicate Create/Cancel buttons at top and bottom for speed.
+   Form repopulation on error using request.form.get(..., '') – never shows "None".
+   Server-side censorship handled in route POST (contains_censored_word on all text fields).
+   Client-side not needed (admin-only page). -->
+
+{% extends "events/base_events.html" %}
+
+{% block page_title %}Add New Event{% endblock %}
+
+{% block page_description %}
+Record a new church event. Required fields marked with <span class="required">*</span>.
+{% endblock %}
+
+{% block events_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Record Event</h2>
+
+    <!-- Top Actions – immediate access to submit/cancel -->
+    <div class="form-actions" style="margin-bottom:2rem; text-align:center;">
+        <button type="submit" form="event-form" class="btn-primary">Create Event</button>
+        <a href="{{ url_for('events.events') }}" class="btn-secondary">Cancel</a>
+    </div>
+
+    <form id="event-form" method="POST" action="{{ url_for('events.add_event') }}" class="styled-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+        <!-- Basic Info – open by default -->
+        <details open id="section-basic" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Basic Information (required fields)</summary>
+            <div class="collapsible-content">
+
+                <div class="form-group">
+                    <label for="event_name" class="control-label">Event Name <span class="required">*</span></label>
+                    <input type="text" id="event_name" name="event_name" class="form-input" required
+                           value="{{ request.form.get('event_name', '') }}" placeholder="e.g., Sunday Worship Service">
+                    <p class="help-text">Clear, descriptive title.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="event_date" class="control-label">Date <span class="required">*</span></label>
+                    <input type="date" id="event_date" name="event_date" class="form-input" required
+                           value="{{ request.form.get('event_date', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="event_time" class="control-label">Time (optional)</label>
+                    <input type="time" id="event_time" name="event_time" class="form-input"
+                           value="{{ request.form.get('event_time', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="location" class="control-label">Location (optional)</label>
+                    <input type="text" id="location" name="location" class="form-input"
+                           value="{{ request.form.get('location', '') }}" placeholder="e.g., Main Sanctuary">
+                </div>
+
+                <div class="form-group">
+                    <label for="visibility" class="control-label">Visibility</label>
+                    <select id="visibility" name="visibility" class="form-input">
+                        <option value="private" {% if request.form.get('visibility', 'private') == 'private' %}selected{% endif %}>
+                            Private (members only)
+                        </option>
+                        <option value="public" {% if request.form.get('visibility') == 'public' %}selected{% endif %}>
+                            Public (visible to all visitors)
+                        </option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="potluck_enabled" name="potluck_enabled"
+                               {% if request.form.get('potluck_enabled') %}checked{% endif %}>
+                        This is a potluck event
+                    </label>
+                </div>
+
+            </div>
+        </details>
+
+        <!-- Description & People -->
+        <details id="section-description" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Description & People</summary>
+            <div class="collapsible-content">
+
+                <div class="form-group">
+                    <label for="description" class="control-label">Description (optional)</label>
+                    <textarea id="description" name="description" rows="4" class="form-input">{{ request.form.get('description', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="speaker_host" class="control-label">Speaker / Host (optional)</label>
+                    <input type="text" id="speaker_host" name="speaker_host" class="form-input"
+                           value="{{ request.form.get('speaker_host', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="special_guests" class="control-label">Special Guests (optional)</label>
+                    <input type="text" id="special_guests" name="special_guests" class="form-input"
+                           value="{{ request.form.get('special_guests', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="theme" class="control-label">Theme (optional)</label>
+                    <input type="text" id="theme" name="theme" class="form-input"
+                           value="{{ request.form.get('theme', '') }}">
+                </div>
+
+            </div>
+        </details>
+
+        <!-- Logistics -->
+        <details id="section-logistics" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Logistics</summary>
+            <div class="collapsible-content">
+
+                <div class="form-group">
+                    <label for="agenda" class="control-label">Agenda / Schedule (optional)</label>
+                    <textarea id="agenda" name="agenda" rows="6" class="form-input">{{ request.form.get('agenda', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="cost_fees" class="control-label">Cost / Fees (optional)</label>
+                    <input type="number" id="cost_fees" name="cost_fees" class="form-input" step="0.01" min="0"
+                           value="{{ request.form.get('cost_fees', '') }}" placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="registration_info" class="control-label">Registration Information (optional)</label>
+                    <textarea id="registration_info" name="registration_info" rows="3" class="form-input">{{ request.form.get('registration_info', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="parking_info" class="control-label">Parking Information (optional)</label>
+                    <textarea id="parking_info" name="parking_info" rows="3" class="form-input">{{ request.form.get('parking_info', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="dress_code" class="control-label">Dress Code (optional)</label>
+                    <input type="text" id="dress_code" name="dress_code" class="form-input"
+                           value="{{ request.form.get('dress_code', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="food_beverages" class="control-label">Food & Beverages (optional)</label>
+                    <textarea id="food_beverages" name="food_beverages" rows="3" class="form-input">{{ request.form.get('food_beverages', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="childcare_availability" class="control-label">Childcare Availability (optional)</label>
+                    <textarea id="childcare_availability" name="childcare_availability" rows="3" class="form-input">{{ request.form.get('childcare_availability', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="accessibility" class="control-label">Accessibility Information (optional)</label>
+                    <textarea id="accessibility" name="accessibility" rows="3" class="form-input">{{ request.form.get('accessibility', '') }}</textarea>
+                </div>
+
+            </div>
+        </details>
+
+        <!-- Communication & Media -->
+        <details id="section-communication" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Communication & Media</summary>
+            <div class="collapsible-content">
+
+                <div class="form-group">
+                    <label for="contact_info" class="control-label">Contact Information (optional)</label>
+                    <textarea id="contact_info" name="contact_info" rows="3" class="form-input">{{ request.form.get('contact_info', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="social_media_hashtag" class="control-label">Social Media Hashtag (optional)</label>
+                    <input type="text" id="social_media_hashtag" name="social_media_hashtag" class="form-input"
+                           value="{{ request.form.get('social_media_hashtag', '') }}" placeholder="#MyVineEvent">
+                </div>
+
+                <div class="form-group">
+                    <label for="promotional_materials" class="control-label">Promotional Materials / Links (optional)</label>
+                    <textarea id="promotional_materials" name="promotional_materials" rows="3" class="form-input">{{ request.form.get('promotional_materials', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="announcements_reminders" class="control-label">Announcements / Reminders (optional)</label>
+                    <textarea id="announcements_reminders" name="announcements_reminders" rows="3" class="form-input">{{ request.form.get('announcements_reminders', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="live_streaming_details" class="control-label">Live Streaming Details (optional)</label>
+                    <textarea id="live_streaming_details" name="live_streaming_details" rows="3" class="form-input">{{ request.form.get('live_streaming_details', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="feedback_form" class="control-label">Feedback Form Link (optional)</label>
+                    <input type="url" id="feedback_form" name="feedback_form" class="form-input"
+                           value="{{ request.form.get('feedback_form', '') }}">
+                </div>
+
+            </div>
+        </details>
+
+        <!-- Additional Details -->
+        <details id="section-additional" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Additional Details</summary>
+            <div class="collapsible-content">
+
+                <div class="form-group">
+                    <label for="event_sponsor" class="control-label">Event Sponsor (optional)</label>
+                    <input type="text" id="event_sponsor" name="event_sponsor" class="form-input"
+                           value="{{ request.form.get('event_sponsor', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="event_coordinator" class="control-label">Event Coordinator (optional)</label>
+                    <input type="text" id="event_coordinator" name="event_coordinator" class="form-input"
+                           value="{{ request.form.get('event_coordinator', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="volunteer_opportunities" class="control-label">Volunteer Opportunities (optional)</label>
+                    <textarea id="volunteer_opportunities" name="volunteer_opportunities" rows="3" class="form-input">{{ request.form.get('volunteer_opportunities', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="donation_info" class="control-label">Donation / Offering Info (optional)</label>
+                    <textarea id="donation_info" name="donation_info" rows="3" class="form-input">{{ request.form.get('donation_info', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="safety_protocols" class="control-label">Safety Protocols (optional)</label>
+                    <textarea id="safety_protocols" name="safety_protocols" rows="3" class="form-input">{{ request.form.get('safety_protocols', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="follow_up" class="control-label">Follow-Up Plans (optional)</label>
+                    <textarea id="follow_up" name="follow_up" rows="3" class="form-input">{{ request.form.get('follow_up', '') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="event_objectives" class="control-label">Event Objectives (optional)</label>
+                    <textarea id="event_objectives" name="event_objectives" rows="4" class="form-input">{{ request.form.get('event_objectives', '') }}</textarea>
+                </div>
+
+            </div>
+        </details>
+
+        <!-- Bottom Actions – duplicate for convenience -->
+        <div class="form-actions" style="margin-top:3rem; text-align:center;">
+            <button type="submit" class="btn-primary">Create Event</button>
+            <a href="{{ url_for('events.events') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+<!-- JavaScript: Remember collapsible state via localStorage -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const sections = ['basic', 'description', 'logistics', 'communication', 'additional'];
+
+    sections.forEach(section => {
+      const details = document.getElementById(`section-${section}`);
+      if (!details) return;
+
+      const storageKey = `event-form-section-${section}`;
+
+      // Load saved state
+      if (localStorage.getItem(storageKey) === 'closed') {
+        details.removeAttribute('open');
+      } else if (localStorage.getItem(storageKey) === 'open') {
+        details.setAttribute('open', '');
+      }
+
+      // Save state on toggle
+      details.addEventListener('toggle', function () {
+        if (details.open) {
+          localStorage.setItem(storageKey, 'open');
+        } else {
+          localStorage.setItem(storageKey, 'closed');
+        }
+      });
+    });
+  });
+</script>
+
+{% endblock %}

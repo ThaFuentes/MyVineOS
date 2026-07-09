@@ -1,0 +1,46 @@
+{% macro assignment_rows(assignments, members, default_roles) %}
+<div id="assignment-rows" style="display:grid; gap:0.5rem;">
+  {% set rows = assignments if assignments else [] %}
+  {% if rows %}
+    {% for a in rows %}
+    <div class="assignment-row" style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem; align-items:center;">
+      <input type="text" name="assign_role[]" value="{{ a.role_name }}" list="role-suggestions" placeholder="Role">
+      <select name="assign_user[]">
+        <option value="">— Select —</option>
+        {% for m in members %}
+        <option value="{{ m.id }}" {% if m.id == a.user_id %}selected{% endif %}>{{ m.first_name }} {{ m.last_name }}</option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn btn-secondary" onclick="this.closest('.assignment-row').remove()" style="font-size:0.8rem;">✕</button>
+    </div>
+    {% endfor %}
+  {% else %}
+    {% for role in default_roles[:4] %}
+    <div class="assignment-row" style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem; align-items:center;">
+      <input type="text" name="assign_role[]" value="{{ role }}" list="role-suggestions">
+      <select name="assign_user[]">
+        <option value="">— Select —</option>
+        {% for m in members %}
+        <option value="{{ m.id }}">{{ m.first_name }} {{ m.last_name }}</option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn btn-secondary" onclick="this.closest('.assignment-row').remove()" style="font-size:0.8rem;">✕</button>
+    </div>
+    {% endfor %}
+  {% endif %}
+</div>
+<datalist id="role-suggestions">
+  {% for role in default_roles %}<option value="{{ role }}">{% endfor %}
+</datalist>
+<button type="button" class="btn btn-secondary" style="margin-top:0.5rem;" onclick="addAssignmentRow()">+ Add role</button>
+<script>
+function addAssignmentRow() {
+  const tpl = document.querySelector('.assignment-row');
+  if (!tpl) return;
+  const clone = tpl.cloneNode(true);
+  clone.querySelectorAll('input').forEach(i => { if (i.type === 'text') i.value = ''; });
+  clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+  document.getElementById('assignment-rows').appendChild(clone);
+}
+</script>
+{% endmacro %}

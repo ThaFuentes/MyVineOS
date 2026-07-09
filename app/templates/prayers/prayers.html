@@ -1,0 +1,275 @@
+<!-- myvinechurchonline/app/templates/prayers/prayers.html -->
+<!-- Full path: myvinechurchonline/app/templates/prayers/prayers.html -->
+<!-- File name: prayers.html -->
+<!-- Brief, detailed purpose: Prayers Dashboard / Overview page – main entry point and summary wall for the Prayers module.
+   Extends base_prayers.html for consistent wrapper, flash messages, sub-navigation menu, and active highlighting.
+   Displays summary cards, optional quick-add shortcut button, collapsible search/filters, glass table with date grouping,
+   expandable rows (description + responses + add response form), and client-side filtering/search.
+   Future-proof: additional sub-pages can extend base_prayers.html and automatically get the shared menu.
+   Uses ONLY global CSS classes. -->
+
+{% extends "prayers/base_prayers.html" %}
+
+{% block page_title %}Prayers{% endblock %}
+
+{% block page_description %}
+Community prayer wall – view, respond to, and support prayer requests.<br>
+Public requests are visible to all; private requests require login.
+{% endblock %}
+
+{% block prayers_content %}
+
+<!-- Summary Cards -->
+<section class="content-section">
+    <h2 class="section-title">Prayers Summary</h2>
+    <div class="summary-cards">
+        <div class="card glass">
+            <h3>Total Requests</h3>
+            <p class="large-amount">{{ total_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>With Responses</h3>
+            <p class="large-amount">{{ with_responses_count }}</p>
+        </div>
+        <div class="card glass">
+            <h3>No Responses</h3>
+            <p class="large-amount">{{ no_responses_count }}</p>
+        </div>
+    </div>
+</section>
+
+<!-- Quick shortcut button (in addition to menu link) – always visible -->
+<div class="form-actions add-event-top">
+    <a href="{{ url_for('prayers.submit_prayer') }}" class="btn-primary">+ Add Prayer Request</a>
+</div>
+
+<!-- Collapsible Search & Filters -->
+<section class="content-section">
+    <h2 class="section-title">All Prayer Requests</h2>
+
+    <details class="collapsible-controls">
+        <summary class="collapsible-summary">
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
+        </summary>
+        <div class="search-controls styled-form inline-form">
+            <div class="form-group search-group">
+                <label for="searchBox" class="control-label">Search Prayers</label>
+                <input type="text" id="searchBox" class="search-input" placeholder="Title, description, responder..." autocomplete="off">
+                <p class="help-text">Live search across all prayer details</p>
+            </div>
+            <div class="form-group filter-group">
+                <label class="control-label">Responses</label>
+                <div class="filter-buttons">
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    <button data-filter="with" class="btn btn-small filter-btn btn-secondary">With Responses</button>
+                    <button data-filter="without" class="btn btn-small filter-btn btn-secondary">No Responses</button>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Glass Table -->
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Date Posted</th>
+                    <th>By</th>
+                    <th>Responses</th>
+                    <th>Last Responder</th>
+                    {% if is_logged_in %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="prayersBody">
+                {% if prayers_by_date %}
+                    {% for date, group in prayers_by_date.items() %}
+                    <tr class="date-header">
+                        <th colspan="{{ 6 if is_logged_in else 5 }}">{{ date.strftime('%B %d, %Y') }}</th>
+                    </tr>
+                    {% for p in group %}
+                    <tr class="data-row" data-responses="{{ 'with' if p.response_count > 0 else 'without' }}"
+                        onclick="toggleDetails('details-{{ p.id }}')" style="cursor:pointer;">
+                        <td><strong>{{ p.title }}</strong></td>
+                        <td>{{ p.date_posted.strftime('%b %d, %Y') if p.date_posted else '—' }}</td>
+                        <td>
+                            {% if p.contributor_name %}
+                                {{ p.contributor_name }}
+                            {% elif p.creator_first_name %}
+                                {{ p.creator_first_name }} {{ p.creator_last_name or '' }}
+                            {% else %}
+                                Anonymous
+                            {% endif %}
+                        </td>
+                        <td>{{ p.response_count }}</td>
+                        <td>
+                            {% if p.last_responder %}
+                                {{ p.last_responder.first_name }} {{ p.last_responder.last_name or '' }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        {% if is_logged_in %}
+                        <td class="actions-cell" onclick="event.stopPropagation();">
+                            <div class="actions-buttons">
+                                {% if current_user.id == p.user_id or current_user.role in ['Staff', 'Admin', 'Owner'] %}
+                                    <a href="{{ url_for('prayers.edit_prayer', prayer_id=p.id) }}" class="btn-primary btn-small">Edit</a>
+                                {% endif %}
+                                {% if current_user.role in ['Admin', 'Owner'] %}
+                                    <form action="{{ url_for('prayers.delete_prayer', prayer_id=p.id) }}" method="post" class="inline-form">
+                                        <button type="submit" class="btn-danger btn-small"
+                                                onclick="return confirm('Permanently delete this prayer request?');">
+                                            Delete
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    <tr class="details-row" id="details-{{ p.id }}" style="display:none;">
+                        <td colspan="{{ 6 if is_logged_in else 5 }}" class="details-content">
+                            <div class="potluck-content">
+                                <section class="detail-section">
+                                    <h3 class="detail-heading">Request Description</h3>
+                                    <div class="detail-content">
+                                        {{ p.description|nl2br|default('<em>No description provided.</em>') }}
+                                    </div>
+                                </section>
+
+                                <section class="detail-section">
+                                    <h3 class="detail-heading">Responses ({{ p.response_count }})</h3>
+                                    <div class="detail-content">
+                                        {% if p.added_prayers %}
+                                            {% for a in p.added_prayers %}
+                                            <div class="added-prayer">
+                                                <strong>
+                                                    {% if a.contributor_name %}
+                                                        {{ a.contributor_name }}
+                                                    {% elif a.first_name %}
+                                                        {{ a.first_name }} {{ a.last_name or '' }}
+                                                    {% else %}
+                                                        Anonymous
+                                                    {% endif %}:
+                                                </strong>
+                                                {{ a.prayer|nl2br }}
+                                            </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <p><em>No responses yet. Be the first to pray!</em></p>
+                                        {% endif %}
+
+                                        <!-- Add Response Form -->
+                                        <form action="{{ url_for('prayers.add_prayer_to_request', prayer_request_id=p.id) }}" method="POST" class="styled-form potluck-add-form">
+                                            {% if not is_logged_in %}
+                                            <div class="form-group">
+                                                <label>Your Name (optional – leave blank for Anonymous)</label>
+                                                <input type="text" name="contributor_name" placeholder="Your name">
+                                            </div>
+                                            {% endif %}
+                                            <div class="form-group">
+                                                <label>Add Your Prayer / Response <span class="required">*</span></label>
+                                                <textarea name="prayer" rows="4" placeholder="Write your prayer or response..." required></textarea>
+                                            </div>
+                                            <div class="form-actions">
+                                                <button type="submit" class="btn-primary">Add Prayer</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </section>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{{ 6 if is_logged_in else 5 }}" class="no-data">No prayer requests yet.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="no-data" id="noResults" style="display:none;">
+        No prayer requests match the current search and filters.
+    </div>
+</section>
+
+<script>
+  function toggleDetails(id) {
+    const row = document.getElementById(id);
+    if (!row) return;
+    const isOpen = row.style.display === 'table-row';
+    row.style.display = isOpen ? 'none' : 'table-row';
+  }
+
+  (function() {
+    const searchBox = document.getElementById('searchBox');
+    const prayersBody = document.getElementById('prayersBody');
+    const noResults = document.getElementById('noResults');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    let responseFilter = 'all';
+    let timer;
+
+    function highlightFilters() {
+      filterButtons.forEach(btn => {
+        btn.classList.toggle('btn-primary', btn.dataset.filter === responseFilter);
+        btn.classList.toggle('btn-secondary', btn.dataset.filter !== responseFilter);
+      });
+    }
+
+    function applyFilters() {
+      const query = searchBox ? searchBox.value.toLowerCase().trim() : '';
+      const rows = prayersBody.querySelectorAll('.data-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const responses = row.dataset.responses;
+        const matchesSearch = query === '' || text.includes(query);
+        const matchesFilter = responseFilter === 'all' ||
+                              (responseFilter === 'with' && responses === 'with') ||
+                              (responseFilter === 'without' && responses === 'without');
+
+        const show = matchesSearch && matchesFilter;
+        row.style.display = show ? '' : 'none';
+
+        const prev = row.previousElementSibling;
+        if (prev && prev.classList.contains('date-header')) {
+          prev.style.display = show ? '' : 'none';
+        }
+
+        const details = row.nextElementSibling;
+        if (details && details.classList.contains('details-row')) {
+          details.style.display = 'none';
+        }
+
+        if (show) visibleCount++;
+      });
+
+      if (noResults) noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    if (searchBox) {
+      searchBox.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(applyFilters, 300);
+      });
+    }
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        responseFilter = btn.dataset.filter;
+        highlightFilters();
+        applyFilters();
+      });
+    });
+
+    highlightFilters();
+    applyFilters();
+  })();
+</script>
+{% endblock %}

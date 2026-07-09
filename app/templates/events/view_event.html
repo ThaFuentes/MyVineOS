@@ -1,0 +1,322 @@
+<!-- app/templates/events/view_event.html -->
+<!-- Full path: MyVineChurch/app/templates/events/view_event.html -->
+<!-- File name: view_event.html -->
+<!-- Brief, detailed purpose: Private/internal single event detail view for logged-in users.
+   Extends base_events.html → glass wrapper, internal menu, flash messages.
+   Header: title + key info left, Edit/Delete event buttons right (UNIFIED STYLING: both full-size btn-primary / btn-danger).
+   All detail sections open/linear (grouped cards using global classes).
+   Potluck (if enabled): COLLAPSIBLE and COLLAPSED by default via <details>.
+   Inside collapse: full contributions table (Name, Bringing, Quantity, Note, Actions).
+   Actions column: Delete button for Admin/Owner only (btn-danger btn-small, unified with other buttons).
+   Member contribution form below table – POSTS TO CURRENT VIEW ROUTE (no separate add_potluck_contribution endpoint).
+   Delete contribution uses correct endpoint 'events.delete_contribution'.
+   All text fields censored via global 'censor' filter.
+   ALL BUTTONS UNIFIED: consistent btn-primary / btn-danger classes (full size for main actions, btn-small for inline table deletes).
+   Uses ONLY global classes – minimal inline for layout only (flex/gap). -->
+
+{% extends "events/base_events.html" %}
+
+{% block page_title %}{{ event.event_name|title or 'Event Details' }}{% endblock %}
+
+{% block page_description %}
+Detailed view of {{ event.event_name|title }}.
+{% endblock %}
+
+{% block events_content %}
+
+<section class="content-section">
+
+    <!-- Header: Title + Info + Actions (UNIFIED full-size buttons) -->
+    <div class="event-header-flex">
+        <div class="event-title-info">
+            <h2 class="page-title">{{ event.event_name|title or 'Untitled Event' }}</h2>
+            <p class="event-key-info">
+                {{ event.event_date }}
+                {% if event.event_time %} at {{ event.event_time }}{% endif %}
+                {% if event.location %} • {{ event.location }}{% endif %}
+                • {{ event.visibility|capitalize }}
+                {% if event.potluck_enabled %} • Potluck Event{% endif %}
+            </p>
+        </div>
+
+        {% if user_has_permission('manage_events') %}
+        <div class="event-actions">
+            <a href="{{ url_for('events.edit_event', event_id=event.id) }}" class="btn-primary">Edit Event</a>
+            <form action="{{ url_for('events.delete_event', event_id=event.id) }}" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <button type="submit" class="btn-danger"
+                        onclick="return confirm('Are you sure you want to delete this entire event? This cannot be undone.');">
+                    Delete Event
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Potluck Section – COLLAPSIBLE and COLLAPSED by default -->
+    {% if event.potluck_enabled %}
+    <details class="collapsible-section glass">
+        <summary class="collapsible-summary section-title">
+            Potluck Contributions {% if signups %}({{ signups|length }}){% endif %}
+        </summary>
+
+        <div class="collapsible-content">
+
+            <!-- Contributions Table with Unified Inline Delete Button -->
+            <div class="table-wrapper glass">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Bringing</th>
+                            <th>Quantity</th>
+                            <th>Note</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if signups %}
+                            {% for s in signups %}
+                            <tr>
+                                <td><strong>{{ s.name | censor }}</strong></td>
+                                <td>{{ s.item | censor }}</td>
+                                <td>{{ s.quantity | censor or '' }}</td>
+                                <td>{{ s.note | censor or '' }}</td>
+                                <td class="actions-cell">
+                                    {% if session.user_role in ['Admin', 'Owner'] %}
+                                    <form action="{{ url_for('events.delete_contribution', event_id=event.id, signup_id=s.id) }}"
+                                          method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                                          onsubmit="return confirm('Permanently delete this contribution?');"
+                                          style="display:inline;">
+                                        <button type="submit" class="btn-danger btn-small">Delete</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="no-data">No contributions yet – be the first!</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Member Contribution Form (POSTS TO CURRENT VIEW ROUTE) -->
+            <div class="glass-panel" style="max-width:700px; margin:1rem auto 0;">
+                <h4 class="section-subtitle" style="text-align:center;">Add Your Contribution</h4>
+
+                <form action="{{ url_for('events.view_event', event_id=event.id) }}" method="POST" class="styled-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                    <input type="hidden" name="action" value="potluck">
+                    <div class="form-group">
+                        <label class="control-label">Your Name <span class="required">*</span></label>
+                        <input type="text" name="name" class="form-input" required placeholder="How you want your name to appear">
+                        <p class="help-text">You may use your real name, a nickname, or “The Smith Family”, etc.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">What are you bringing? <span class="required">*</span></label>
+                        <input type="text" name="item" class="form-input" required placeholder="e.g., Potato salad">
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="control-label">Quantity (optional)</label>
+                            <input type="text" name="quantity" class="form-input" placeholder="e.g., Serves 10">
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Note (optional)</label>
+                            <input type="text" name="note" class="form-input" placeholder="e.g., Gluten-free">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Add Contribution</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </details>
+    {% endif %}
+
+    <!-- All other detail sections (unchanged from your version) -->
+    {% if event.description %}
+    <section class="content-section">
+        <h3 class="section-title">Description</h3>
+        <div class="card glass">{{ event.description | nl2br | censor }}</div>
+    </section>
+    {% endif %}
+
+    {% set people_fields = [
+        ('Speaker/Host', event.speaker_host),
+        ('Special Guests', event.special_guests),
+        ('Theme', event.theme),
+        ('Event Sponsor', event.event_sponsor),
+        ('Event Coordinator', event.event_coordinator)
+    ] %}
+    {% set people_data = people_fields|selectattr(1)|list %}
+    {% if people_data %}
+    <section class="content-section">
+        <h3 class="section-title">People & Theme</h3>
+        <div class="card glass">
+            {% for label, value in people_data %}
+            <p><strong>{{ label }}:</strong> {{ value | censor }}</p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% set logistics_fields = [
+        ('Agenda', event.agenda),
+        ('Registration Info', event.registration_info),
+        ('Cost/Fees', event.cost_fees if event.cost_fees and event.cost_fees > 0 else None),
+        ('Parking Info', event.parking_info),
+        ('Dress Code', event.dress_code),
+        ('Food/Beverages', event.food_beverages),
+        ('Childcare Availability', event.childcare_availability),
+        ('Accessibility Info', event.accessibility)
+    ] %}
+    {% set logistics_data = logistics_fields|selectattr(1)|list %}
+    {% if logistics_data %}
+    <section class="content-section">
+        <h3 class="section-title">Logistics</h3>
+        <div class="card glass">
+            {% for label, value in logistics_data %}
+            <p><strong>{{ label }}:</strong>
+                {% if label == 'Cost/Fees' %}
+                    ${{ "%.2f"|format(value) }}
+                {% else %}
+                    {{ value | nl2br | censor }}
+                {% endif %}
+            </p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% set comm_fields = [
+        ('Contact Info', event.contact_info),
+        ('Social Media Hashtag', event.social_media_hashtag),
+        ('Promotional Materials', event.promotional_materials),
+        ('Announcements/Reminders', event.announcements_reminders),
+        ('Live Streaming Details', event.live_streaming_details),
+        ('Feedback Form Link', event.feedback_form)
+    ] %}
+    {% set comm_data = comm_fields|selectattr(1)|list %}
+    {% if comm_data %}
+    <section class="content-section">
+        <h3 class="section-title">Communication & Media</h3>
+        <div class="card glass">
+            {% for label, value in comm_data %}
+            <p><strong>{{ label }}:</strong>
+                {% if label == 'Feedback Form Link' %}
+                    <a href="{{ value }}" target="_blank" rel="noopener">{{ value }}</a>
+                {% else %}
+                    {{ value | nl2br | censor }}
+                {% endif %}
+            </p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% set additional_fields = [
+        ('Volunteer Opportunities', event.volunteer_opportunities),
+        ('Donation Info', event.donation_info),
+        ('Safety Protocols', event.safety_protocols),
+        ('Follow Up', event.follow_up),
+        ('Event Objectives', event.event_objectives)
+    ] %}
+    {% set additional_data = additional_fields|selectattr(1)|list %}
+    {% if additional_data %}
+    <section class="content-section">
+        <h3 class="section-title">Additional Details</h3>
+        <div class="card glass">
+            {% for label, value in additional_data %}
+            <p><strong>{{ label }}:</strong><br>{{ value | nl2br | censor }}</p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- ==================== NEW: COMMENTS SECTION ==================== -->
+    <section class="content-section">
+        <h3 class="section-title">Comments & Discussion</h3>
+
+        <!-- Comments List -->
+        {% if comments %}
+        <div class="card glass">
+            {% for comment in comments %}
+            <div class="comment-item">
+                <p><strong>{{ comment.name | censor }}</strong>
+                   <small style="color:#888;">{{ comment.created_at_nice }}</small></p>
+                <p>{{ comment.comment_text | nl2br | censor }}</p>
+
+                <!-- Edit / Delete for owner or admin -->
+                {% if is_logged_in and (comment.user_id == session.user_id or user_has_permission('manage_events')) %}
+                <div class="comment-actions" style="margin-top:8px; display:flex; gap:0.5rem; align-items:center;">
+                    <a href="#" onclick="showEditForm({{ comment.id }}); return false;" class="btn-secondary btn-small">Edit</a>
+                    <form action="{{ url_for('events.delete_comment', event_id=event.id, comment_id=comment.id) }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                        <button type="submit" class="btn-danger btn-small"
+                                onclick="return confirm('Delete this comment?');">Delete</button>
+                    </form>
+                </div>
+                <!-- Inline edit form (hidden by default, shown by JS) -->
+                <form id="edit-form-{{ comment.id }}" action="{{ url_for('events.edit_comment', event_id=event.id, comment_id=comment.id) }}" method="POST" style="display:none; margin-top:0.5rem;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                    <textarea name="comment_text" rows="2" style="width:100%; padding:0.4rem; border-radius:6px;" required>{{ comment.comment_text }}</textarea>
+                    <div style="margin-top:0.3rem;">
+                        <button type="submit" class="btn-primary btn-small">Save</button>
+                        <button type="button" onclick="hideEditForm({{ comment.id }})" class="btn-secondary btn-small">Cancel</button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-data">No comments yet – be the first to comment!</p>
+        {% endif %}
+
+        <!-- Add New Comment Form -->
+        <div class="glass-panel" style="margin-top:1rem;">
+            <h4 class="section-subtitle" style="text-align:center;">Leave a Comment</h4>
+            <form action="{{ url_for('events.view_event', event_id=event.id) }}" method="POST" class="styled-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <input type="hidden" name="action" value="comment">
+                {% if not is_logged_in %}
+                <div class="form-group">
+                    <label class="control-label">Your Name <span class="required">*</span></label>
+                    <input type="text" name="name" class="form-input" required placeholder="Guest name or nickname">
+                </div>
+                {% endif %}
+                <div class="form-group">
+                    <label class="control-label">Your Comment</label>
+                    <textarea name="comment" class="form-input" rows="3" placeholder="What would you like to know or share?" required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Post Comment</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+</section>
+
+<script>
+function showEditForm(commentId) {
+    var form = document.getElementById('edit-form-' + commentId);
+    if (form) form.style.display = 'block';
+}
+function hideEditForm(commentId) {
+    var form = document.getElementById('edit-form-' + commentId);
+    if (form) form.style.display = 'none';
+}
+</script>
+
+{% endblock %}

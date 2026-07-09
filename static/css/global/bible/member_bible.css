@@ -1,0 +1,143 @@
+.member-bible-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.member-bible-tabs .btn.active {
+  border-color: var(--primary, #00ffff);
+  color: var(--primary, #00ffff);
+}
+
+.member-bible-book-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.member-bible-book-list button {
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.member-bible-book-list button:hover,
+.member-bible-book-list button.active {
+  background: rgba(0, 255, 255, 0.1);
+  color: var(--primary, #00ffff);
+}
+
+.member-bible-verse-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.member-bible-verse-picker button {
+  min-width: 2rem;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.78rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.15);
+  color: inherit;
+  cursor: pointer;
+}
+
+.member-bible-verse-picker button:hover,
+.member-bible-verse-picker button.active {
+  border-color: var(--primary, #00ffff);
+  color: var(--primary, #00ffff);
+}
+
+.member-bible-verse {
+  margin-bottom: 0.85rem;
+  padding: 0.35rem 0.2rem;
+  border-radius: 8px;
+  scroll-margin-top: 4rem;
+}
+
+.member-bible-verse.highlight {
+  background: rgba(0, 255, 255, 0.08);
+  outline: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.member-bible-verse-num {
+  color: var(--primary, #00ffff);
+  font-weight: 700;
+  margin-right: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.member-bible-copy-btn {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+}
+
+.member-bible-strongs-word {
+  border-bottom: 1px dotted rgba(0, 255, 255, 0.5);
+  cursor: pointer;
+}
+
+.member-bible-search-row {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.member-bible-search-row .form-control { flex: 1; }
+
+.member-bible-hit,
+.member-strongs-hit {
+  padding: 0.65rem 0.5rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.member-bible-hit:hover,
+.member-strongs-hit:hover {
+  border-color: rgba(0, 255, 255, 0.3);
+}
+
+.member-strongs-entry h4 {
+  color: var(--primary, #00ffff);
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.member-strongs-lang {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(0, 255, 255, 0.12);
+  margin-bottom: 0.35rem;
+}
+
+.member-bible-toast {
+  position: fixed;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  background: rgba(0, 40, 40, 0.95);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  font-size: 0.85rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.member-bible-toast.show { opacity: 1; }

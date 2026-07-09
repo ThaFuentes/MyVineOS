@@ -1,0 +1,35 @@
+<!-- app/templates/attendance/open_kiosk.html -->
+<!-- Full path: myvinechurchonline/app/templates/attendance/open_kiosk.html -->
+<!-- File name: open_kiosk.html -->
+<!-- Brief, detailed purpose: Admin page to generate/launch the public attendance kiosk.
+   Now extends base_attendance.html for full module consistency.
+   Simple centered layout with kiosk URL and launch button.
+   Uses only global classes. -->
+
+{% extends "attendance/base_attendance.html" %}
+
+{% block attendance_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Open Attendance Kiosk</h2>
+    <p class="help-text">
+        Generate a secure kiosk URL for check-in tablets/stands.<br>
+        The kiosk is public-facing but logs attendance to authenticated members.
+    </p>
+
+    {% if kiosk_url %}
+    <div class="card glass" style="max-width: 600px; margin: 2rem auto; padding: 2rem; text-align: center;">
+        <p><strong>Kiosk URL:</strong></p>
+        <p><a href="{{ kiosk_url }}" target="_blank">{{ kiosk_url }}</a></p>
+        <p>
+            <a href="{{ kiosk_url }}" target="_blank" class="btn-primary" style="font-size: 1.2rem; padding: 1rem 2rem;">
+                Launch Kiosk in New Tab
+            </a>
+        </p>
+    </div>
+    {% else %}
+    <p class="flash error">Failed to generate kiosk URL. Check server configuration.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

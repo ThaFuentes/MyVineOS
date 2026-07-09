@@ -1,0 +1,153 @@
+{# Admin/Owner Bible translation management — upload, default, delete #}
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block pastoral_content %}
+
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <h2 class="mb-1">Bible Translation Management</h2>
+        <p class="text-muted">Upload, replace, set default, or delete offline Bible translations (Admin/Owner only).</p>
+        <p class="small text-muted">
+            Pre-installed public-domain translations: <strong>KJV</strong>, <strong>ASV</strong>, and <strong>BBE</strong>
+            (via <code>scripts/import_bible_data.py</code>).
+            <strong>NIV cannot be bundled</strong> without a license from Biblica.
+            Bible Gateway and similar sites do not permit bulk download for redistribution.
+        </p>
+    </div>
+</div>
+
+<!-- Upload Card -->
+<div class="row justify-content-center mb-5">
+    <div class="col-lg-8">
+        <div class="card glass-card">
+            <div class="card-header">
+                <h4 class="mb-0">Upload New / Replace Translation</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="upload">
+                    {% include 'partials/csrf_field.html' %}
+
+                    <div class="mb-3">
+                        <label for="bible_file" class="form-label">Bible JSON File</label>
+                        <input type="file" name="bible_file" id="bible_file" class="form-control" accept=".json" required>
+                        <small class="text-muted">
+                            File must be valid JSON with keys: <code>translation</code> (code), <code>name</code>, and <code>verses</code> array.<br>
+                            Uploading a file with an existing code will replace that translation.
+                        </small>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-cyan btn-lg">
+                            <i class="fas fa-upload me-2"></i> Upload Translation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Translations Table -->
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card glass-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Current Translations ({{ translations|length }})</h4>
+            </div>
+            <div class="card-body p-0">
+                {% if translations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Default</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trans in translations %}
+                                    <tr>
+                                        <td><code>{{ trans.code }}</code></td>
+                                        <td>{{ trans.name }}</td>
+                                        <td>
+                                            {% if trans.is_default %}
+                                                <span class="badge bg-cyan">Default</span>
+                                            {% else %}
+                                                <form method="POST" class="d-inline">
+                                                    <input type="hidden" name="action" value="set_default">
+                                                    <input type="hidden" name="translation_code" value="{{ trans.code }}">
+                                                    {% include 'partials/csrf_field.html' %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-cyan">
+                                                        Set Default
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <form method="POST" class="d-inline" onsubmit="return confirm('Delete translation {{ trans.code }} ({{ trans.name }})? All verses will be removed permanently.');">
+                                                <input type="hidden" name="action" value="delete_translation">
+                                                <input type="hidden" name="translation_code" value="{{ trans.code }}">
+                                                {% include 'partials/csrf_field.html' %}
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="p-5 text-center text-muted">
+                        <i class="fas fa-bible fa-5x mb-4"></i>
+                        <p>No Bible translations uploaded yet.</p>
+                        <p>Upload your first translation above to enable offline Bible tools.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Strong's Import -->
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-10">
+        <div class="card glass-card">
+            <div class="card-header"><h4 class="mb-0">Strong's Concordance Data</h4></div>
+            <div class="card-body">
+                <p class="text-muted small">Upload lexicon entries and verse-to-Strong's links as JSON arrays. Full Strong's datasets can be imported here.</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <form method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="action" value="upload_strongs_lexicon">
+                            {% include 'partials/csrf_field.html' %}
+                            <label class="form-label">Lexicon JSON</label>
+                            <input type="file" name="strongs_file" class="form-control mb-2" accept=".json" required>
+                            <button type="submit" class="btn btn-outline-cyan btn-sm">Import Lexicon</button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <form method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="action" value="upload_strongs_occurrences">
+                            {% include 'partials/csrf_field.html' %}
+                            <label class="form-label">Occurrences JSON</label>
+                            <input type="file" name="strongs_file" class="form-control mb-2" accept=".json" required>
+                            <button type="submit" class="btn btn-outline-cyan btn-sm">Import Occurrence Links</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-3">
+    <a href="{{ url_for('pastoral.bible.bible_study') }}" class="btn btn-cyan">Open Bible Study Guide</a>
+</div>
+
+{% endblock %}

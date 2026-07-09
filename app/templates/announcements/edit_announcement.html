@@ -1,0 +1,57 @@
+<!-- app/templates/announcements/edit_announcement.html -->
+<!-- Full path: WebChurchMan/app/templates/announcements/edit_announcement.html -->
+<!-- File name: edit_announcement.html -->
+<!-- Brief, detailed purpose: Edit Announcement form – identical layout to add form. -->
+
+{% extends "announcements/base_announcements.html" %}
+
+{% block page_title %}Edit Announcement{% endblock %}
+
+{% block page_description %}
+Update announcement details.
+{% endblock %}
+
+{% block announcements_content %}
+<section class="content-section">
+    <h2 class="section-title">Edit Announcement</h2>
+
+    <form method="POST" action="{{ url_for('announcements.edit_announcement', ann_id=announcement.id) }}" class="styled-form">
+        <div class="form-group">
+            <label for="title" class="control-label">Title <span class="required">*</span></label>
+            <input type="text" id="title" name="title" value="{{ announcement.title }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="content" class="control-label">Content <span class="required">*</span></label>
+            <textarea id="content" name="content" rows="10" required>{{ announcement.content }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="visibility" class="control-label">Visibility</label>
+            <select id="visibility" name="visibility">
+                <option value="private" {% if announcement.visibility == 'private' %}selected{% endif %}>Private (members only)</option>
+                <option value="public" {% if announcement.visibility == 'public' %}selected{% endif %}>Public (visible to all visitors)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="is_active" name="is_active" {% if announcement.is_active %}checked{% endif %}>
+                Active (show in list)
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="comments_enabled" name="comments_enabled" {% if announcement.comments_enabled %}checked{% endif %}>
+                Allow comments
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <a href="{{ url_for('announcements.announcements') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

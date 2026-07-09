@@ -1,0 +1,93 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/support_tickets/dashboard.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/support_tickets/dashboard.html -->
+<!-- File name: dashboard.html -->
+<!-- Brief, detailed purpose: Main user portal page for regular members (My Support Tickets).
+   • Looks and feels almost identical to the Ticket Manager dashboard you showed.
+   • Big friendly "Create New Ticket" button at top.
+   • Clean summary cards + list of their own tickets.
+   • Click any row to open the ticket detail page.
+   • 100% unified styling with the rest of the site. -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-panel" style="padding:1rem;">
+        <h1 class="page-title">My Support Tickets</h1>
+        <p class="page-description">
+            Need help? Submit a new ticket or check the status of your existing ones.<br>
+            Our team will respond as quickly as possible.
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Summary Cards - same style as Ticket Manager -->
+        <section class="content-section">
+            <h2 class="section-title">Your Tickets Summary</h2>
+            <div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+                <div class="card glass" style="text-align: center; padding: 2rem 1.5rem;">
+                    <h3 style="color: #00FFFF; margin-bottom: 0.5rem;">Open / In Progress</h3>
+                    <p class="large-amount" style="font-size: 4.5rem; font-weight: bold; margin: 0; line-height: 1;">{{ open_count }}</p>
+                </div>
+                <div class="card glass" style="text-align: center; padding: 2rem 1.5rem;">
+                    <h3 style="color: #00FFFF; margin-bottom: 0.5rem;">Total My Tickets</h3>
+                    <p class="large-amount" style="font-size: 4.5rem; font-weight: bold; margin: 0; line-height: 1;">{{ tickets|length }}</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Create New Ticket Button -->
+        <div class="form-actions" style="margin: 2rem 0; display: flex; justify-content: center;">
+            <a href="{{ url_for('support_tickets.submit_ticket') }}" class="btn-primary" style="padding: 1rem 3rem; font-size: 1.3rem;">
+                + Create New Ticket
+            </a>
+        </div>
+
+        <!-- Your Tickets List - same table style -->
+        <section class="content-section">
+            <h3 class="section-title">Your Tickets</h3>
+
+            {% if tickets %}
+            <div class="table-wrapper glass">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in tickets %}
+                        <tr onclick="window.location='{{ url_for('support_tickets.view_ticket', ticket_id=t.id) }}'" style="cursor: pointer;">
+                            <td>#{{ t.id }}</td>
+                            <td><strong>{{ t.title }}</strong></td>
+                            <td>{{ t.category_name }}</td>
+                            <td>{{ t.status.replace('_', ' ')|title }}</td>
+                            <td class="priority-{{ t.priority }}">{{ t.priority|capitalize }}</td>
+                            <td>{{ t.formatted_updated or t.updated_at[:10] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="no-data" style="text-align: center; padding: 3rem; font-size: 1.3rem;">
+                You haven’t submitted any tickets yet.<br>
+                <a href="{{ url_for('support_tickets.submit_ticket') }}" style="color: var(--primary);">Click here to create your first one</a>
+            </p>
+            {% endif %}
+        </section>
+
+    </div>
+{% endblock %}

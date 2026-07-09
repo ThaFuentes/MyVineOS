@@ -1,0 +1,89 @@
+{# app/templates/pastoral/care/care_dashboard.html #}
+{# Full path: WebChurchMan/app/templates/pastoral/care/care_dashboard.html #}
+{# File name: care_dashboard.html #}
+{# Brief, detailed purpose: Main dashboard for Pastoral Care module. #}
+{#   Displays list of all care requests visible to pastoral team. #}
+{#   Includes status/urgency filters, quick stats, and "New Request" button. #}
+{#   Uses dark theme with cyan accents, inherits from base_pastoral.html. #}
+{#   Responsive table with clickable rows to view details. #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block pastoral_content %}
+<!-- Header + New action (app style) -->
+<div class="glass-panel" style="margin-bottom:0.75rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+    <div>
+      <h2 style="margin:0;">❤️ Pastoral Care</h2>
+      <div style="opacity:0.7; font-size:0.85rem;">{{ requests|length }} requests • filters below</div>
+    </div>
+    <a href="{{ url_for('pastoral.care.care_new') }}" class="btn btn-primary" style="min-height:44px;">+ New Care Request</a>
+  </div>
+</div>
+
+<!-- Filters as clean card, flex wrap for phone -->
+<div class="glass-panel" style="margin-bottom:0.9rem;">
+  <form method="GET" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
+    <div style="flex:1; min-width:160px;">
+      <label style="display:block; font-size:0.75rem; opacity:0.7; margin-bottom:0.2rem;">Status</label>
+      <select name="status" style="width:100%; padding:0.5rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
+        <option value="">All Statuses</option>
+        <option value="open" {% if active_status == 'open' %}selected{% endif %}>Open</option>
+        <option value="assigned" {% if active_status == 'assigned' %}selected{% endif %}>Assigned</option>
+        <option value="in_progress" {% if active_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+        <option value="followed_up" {% if active_status == 'followed_up' %}selected{% endif %}>Followed Up</option>
+        <option value="closed" {% if active_status == 'closed' %}selected{% endif %}>Closed</option>
+      </select>
+    </div>
+    <div style="flex:1; min-width:160px;">
+      <label style="display:block; font-size:0.75rem; opacity:0.7; margin-bottom:0.2rem;">Urgency</label>
+      <select name="urgency" style="width:100%; padding:0.5rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
+        <option value="">All Urgency Levels</option>
+        <option value="low" {% if active_urgency == 'low' %}selected{% endif %}>Low</option>
+        <option value="normal" {% if active_urgency == 'normal' %}selected{% endif %}>Normal</option>
+        <option value="high" {% if active_urgency == 'high' %}selected{% endif %}>High</option>
+        <option value="urgent" {% if active_urgency == 'urgent' %}selected{% endif %}>Urgent</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:0.4rem; min-width:140px;">
+      <button type="submit" class="btn btn-secondary" style="flex:1;">Filter</button>
+      {% if active_status or active_urgency %}
+        <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="flex:1; text-align:center;">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Requests as stacked app cards (mobile friendly, generous touch) -->
+{% if requests %}
+  {% for req in requests %}
+  <div class="item-card">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+      <div style="flex:1;">
+        <div style="font-weight:600; font-size:1.02rem;">{{ req.member_name }}</div>
+        <div style="opacity:0.75; font-size:0.82rem;">{{ req.request_type|capitalize }} • {{ req.created_at|relative_time }}</div>
+        <div style="margin:0.35rem 0 0.25rem;">
+          {% if req.title %}<strong>{{ req.title }}</strong>{% else %}<em style="opacity:0.6;">No title – see details</em>{% endif %}
+        </div>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.25rem;">
+          <span style="font-size:0.72rem; padding:0.1rem 0.45rem; border-radius:999px; background:rgba(255,255,255,0.08);">{{ req.status|replace('_',' ')|capitalize }}</span>
+          <span style="font-size:0.72rem; padding:0.1rem 0.45rem; border-radius:999px; background:rgba(255,100,100,0.15); color:#ffaaaa;">{{ req.urgency|capitalize }}</span>
+        </div>
+        <div style="font-size:0.8rem; margin-top:0.3rem; opacity:0.75;">Assigned: {{ req.assigned_pastors or 'Unassigned' }}</div>
+      </div>
+      <a href="{{ url_for('pastoral.care.care_request_detail', request_id=req.id) }}" class="btn btn-primary" style="min-height:40px; font-size:0.85rem; padding:0.35rem 0.8rem; white-space:nowrap;">View →</a>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="glass-panel" style="text-align:center; padding:1.5rem;">
+    <div style="font-size:2rem; opacity:0.5; margin-bottom:0.5rem;">❤️</div>
+    <div style="font-weight:600;">No care requests found</div>
+    <p style="opacity:0.65; margin:0.4rem 0 0;">Start by creating a new request above.</p>
+  </div>
+{% endif %}
+
+<div style="margin-top:1rem; text-align:center;">
+  <a href="{{ url_for('pastoral.dashboard_pastoral') }}" style="font-size:0.8rem; opacity:0.6;">← Back to Pastoral Command Center</a>
+</div>
+{% endblock %}
