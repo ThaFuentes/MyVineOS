@@ -18,7 +18,10 @@
 #}
 
 <!DOCTYPE html>
-<html lang="en" data-theme="{% if session.user_theme %}{{ session.user_theme }}{% else %}cyan-glow{% endif %}">
+<html lang="en"
+      data-theme="{{ session.get('user_theme') or 'cyan-glow' }}"
+      data-font-scale="{{ session.get('ui_font_scale') or 'md' }}"
+      data-bible-scale="{{ session.get('bible_font_scale') or 'md' }}">
 <head>
   <meta charset="UTF-8">
   <!-- Web app / phone app capable (pastoral mode) -->
@@ -33,7 +36,7 @@
   <title>{% block title %}Pastoral Command Center{% endblock %} - MyVineChurch.Online OS</title>
 
   <!-- THEME + OVERHAUL (mobile first, no more Bootstrap primary for layout) -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710d">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260604d">
 
   <!-- Font Awesome (kept for icons in pastoral content) -->

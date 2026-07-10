@@ -55,6 +55,13 @@ def _complete_login(user):
     session['user_role'] = user['role']
     session['is_shadow_banned'] = bool(user.get('is_shadow_banned'))
     session.pop('pending_2fa_user_id', None)
+    try:
+        from app.utils.ui_prefs import apply_ui_prefs_to_session
+        apply_ui_prefs_to_session(session, user_row=user)
+    except Exception:
+        session['user_theme'] = 'cyan-glow'
+        session['ui_font_scale'] = 'md'
+        session['bible_font_scale'] = 'md'
     log_change(user['id'], 'login', change_details='User logged in.')
     mark_as_vetted()
     return redirect(url_for('dashboard.dashboard'))

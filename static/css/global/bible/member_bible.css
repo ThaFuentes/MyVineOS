@@ -1,3 +1,26 @@
+/* Bible reader font controls (A- / A+) */
+.bible-font-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.15rem;
+}
+
+.bible-font-controls .btn {
+  min-width: 2.1rem;
+  font-weight: 700;
+  padding: 0.25rem 0.4rem;
+}
+
+.bible-font-label {
+  min-width: 1.8rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  opacity: 0.75;
+  letter-spacing: 0.03em;
+}
+
 .member-bible-tabs {
   display: flex;
   gap: 0.35rem;

@@ -6,10 +6,15 @@
    ============================================================ */
 
 /* --- Strong mobile friendly resets --- */
+/* Default 16px; personal data-font-scale (theme.css + below) overrides for members */
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
 }
+html[data-font-scale="sm"] { font-size: 14px; }
+html[data-font-scale="md"] { font-size: 16px; }
+html[data-font-scale="lg"] { font-size: 18px; }
+html[data-font-scale="xl"] { font-size: 20px; }
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -197,7 +202,7 @@ img, video {
 .bottom-nav a:active {
   color: var(--primary);
   font-weight: 600;
-  background: rgba(0, 255, 255, 0.08);
+  background: rgba(var(--primary-rgb, 0, 255, 255), 0.1);
   border-radius: 8px;
   margin: 2px;
 }

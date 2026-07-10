@@ -10,27 +10,33 @@
   - Desktop falls back to clean top nav
   Only the nav active logic + Gathering link updated from very old original. -->
 
+{% set s = g.settings %}
+{% set user_theme = session.get('user_theme') or 'cyan-glow' %}
+{% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
+{% set bible_font_scale = session.get('bible_font_scale') or 'md' %}
+{% set personal_theme_wins = session.get('user_id') is not none %}
 <!DOCTYPE html>
-<html lang="en" data-theme="{% if session.user_theme %}{{ session.user_theme }}{% else %}cyan-glow{% endif %}">
+<html lang="en"
+      data-theme="{{ user_theme }}"
+      data-font-scale="{{ ui_font_scale }}"
+      data-bible-scale="{{ bible_font_scale }}">
 <head>
   <meta charset="UTF-8">
   <!-- Proper mobile viewport + web app / phone app feel -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#00ffff">
+  <meta name="theme-color" content="{% if user_theme == 'soft-light' %}#f4f7fb{% elif user_theme == 'tropical' %}#062820{% else %}#0a0a0a{% endif %}">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="{% if user_theme == 'soft-light' %}default{% else %}black-translucent{% endif %}">
   <meta name="apple-mobile-web-app-title" content="MyVine">
   <meta name="mobile-web-app-capable" content="yes">
   {% include 'partials/security_scripts.html' %}
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
 
-  {% set s = g.settings %}
-
   <title>{% block title %}{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
 
-  <!-- THEME (kept for var(--primary) etc) -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260118">
+  <!-- THEME (data-theme vars + font scales) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710d">
 
   <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
@@ -45,18 +51,19 @@
   {% set fav = s.get('favicon_path') %}
   <link rel="icon" href="{{ url_for('static', filename='images/' ~ fav if fav else 'favicon.ico') }}">
 
-  <!-- Dynamic branding overrides (theme vars) -->
+  <!-- Branding: church defaults only when personal theme is not active (personal wins for logged-in) -->
   <style>
     :root {
+      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
+      {% if not personal_theme_wins %}
       --primary: {{ s.get('primary_color', '#00FFFF') }};
       --primary-hover: {{ s.get('primary_hover_color', '#00cccc') }};
-      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
-
       {% set bg_image = s.get('background_image') %}
       {% if bg_image %}
       --bg-page: linear-gradient(rgba(0,0,0,{{ s.get('background_opacity', 0.68) }}),
                                 rgba(0,0,0,{{ s.get('background_opacity', 0.68) }})),
                  url('{{ url_for('static', filename='images/' ~ bg_image) }}');
+      {% endif %}
       {% endif %}
     }
 
@@ -84,6 +91,58 @@
 
     <div class="user-info">
       {% if session.get('user_id') %}
+        <div class="display-prefs" id="display-prefs">
+          <button type="button"
+                  class="display-prefs-toggle"
+                  id="display-prefs-toggle"
+                  aria-expanded="false"
+                  aria-controls="display-prefs-panel"
+                  title="Display settings">
+            <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
+            <span class="desktop-only">Display</span>
+          </button>
+          <div class="display-prefs-panel"
+               id="display-prefs-panel"
+               role="dialog"
+               aria-label="Display settings"
+               data-save-url="{{ url_for('profile.ui_preferences') }}"
+               data-csrf="{{ csrf_token() if csrf_token else '' }}">
+            <h3><i class="fa-solid fa-palette" aria-hidden="true"></i> Display</h3>
+            <p class="pref-hint">Saved to your account. Your choices override church branding.</p>
+
+            <div class="pref-section">
+              <span class="pref-label">Theme</span>
+              <div class="pref-options">
+                <button type="button" class="pref-option" data-pref="theme" data-value="cyan-glow">Classic</button>
+                <button type="button" class="pref-option" data-pref="theme" data-value="soft-light">Soft light</button>
+                <button type="button" class="pref-option" data-pref="theme" data-value="tropical">Tropical</button>
+              </div>
+            </div>
+
+            <div class="pref-section">
+              <span class="pref-label">Page text size</span>
+              <div class="pref-options">
+                <button type="button" class="pref-option" data-pref="font_scale" data-value="sm">S</button>
+                <button type="button" class="pref-option" data-pref="font_scale" data-value="md">M</button>
+                <button type="button" class="pref-option" data-pref="font_scale" data-value="lg">L</button>
+                <button type="button" class="pref-option" data-pref="font_scale" data-value="xl">XL</button>
+              </div>
+            </div>
+
+            <div class="pref-section">
+              <span class="pref-label">Bible text size</span>
+              <div class="pref-options">
+                <button type="button" class="pref-option" data-pref="bible_scale" data-value="sm">S</button>
+                <button type="button" class="pref-option" data-pref="bible_scale" data-value="md">M</button>
+                <button type="button" class="pref-option" data-pref="bible_scale" data-value="lg">L</button>
+                <button type="button" class="pref-option" data-pref="bible_scale" data-value="xl">XL</button>
+                <button type="button" class="pref-option" data-pref="bible_scale" data-value="xxl">Huge</button>
+              </div>
+            </div>
+
+            <div class="pref-status" aria-live="polite"></div>
+          </div>
+        </div>
         <div class="user-chip">
           <i class="fa-solid fa-user" aria-hidden="true"></i> {{ session.username|default('Member') }}
           <span style="opacity:0.7; font-size:0.75em;">{{ session.user_role|default('') }}</span>
@@ -157,6 +216,9 @@
 
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+    {% if session.get('user_id') %}
+    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260710d"></script>
+    {% endif %}
     <script>
       function updateClock() {
         const now = new Date();

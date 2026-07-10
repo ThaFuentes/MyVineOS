@@ -97,3 +97,279 @@ html[data-theme="amber-hope"] {
     --btn-glow-secondary: 0 0 15px rgba(255, 184, 77, 0.4);
     --btn-glow-secondary-hover: 0 0 25px rgba(255, 184, 77, 0.7);
 }
+
+/* ==================== THEME 4: SOFT LIGHT (brighter, easier daytime reading) ==================== */
+html[data-theme="soft-light"] {
+    --primary: #2a7a9b;
+    --primary-hover: #1f6280;
+    --primary-glow: rgba(42, 122, 155, 0.28);
+    --primary-border: rgba(42, 122, 155, 0.28);
+    --primary-rgb: 42, 122, 155;
+
+    --text-primary: #1c2430;
+    --text-muted: #5a6678;
+    --text-on-primary: #ffffff;
+
+    --bg-page: linear-gradient(160deg, #f4f7fb 0%, #e8eef6 45%, #f7f3ea 100%);
+    --bg-panel: rgba(255, 255, 255, 0.82);
+    --bg-card: #ffffff;
+    --bg-hover: #eef2f7;
+    --bg-header: rgba(255, 255, 255, 0.92);
+    --bg-card-glass: rgba(255, 255, 255, 0.78);
+    --bg-glow-card: rgba(255, 255, 255, 0.9);
+    --border-glow: rgba(42, 122, 155, 0.22);
+
+    --shadow-large: 0 8px 28px rgba(30, 50, 80, 0.12);
+    --shadow-card: 0 4px 16px rgba(30, 50, 80, 0.08);
+
+    --btn-glow-normal: 0 2px 10px rgba(42, 122, 155, 0.25);
+    --btn-glow-hover: 0 4px 16px rgba(42, 122, 155, 0.35);
+    --btn-glow-secondary: 0 1px 6px rgba(42, 122, 155, 0.15);
+    --btn-glow-secondary-hover: 0 2px 10px rgba(42, 122, 155, 0.25);
+}
+
+/* Soft-light polish for glass panels / top bar on bright backgrounds */
+html[data-theme="soft-light"] .glass-panel,
+html[data-theme="soft-light"] .table-wrapper.glass {
+    background: rgba(255, 255, 255, 0.88) !important;
+    border-color: rgba(30, 50, 80, 0.1) !important;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-card);
+}
+
+html[data-theme="soft-light"] .top-bar {
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom-color: rgba(42, 122, 155, 0.18);
+}
+
+html[data-theme="soft-light"] .top-bar .user-chip,
+html[data-theme="soft-light"] .members-subnav,
+html[data-theme="soft-light"] .bottom-nav {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--text-primary);
+    border-color: rgba(30, 50, 80, 0.1);
+}
+
+html[data-theme="soft-light"] .bottom-nav a {
+    color: var(--text-muted);
+}
+
+html[data-theme="soft-light"] .bottom-nav a.active {
+    color: var(--primary);
+}
+
+html[data-theme="soft-light"] .data-table th {
+    color: #3d4d63;
+}
+
+html[data-theme="soft-light"] .data-table td {
+    color: #1c2430;
+}
+
+/* ==================== THEME 5: TROPICAL (teal, coral, palm warmth) ==================== */
+html[data-theme="tropical"] {
+    --primary: #1fb8a0;
+    --primary-hover: #169882;
+    --primary-glow: rgba(31, 184, 160, 0.4);
+    --primary-border: rgba(31, 184, 160, 0.28);
+    --primary-rgb: 31, 184, 160;
+
+    --text-primary: #e8f7f3;
+    --text-muted: #a8cfc6;
+    --text-on-primary: #06241f;
+
+    --bg-page: linear-gradient(145deg, #062820 0%, #0a3d35 40%, #1a2f45 100%);
+    --bg-panel: rgba(12, 48, 42, 0.72);
+    --bg-card: #0f3a34;
+    --bg-hover: #154840;
+    --bg-header: rgba(8, 36, 32, 0.92);
+    --bg-card-glass: rgba(18, 55, 48, 0.6);
+    --bg-glow-card: rgba(6, 30, 26, 0.9);
+    --border-glow: rgba(255, 140, 105, 0.28);
+
+    --btn-glow-normal: 0 0 18px rgba(31, 184, 160, 0.55);
+    --btn-glow-hover: 0 0 28px rgba(255, 140, 105, 0.45);
+    --btn-glow-secondary: 0 0 12px rgba(31, 184, 160, 0.3);
+    --btn-glow-secondary-hover: 0 0 20px rgba(31, 184, 160, 0.5);
+}
+
+/* Accent coral hint on tropical accents */
+html[data-theme="tropical"] .top-bar {
+    border-bottom-color: rgba(255, 140, 105, 0.35);
+}
+
+html[data-theme="tropical"] .dash-tile-icon,
+html[data-theme="tropical"] .church-name {
+    /* coral warmth mixed via primary already teal */
+}
+
+/* ==================== Site-wide font scale (root rem) ==================== */
+html[data-font-scale="sm"] { font-size: 14px; }
+html[data-font-scale="md"],
+html:not([data-font-scale]) { font-size: 16px; }
+html[data-font-scale="lg"] { font-size: 18px; }
+html[data-font-scale="xl"] { font-size: 20px; }
+
+/* ==================== Bible reader scale (independent, multiplies with rem) ==================== */
+html[data-bible-scale="sm"] {
+    --bible-reader-size: 0.95rem;
+}
+html[data-bible-scale="md"],
+html:not([data-bible-scale]) {
+    --bible-reader-size: 1.08rem;
+}
+html[data-bible-scale="lg"] {
+    --bible-reader-size: 1.22rem;
+}
+html[data-bible-scale="xl"] {
+    --bible-reader-size: 1.38rem;
+}
+html[data-bible-scale="xxl"] {
+    --bible-reader-size: 1.55rem;
+}
+
+#member-bible-content,
+.bible-stage-main {
+    font-size: var(--bible-reader-size, 1.08rem);
+    line-height: 1.65;
+}
+
+#member-bible-content .member-bible-verse {
+    font-size: inherit;
+}
+
+/* ==================== Display prefs panel (top bar) ==================== */
+.display-prefs {
+    position: relative;
+}
+
+.display-prefs-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 36px;
+    min-height: 34px;
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.25));
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary, #e0e0e0);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.display-prefs-toggle:hover,
+.display-prefs-toggle[aria-expanded="true"] {
+    border-color: var(--primary, #00ffff);
+    color: var(--primary, #00ffff);
+}
+
+.display-prefs-panel {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.4rem);
+    z-index: 1200;
+    width: min(320px, calc(100vw - 1.25rem));
+    padding: 0.85rem 0.9rem 1rem;
+    border-radius: 14px;
+    background: var(--bg-header, rgba(28, 28, 32, 0.97));
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.22));
+    box-shadow: var(--shadow-large, 0 12px 32px rgba(0, 0, 0, 0.45));
+    color: var(--text-primary);
+}
+
+.display-prefs-panel.is-open {
+    display: block;
+}
+
+.display-prefs-panel h3 {
+    margin: 0 0 0.55rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.display-prefs-panel .pref-section {
+    margin-bottom: 0.75rem;
+}
+
+.display-prefs-panel .pref-label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 0.35rem;
+}
+
+.display-prefs-panel .pref-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.display-prefs-panel .pref-option {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 34px;
+}
+
+html[data-theme="soft-light"] .display-prefs-panel .pref-option {
+    border-color: rgba(30, 50, 80, 0.15);
+    background: rgba(30, 50, 80, 0.05);
+}
+
+.display-prefs-panel .pref-option.is-active {
+    border-color: var(--primary);
+    background: rgba(var(--primary-rgb, 0, 255, 255), 0.16);
+    color: var(--primary);
+}
+
+.display-prefs-panel .pref-status {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    min-height: 1.1em;
+    margin-top: 0.25rem;
+}
+
+.display-prefs-panel .pref-hint {
+    font-size: 0.72rem;
+    opacity: 0.6;
+    margin: 0;
+    line-height: 1.35;
+}
+
+/* Mobile: slide-up friendly panel so more options stay tappable */
+@media (max-width: 767px) {
+    .display-prefs-panel {
+        position: fixed;
+        left: 0.5rem;
+        right: 0.5rem;
+        top: auto;
+        bottom: calc(3.6rem + env(safe-area-inset-bottom, 0px));
+        width: auto;
+        max-height: min(70vh, 420px);
+        overflow-y: auto;
+        border-radius: 16px 16px 14px 14px;
+    }
+
+    .display-prefs-panel .pref-option {
+        flex: 1 1 auto;
+        text-align: center;
+        min-height: 40px;
+        font-size: 0.88rem;
+    }
+
+    .top-bar .user-chip {
+        display: none; /* free space for Display control on phones */
+    }
+}

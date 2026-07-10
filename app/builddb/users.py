@@ -100,6 +100,10 @@ def create_tables(cursor):
         'shadow_banned_by':            "INT UNSIGNED NULL",
         'login_locked_until':          "DATETIME NULL",
         'login_locked_by':             "INT UNSIGNED NULL",
+        # Personal UI preferences (theme + font sizes) — personal wins over church branding
+        'ui_theme':                    "VARCHAR(40) DEFAULT 'cyan-glow'",
+        'ui_font_scale':               "VARCHAR(10) DEFAULT 'md'",
+        'bible_font_scale':            "VARCHAR(10) DEFAULT 'md'",
         'created_at':                  "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         'updated_at':                  "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
     }

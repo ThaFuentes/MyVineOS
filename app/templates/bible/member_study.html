@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260709c">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260709c">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260710d">
 {% endblock %}
 
 {% block content %}
@@ -12,6 +12,7 @@
     <h1 class="page-title" style="margin-bottom:0.25rem;"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Bible</h1>
     <p class="page-description" style="margin-bottom:0.75rem;">
         Full-screen reading - open <strong>Books</strong> or <strong>Search</strong> when you need them.
+        Text size is under <strong>Display</strong> in the top bar, or use A- / A+ here.
     </p>
 </div>
 
@@ -20,6 +21,11 @@
         <button type="button" id="member-open-canon" class="btn btn-secondary btn-sm bible-flyout-trigger"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Books</button>
         <h2 id="member-bible-title" class="bible-stage-title">Select a book</h2>
         <div class="bible-stage-toolbar-actions">
+            <div class="bible-font-controls" title="Bible text size (saved to your account)">
+                <button type="button" id="bible-font-smaller" class="btn btn-secondary btn-sm" aria-label="Smaller Bible text">A-</button>
+                <span id="bible-font-label" class="bible-font-label">MD</span>
+                <button type="button" id="bible-font-larger" class="btn btn-secondary btn-sm" aria-label="Larger Bible text">A+</button>
+            </div>
             <button type="button" id="member-bible-back" class="btn btn-outline-secondary btn-sm" style="display:none;"><- Chapter</button>
             <button type="button" id="member-bible-prev" class="btn btn-secondary btn-sm" disabled>Prev</button>
             <button type="button" id="member-bible-next" class="btn btn-secondary btn-sm" disabled>Next</button>

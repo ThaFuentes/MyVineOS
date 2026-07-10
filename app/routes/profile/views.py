@@ -236,3 +236,50 @@ def remove_family(fr_id):
         print(f"Remove family error: {e}")
 
     return redirect(url_for('profile.profile'))
+
+
+# ----------------------------------------------------------------------
+# Personal display prefs (theme + font sizes) — saved permanently in DB
+# ----------------------------------------------------------------------
+@profile_bp.route('/ui-preferences', methods=['POST'])
+@login_required
+def ui_preferences():
+    """Update theme / site font / Bible font. Accepts form or JSON; returns JSON."""
+    from flask import jsonify
+    from app.utils.ui_prefs import apply_ui_prefs_to_session, save_user_ui_prefs
+
+    user_id = current_user_id()
+    payload = request.get_json(silent=True) or {}
+    theme = request.form.get('theme') or payload.get('theme') or session.get('user_theme')
+    font_scale = (
+        request.form.get('font_scale')
+        or payload.get('font_scale')
+        or session.get('ui_font_scale')
+    )
+    bible_scale = (
+        request.form.get('bible_scale')
+        or payload.get('bible_scale')
+        or session.get('bible_font_scale')
+    )
+
+    try:
+        saved = save_user_ui_prefs(user_id, theme, font_scale, bible_scale)
+        apply_ui_prefs_to_session(
+            session,
+            theme=saved['theme'],
+            font_scale=saved['font_scale'],
+            bible_scale=saved['bible_scale'],
+        )
+        log_change(
+            user_id,
+            'update',
+            change_details=(
+                f"Display prefs: theme={saved['theme']}, "
+                f"font={saved['font_scale']}, bible={saved['bible_scale']}"
+            ),
+        )
+        return jsonify({'ok': True, **saved})
+    except Exception as e:
+        print(f"ui_preferences error: {e}")
+        traceback.print_exc()
+        return jsonify({'ok': False, 'error': 'Could not save display preferences.'}), 500
