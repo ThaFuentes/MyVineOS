@@ -64,7 +64,7 @@ def normalize_bible_scale(value) -> str:
 
 
 def apply_ui_prefs_to_session(session, user_row=None, theme=None, font_scale=None, bible_scale=None):
-    """Write normalized prefs into the Flask session."""
+    """Write normalized prefs into the Flask session (permanent cookie)."""
     if user_row is not None:
         theme = user_row.get("ui_theme", theme)
         font_scale = user_row.get("ui_font_scale", font_scale)
@@ -72,6 +72,49 @@ def apply_ui_prefs_to_session(session, user_row=None, theme=None, font_scale=Non
     session["user_theme"] = normalize_theme(theme)
     session["ui_font_scale"] = normalize_font_scale(font_scale)
     session["bible_font_scale"] = normalize_bible_scale(bible_scale)
+    session.permanent = True
+    session.modified = True
+
+
+def load_ui_prefs_for_user(user_id: int) -> dict | None:
+    """Fetch theme/font prefs from users table (or None if unavailable)."""
+    if not user_id:
+        return None
+    try:
+        import pymysql
+        from app.models.db import get_db
+
+        db = get_db()
+        cur = db.cursor(pymysql.cursors.DictCursor)
+        cur.execute(
+            """
+            SELECT ui_theme, ui_font_scale, bible_font_scale
+              FROM users
+             WHERE id = %s
+             LIMIT 1
+            """,
+            (user_id,),
+        )
+        return cur.fetchone()
+    except Exception as exc:
+        # Columns may not exist yet on an old DB — ignore quietly
+        print(f"load_ui_prefs_for_user: {exc}")
+        return None
+
+
+def sync_ui_prefs_from_db(session) -> None:
+    """
+    Ensure session display prefs match the DB for the logged-in user.
+    Call on each request so themes survive new tabs, restarts, and partial sessions.
+    """
+    user_id = session.get("user_id")
+    if not user_id:
+        return
+    row = load_ui_prefs_for_user(user_id)
+    if row:
+        apply_ui_prefs_to_session(session, user_row=row)
+    elif "user_theme" not in session:
+        apply_ui_prefs_to_session(session)
 
 
 def save_user_ui_prefs(user_id: int, theme: str, font_scale: str, bible_scale: str) -> dict:
@@ -94,7 +137,25 @@ def save_user_ui_prefs(user_id: int, theme: str, font_scale: str, bible_scale: s
         """,
         (theme, font_scale, bible_scale, user_id),
     )
+    if cur.rowcount == 0:
+        raise RuntimeError(f"No user row updated for id={user_id}")
     db.commit()
+
+    # Verify write (catches silent failures / wrong DB)
+    cur2 = db.cursor()
+    cur2.execute(
+        "SELECT ui_theme, ui_font_scale, bible_font_scale FROM users WHERE id = %s",
+        (user_id,),
+    )
+    row = cur2.fetchone()
+    if row:
+        # row may be tuple depending on cursor
+        saved_theme = row[0] if not isinstance(row, dict) else row.get("ui_theme")
+        if saved_theme != theme:
+            raise RuntimeError(
+                f"Theme save mismatch: wanted {theme!r}, DB has {saved_theme!r}"
+            )
+
     return {
         "theme": theme,
         "font_scale": font_scale,

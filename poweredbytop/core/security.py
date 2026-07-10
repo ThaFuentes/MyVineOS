@@ -143,7 +143,18 @@ def run_full_security_pipeline():
     # Auth entrypoints (login/register/reset flows) must be reachable even before vetting, on http dev, or low-rep recovery
     # (they perform their own auth checks + record_login_attempt inside the view; PBT still applies rate/UA/lock/CSRF to them)
     is_auth_entry = bool(request.endpoint and str(request.endpoint).startswith('auth.'))
-    is_safe_mutation = is_public_guest_mutation or is_auth_entry
+    # Logged-in display prefs (theme/font) — allow over http in local DEBUG so themes actually save
+    is_ui_prefs = (
+        request.method == 'POST'
+        and path.rstrip('/').endswith('/profile/ui-preferences')
+        and bool(session.get('user_id'))
+    )
+    debug_http = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
+    is_safe_mutation = (
+        is_public_guest_mutation
+        or is_auth_entry
+        or (is_ui_prefs and debug_http)
+    )
 
     def _request_is_https(req):
         """Robust https detection including common reverse proxies (Cloudflare, nginx, passenger/LiteSpeed)"""

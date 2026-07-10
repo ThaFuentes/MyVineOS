@@ -82,6 +82,22 @@ def create_app():
     def load_viewer_moderation_context():
         from app.utils.account_moderation import refresh_viewer_context
         refresh_viewer_context()
+
+    @app.before_request
+    def sync_display_preferences():
+        """Keep theme/font prefs in session from DB so they do not silently revert."""
+        if request.path.startswith('/static/'):
+            return
+        if not session.get('user_id'):
+            return
+        try:
+            from app.utils.ui_prefs import sync_ui_prefs_from_db
+            sync_ui_prefs_from_db(session)
+        except Exception as pref_err:
+            # Never block page loads if prefs columns missing
+            if os.getenv('DEBUG_MODE', '').lower() == 'true':
+                print(f'sync_display_preferences: {pref_err}')
+
     # GLOBAL WATCHMAN DEBUG (only in debug mode to avoid leaking info in prod)
     if os.getenv("DEBUG_MODE", "False").lower() == "true":
         @app.before_request
@@ -361,11 +377,24 @@ def create_app():
     @app.errorhandler(403)
     def forbidden(e):
         # PBT security blocks (csrf, rate, rep, vet, etc), role denials, etc.
+        # AJAX callers (display prefs, etc.) need JSON — not a dashboard redirect.
+        wants_json = (
+            request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            or (request.accept_mimetypes.best and 'application/json' in request.accept_mimetypes.best)
+            or (request.path or '').rstrip('/').endswith('/profile/ui-preferences')
+        )
+        if wants_json:
+            from flask import jsonify
+            return jsonify({
+                'ok': False,
+                'error': 'Security check failed. Reload the page and try again.',
+            }), 403
         if not session.get('user_id') or (request.endpoint and request.endpoint.startswith('auth.')):
             flash('Security check failed or access denied. Please reload the login page and try again.', 'error')
             return redirect(url_for('auth.login'))
         flash('Security check failed. Please reload the page and try again.', 'error')
         return redirect(request.referrer or url_for('dashboard.dashboard'))
+
 
     # Security headers (applied to all responses)
     @app.after_request

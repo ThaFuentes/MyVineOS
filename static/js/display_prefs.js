@@ -1,6 +1,7 @@
 /**
  * Site-wide display preferences: theme, page font scale, Bible reader scale.
  * Instantly applies to <html> attributes and persists via /profile/ui-preferences.
+ * Uses form-encoded POST + CSRF field (most reliable with security pipeline).
  */
 (function () {
   const root = document.documentElement;
@@ -33,7 +34,9 @@
 
   function setActiveButtons() {
     const c = current();
-    if (themeSelect) themeSelect.value = c.theme;
+    if (themeSelect && [...themeSelect.options].some((o) => o.value === c.theme)) {
+      themeSelect.value = c.theme;
+    }
     panel.querySelectorAll('button[data-pref]').forEach((btn) => {
       const key = btn.getAttribute('data-pref');
       const val = btn.getAttribute('data-value');
@@ -59,36 +62,76 @@
   }
 
   let saveTimer = null;
-  function scheduleSave() {
+  let inflight = null;
+
+  function scheduleSave(immediate) {
     if (statusEl) statusEl.textContent = 'Saving…';
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(persist, 280);
+    if (immediate) {
+      persist();
+      return;
+    }
+    saveTimer = setTimeout(persist, 200);
   }
 
   async function persist() {
     if (!saveUrl) return;
     const body = current();
+
+    // form-urlencoded so CSRF middleware always sees csrf_token in form body
+    const params = new URLSearchParams();
+    params.set('theme', body.theme);
+    params.set('font_scale', body.font_scale);
+    params.set('bible_scale', body.bible_scale);
+    if (csrf) params.set('csrf_token', csrf);
+
+    // Cancel previous in-flight save to avoid out-of-order overwrites
+    if (inflight && typeof inflight.abort === 'function') {
+      try { inflight.abort(); } catch (e) { /* ignore */ }
+    }
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    inflight = controller;
+
     try {
       const res = await fetch(saveUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
           'X-CSRF-Token': csrf,
           'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
         },
         credentials: 'same-origin',
-        body: JSON.stringify({
-          theme: body.theme,
-          font_scale: body.font_scale,
-          bible_scale: body.bible_scale,
-        }),
+        body: params.toString(),
+        signal: controller ? controller.signal : undefined,
       });
-      const data = await res.json().catch(() => ({}));
+
+      const text = await res.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        // Server redirected HTML (old 403 handler) — treat as failure
+        if (statusEl) {
+          statusEl.textContent = res.ok
+            ? 'Saved (reload if theme looks wrong).'
+            : 'Could not save — reload the page and try again.';
+        }
+        return;
+      }
+
       if (!res.ok || data.ok === false) {
         if (statusEl) statusEl.textContent = data.error || 'Could not save.';
         return;
       }
-      if (data.theme) applyLocal(data);
+
+      // Authoritative values from server/DB
+      applyLocal({
+        theme: data.theme || body.theme,
+        font_scale: data.font_scale || body.font_scale,
+        bible_scale: data.bible_scale || body.bible_scale,
+      });
+
       if (statusEl) {
         statusEl.textContent = 'Saved to your account.';
         setTimeout(() => {
@@ -96,9 +139,21 @@
         }, 1800);
       }
     } catch (e) {
+      if (e && e.name === 'AbortError') return;
       if (statusEl) statusEl.textContent = 'Network error — try again.';
     }
   }
+
+  // Flush pending save if user navigates away quickly
+  window.addEventListener('pagehide', () => {
+    clearTimeout(saveTimer);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && saveTimer) {
+      clearTimeout(saveTimer);
+      persist();
+    }
+  });
 
   function openPanel() {
     panel.classList.add('is-open');
@@ -127,10 +182,10 @@
     if (e.key === 'Escape') closePanel();
   });
 
-  // Theme dropdown
+  // Theme dropdown — save immediately so it never races a navigation
   themeSelect?.addEventListener('change', () => {
     applyLocal({ theme: themeSelect.value });
-    scheduleSave();
+    scheduleSave(true);
   });
 
   // Font size pills
@@ -142,7 +197,7 @@
       const partial = {};
       partial[key] = val;
       applyLocal(partial);
-      scheduleSave();
+      scheduleSave(false);
     });
   });
 
@@ -154,7 +209,7 @@
     if (i < 0) i = 1;
     i = Math.max(0, Math.min(order.length - 1, i + delta));
     applyLocal({ bible_scale: order[i] });
-    scheduleSave();
+    scheduleSave(true);
     const label = document.getElementById('bible-font-label');
     if (label) label.textContent = order[i].toUpperCase();
   }

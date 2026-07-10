@@ -244,21 +244,30 @@ def remove_family(fr_id):
 @profile_bp.route('/ui-preferences', methods=['POST'])
 @login_required
 def ui_preferences():
-    """Update theme / site font / Bible font. Accepts form or JSON; returns JSON."""
+    """Update theme / site font / Bible font. Form or JSON; always returns JSON."""
     from flask import jsonify
     from app.utils.ui_prefs import apply_ui_prefs_to_session, save_user_ui_prefs
 
     user_id = current_user_id()
     payload = request.get_json(silent=True) or {}
-    theme = request.form.get('theme') or payload.get('theme') or session.get('user_theme')
+
+    # Prefer explicit form fields (most reliable with CSRF middleware), then JSON body.
+    theme = (
+        request.form.get('theme')
+        or payload.get('theme')
+        or request.values.get('theme')
+        or session.get('user_theme')
+    )
     font_scale = (
         request.form.get('font_scale')
         or payload.get('font_scale')
+        or request.values.get('font_scale')
         or session.get('ui_font_scale')
     )
     bible_scale = (
         request.form.get('bible_scale')
         or payload.get('bible_scale')
+        or request.values.get('bible_scale')
         or session.get('bible_font_scale')
     )
 
@@ -270,6 +279,7 @@ def ui_preferences():
             font_scale=saved['font_scale'],
             bible_scale=saved['bible_scale'],
         )
+        session.modified = True
         log_change(
             user_id,
             'update',
@@ -283,3 +293,4 @@ def ui_preferences():
         print(f"ui_preferences error: {e}")
         traceback.print_exc()
         return jsonify({'ok': False, 'error': 'Could not save display preferences.'}), 500
+
