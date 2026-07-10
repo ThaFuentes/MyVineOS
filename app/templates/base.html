@@ -36,7 +36,7 @@
   <title>{% block title %}{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
 
   <!-- THEME (data-theme vars + font scales) -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710e">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710f">
 
   <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
@@ -112,11 +112,15 @@
 
             <div class="pref-section">
               <span class="pref-label">Theme</span>
-              <div class="pref-options">
-                <button type="button" class="pref-option" data-pref="theme" data-value="cyan-glow">Classic (bright)</button>
-                <button type="button" class="pref-option" data-pref="theme" data-value="soft-light">Soft light</button>
-                <button type="button" class="pref-option" data-pref="theme" data-value="tropical">Tropical</button>
-              </div>
+              <select id="pref-theme-select" class="pref-select" data-pref="theme" aria-label="Color theme">
+                <option value="cyan-glow"{% if user_theme == 'cyan-glow' %} selected{% endif %}>Classic (default)</option>
+                <option value="soft-light"{% if user_theme == 'soft-light' %} selected{% endif %}>Soft light</option>
+                <option value="tropical"{% if user_theme == 'tropical' %} selected{% endif %}>Tropical</option>
+                <option value="purple-grace"{% if user_theme == 'purple-grace' %} selected{% endif %}>Purple grace</option>
+                <option value="amber-hope"{% if user_theme == 'amber-hope' %} selected{% endif %}>Amber hope</option>
+                <option value="forest"{% if user_theme == 'forest' %} selected{% endif %}>Forest</option>
+                <option value="rose-dawn"{% if user_theme == 'rose-dawn' %} selected{% endif %}>Rose dawn</option>
+              </select>
             </div>
 
             <div class="pref-section">
@@ -217,7 +221,7 @@
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
     {% if session.get('user_id') %}
-    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260710d"></script>
+    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260710f"></script>
     {% endif %}
     <script>
       function updateClock() {

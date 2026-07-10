@@ -4,10 +4,15 @@
 
 from __future__ import annotations
 
+# cyan-glow remains the site default (original dark neon look).
 ALLOWED_THEMES = (
-    "cyan-glow",   # default dark neon
-    "soft-light",  # brighter soft page
-    "tropical",    # teal / coral / warm green
+    "cyan-glow",      # Default — original cyan dark
+    "soft-light",     # Daytime / brighter page
+    "tropical",       # Teal + coral
+    "purple-grace",   # Royal purple
+    "amber-hope",     # Warm gold
+    "forest",         # Green sanctuary
+    "rose-dawn",      # Soft rose
 )
 
 ALLOWED_FONT_SCALES = ("sm", "md", "lg", "xl")
@@ -18,9 +23,13 @@ DEFAULT_FONT_SCALE = "md"
 DEFAULT_BIBLE_SCALE = "md"
 
 THEME_LABELS = {
-    "cyan-glow": "Classic (bright)",
+    "cyan-glow": "Classic (default)",
     "soft-light": "Soft light",
     "tropical": "Tropical",
+    "purple-grace": "Purple grace",
+    "amber-hope": "Amber hope",
+    "forest": "Forest",
+    "rose-dawn": "Rose dawn",
 }
 
 FONT_LABELS = {
@@ -67,7 +76,6 @@ def apply_ui_prefs_to_session(session, user_row=None, theme=None, font_scale=Non
 
 def save_user_ui_prefs(user_id: int, theme: str, font_scale: str, bible_scale: str) -> dict:
     """Persist prefs to DB. Returns the normalized dict saved."""
-    import pymysql
     from app.models.db import get_db
 
     theme = normalize_theme(theme)

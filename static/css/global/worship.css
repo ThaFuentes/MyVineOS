@@ -25,14 +25,19 @@
   filter: brightness(1.08);
 }
 
-.worship-nav a.wn-home { color: #5b9fd4; border-color: rgba(91, 159, 212, 0.4); }
-.worship-nav a.wn-templates { color: #e0a84a; border-color: rgba(224, 168, 74, 0.4); }
-.worship-nav a.wn-setlists { color: #9b7de8; border-color: rgba(155, 125, 232, 0.4); }
-.worship-nav a.wn-songs { color: #3dbf9a; border-color: rgba(61, 191, 154, 0.4); }
-.worship-nav a.wn-history { color: #e07a5f; border-color: rgba(224, 122, 95, 0.4); }
-.worship-nav a.wn-roles { color: #5eb8c9; border-color: rgba(94, 184, 201, 0.4); }
-.worship-nav a.wn-import { color: #d47ab0; border-color: rgba(212, 122, 176, 0.4); }
-.worship-nav a.wn-back { color: #a0a8b8; border-color: rgba(160, 168, 184, 0.35); opacity: 0.9; }
+/* Brighter link colors so icons/text read clearly on dark glass */
+.worship-nav a.wn-home { color: #6ed4ff; border-color: rgba(110, 212, 255, 0.55); background: rgba(110, 212, 255, 0.1); }
+.worship-nav a.wn-templates { color: #ffc85a; border-color: rgba(255, 200, 90, 0.55); background: rgba(255, 200, 90, 0.1); }
+.worship-nav a.wn-setlists { color: #c4a1ff; border-color: rgba(196, 161, 255, 0.55); background: rgba(196, 161, 255, 0.1); }
+.worship-nav a.wn-songs { color: #4dffc8; border-color: rgba(77, 255, 200, 0.55); background: rgba(77, 255, 200, 0.1); }
+.worship-nav a.wn-history { color: #ff9a78; border-color: rgba(255, 154, 120, 0.55); background: rgba(255, 154, 120, 0.1); }
+.worship-nav a.wn-roles { color: #6fe0f0; border-color: rgba(111, 224, 240, 0.55); background: rgba(111, 224, 240, 0.1); }
+.worship-nav a.wn-import { color: #ff8fd0; border-color: rgba(255, 143, 208, 0.55); background: rgba(255, 143, 208, 0.1); }
+.worship-nav a.wn-back { color: #d0d8e4; border-color: rgba(208, 216, 228, 0.4); background: rgba(255, 255, 255, 0.06); }
+
+.worship-nav a .fa-solid {
+  filter: brightness(1.25) drop-shadow(0 0 6px currentColor);
+}
 
 html[data-theme="soft-light"] .worship-nav a {
   background: rgba(30, 50, 80, 0.05);
@@ -75,10 +80,14 @@ html[data-theme="soft-light"] .worship-tile .tile-label {
   color: #1c2430;
 }
 
-.worship-tile-templates { --tile-accent: #e0a84a; }
-.worship-tile-setlists { --tile-accent: #9b7de8; }
-.worship-tile-songs { --tile-accent: #3dbf9a; }
-.worship-tile-history { --tile-accent: #e07a5f; }
+.worship-tile-templates { --tile-accent: #ffc85a; }
+.worship-tile-setlists { --tile-accent: #c4a1ff; }
+.worship-tile-songs { --tile-accent: #4dffc8; }
+.worship-tile-history { --tile-accent: #ff9a78; }
+
+.worship-tile .tile-icon {
+  filter: brightness(1.25) saturate(1.2) drop-shadow(0 0 10px currentColor);
+}
 
 /* Song section builder */
 .song-sections-panel,

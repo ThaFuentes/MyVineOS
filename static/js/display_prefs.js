@@ -11,6 +11,17 @@
   const statusEl = panel.querySelector('.pref-status');
   const saveUrl = panel.dataset.saveUrl;
   const csrf = panel.dataset.csrf || '';
+  const themeSelect = document.getElementById('pref-theme-select');
+
+  const THEME_META = {
+    'cyan-glow': '#0a0a0a',
+    'soft-light': '#f4f7fb',
+    tropical: '#0a3d38',
+    'purple-grace': '#120a1c',
+    'amber-hope': '#1a0f00',
+    forest: '#0a1610',
+    'rose-dawn': '#1a0e16',
+  };
 
   function current() {
     return {
@@ -22,11 +33,11 @@
 
   function setActiveButtons() {
     const c = current();
-    panel.querySelectorAll('[data-pref]').forEach((btn) => {
+    if (themeSelect) themeSelect.value = c.theme;
+    panel.querySelectorAll('button[data-pref]').forEach((btn) => {
       const key = btn.getAttribute('data-pref');
       const val = btn.getAttribute('data-value');
       const active =
-        (key === 'theme' && val === c.theme) ||
         (key === 'font_scale' && val === c.font_scale) ||
         (key === 'bible_scale' && val === c.bible_scale);
       btn.classList.toggle('is-active', active);
@@ -39,15 +50,10 @@
     if (partial.font_scale) root.setAttribute('data-font-scale', partial.font_scale);
     if (partial.bible_scale) root.setAttribute('data-bible-scale', partial.bible_scale);
 
-    // theme-color meta for mobile chrome
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      const map = {
-        'cyan-glow': '#0a0a0a',
-        'soft-light': '#f4f7fb',
-        tropical: '#062820',
-      };
-      meta.setAttribute('content', map[partial.theme || current().theme] || '#0a0a0a');
+      const t = partial.theme || current().theme;
+      meta.setAttribute('content', THEME_META[t] || '#0a0a0a');
     }
     setActiveButtons();
   }
@@ -121,7 +127,14 @@
     if (e.key === 'Escape') closePanel();
   });
 
-  panel.querySelectorAll('[data-pref]').forEach((btn) => {
+  // Theme dropdown
+  themeSelect?.addEventListener('change', () => {
+    applyLocal({ theme: themeSelect.value });
+    scheduleSave();
+  });
+
+  // Font size pills
+  panel.querySelectorAll('button[data-pref]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const key = btn.getAttribute('data-pref');
       const val = btn.getAttribute('data-value');
@@ -133,7 +146,7 @@
     });
   });
 
-  // Bible toolbar A+/A- (optional controls)
+  // Bible toolbar A+/A-
   function bibleStep(delta) {
     const order = ['sm', 'md', 'lg', 'xl', 'xxl'];
     const cur = current().bible_scale;

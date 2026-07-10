@@ -15,7 +15,7 @@
    All existing CSS files already use these variables → instant theme switching. */
 
 :root {
-    /* Shared / fallback – warmer, less pure-black gloom */
+    /* Shared / fallback values – original dark glass base (default theme) */
     --font-main: system-ui, -apple-system, sans-serif;
 
     --blur: blur(14px);
@@ -26,145 +26,130 @@
     --radius-small: 8px;
     --radius-tiny: 6px;
 
-    --shadow-large: 0 10px 36px rgba(20, 30, 50, 0.35);
-    --shadow-card: 0 6px 22px rgba(20, 30, 50, 0.22);
-    --shadow-glow: 0 8px 28px rgba(40, 90, 120, 0.22);
+    --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.75);
+    --shadow-card: 0 6px 20px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 8px 32px rgba(0, 0, 0, 0.4);
 
-    --text-primary: #eef3f8;
-    --text-muted: #b7c4d4;
-    --text-on-primary: #0a1a22;
+    --text-primary: #e0e0e0;
+    --text-muted: #b0b0b0;
+    --text-on-primary: #121212;
 
-    /* Soft night sky – not coal black */
-    --bg-page: linear-gradient(155deg, #152238 0%, #1c3550 42%, #243048 100%);
-    --bg-panel: rgba(36, 52, 74, 0.72);
-    --bg-card: #2a3d56;
-    --bg-hover: #34506c;
-    --bg-header: rgba(28, 42, 62, 0.94);
+    --bg-page: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    --bg-panel: rgba(30, 30, 30, 0.68);
+    --bg-card: #252525;
+    --bg-hover: #2f2f2f;
+    --bg-header: rgba(42, 42, 42, 0.8);
 }
 
-/* ==================== THEME 1: CLASSIC (default) – lively aqua, not gloomy navy ==================== */
+/* ==================== THEME 1: CYAN GLOW (DEFAULT – original neon dark) ==================== */
 html[data-theme="cyan-glow"],
 html:not([data-theme]) {
-    /* Friendly aqua (less harsh neon, still bright) */
-    --primary: #3ecfff;
-    --primary-hover: #62dbff;
-    --primary-glow: rgba(62, 207, 255, 0.42);
-    --primary-border: rgba(120, 210, 255, 0.32);
-    --primary-rgb: 62, 207, 255;
+    --primary: #00FFFF;
+    --primary-hover: #00cccc;
+    --primary-glow: rgba(0, 255, 255, 0.4);
+    --primary-border: rgba(0, 255, 255, 0.18);
+    --primary-rgb: 0, 255, 255;
 
-    --text-primary: #f2f7fc;
-    --text-muted: #b8c9db;
-    --text-on-primary: #062030;
+    --bg-card-glass: rgba(35, 35, 35, 0.55);
+    --bg-glow-card: rgba(0, 0, 0, 0.88);
+    --border-glow: rgba(0, 255, 255, 0.27);
 
-    /* Warm-cool blend: deep teal + soft indigo + hint of dusk */
-    --bg-page: linear-gradient(160deg, #16324a 0%, #1e4570 38%, #2a3d6a 72%, #1f4d5c 100%);
-    --bg-panel: rgba(42, 68, 98, 0.78);
-    --bg-card: #2f4d6e;
-    --bg-hover: #3a5d82;
-    --bg-header: rgba(26, 48, 72, 0.95);
-    --bg-card-glass: rgba(48, 78, 110, 0.62);
-    --bg-glow-card: rgba(22, 40, 62, 0.82);
-    --border-glow: rgba(100, 210, 255, 0.35);
-
-    --btn-glow-normal: 0 2px 16px rgba(62, 207, 255, 0.45);
-    --btn-glow-hover: 0 4px 22px rgba(255, 196, 110, 0.35);
-    --btn-glow-secondary: 0 1px 10px rgba(62, 207, 255, 0.25);
-    --btn-glow-secondary-hover: 0 2px 16px rgba(62, 207, 255, 0.4);
+    --btn-glow-normal: 0 0 20px rgba(0, 255, 255, 0.7);
+    --btn-glow-hover: 0 0 30px #00FFFF;
+    --btn-glow-secondary: 0 0 15px rgba(0, 255, 255, 0.4);
+    --btn-glow-secondary-hover: 0 0 25px rgba(0, 255, 255, 0.7);
 }
 
-/* Classic theme – glass cards a bit brighter / more open */
-html[data-theme="cyan-glow"] .glass-panel,
-html[data-theme="cyan-glow"] .glass,
-html:not([data-theme]) .glass-panel,
-html:not([data-theme]) .glass {
-    background: linear-gradient(
-        165deg,
-        rgba(58, 92, 128, 0.78) 0%,
-        rgba(42, 70, 102, 0.82) 100%
-    );
-    border-color: rgba(140, 210, 255, 0.28);
-    box-shadow: 0 8px 24px rgba(10, 30, 50, 0.28);
-}
-
-html[data-theme="cyan-glow"] .top-bar,
-html:not([data-theme]) .top-bar {
-    background: linear-gradient(90deg, rgba(28, 52, 78, 0.96), rgba(34, 58, 88, 0.94));
-    border-bottom-color: rgba(255, 190, 120, 0.25);
-}
-
-html[data-theme="cyan-glow"] .bottom-nav,
-html:not([data-theme]) .bottom-nav {
-    background: linear-gradient(0deg, rgba(24, 44, 68, 0.98), rgba(32, 56, 84, 0.95));
-    border-top-color: rgba(120, 210, 255, 0.28);
-    box-shadow: 0 -4px 18px rgba(10, 30, 50, 0.25);
-}
-
-html[data-theme="cyan-glow"] .btn-primary,
-html:not([data-theme]) .btn-primary {
-    background: linear-gradient(180deg, #5ad4ff 0%, #2eb8f0 55%, #28a8d8 100%) !important;
-    color: #042030 !important;
-    border: none !important;
-    box-shadow: 0 3px 14px rgba(46, 184, 240, 0.4) !important;
-}
-
-html[data-theme="cyan-glow"] .btn-secondary,
-html:not([data-theme]) .btn-secondary {
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(160, 220, 255, 0.35) !important;
-    color: #eaf6ff !important;
-}
-
-/* ==================== THEME 2: PURPLE GRACE – brighter royal dusk ==================== */
+/* ==================== THEME 2: PURPLE GRACE ==================== */
 html[data-theme="purple-grace"] {
-    --primary: #c4a1ff;
-    --primary-hover: #d4b8ff;
-    --primary-glow: rgba(196, 161, 255, 0.45);
-    --primary-border: rgba(196, 161, 255, 0.32);
-    --primary-rgb: 196, 161, 255;
+    --primary: #b48cff;
+    --primary-hover: #c9a8ff;
+    --primary-glow: rgba(180, 140, 255, 0.45);
+    --primary-border: rgba(180, 140, 255, 0.28);
+    --primary-rgb: 180, 140, 255;
 
-    --text-primary: #f6f0ff;
-    --text-muted: #c9b8e0;
+    --bg-page: linear-gradient(135deg, #120a1c 0%, #1e1230 100%);
+    --bg-panel: rgba(42, 32, 58, 0.72);
+    --bg-card: #2c2240;
+    --bg-hover: #3a2d52;
+    --bg-header: rgba(32, 22, 48, 0.92);
+    --bg-card-glass: rgba(50, 36, 70, 0.55);
+    --bg-glow-card: rgba(18, 10, 30, 0.88);
+    --border-glow: rgba(180, 140, 255, 0.3);
 
-    --bg-page: linear-gradient(155deg, #2a1848 0%, #3d2466 45%, #4a2a72 100%);
-    --bg-panel: rgba(72, 48, 110, 0.75);
-    --bg-card: #4a3270;
-    --bg-hover: #5a3f88;
-    --bg-header: rgba(48, 28, 78, 0.95);
-    --bg-card-glass: rgba(80, 52, 120, 0.6);
-    --bg-glow-card: rgba(36, 18, 58, 0.85);
-    --border-glow: rgba(196, 161, 255, 0.35);
-
-    --btn-glow-normal: 0 2px 16px rgba(196, 161, 255, 0.45);
-    --btn-glow-hover: 0 4px 22px rgba(255, 180, 220, 0.35);
-    --btn-glow-secondary: 0 1px 10px rgba(196, 161, 255, 0.28);
-    --btn-glow-secondary-hover: 0 2px 16px rgba(196, 161, 255, 0.4);
+    --btn-glow-normal: 0 0 18px rgba(180, 140, 255, 0.55);
+    --btn-glow-hover: 0 0 26px #b48cff;
+    --btn-glow-secondary: 0 0 12px rgba(180, 140, 255, 0.35);
+    --btn-glow-secondary-hover: 0 0 20px rgba(180, 140, 255, 0.5);
 }
 
-/* ==================== THEME 3: AMBER HOPE – sunny warm (less brown/cave) ==================== */
+/* ==================== THEME 3: AMBER HOPE ==================== */
 html[data-theme="amber-hope"] {
-    --primary: #ffc75a;
-    --primary-hover: #ffd78a;
-    --primary-glow: rgba(255, 199, 90, 0.45);
-    --primary-border: rgba(255, 199, 90, 0.35);
-    --primary-rgb: 255, 199, 90;
+    --primary: #ffb84d;
+    --primary-hover: #ff9d1e;
+    --primary-glow: rgba(255, 184, 77, 0.4);
+    --primary-border: rgba(255, 184, 77, 0.25);
+    --primary-rgb: 255, 184, 77;
 
-    --text-primary: #fff8ec;
-    --text-muted: #e0c9a0;
-    --text-on-primary: #2a1800;
+    --bg-page: linear-gradient(135deg, #1a0f00 0%, #2a1a08 100%);
+    --bg-panel: rgba(48, 36, 18, 0.72);
+    --bg-card: #332414;
+    --bg-hover: #403018;
+    --bg-header: rgba(36, 26, 10, 0.92);
+    --bg-card-glass: rgba(55, 40, 20, 0.55);
+    --bg-glow-card: rgba(30, 20, 0, 0.88);
+    --border-glow: rgba(255, 184, 77, 0.3);
 
-    --bg-page: linear-gradient(155deg, #3a2810 0%, #5a3a14 40%, #6b4420 100%);
-    --bg-panel: rgba(90, 62, 28, 0.78);
-    --bg-card: #6a4a22;
-    --bg-hover: #7d5828;
-    --bg-header: rgba(56, 38, 14, 0.95);
-    --bg-card-glass: rgba(100, 70, 30, 0.62);
-    --bg-glow-card: rgba(40, 26, 8, 0.85);
-    --border-glow: rgba(255, 199, 90, 0.35);
+    --btn-glow-normal: 0 0 18px rgba(255, 184, 77, 0.55);
+    --btn-glow-hover: 0 0 26px #ffb84d;
+    --btn-glow-secondary: 0 0 12px rgba(255, 184, 77, 0.35);
+    --btn-glow-secondary-hover: 0 0 20px rgba(255, 184, 77, 0.5);
+}
 
-    --btn-glow-normal: 0 2px 16px rgba(255, 199, 90, 0.45);
-    --btn-glow-hover: 0 4px 22px rgba(255, 220, 140, 0.4);
-    --btn-glow-secondary: 0 1px 10px rgba(255, 199, 90, 0.28);
-    --btn-glow-secondary-hover: 0 2px 16px rgba(255, 199, 90, 0.4);
+/* ==================== THEME: FOREST (optional modern) ==================== */
+html[data-theme="forest"] {
+    --primary: #5cdb8b;
+    --primary-hover: #7ee8a6;
+    --primary-glow: rgba(92, 219, 139, 0.4);
+    --primary-border: rgba(92, 219, 139, 0.28);
+    --primary-rgb: 92, 219, 139;
+
+    --bg-page: linear-gradient(145deg, #0a1610 0%, #12241a 55%, #0e1c18 100%);
+    --bg-panel: rgba(22, 42, 32, 0.75);
+    --bg-card: #1a3026;
+    --bg-hover: #244036;
+    --bg-header: rgba(14, 28, 22, 0.94);
+    --bg-card-glass: rgba(28, 50, 38, 0.58);
+    --bg-glow-card: rgba(8, 18, 12, 0.9);
+    --border-glow: rgba(92, 219, 139, 0.3);
+
+    --btn-glow-normal: 0 0 16px rgba(92, 219, 139, 0.5);
+    --btn-glow-hover: 0 0 24px #5cdb8b;
+    --btn-glow-secondary: 0 0 12px rgba(92, 219, 139, 0.3);
+    --btn-glow-secondary-hover: 0 0 18px rgba(92, 219, 139, 0.45);
+}
+
+/* ==================== THEME: ROSE DAWN (optional modern) ==================== */
+html[data-theme="rose-dawn"] {
+    --primary: #ff7eb3;
+    --primary-hover: #ff9bc5;
+    --primary-glow: rgba(255, 126, 179, 0.4);
+    --primary-border: rgba(255, 126, 179, 0.28);
+    --primary-rgb: 255, 126, 179;
+
+    --bg-page: linear-gradient(145deg, #1a0e16 0%, #2a1422 50%, #1e1020 100%);
+    --bg-panel: rgba(48, 28, 40, 0.75);
+    --bg-card: #3a2232;
+    --bg-hover: #4a2c40;
+    --bg-header: rgba(36, 18, 30, 0.94);
+    --bg-card-glass: rgba(58, 32, 48, 0.58);
+    --bg-glow-card: rgba(24, 10, 18, 0.9);
+    --border-glow: rgba(255, 126, 179, 0.3);
+
+    --btn-glow-normal: 0 0 16px rgba(255, 126, 179, 0.5);
+    --btn-glow-hover: 0 0 24px #ff7eb3;
+    --btn-glow-secondary: 0 0 12px rgba(255, 126, 179, 0.3);
+    --btn-glow-secondary-hover: 0 0 18px rgba(255, 126, 179, 0.45);
 }
 
 /* ==================== THEME 4: SOFT LIGHT – sunny / cheerful daytime ==================== */
@@ -387,6 +372,25 @@ html[data-bible-scale="xxl"] {
     gap: 0.35rem;
 }
 
+.display-prefs-panel .pref-select {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 10px;
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.28));
+    background: rgba(0, 0, 0, 0.28);
+    color: var(--text-primary, #e0e0e0);
+    font-size: 0.92rem;
+    font-weight: 600;
+    padding: 0.45rem 0.65rem;
+    cursor: pointer;
+}
+
+html[data-theme="soft-light"] .display-prefs-panel .pref-select {
+    background: #f4f7fb;
+    border-color: rgba(30, 50, 80, 0.2);
+    color: #1a2838;
+}
+
 .display-prefs-panel .pref-option {
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.05);
@@ -397,6 +401,57 @@ html[data-bible-scale="xxl"] {
     font-weight: 600;
     cursor: pointer;
     min-height: 34px;
+}
+
+/* ==================== Brighter icons site-wide (icons only — backgrounds stay theme default) ==================== */
+.bottom-nav .icon,
+.bottom-nav .icon i {
+    opacity: 1;
+    filter: brightness(1.25) saturate(1.15);
+}
+
+.dash-tile-icon,
+.dash-tile-icon i,
+.worship-tile .tile-icon,
+.worship-tile .tile-icon i,
+.tile-icon,
+.tile-icon i {
+    opacity: 1 !important;
+    filter: brightness(1.2) saturate(1.2) drop-shadow(0 0 8px currentColor);
+}
+
+/* FA icons in content headers / links: lift off dark glass */
+.page-content .fa-solid,
+.page-content .fa-regular,
+.page-content .fa-brands,
+.top-bar .fa-solid,
+.top-bar .fa-regular,
+.worship-nav .fa-solid,
+.members-subnav .fa-solid {
+    filter: brightness(1.15) saturate(1.1);
+}
+
+/* Multi-color module icons stay vivid on dark panels */
+.dash-tile-community .dash-tile-icon { color: #5ec8ff !important; }
+.dash-tile-bible .dash-tile-icon { color: #ffd56a !important; }
+.dash-tile-legal .dash-tile-icon { color: #c5d0e0 !important; }
+.dash-tile-members .dash-tile-icon { color: #4dffc8 !important; }
+.dash-tile-donations .dash-tile-icon { color: #6dff9a !important; }
+.dash-tile-bills .dash-tile-icon { color: #ffc85a !important; }
+.dash-tile-inventory .dash-tile-icon { color: #7ab8ff !important; }
+.dash-tile-tickets .dash-tile-icon { color: #ff9a78 !important; }
+.dash-tile-profile .dash-tile-icon { color: #c4a1ff !important; }
+.dash-tile-help .dash-tile-icon { color: #6fe0f0 !important; }
+.dash-tile-gathering .dash-tile-icon { color: #ff8fd0 !important; }
+.dash-tile-worship .dash-tile-icon { color: #d4b0ff !important; }
+.dash-tile-settings .dash-tile-icon { color: #c8d0dc !important; }
+
+/* Soft light: icons still colorful, no neon glow needed */
+html[data-theme="soft-light"] .dash-tile-icon,
+html[data-theme="soft-light"] .worship-tile .tile-icon,
+html[data-theme="soft-light"] .bottom-nav .icon {
+    filter: none;
+    opacity: 1;
 }
 
 html[data-theme="soft-light"] .display-prefs-panel .pref-option {
