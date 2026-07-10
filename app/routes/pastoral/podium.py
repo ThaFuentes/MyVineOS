@@ -16,10 +16,14 @@
 #   Delegates DB work to sermons and service_plans models
 #   FIXED: render_template with 'pastoral/' prefix to match blueprint template_folder
 
-from flask import Blueprint, render_template, session, abort
+from flask import Blueprint, render_template, session, abort, flash, redirect, url_for
 from datetime import datetime
 from app.models.db import get_db
-from app.models.pastoral.sermons import get_sermon_by_id, get_sermon_sections
+from app.models.pastoral.sermons import (
+    get_sermon_by_id,
+    get_sermon_for_podium,
+    get_sermon_sections,
+)
 from app.models.pastoral.service_plans import get_service_plan_by_date
 from app.models.log import log_change
 import pymysql  # For DictCursor
@@ -41,7 +45,8 @@ def index():
     today_sermon = None
     today_plan = None
     if plan and plan.get('pastoral_sermon_id'):
-        today_sermon = get_sermon_by_id(plan['pastoral_sermon_id'], user_id)
+        # Podium list: any pastoral user can open today's linked sermon
+        today_sermon = get_sermon_for_podium(plan['pastoral_sermon_id'], user_id)
         today_plan = plan
 
     # Get all sermons (newest first)
@@ -58,7 +63,7 @@ def index():
     log_change(user_id, 'podium_access', None, 'Sermon Selection List', 'Accessed podium sermon list')
 
     return render_template(
-        'pastoral/podium_list.html',  # FIXED: Added 'pastoral/' prefix
+        'pastoral/podium_list.html',
         sermons=sermons,
         today_sermon=today_sermon,
         today_plan=today_plan,
@@ -72,16 +77,18 @@ def view(sermon_id: int):
     """Full-screen podium mode for selected sermon."""
     user_id = session['user_id']
 
-    sermon = get_sermon_by_id(sermon_id, user_id)
+    # Pastoral team needs to teleprompt any team sermon, not only their own drafts
+    sermon = get_sermon_for_podium(sermon_id, user_id)
     if not sermon:
-        abort(404)
+        flash('That sermon could not be found for Podium Mode.', 'error')
+        return redirect(url_for('pastoral.podium.index'))
 
-    sections = get_sermon_sections(sermon_id)
+    sections = get_sermon_sections(sermon_id) or []
 
-    log_change(user_id, 'podium_access', sermon_id, sermon['title'], 'Accessed podium mode for sermon')
+    log_change(user_id, 'podium_access', sermon_id, sermon.get('title') or '', 'Accessed podium mode for sermon')
 
     return render_template(
-        'pastoral/podium_view.html',  # FIXED: Added 'pastoral/' prefix
+        'pastoral/podium_view.html',
         sermon=sermon,
         sections=sections
     )

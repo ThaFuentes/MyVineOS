@@ -1,43 +1,51 @@
-<!-- WebChurchMan/app/templates/errors/500.html -->
-<!-- Full path: WebChurchMan/app/templates/errors/500.html -->
-<!-- File name: 500.html -->
-<!-- Brief, detailed purpose: Simple 500 error page - prevents crash if something else fails.
-   Matches theme. CREATE THIS FILE for completeness. -->
-
+{# Themed 500 — standalone, safe even if session/DB is broken #}
+{% set user_theme = session.get('user_theme') if session is defined else 'cyan-glow' %}
+{% set user_theme = user_theme or 'cyan-glow' %}
 <!DOCTYPE html>
-<html lang="en" data-theme="cyan-glow">
+<html lang="en" data-theme="{{ user_theme }}">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>500 - Server Error | MyVineChurch.Online</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260112">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/base.css') }}?v=20260112">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Server Error</title>
+  <link rel="stylesheet" href="/static/css/global/theme.css?v=20260710i">
   <style>
     body {
+      margin: 0; min-height: 100vh;
       background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
-      color: #e0e0e0;
-      font-family: system-ui, sans-serif;
-      text-align: center;
-      padding: 6rem 2rem;
+      color: var(--text-primary, #e0e0e0);
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex; align-items: center; justify-content: center; padding: 1.5rem;
     }
-    h1 {
-      font-size: 4rem;
-      color: var(--primary);
-      text-shadow: 0 0 25px var(--primary);
+    .err-card {
+      max-width: 520px; width: 100%; text-align: center;
+      padding: 2rem 1.5rem 1.75rem; border-radius: 16px;
+      background: var(--bg-panel, rgba(30,30,30,0.75));
+      border: 1px solid rgba(255, 184, 77, 0.35);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
     }
-    p {
-      font-size: 1.6rem;
-      max-width: 800px;
-      margin: 2rem auto;
+    .err-code {
+      font-size: clamp(3.5rem, 12vw, 5.5rem); font-weight: 800; margin: 0; line-height: 1;
+      color: #ffc85a; text-shadow: 0 0 28px rgba(255,200,90,0.4);
     }
+    .err-title { font-size: 1.45rem; margin: 0.85rem 0 0.5rem; font-weight: 700; }
+    .err-msg { opacity: 0.8; line-height: 1.55; margin: 0 0 1.5rem; font-size: 1rem; }
     a {
-      color: var(--primary);
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.65rem 1.15rem; border-radius: 10px; font-weight: 700;
+      text-decoration: none; min-height: 44px;
+      background: var(--primary, #00ffff); color: var(--text-on-primary, #111);
     }
   </style>
 </head>
 <body>
-  <h1>500 - Internal Server Error</h1>
-  <p>Something went wrong on our end. Please try again later.</p>
-  <p><a href="{{ url_for('public.public_dashboard.public_dashboard') }}">Return to Gathering Place -></a></p>
+  <div class="err-card">
+    <p class="err-code">500</p>
+    <h1 class="err-title">Something went wrong</h1>
+    <p class="err-msg">
+      We hit an unexpected problem on our side. Please try again in a moment.
+      If it keeps happening, contact the church office.
+    </p>
+    <a href="/">Return home</a>
+  </div>
 </body>
 </html>

@@ -93,21 +93,57 @@ def get_sermon_by_id(sermon_id, user_id):
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 
+    # Owner / Admin may open any sermon (editing still gated elsewhere).
+    cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+    role_row = cur.fetchone()
+    role = (role_row or {}).get('role') or ''
+
+    if role in ('Owner', 'Admin'):
+        cur.execute("""
+            SELECT ps.*,
+                   CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,'')) AS creator_name
+            FROM pastoral_sermons ps
+            LEFT JOIN users u ON ps.created_by = u.id
+            WHERE ps.id = %s
+        """, (sermon_id,))
+        return cur.fetchone()
+
     cur.execute("""
         SELECT ps.*,
-               CONCAT(u.first_name, ' ', u.last_name) AS creator_name
+               CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,'')) AS creator_name
         FROM pastoral_sermons ps
-        JOIN users u ON ps.created_by = u.id
+        LEFT JOIN users u ON ps.created_by = u.id
         WHERE ps.id = %s
           AND (ps.created_by = %s
                OR (ps.visibility = 'collaborators' AND EXISTS (
-                   SELECT 1 FROM sermon_collaborators sc 
+                   SELECT 1 FROM sermon_collaborators sc
                    WHERE sc.sermon_id = ps.id AND sc.user_id = %s
                ))
-               OR ps.visibility = 'pastoral_group')
+               OR ps.visibility = 'pastoral_group'
+               OR ps.visibility = 'shared')
     """, (sermon_id, user_id, user_id))
 
     return cur.fetchone()
+
+
+def get_sermon_for_podium(sermon_id, user_id):
+    """
+    Load a sermon for teleprompter/podium use.
+
+    Pastoral team members (route already gated by pastoral_required) need to
+    open any team sermon on Sunday — not only their own private drafts.
+    """
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute("""
+        SELECT ps.*,
+               CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,'')) AS creator_name
+        FROM pastoral_sermons ps
+        LEFT JOIN users u ON ps.created_by = u.id
+        WHERE ps.id = %s
+    """, (sermon_id,))
+    return cur.fetchone()
+
 
 
 # ----------------------------------------------------------------------

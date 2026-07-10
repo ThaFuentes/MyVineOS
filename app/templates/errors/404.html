@@ -1,31 +1,81 @@
-<!-- MYVINECHURCH.ONLINE/app/templates/errors/404.html -->
-<!-- Full path: MYVINECHURCH.ONLINE/app/templates/errors/404.html -->
-<!-- File name: 404.html -->
-<!-- Brief, detailed purpose: Global 404 error page. Clean, friendly design matching the church theme.
-   - Uses hardcoded /public/ paths to bypass url_for naming issues and break the crash loop
-   - No other changes to layout, styling, or messaging -->
-
-{% extends "base_public.html" %}
-{% block title %}Page Not Found{% endblock %}
-{% block content %}
-<div style="text-align: center; padding: 6rem 2rem 8rem; max-width: 800px; margin: 0 auto;">
-  <h1 style="font-size: 9rem; color: var(--primary); margin: 0; text-shadow: 0 0 60px var(--primary); line-height: 1;">404</h1>
-  <h2 style="font-size: 2.8rem; margin: 1rem 0 2rem; color: white;">
-    Oops... We couldn't find that page.
-  </h2>
-  <p style="font-size: 1.5rem; line-height: 1.7; color: #ccc; margin-bottom: 3rem;">
-    The page you're looking for may have been moved, deleted, or never existed.<br>
-    Don't worry - you're still part of the family.
-  </p>
-  <div style="margin: 2rem 0;">
-    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}"
-       class="btn-primary"
-       style="display: inline-block; padding: 1.2rem 3rem; font-size: 1.4rem; background: var(--primary); color: #000; font-weight: bold; border-radius: 12px; text-decoration: none;">
-      <- Return to Public Home
-    </a>
+{# Themed 404 — matches site Display theme when session present #}
+{% set user_theme = session.get('user_theme') or 'cyan-glow' %}
+{% set s = g.settings if g is defined and g.get('settings') else {} %}
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ user_theme }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Page Not Found{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
+      color: var(--text-primary, #e0e0e0);
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .err-card {
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      padding: 2rem 1.5rem 1.75rem;
+      border-radius: 16px;
+      background: var(--bg-panel, rgba(30,30,30,0.75));
+      border: 1px solid var(--primary-border, rgba(0,255,255,0.2));
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .err-code {
+      font-size: clamp(3.5rem, 12vw, 5.5rem);
+      font-weight: 800;
+      margin: 0;
+      line-height: 1;
+      color: var(--primary, #00ffff);
+      text-shadow: 0 0 28px var(--primary-glow, rgba(0,255,255,0.4));
+    }
+    .err-title { font-size: 1.45rem; margin: 0.85rem 0 0.5rem; font-weight: 700; }
+    .err-msg { opacity: 0.8; line-height: 1.55; margin: 0 0 1.5rem; font-size: 1rem; }
+    .err-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
+    .err-actions a {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.65rem 1.15rem; border-radius: 10px; font-weight: 700;
+      text-decoration: none; min-height: 44px;
+    }
+    .err-primary {
+      background: var(--primary, #00ffff);
+      color: var(--text-on-primary, #111);
+    }
+    .err-secondary {
+      border: 1px solid var(--primary-border, rgba(0,255,255,0.35));
+      color: var(--link-color, var(--primary, #5ad4ff));
+      background: rgba(255,255,255,0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="err-card">
+    <p class="err-code">404</p>
+    <h1 class="err-title">We couldn't find that page</h1>
+    <p class="err-msg">
+      It may have been moved, deleted, or the link is out of date.
+      You're still welcome here.
+    </p>
+    <div class="err-actions">
+      {% if session.get('user_id') %}
+      <a class="err-primary" href="{{ url_for('dashboard.dashboard') }}"><i class="fa-solid fa-house" aria-hidden="true"></i> Home dashboard</a>
+      <a class="err-secondary" href="javascript:history.back()"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Go back</a>
+      {% else %}
+      <a class="err-primary" href="{{ url_for('public.public_dashboard.public_dashboard') }}"><i class="fa-solid fa-house" aria-hidden="true"></i> Welcome page</a>
+      <a class="err-secondary" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Log in</a>
+      {% endif %}
+    </div>
   </div>
-  <p style="margin-top: 4rem; font-size: 1.1rem; color: #666;">
-    Still lost? Try the <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" style="color: var(--primary);">Public Home</a> or contact us at the church office.
-  </p>
-</div>
-{% endblock %}
+</body>
+</html>
