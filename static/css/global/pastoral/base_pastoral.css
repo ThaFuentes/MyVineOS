@@ -13,15 +13,15 @@
 */
 
 :root {
-  --cyan: #00FFFF;
-  --cyan-dark: #00AAAA;
-  --bg-dark: #000000;
-  --bg-darker: #111111;
-  --bg-card: rgba(30, 30, 30, 0.85);
-  --text-light: #FFFFFF;
-  --text-muted: #AAAAAA;
-  --border-cyan: rgba(0, 255, 255, 0.3);
-  --shadow-cyan: 0 10px 40px rgba(0, 170, 170, 0.2);
+  --cyan: #3ecfff;
+  --cyan-dark: #2eb8e8;
+  --bg-dark: #152838;
+  --bg-darker: #1c3550;
+  --bg-card: rgba(42, 68, 98, 0.88);
+  --text-light: #f2f7fc;
+  --text-muted: #b8c9db;
+  --border-cyan: rgba(100, 210, 255, 0.35);
+  --shadow-cyan: 0 10px 36px rgba(40, 120, 160, 0.25);
   --glass-blur: blur(10px);
   --transition: all 0.25s ease;
 }
@@ -67,7 +67,7 @@ html[data-theme="soft-light"] .top-bar .user-info a.pn-btn {
 }
 
 body {
-  background: var(--bg-dark);
+  background: linear-gradient(160deg, #16324a 0%, #1e4570 45%, #2a3d6a 100%);
   color: var(--text-light);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.6;

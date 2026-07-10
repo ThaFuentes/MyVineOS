@@ -36,7 +36,7 @@
   <title>{% block title %}{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
 
   <!-- THEME (data-theme vars + font scales) -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710d">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710e">
 
   <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
@@ -113,7 +113,7 @@
             <div class="pref-section">
               <span class="pref-label">Theme</span>
               <div class="pref-options">
-                <button type="button" class="pref-option" data-pref="theme" data-value="cyan-glow">Classic</button>
+                <button type="button" class="pref-option" data-pref="theme" data-value="cyan-glow">Classic (bright)</button>
                 <button type="button" class="pref-option" data-pref="theme" data-value="soft-light">Soft light</button>
                 <button type="button" class="pref-option" data-pref="theme" data-value="tropical">Tropical</button>
               </div>

@@ -18,7 +18,7 @@ DEFAULT_FONT_SCALE = "md"
 DEFAULT_BIBLE_SCALE = "md"
 
 THEME_LABELS = {
-    "cyan-glow": "Classic (dark)",
+    "cyan-glow": "Classic (bright)",
     "soft-light": "Soft light",
     "tropical": "Tropical",
 }
