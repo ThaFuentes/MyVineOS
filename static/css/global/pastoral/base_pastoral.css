@@ -175,11 +175,19 @@ html[data-theme="soft-light"] .pastoral-tile-icon {
 }
 
 body {
-  background: var(--bg-page, var(--bg-dark));
-  color: var(--text-light);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Theme-driven (overhaul/theme.css); pastoral-shell reinforces */
+  font-family: var(--font-main, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
   line-height: 1.6;
   min-height: 100vh;
+}
+
+/* Soft light: multi-color nav still readable */
+html[data-theme="soft-light"] .top-bar .user-info a.pn-btn {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="soft-light"] .pastoral-tile-title {
+  color: #1a2838;
 }
 
 /* ────────────────────────────────────────────────
