@@ -49,6 +49,9 @@ html:not([data-theme]) {
     --primary-glow: rgba(0, 255, 255, 0.4);
     --primary-border: rgba(0, 255, 255, 0.18);
     --primary-rgb: 0, 255, 255;
+    --link-color: #5ad4ff;
+    --link-visited: #9fdcff;
+    --link-hover: #b8f0ff;
 
     --bg-card-glass: rgba(35, 35, 35, 0.55);
     --bg-glow-card: rgba(0, 0, 0, 0.88);
@@ -262,6 +265,71 @@ html[data-theme="tropical"] .glass {
 html[data-theme="tropical"] .btn-primary {
     background: linear-gradient(180deg, #4aefd0 0%, #2ee0c0 50%, #22c9ab 100%) !important;
     color: #042820 !important;
+}
+
+/* ==================== Brighter content links (not dark-blue browser default) ==================== */
+a {
+    color: var(--link-color, #5ad4ff);
+    text-decoration-color: rgba(90, 212, 255, 0.45);
+    text-underline-offset: 0.15em;
+}
+
+a:visited {
+    color: var(--link-visited, #9fdcff);
+}
+
+a:hover,
+a:focus-visible {
+    color: var(--link-hover, #9aecff);
+    text-decoration-color: currentColor;
+}
+
+/* In-page content links stay lively on glass panels */
+.page-content a:not(.btn):not(.dash-tile):not(.pastoral-tile):not(.worship-tile):not(.item-card):not(.glass-panel),
+.pastoral-shell a:not(.btn):not(.pastoral-tile):not(.pn-btn):not(.bottom-nav a) {
+    color: var(--link-color, #5ad4ff);
+}
+
+.page-content a:not(.btn):hover,
+.pastoral-shell a:not(.btn):not(.pn-btn):hover {
+    color: var(--link-hover, #9aecff);
+}
+
+/* Soft light theme: deeper but still clear links */
+html[data-theme="soft-light"] {
+    --link-color: #1578a8;
+    --link-visited: #1a6a94;
+    --link-hover: #0d5f88;
+}
+
+html[data-theme="tropical"] {
+    --link-color: #5ef0d0;
+    --link-visited: #8af5dc;
+    --link-hover: #a8fff0;
+}
+
+html[data-theme="purple-grace"] {
+    --link-color: #d0b4ff;
+    --link-visited: #e0ccff;
+    --link-hover: #f0e4ff;
+}
+
+html[data-theme="amber-hope"] {
+    --link-color: #ffd078;
+    --link-visited: #ffe0a0;
+    --link-hover: #ffe8b8;
+}
+
+html[data-theme="forest"] {
+    --link-color: #7aefb0;
+    --link-visited: #9cf5c4;
+    --link-hover: #b8ffd6;
+}
+
+html[data-theme="rose-dawn"] {
+    --link-color: #ff9ec8;
+    --link-visited: #ffb8d8;
+    --link-hover: #ffd0e8;
 }
 
 /* ==================== Site-wide font scale (root rem) ==================== */

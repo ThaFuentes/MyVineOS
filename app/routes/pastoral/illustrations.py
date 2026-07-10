@@ -307,24 +307,89 @@ def delete(item_id: int):
 @illustrations_bp.route('/dock', methods=['POST'])
 @pastoral_required()
 def dock():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     item_ids = data.get('item_ids', [])
+    if not item_ids:
+        # Single-item form style
+        one = data.get('item_id') or request.form.get('item_id')
+        if one:
+            item_ids = [int(one)]
     if not item_ids:
         return jsonify({'status': 'error', 'message': 'No items selected'}), 400
 
-    docked = session.get('docked_items', [])
+    docked = list(session.get('docked_items', []) or [])
     for item_id in item_ids:
-        if item_id not in docked:
-            docked.append(item_id)
+        try:
+            iid = int(item_id)
+        except (TypeError, ValueError):
+            continue
+        if iid not in docked:
+            docked.append(iid)
     session['docked_items'] = docked
+    session.modified = True
 
-    return jsonify({'status': 'success', 'count': len(docked)})
+    return jsonify({'status': 'success', 'count': len(docked), 'docked_items': docked})
+
+
+@illustrations_bp.route('/undock', methods=['POST'])
+@pastoral_required()
+def undock():
+    """Remove one or more items from the sermon dock."""
+    data = request.get_json(silent=True) or {}
+    item_ids = data.get('item_ids', [])
+    one = data.get('item_id') or request.form.get('item_id')
+    if one and not item_ids:
+        item_ids = [one]
+    if not item_ids:
+        return jsonify({'status': 'error', 'message': 'No items selected'}), 400
+
+    remove = set()
+    for item_id in item_ids:
+        try:
+            remove.add(int(item_id))
+        except (TypeError, ValueError):
+            pass
+    docked = [i for i in (session.get('docked_items') or []) if int(i) not in remove]
+    session['docked_items'] = docked
+    session.modified = True
+    return jsonify({'status': 'success', 'count': len(docked), 'docked_items': docked})
+
+
+@illustrations_bp.route('/toggle_dock', methods=['POST'])
+@pastoral_required()
+def toggle_dock():
+    """Dock or undock a single illustration/section (per-card control)."""
+    data = request.get_json(silent=True) or {}
+    raw = data.get('item_id') or request.form.get('item_id')
+    try:
+        item_id = int(raw)
+    except (TypeError, ValueError):
+        return jsonify({'status': 'error', 'message': 'Invalid item'}), 400
+
+    docked = list(session.get('docked_items', []) or [])
+    # normalize to ints
+    docked = [int(x) for x in docked]
+    if item_id in docked:
+        docked = [x for x in docked if x != item_id]
+        is_docked = False
+    else:
+        docked.append(item_id)
+        is_docked = True
+    session['docked_items'] = docked
+    session.modified = True
+    return jsonify({
+        'status': 'success',
+        'is_docked': is_docked,
+        'count': len(docked),
+        'docked_items': docked,
+    })
 
 
 @illustrations_bp.route('/clear_dock', methods=['POST'])
 @pastoral_required()
 def clear_dock():
     session.pop('docked_items', None)
+    session.modified = True
     return jsonify({'status': 'success', 'count': 0})
 
 
