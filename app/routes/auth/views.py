@@ -47,7 +47,14 @@ except Exception:
 
 
 def _complete_login(user):
+    """
+    Establish a logged-in session on THIS device only.
+    Other devices keep their own cookies — multi-device concurrent login is allowed.
+    session.clear() only rewrites the current browser's cookie, not other devices.
+    """
     record_login_attempt(True)
+    # Reset only this browser cookie (avoids carrying guest CSRF / lockout junk).
+    # Does NOT invalidate phone/tablet/desktop sessions for the same account.
     session.clear()
     session.permanent = True
     session['user_id'] = user['id']
@@ -62,8 +69,13 @@ def _complete_login(user):
         session['user_theme'] = 'cyan-glow'
         session['ui_font_scale'] = 'md'
         session['bible_font_scale'] = 'md'
-    log_change(user['id'], 'login', change_details='User logged in.')
+    log_change(
+        user['id'],
+        'login',
+        change_details='User logged in (multi-device sessions allowed).',
+    )
     mark_as_vetted()
+    session.modified = True
     return redirect(url_for('dashboard.dashboard'))
 
 
@@ -148,11 +160,12 @@ def login_2fa():
 
 @auth_bp.route('/logout')
 def logout():
+    """Log out THIS device only. Other devices stay signed in."""
     user_id = session.get('user_id')
     if user_id:
-        log_change(user_id, 'logout', change_details='User logged out.')
+        log_change(user_id, 'logout', change_details='User logged out (this device only).')
     session.clear()
-    flash('You have been logged out.', 'info')
+    flash('You have been logged out on this device.', 'info')
     return redirect(url_for('public.public_dashboard.public_dashboard'))
 
 

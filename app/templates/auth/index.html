@@ -3,122 +3,124 @@
 {% block title %}Welcome{% endblock %}
 
 {% block content %}
-<section class="landing-hero" style="padding:4rem 2rem 2rem; text-align:center;">
-  <h1 style="font-size:clamp(2.2rem, 6vw, 4rem); margin-bottom:1rem; color:var(--primary); text-shadow:0 0 20px var(--primary-glow);">
+<section class="public-page-header" style="padding-top:0.5rem;">
+  <h1 class="page-title">
     {% if g.settings.get('church_name') %}Welcome to {{ g.settings.get('church_name') }}{% else %}Welcome{% endif %}
   </h1>
-  <p style="font-size:1.25rem; max-width:800px; margin:0 auto; line-height:1.7; opacity:0.95;">
+  <p class="page-description">
     A loving community rooted in faith, growing together in Christ.
-    Explore our events, prayers, sermons, and more. Members can sign in using the Login button above.
+    Explore events, prayers, sermons, and more — or sign in for member features.
+  </p>
+  <p style="margin-top:0.85rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Login / Register</a>
+    <a href="{{ url_for('public.public_events.public_events') }}" class="btn btn-secondary">Browse events</a>
   </p>
 </section>
 
-<!-- Upcoming services - directly below welcome -->
-<div style="max-width:1100px; margin:0 auto; padding:0 1.5rem 2rem;">
-  <div class="glow-card" style="padding:2rem; border-radius:16px; background:rgba(20,20,30,0.85); border:1px solid rgba(0,255,255,0.25);">
-    <h2 style="color:var(--primary); margin:0 0 0.5rem; font-size:1.6rem;">Upcoming Services</h2>
-    <p style="color:#888; margin:0 0 1.25rem; font-size:0.9rem;">The next two Sundays - custom weeks from Pastoral Planning or your standard schedule.</p>
+<div style="max-width:1100px; margin:0 auto; display:grid; gap:0.85rem; padding-bottom:1.5rem;">
+
+  <section class="glass-panel">
+    <h2 class="section-title" style="margin-bottom:0.35rem;">Upcoming services</h2>
+    <p class="page-description" style="margin:0 0 0.85rem; text-align:left;">
+      The next two Sundays — custom weeks from Pastoral Planning or your standard schedule.
+    </p>
     {% if upcoming_services %}
-    <div style="display:grid; gap:1rem;">
+    <div style="display:grid; gap:0.65rem;">
       {% for service in upcoming_services %}
-      <div style="padding:1.25rem 1.5rem; border-radius:12px; background:rgba(0,255,255,0.06); border:1px solid {% if service.is_override %}rgba(0,255,128,0.35){% else %}rgba(0,255,255,0.15){% endif %};">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
-          <strong style="color:#fff; font-size:1.1rem;">{{ service.title }}</strong>
-          <span style="color:var(--primary); font-weight:600;">{{ service.date_label }}</span>
+      <article class="item-card" style="margin:0; border-color:{% if service.is_override %}rgba(77,255,200,0.35){% else %}var(--primary-border, rgba(0,255,255,0.15)){% endif %};">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.4rem;">
+          <strong style="font-size:1.05rem;">{{ service.title }}</strong>
+          <span style="color:var(--primary); font-weight:600; font-size:0.9rem;">{{ service.date_label }}</span>
         </div>
-        <p style="margin:0.5rem 0 0; color:#bbb; font-size:0.95rem;">
+        <p style="margin:0.4rem 0 0; opacity:0.85; font-size:0.92rem;">
           {% if service.start_time %}Service: {{ service.start_time }}{% endif %}
           {% if service.worship_start_time %}{% if service.start_time %} · {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
-          {% if service.preacher %} · <strong style="color:#eee;">{{ service.preacher }}</strong>{% endif %}
-          {% if service.is_override %} · <span style="color:#6f6;">Custom week</span>{% endif %}
+          {% if service.preacher %} · <strong>{{ service.preacher }}</strong>{% endif %}
+          {% if service.is_override %} · <span style="color:var(--primary);">Custom week</span>{% endif %}
         </p>
         {% if service.roles and service.roles|length > 1 %}
-        <p style="margin:0.45rem 0 0; color:#999; font-size:0.85rem;">
+        <p style="margin:0.4rem 0 0; opacity:0.7; font-size:0.85rem;">
           {% for r in service.roles %}
             <span style="margin-right:0.75rem;">{{ r.role_name }}: {{ r.name }}</span>
           {% endfor %}
         </p>
         {% endif %}
         {% if service.notes %}
-        <div class="service-notes" style="margin-top:0.85rem; padding-top:0.75rem; border-top:1px solid rgba(0,255,255,0.12); color:#ccc; font-size:0.92rem; line-height:1.55;">
-          <div style="color:var(--primary); font-size:0.8rem; font-weight:600; margin-bottom:0.35rem; letter-spacing:0.03em;">ORDER OF SERVICE / NOTES</div>
+        <div style="margin-top:0.65rem; padding-top:0.65rem; border-top:1px solid rgba(255,255,255,0.08); font-size:0.9rem; line-height:1.5; opacity:0.9;">
+          <div style="color:var(--primary); font-size:0.75rem; font-weight:700; margin-bottom:0.3rem; letter-spacing:0.04em;">ORDER OF SERVICE / NOTES</div>
           <div class="service-notes-body">{{ service.notes | safe }}</div>
         </div>
         {% endif %}
-      </div>
+      </article>
       {% endfor %}
     </div>
     {% else %}
-    <p style="color:#888; margin:0; font-style:italic;">Upcoming service dates will appear here once set up in the Pastoral area.</p>
+    <p style="margin:0; opacity:0.7; font-style:italic;">Upcoming service dates will appear here once set up in the Pastoral area.</p>
     {% endif %}
-  </div>
-</div>
+  </section>
 
-<div style="max-width:1100px; margin:0 auto; padding:0 1.5rem 3rem; display:grid; gap:2rem;">
-
-  <!-- Church at a glance -->
-  <div class="glow-card" style="padding:2rem; border-radius:16px; background:rgba(20,20,30,0.85); border:1px solid rgba(0,255,255,0.25);">
-    <h2 style="color:var(--primary); margin:0 0 1.25rem; font-size:1.6rem;">About Our Church</h2>
-    <div style="display:grid; gap:1rem; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+  <section class="glass-panel">
+    <h2 class="section-title" style="margin-bottom:0.75rem;">About our church</h2>
+    <div style="display:grid; gap:0.75rem; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
       {% if g.settings.get('pastor') %}
-      <div>
-        <strong style="color:var(--primary);">Pastor / Leader</strong>
-        <p style="margin:0.4rem 0 0; color:#ddd;">{{ g.settings.get('pastor') }}</p>
+      <div class="item-card" style="margin:0;">
+        <strong style="color:var(--primary); font-size:0.85rem;">Pastor / Leader</strong>
+        <p style="margin:0.35rem 0 0;">{{ g.settings.get('pastor') }}</p>
       </div>
       {% endif %}
       {% if g.settings.get('address') %}
-      <div>
-        <strong style="color:var(--primary);">Location</strong>
-        <p style="margin:0.4rem 0 0; color:#ddd;">{{ g.settings.get('address') | nl2br }}</p>
+      <div class="item-card" style="margin:0;">
+        <strong style="color:var(--primary); font-size:0.85rem;">Location</strong>
+        <p style="margin:0.35rem 0 0;">{{ g.settings.get('address') | nl2br }}</p>
       </div>
       {% endif %}
       {% if g.settings.get('phone_number') %}
-      <div>
-        <strong style="color:var(--primary);">Phone</strong>
-        <p style="margin:0.4rem 0 0; color:#ddd;">{{ g.settings.get('phone_number') }}</p>
+      <div class="item-card" style="margin:0;">
+        <strong style="color:var(--primary); font-size:0.85rem;">Phone</strong>
+        <p style="margin:0.35rem 0 0;">{{ g.settings.get('phone_number') }}</p>
       </div>
       {% endif %}
     </div>
     {% if not g.settings.get('pastor') and not g.settings.get('address') and not g.settings.get('phone_number') %}
-    <p style="color:#888; margin:0; font-style:italic;">Church details will appear here once configured in Settings.</p>
+    <p style="margin:0; opacity:0.7; font-style:italic;">Church details will appear here once configured in Settings.</p>
     {% endif %}
-  </div>
+  </section>
 
-  <!-- Upcoming events -->
-  <div class="glow-card" style="padding:2rem; border-radius:16px; background:rgba(20,20,30,0.85); border:1px solid rgba(0,255,255,0.25);">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.25rem;">
-      <h2 style="color:var(--primary); margin:0; font-size:1.6rem;">Upcoming Events</h2>
-      <a href="{{ url_for('public.public_events.public_events') }}" style="color:var(--primary); text-decoration:none; font-weight:600;">View all events -></a>
+  <section class="glass-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.65rem; margin-bottom:0.75rem;">
+      <h2 class="section-title" style="margin:0;">Upcoming events</h2>
+      <a href="{{ url_for('public.public_events.public_events') }}" class="btn btn-secondary" style="padding:0.4rem 0.85rem; font-size:0.85rem; min-height:auto;">View all</a>
     </div>
     {% if upcoming_events %}
-    <div style="display:grid; gap:1rem;">
+    <div style="display:grid; gap:0.65rem;">
       {% for event in upcoming_events %}
       <a href="{{ url_for('public.public_events.public_event_detail', event_id=event.id) }}"
-         style="display:block; padding:1.25rem 1.5rem; border-radius:12px; background:rgba(0,255,255,0.06); border:1px solid rgba(0,255,255,0.15); text-decoration:none; color:inherit; transition:background 0.2s;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
-          <strong style="color:#fff; font-size:1.15rem;">{{ event.event_name }}</strong>
-          <span style="color:var(--primary); font-size:0.95rem;">
-            {{ event.formatted_date }}{% if event.formatted_time %} - {{ event.formatted_time }}{% endif %}
+         class="item-card"
+         style="margin:0; display:block; text-decoration:none; color:inherit;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.4rem;">
+          <strong style="font-size:1.05rem; color:var(--primary);">{{ event.event_name }}</strong>
+          <span style="opacity:0.8; font-size:0.9rem;">
+            {{ event.formatted_date }}{% if event.formatted_time %} · {{ event.formatted_time }}{% endif %}
           </span>
         </div>
         {% if event.description %}
-        <p style="margin:0.5rem 0 0; color:#aaa; font-size:0.95rem;">{{ event.description | truncate(120) }}</p>
+        <p style="margin:0.4rem 0 0; opacity:0.8; font-size:0.92rem;">{{ event.description | truncate(120) }}</p>
         {% endif %}
       </a>
       {% endfor %}
     </div>
     {% else %}
-    <p style="color:#888; margin:0; font-style:italic;">No upcoming public events scheduled. Check back soon!</p>
+    <p style="margin:0; opacity:0.7; font-style:italic;">No upcoming public events scheduled. Check back soon!</p>
     {% endif %}
-  </div>
+  </section>
 
-  <p style="text-align:center; font-size:1rem; color:var(--text-muted); max-width:700px; margin:0 auto;">
-    Use the navigation above to browse Events, Sermons, Announcements, Prayers, and more without signing in.
+  <p class="page-description" style="text-align:center; margin:0.25rem auto 0;">
+    Use the navigation to browse Events, Sermons, Announcements, and Prayers without signing in.
+    Use <strong>Display</strong> in the top bar to change theme and text size.
   </p>
 
-  <p class="bible-verse" style="text-align:center; font-size:1.1rem; max-width:700px; margin:0 auto 2rem; font-style:italic; opacity:0.9; line-height:1.5;">
-    "I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit." - John 15:5
+  <p class="bible-verse" style="text-align:center; font-size:1rem; max-width:36rem; margin:0.25rem auto 1rem; font-style:italic; opacity:0.85; line-height:1.55;">
+    "I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit." — John 15:5
   </p>
 </div>
-
 {% endblock %}

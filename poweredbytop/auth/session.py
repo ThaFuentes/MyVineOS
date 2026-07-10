@@ -2,15 +2,19 @@
 # poweredbytop/auth/session.py
 # pbt_vetted Flag + Session Vetting System - Sovereign Security
 # FULLY INTERNAL PER-SITE - NO HUB REDIRECTS
-# 100% FRESH REBUILD - SECURITY FIRST - WORKS WITH FULL PIPELINE
 # ================================================================
-# MARIADB ONLY - EXACT DB TABLES ONLY - NO INSTANCE FOLDER - NO SQLITE - NO JSON
-# INTEGRATES WITH core/security.py + reputation/scorer.py + models/connect_db.py
+# MULTI-DEVICE POLICY
+# --------------------
+# Sessions are signed cookies in each browser/app. Logging in on a phone does
+# NOT log out a laptop (and vice versa). There is no server-side exclusive
+# session token per user. IP is tracked for logs only — it must not kill a
+# valid session when the user switches networks or devices.
 # ================================================================
 
 from flask import session, request, g
 from typing import Optional
 import time
+import secrets
 
 # ====================== SAFE IMPORTS ======================
 from poweredbytop.config.settings import (
@@ -19,6 +23,8 @@ from poweredbytop.config.settings import (
     BRUTE_FORCE_MAX_ATTEMPTS,
     BRUTE_FORCE_JAIL_SECONDS,
     SESSION_COOKIE_SECURE,
+    BIND_SESSION_TO_IP,
+    SESSION_REFRESH_EACH_REQUEST,
 )
 from poweredbytop.utils.helpers import get_real_ip, logger
 
@@ -30,26 +36,39 @@ def _get_reputation_functions():
     except Exception:
         return None
 
+
 # ====================== SESSION SECURITY CONFIG ======================
 def apply_secure_session_config(app):
-    """Apply hardened session settings at app level"""
+    """Apply hardened session settings at app level (multi-device safe)."""
     app.config['SESSION_COOKIE_NAME'] = SESSION_COOKIE_NAME
     app.config['SESSION_COOKIE_SECURE'] = SESSION_COOKIE_SECURE
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['PERMANENT_SESSION_LIFETIME'] = VETTED_SESSION_TTL
-    app.config['SESSION_REFRESH_EACH_REQUEST'] = False
-    logger("Secure session configuration applied (INTERNAL PER-SITE MODE, SECURE=" + str(SESSION_COOKIE_SECURE) + ")")
+    # Refresh independently per device so phone + desktop both stay alive
+    app.config['SESSION_REFRESH_EACH_REQUEST'] = bool(SESSION_REFRESH_EACH_REQUEST)
+    logger(
+        "Secure session configuration applied (multi-device OK, IP_BIND="
+        + str(BIND_SESSION_TO_IP)
+        + ", SECURE="
+        + str(SESSION_COOKIE_SECURE)
+        + ")"
+    )
     return True
+
 
 # ====================== VETTING FLAG MANAGEMENT ======================
 def mark_as_vetted(token: Optional[str] = None) -> bool:
-    """Mark current session as vetted ONLY after full pipeline PASS in core/security.py"""
+    """
+    Mark current browser session as vetted.
+    Only affects THIS device's cookie — other logged-in devices are unchanged.
+    """
     client_ip = get_real_ip(request)
     record_bad = _get_reputation_functions()
 
-    ua = request.headers.get("User-Agent", "")
-    if ua and "bot" in ua.lower() or "crawler" in ua.lower() or "scrap" in ua.lower():
+    ua = (request.headers.get("User-Agent") or "").lower()
+    # Parentheses required: otherwise "or crawler" runs even when ua is empty/falsy.
+    if ua and any(x in ua for x in ("bot", "crawler", "scrapy", "spider")):
         logger(f"Suspicious UA blocked from vetting - IP {client_ip}")
         if record_bad:
             record_bad(client_ip)
@@ -57,12 +76,23 @@ def mark_as_vetted(token: Optional[str] = None) -> bool:
 
     session['pbt_vetted'] = True
     session['pbt_vetted_ts'] = int(time.time())
+    # Last-seen IP for diagnostics only (not an exclusive lock)
     session['pbt_vetted_ip'] = client_ip
-    logger(f"Session marked VETTED for REAL IP {client_ip}")
+    session['pbt_last_ip'] = client_ip
+    if not session.get('pbt_device_id'):
+        # Stable id for this browser cookie — not used to enforce single-device
+        session['pbt_device_id'] = secrets.token_hex(8)
+    session.permanent = True
+    session.modified = True
+    logger(f"Session marked VETTED (device={session.get('pbt_device_id')}, ip={client_ip})")
     return True
 
+
 def is_vetted() -> bool:
-    """Check if current request/session is vetted (called from core/security.py pipeline)"""
+    """
+    Check if current request/session is vetted.
+    Multi-device safe: does not require a fixed IP unless BIND_SESSION_TO_IP is on.
+    """
     if 'pbt_vetted' not in session:
         return False
 
@@ -71,37 +101,47 @@ def is_vetted() -> bool:
         clear_vetted()
         return False
 
-    stored_ip = session.get('pbt_vetted_ip')
     current_ip = get_real_ip(request)
+    # Always remember last IP for logs / support, never as an exclusive key
+    if current_ip:
+        session['pbt_last_ip'] = current_ip
 
-    if stored_ip == "127.0.0.1":
-        session['pbt_vetted_ip'] = current_ip
-        logger(f"LEGACY IP UPGRADE: changed stored 127.0.0.1 to real IP {current_ip}")
-        return True
-
-    if stored_ip != current_ip:
-        logger("Session IP mismatch - possible hijack attempt")
-        record_bad = _get_reputation_functions()
-        if record_bad:
-            record_bad(current_ip)
-        clear_vetted()
-        return False
+    if BIND_SESSION_TO_IP:
+        stored_ip = session.get('pbt_vetted_ip')
+        if stored_ip == "127.0.0.1" and current_ip:
+            session['pbt_vetted_ip'] = current_ip
+            return True
+        if stored_ip and current_ip and stored_ip != current_ip:
+            # Soft rebind even when binding is enabled (carriers / multi-network)
+            logger(f"Session IP change {stored_ip} -> {current_ip}; rebinding (BIND_SESSION_TO_IP)")
+            session['pbt_vetted_ip'] = current_ip
+            return True
+    else:
+        # Default multi-device / multi-network mode: never fail on IP change
+        if current_ip:
+            session['pbt_vetted_ip'] = current_ip
 
     return True
 
+
 def clear_vetted():
-    """Remove vetted status"""
+    """Remove vetted status from THIS device session only."""
     session.pop('pbt_vetted', None)
     session.pop('pbt_vetted_ts', None)
     session.pop('pbt_vetted_ip', None)
+    # Keep pbt_device_id / pbt_last_ip if present — harmless metadata
+
 
 # ====================== BRUTE FORCE PROTECTION ======================
 def record_login_attempt(success: bool):
-    """Record login attempt - now ties directly into reputation scorer + security events"""
+    """
+    Record login attempt for THIS browser session + IP reputation.
+    Does not log out or invalidate other devices for the same user account.
+    """
     client_ip = get_real_ip(request)
     record_bad = _get_reputation_functions()
 
-    key = "login_attempts_" + client_ip
+    key = "login_attempts_" + (client_ip or "unknown")
     attempts = session.get(key, 0)
 
     if success:
@@ -116,20 +156,22 @@ def record_login_attempt(success: bool):
             record_bad(client_ip)
 
         if attempts >= BRUTE_FORCE_MAX_ATTEMPTS:
-            session["locked_until_" + client_ip] = time.time() + BRUTE_FORCE_JAIL_SECONDS
-            logger(f"IP {client_ip} LOCKED for {BRUTE_FORCE_JAIL_SECONDS}s")
+            session["locked_until_" + (client_ip or "unknown")] = time.time() + BRUTE_FORCE_JAIL_SECONDS
+            logger(f"IP {client_ip} LOCKED for {BRUTE_FORCE_JAIL_SECONDS}s (this browser cookie only for lock key; reputation is IP-wide)")
             if record_bad:
                 record_bad(client_ip)
 
+
 def is_locked_out() -> bool:
-    """Check if IP is currently locked out"""
-    client_ip = get_real_ip(request)
+    """Check if this browser session is currently locked out for the client IP."""
+    client_ip = get_real_ip(request) or "unknown"
     locked_until = session.get("locked_until_" + client_ip, 0)
     if locked_until > time.time():
         remaining = int(locked_until - time.time())
         logger(f"IP {client_ip} still locked out - {remaining}s remaining")
         return True
     return False
+
 
 # ====================== INTERNAL VETTING CHECK ======================
 def require_vetted():
@@ -140,6 +182,7 @@ def require_vetted():
     g.pbt_vetted = False
     return False
 
+
 # ====================== FINAL EXPORTS ======================
 __all__ = [
     "apply_secure_session_config",
@@ -148,7 +191,7 @@ __all__ = [
     "clear_vetted",
     "record_login_attempt",
     "is_locked_out",
-    "require_vetted"
+    "require_vetted",
 ]
 
-logger("poweredbytop/auth/session.py - 100% fresh rebuild loaded successfully (ready for full pipeline)")
+logger("poweredbytop/auth/session.py loaded (multi-device concurrent sessions supported)")
