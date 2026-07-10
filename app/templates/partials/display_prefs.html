@@ -1,0 +1,61 @@
+{# Shared Display control — theme + page/Bible font sizes (saved to account).
+   Expects user_theme, ui_font_scale, bible_font_scale in context (or uses session). #}
+{% set _theme = user_theme if user_theme is defined else (session.get('user_theme') or 'cyan-glow') %}
+{% if session.get('user_id') %}
+<div class="display-prefs" id="display-prefs">
+  <button type="button"
+          class="display-prefs-toggle"
+          id="display-prefs-toggle"
+          aria-expanded="false"
+          aria-controls="display-prefs-panel"
+          title="Display settings">
+    <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
+    <span class="desktop-only">Display</span>
+  </button>
+  <div class="display-prefs-panel"
+       id="display-prefs-panel"
+       role="dialog"
+       aria-label="Display settings"
+       data-save-url="{{ url_for('profile.ui_preferences') }}"
+       data-csrf="{{ csrf_token() if csrf_token else '' }}">
+    <h3><i class="fa-solid fa-palette" aria-hidden="true"></i> Display</h3>
+    <p class="pref-hint">Saved to your account. Same theme site-wide, including Pastoral.</p>
+
+    <div class="pref-section">
+      <span class="pref-label">Theme</span>
+      <select id="pref-theme-select" class="pref-select" data-pref="theme" aria-label="Color theme">
+        <option value="cyan-glow"{% if _theme == 'cyan-glow' %} selected{% endif %}>Classic (default)</option>
+        <option value="soft-light"{% if _theme == 'soft-light' %} selected{% endif %}>Soft light</option>
+        <option value="tropical"{% if _theme == 'tropical' %} selected{% endif %}>Tropical</option>
+        <option value="purple-grace"{% if _theme == 'purple-grace' %} selected{% endif %}>Purple grace</option>
+        <option value="amber-hope"{% if _theme == 'amber-hope' %} selected{% endif %}>Amber hope</option>
+        <option value="forest"{% if _theme == 'forest' %} selected{% endif %}>Forest</option>
+        <option value="rose-dawn"{% if _theme == 'rose-dawn' %} selected{% endif %}>Rose dawn</option>
+      </select>
+    </div>
+
+    <div class="pref-section">
+      <span class="pref-label">Page text size</span>
+      <div class="pref-options">
+        <button type="button" class="pref-option" data-pref="font_scale" data-value="sm">S</button>
+        <button type="button" class="pref-option" data-pref="font_scale" data-value="md">M</button>
+        <button type="button" class="pref-option" data-pref="font_scale" data-value="lg">L</button>
+        <button type="button" class="pref-option" data-pref="font_scale" data-value="xl">XL</button>
+      </div>
+    </div>
+
+    <div class="pref-section">
+      <span class="pref-label">Bible text size</span>
+      <div class="pref-options">
+        <button type="button" class="pref-option" data-pref="bible_scale" data-value="sm">S</button>
+        <button type="button" class="pref-option" data-pref="bible_scale" data-value="md">M</button>
+        <button type="button" class="pref-option" data-pref="bible_scale" data-value="lg">L</button>
+        <button type="button" class="pref-option" data-pref="bible_scale" data-value="xl">XL</button>
+        <button type="button" class="pref-option" data-pref="bible_scale" data-value="xxl">Huge</button>
+      </div>
+    </div>
+
+    <div class="pref-status" aria-live="polite"></div>
+  </div>
+</div>
+{% endif %}

@@ -13,18 +13,24 @@
 */
 
 :root {
-  /* Pastoral shell tracks main default dark look; icons use multi-color classes */
-  --cyan: #00FFFF;
-  --cyan-dark: #00AAAA;
-  --bg-dark: #000000;
-  --bg-darker: #111111;
-  --bg-card: rgba(30, 30, 30, 0.85);
-  --text-light: #FFFFFF;
-  --text-muted: #AAAAAA;
-  --border-cyan: rgba(0, 255, 255, 0.3);
+  /* Pastoral follows site theme vars; these are fallbacks for older pastoral CSS */
+  --cyan: var(--primary, #00FFFF);
+  --cyan-dark: var(--primary-hover, #00AAAA);
+  --bg-dark: transparent;
+  --bg-darker: transparent;
+  --pastoral-card: #252525;
+  --text-light: var(--text-primary, #FFFFFF);
+  --text-muted: var(--text-muted, #AAAAAA);
+  --border-cyan: var(--primary-border, rgba(0, 255, 255, 0.3));
   --shadow-cyan: 0 10px 40px rgba(0, 170, 170, 0.2);
   --glass-blur: blur(10px);
   --transition: all 0.25s ease;
+}
+
+/* Do not force a pure-black body — inherit site theme background */
+body.pastoral-shell {
+  background: var(--bg-page) !important;
+  color: var(--text-primary, #e0e0e0);
 }
 
 /* Multi-color pastoral top-bar / bottom-nav (icons readable, not all cyan) */
