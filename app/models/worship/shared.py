@@ -58,7 +58,9 @@ def get_worship_team_members():
         WHERE g.system_key = 'worship_team' OR g.name = %s
         ORDER BY u.last_name, u.first_name
     """, (WORSHIP_TEAM_GROUP_NAME,))
-    return cur.fetchall()
+
+    # Returning as a list for consistency
+    return list(cur.fetchall())
 
 
 def get_worship_leaders():
@@ -75,15 +77,20 @@ def get_worship_leaders():
           AND ug.role_in_group = 'leader'
         ORDER BY u.last_name, u.first_name
     """, (WORSHIP_TEAM_GROUP_NAME,))
-    leaders = cur.fetchall()
+
+    # FIX: Cast the tuple to a list so .append() works
+    leaders = list(cur.fetchall())
+
     cur.execute("""
         SELECT id, username, first_name, last_name, role AS site_role, 'site_staff' AS role_in_group
         FROM users WHERE role IN ('Owner', 'Admin', 'Staff')
         ORDER BY last_name, first_name
     """)
     staff = cur.fetchall()
+
     seen = {l['id'] for l in leaders}
     for s in staff:
         if s['id'] not in seen:
             leaders.append(s)
+
     return leaders

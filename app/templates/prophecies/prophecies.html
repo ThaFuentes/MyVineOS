@@ -2,14 +2,14 @@
 <!-- Full path: WebChurchMan/app/templates/prophecies/prophecies.html -->
 <!-- File name: prophecies.html -->
 <!-- Brief, detailed purpose: Prophecies Dashboard / Main Listing page.
-   Extends base_prophecies.html -> identical glass wrapper, menu, flash handling.
+   Extends base_prophecies.html → identical glass wrapper, menu, flash handling.
    Summary cards (total/public/private/personal counts for logged-in).
    Top + Add Prophecy button (logged-in only).
    Collapsible search/filters (visibility: all/public/private/personal for logged-in).
    Glass table with client-side live search.
    Title links to detail view (/prophecies/<id>).
    Actions column (edit/delete) for owner/admin.
-   Uses ONLY global classes - no prophecies-specific CSS.
+   Uses ONLY global classes – no prophecies-specific CSS.
    Date display uses strftime (safe datetime handling). -->
 
 {% extends "prophecies/base_prophecies.html" %}
@@ -27,24 +27,23 @@ Browse and search all prophetic words.<br>
 
 {% block prophecies_content %}
 
-<!-- Summary Cards - app style -->
 <div class="glass-panel">
   <div style="font-weight:600; margin-bottom:0.5rem;">Prophecies Summary</div>
   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:0.5rem;">
-    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center;">
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
       <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ prophecy_data|length }}</div>
       <div style="font-size:0.8rem; opacity:0.7;">Total</div>
     </div>
-    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center;">
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
       <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ prophecy_data|selectattr('visibility', 'equalto', 'public')|list|length }}</div>
       <div style="font-size:0.8rem; opacity:0.7;">Public</div>
     </div>
     {% if is_logged_in %}
-    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center;">
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
       <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ prophecy_data|selectattr('visibility', 'equalto', 'private')|list|length }}</div>
       <div style="font-size:0.8rem; opacity:0.7;">Private</div>
     </div>
-    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center;">
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
       <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ prophecy_data|selectattr('visibility', 'equalto', 'personal')|list|length }}</div>
       <div style="font-size:0.8rem; opacity:0.7;">Personal</div>
     </div>
@@ -52,20 +51,19 @@ Browse and search all prophetic words.<br>
   </div>
 </div>
 
-<!-- Add Prophecy Button - logged-in only -->
+<!-- Add Prophecy Button – logged-in only -->
 {% if is_logged_in %}
 <div class="form-actions add-event-top">
     <a href="{{ url_for('prophecies.add_prophecy') }}" class="btn-primary">+ Add Prophecy</a>
 </div>
 {% endif %}
 
-<!-- Search & Filters -->
 <div class="glass-panel">
   <div style="font-weight:600; margin-bottom:0.4rem;">All Prophecies</div>
 
     <details class="collapsible-controls">
         <summary class="collapsible-summary">
-            <strong>Search & Filters</strong> <span class="arrow">v</span>
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
         </summary>
         <div class="search-controls styled-form inline-form">
             <div class="form-group search-group">
@@ -150,10 +148,10 @@ Browse and search all prophetic words.<br>
         </table>
     </div>
 
-    <div class="no-data" id="noResults" style="display:none;">
-        No prophecies match the current search and filters.
-    </div>
-</section>
+<div class="no-data" id="noResults" style="display:none;">
+    No prophecies match the current search and filters.
+</div>
+</div>
 
 <script>
 (function() {
@@ -212,6 +210,5 @@ Browse and search all prophetic words.<br>
     apply();
 })();
 </script>
-</div>
 
 {% endblock %}
