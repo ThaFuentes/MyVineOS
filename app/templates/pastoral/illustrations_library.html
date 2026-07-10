@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!id) return;
       btn.disabled = true;
       try {
-        const res = await fetch('{{ url_for("pastoral.illustrations.toggle_dock") }}', {
+        const res = await fetch('/pastoral/illustrations/toggle_dock', {
           method: 'POST',
           headers: headers(),
           credentials: 'same-origin',
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('clear-dock-btn')?.addEventListener('click', async () => {
     if (!confirm('Clear all docked items?')) return;
     try {
-      const res = await fetch('{{ url_for("pastoral.illustrations.clear_dock") }}', {
+      const res = await fetch('/pastoral/illustrations/clear_dock', {
         method: 'POST',
         headers: headers(),
         credentials: 'same-origin',
