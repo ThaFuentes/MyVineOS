@@ -13,55 +13,52 @@
    Active state highlighting works correctly for both public views and auth pages.
    This base is now identical to base_public.html - use it for all public/auth pages to eliminate duplication. -->
 
+{% set s = g.settings|default({}) %}
+{% set user_theme = session.get('user_theme') or 'cyan-glow' %}
+{% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
+{% set bible_font_scale = session.get('bible_font_scale') or 'md' %}
+{% set personal_theme_wins = session.get('user_id') is not none %}
 <!DOCTYPE html>
-<html lang="en" data-theme="{% if session.user_theme %}{{ session.user_theme }}{% else %}cyan-glow{% endif %}">
+<html lang="en"
+      data-theme="{{ user_theme }}"
+      data-font-scale="{{ ui_font_scale }}"
+      data-bible-scale="{{ bible_font_scale }}">
 <head>
   <meta charset="UTF-8">
-  <!-- Web app / phone app capable metas (auth + public guest mode) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#00ffff">
+  <meta name="theme-color" content="{% if user_theme == 'soft-light' %}#f4f7fb{% else %}#0a0a0a{% endif %}">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="{% if user_theme == 'soft-light' %}default{% else %}black-translucent{% endif %}">
   <meta name="apple-mobile-web-app-title" content="MyVine">
   <meta name="mobile-web-app-capable" content="yes">
+  {% include 'partials/security_scripts.html' %}
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
 
-  {% set s = g.settings %}
-
   <title>{% block title %}{% endblock %} | {{ s.get('church_name', 'MyVineChurch.Online') }}</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-
-  <!-- Global CSS - identical to base_public.html -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260115">
-  <!-- COMPLETE GUI OVERHAUL -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202606">
-  <!-- Legacy for transition -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/base.css') }}?v=20260115">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/layout.css') }}?v=20260115">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/forms.css') }}?v=20260115">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
 
   {% block extra_css %}{% endblock %}
 
-  <!-- Dynamic favicon -->
   {% set fav = s.get('favicon_path') %}
   <link rel="icon" href="{{ url_for('static', filename='images/' ~ fav if fav else 'favicon.ico') }}">
 
-  <!-- Dynamic branding overrides - identical to base_public.html -->
   <style>
     :root {
+      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
+      {% if not personal_theme_wins %}
       --primary: {{ s.get('primary_color', '#00FFFF') }};
       --primary-hover: {{ s.get('primary_hover_color', '#00cccc') }};
-      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
-
       {% set bg_image = s.get('background_image') %}
       {% if bg_image %}
       --bg-page: linear-gradient(rgba(0,0,0,{{ s.get('background_opacity', 0.68) }}),
                                 rgba(0,0,0,{{ s.get('background_opacity', 0.68) }})),
                  url('{{ url_for('static', filename='images/' ~ bg_image) }}');
       {% endif %}
+      {% endif %}
     }
-
     body {
       background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
       background-size: cover;
@@ -69,38 +66,42 @@
       margin: 0;
       min-height: 100vh;
       font-family: var(--font-main);
-      color: #e0e0e0;
+      color: var(--text-primary, #e0e0e0);
     }
-
   </style>
 </head>
 <body>
 
-  <!-- NEW TOP BAR for auth/public pages -->
   <header class="top-bar">
     <div class="church-name">
       {{ s.get('church_name', 'MyVineChurch.Online') }}
     </div>
-
     <div class="user-info">
-      <a href="{{ url_for('auth.register') }}" class="btn btn-primary" style="padding:0.25rem 0.6rem; font-size:0.78rem; min-height:auto;">Register</a>
+      {% if session.get('user_id') %}
+        {% include 'partials/display_prefs.html' %}
+        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary" style="padding:0.25rem 0.6rem; font-size:0.78rem; min-height:auto;">My Dashboard</a>
+      {% else %}
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary" style="padding:0.25rem 0.6rem; font-size:0.78rem; min-height:auto;">Register</a>
+      {% endif %}
       <div class="clock" id="clock" style="font-size:0.8rem; opacity:0.7;">--:--</div>
     </div>
   </header>
 
-  <!-- Desktop public nav - centered, conditional -->
   <nav class="top-nav">
-    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">Home</a>
+    {% if session.get('user_id') %}
+      <a href="{{ url_for('dashboard.dashboard') }}">Home</a>
+      <a href="{{ url_for('public.public_dashboard.public_community') }}">Community Feed</a>
+    {% else %}
+      <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">Welcome</a>
+    {% endif %}
     <a href="{{ url_for('public.public_events.public_events') }}">Events</a>
     <a href="{{ url_for('public.public_sermons.public_sermons') }}">Sermons</a>
     <a href="{{ url_for('public.public_prayers.public_prayers') }}">Prayers</a>
     <a href="{{ url_for('public.public_announcements.public_announcements') }}">Announcements</a>
     <a href="{{ url_for('public.public_dreams.public_dreams') }}">Dreams</a>
     <a href="{{ url_for('public.public_prophecies.public_prophecies') }}">Prophecies</a>
-    {% if g.settings.get('online_donations_enabled') %}<a href="{{ url_for('public.donate') }}">Donate</a>{% endif %}
-    {% if session.get('user_id') %}
-      <a href="{{ url_for('dashboard.dashboard') }}">My Dashboard</a>
-    {% else %}
+    {% if s.get('online_donations_enabled') %}<a href="{{ url_for('public.donate') }}">Donate</a>{% endif %}
+    {% if not session.get('user_id') %}
       <a href="{{ url_for('auth.login') }}">Login</a>
     {% endif %}
   </nav>
@@ -125,12 +126,19 @@
   <!-- ==================== FOOTER ==================== -->
   <footer class="footer">
     (c) {{ g.get('current_year', '2026') }} {{ s.get('church_name', 'MyVineChurch.Online') }} |
-    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="footer-link">Public Home</a>
+    {% if session.get('user_id') %}
+    <a href="{{ url_for('dashboard.dashboard') }}" class="footer-link">My Dashboard</a>
+    {% else %}
+    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="footer-link">Welcome</a>
+    {% endif %}
   </footer>
 
   <!-- ==================== CLOCK SCRIPT ==================== -->
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+    {% if session.get('user_id') %}
+    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260710g"></script>
+    {% endif %}
     <script>
       function updateClock() {
         const now = new Date();
