@@ -20,20 +20,18 @@
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <title>Attendance Check-In - {{ g.settings.church_name or 'MyVineChurch.Online' }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/forms.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202606">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
     <style>
       /* Kiosk is special full-touch device UI - never show the member bottom nav */
       .bottom-nav { display: none !important; }
       .top-bar { display: none !important; } /* kiosk has its own huge header */
     </style>
     <style>
-        body { background: #111; color: #0ff; min-height: 100vh; margin: 0; padding: 2rem; box-sizing: border-box; }
-        h1 { font-size: 3.5rem; margin-bottom: 3rem; text-align: center; }
+        body { background: var(--bg-page, #111); color: var(--text-primary, #e0e0e0); min-height: 100vh; margin: 0; padding: 2rem; box-sizing: border-box; }
+        h1 { font-size: 3.5rem; margin-bottom: 3rem; text-align: center; color: var(--primary); }
         .search-box { max-width: 800px; margin: 0 auto 2rem; text-align: center; }
-        input[type="text"] { width: 80%; max-width: 700px; padding: 1.8rem; font-size: 2.8rem; border-radius: var(--radius-large); border: 3px solid #0ff; background: #111; color: #0ff; }
+        input[type="text"] { width: 80%; max-width: 700px; padding: 1.8rem; font-size: 2.8rem; border-radius: var(--radius-large); border: 3px solid var(--primary); background: rgba(0,0,0,0.35); color: var(--text-primary); }
         .flash {
             font-size: 2.8rem;
             padding: 2rem;

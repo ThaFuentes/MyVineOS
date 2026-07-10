@@ -20,7 +20,7 @@
   --bg-darker: transparent;
   --pastoral-card: #252525;
   --text-light: var(--text-primary, #FFFFFF);
-  --text-muted: var(--text-muted, #AAAAAA);
+  /* note: do not self-reference --text-muted; use site token via fallback only in consumers */
   --border-cyan: var(--primary-border, rgba(0, 255, 255, 0.3));
   --shadow-cyan: 0 10px 40px rgba(0, 170, 170, 0.2);
   --glass-blur: blur(10px);

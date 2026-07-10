@@ -11,16 +11,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rapid Inventory Scan - {{ g.settings.church_name or 'MyVineChurch.Online' }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/forms.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; background: #111; color: #0ff; }
+        body { margin: 0; padding: 0; background: var(--bg-page, #111); color: var(--text-primary, #e0e0e0); }
+        h1 { color: var(--primary); }
         #reader { width: 100%; height: 60vh; }
         #status { font-size: 2rem; text-align: center; padding: 1rem; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; }
-        .modal-content { background: #222; padding: 2rem; border-radius: 1rem; width: 90%; max-width: 500px; }
+        .modal-content { background: var(--bg-card, #222); padding: 2rem; border-radius: 1rem; width: 90%; max-width: 500px; border: 1px solid var(--primary-border); }
     </style>
 </head>
 <body>

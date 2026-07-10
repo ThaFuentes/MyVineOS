@@ -8,38 +8,35 @@
 <!-- - Flash messages, responsive design, and logout link. -->
 <!-- - All manager pages extend this file. -->
 
+{% set user_theme = session.get('user_theme') or 'cyan-glow' %}
+{% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="{{ user_theme }}" data-font-scale="{{ ui_font_scale }}">
 <head>
     <meta charset="UTF-8">
     <!-- Web app / phone app capable (manager mode) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#00ffff">
+    <meta name="theme-color" content="{% if user_theme == 'soft-light' %}#f4f7fb{% else %}#0a0a0a{% endif %}">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="{% if user_theme == 'soft-light' %}default{% else %}black-translucent{% endif %}">
     <meta name="apple-mobile-web-app-title" content="MyVine Manager">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
     <title>{% block title %}Gathering Place Manager{% endblock %} | MyVineChurch.online</title>
 
-    <!-- THEME -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
-
-    <!-- COMPLETE GUI OVERHAUL (new mobile-first) primary -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202606">
-    <!-- Template UI icons only (not used in server log print statements) -->
+    <!-- Same theme stack as main app -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <style>
-        :root {
-            --primary: #00FFFF;
-        }
-        /* Minimal for manager; overhaul.css handles responsive layout, spacing, bottom-nav etc. */
         body {
-            background: #0a0a0a;
-            color: #eee;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
+            color: var(--text-primary, #eee);
+            font-family: var(--font-main, system-ui, sans-serif);
+            margin: 0;
+            min-height: 100vh;
         }
         /* Hover title preview - manager tables */
         .mgr-preview-wrap {

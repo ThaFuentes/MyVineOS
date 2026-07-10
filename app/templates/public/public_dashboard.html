@@ -1,146 +1,130 @@
-<!-- MYVINECHURCH.ONLINE/app/templates/public/public_dashboard.html -->
-<!-- Full path: MYVINECHURCH.ONLINE/app/templates/public/public_dashboard.html -->
-<!-- File name: public_dashboard.html -->
-<!-- Brief, detailed purpose: Public homepage - rich social-media style unified feed. -->
-<!-- • Shows main content + 2-3 latest comments preview for EVERY card (including Prophecies). -->
-<!-- • Inline quick comment box (no redirect). -->
-<!-- • 100% rebuilt clean version - identical structure and behavior to the working Events gold standard. -->
-
+{# Community feed — glass theme (no hardcoded #00FFFF / #1e1e1e legacy look) #}
 {% extends "base_public.html" %}
 
-{% block title %}MyVineChurch.Online{% endblock %}
+{% block title %}Community Feed{% endblock %}
 
 {% block content %}
-
-<div style="text-align:center; padding:4rem 2rem 3rem;">
-    <h1 style="font-size:3.2rem; color:#00FFFF; margin-bottom:1rem; text-shadow:0 0 30px #00FFFF;">
-        Welcome to the Vine
-    </h1>
-    <p style="font-size:1.4rem; max-width:800px; margin:0 auto; line-height:1.6; color:#ddd;">
-        Latest from our community - connect, share, and grow together in faith.
-    </p>
+<div style="text-align:center; margin-bottom:1.25rem;">
+  <h1 class="page-title" style="margin-bottom:0.35rem;">Community Feed</h1>
+  <p class="page-description" style="margin:0 auto;">
+    Latest from our church family — events, prayers, sermons, and more.
+  </p>
+  {% if session.get('user_id') %}
+  <p style="margin-top:0.75rem;">
+    <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary" style="display:inline-flex;">
+      <i class="fa-solid fa-house" aria-hidden="true"></i> My Dashboard
+    </a>
+  </p>
+  {% endif %}
 </div>
 
-<div style="max-width:1200px; margin:0 auto; padding:0 2rem;">
+{% if feed %}
+  <div class="feed-stack" style="display:flex; flex-direction:column; gap:0.85rem;">
+    {% for item in feed %}
+    <article class="glass-panel feed-card" style="padding:1rem 1.1rem;">
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; justify-content:space-between; margin-bottom:0.65rem;">
+        <span class="feed-type-pill" data-type="{{ item.type }}">{{ item.type|upper }}</span>
+        <span style="font-size:0.85rem; opacity:0.7;">
+          {{ item.formatted_date }}{% if item.formatted_time %} · {{ item.formatted_time }}{% endif %}
+          · {{ item.creator_name or item.posted_by or 'Church' }}
+        </span>
+      </div>
 
-    {% if feed %}
-        {% for item in feed %}
-        <div style="background:#1e1e1e; border-radius:16px; padding:2rem; margin-bottom:2.5rem; border:1px solid rgba(0,255,255,0.2); box-shadow:0 10px 30px rgba(0,0,0,0.4);">
+      <h2 style="margin:0 0 0.5rem; font-size:1.25rem; color:var(--primary); line-height:1.3;">
+        <a href="{{ item.detail_url }}" style="color:inherit; text-decoration:none;">{{ item.title }}</a>
+      </h2>
 
-            <!-- Header -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                <span style="background:#00FFFF; color:#000; padding:6px 18px; border-radius:9999px; font-size:0.95rem; font-weight:700;">
-                    {{ item.type|upper }}
-                </span>
-                <small style="color:#aaa;">
-                    {{ item.formatted_date }} • {{ item.formatted_time }}
-                </small>
-                <small style="color:#0ff;">
-                    By: {{ item.creator_name or item.posted_by or 'Anonymous' }}
-                </small>
-            </div>
+      {% if item.body %}
+      <p style="margin:0 0 0.85rem; line-height:1.55; opacity:0.9;">
+        {{ item.body | truncate(220) }}
+      </p>
+      {% endif %}
 
-            <!-- Title -->
-            <h3 style="margin:0 0 1rem; font-size:1.9rem; color:#00FFFF; line-height:1.3;">
-                {{ item.title }}
-            </h3>
-
-            <!-- Body -->
-            {% if item.body %}
-            <p style="color:#ddd; line-height:1.75; margin:0 0 1.8rem; font-size:1.1rem;">
-                {{ item.body | truncate(220) | nl2br }}
-            </p>
-            {% endif %}
-
-            <!-- Recent Comments Preview -->
-            {% if item.comments and item.comments|length > 0 %}
-            <div style="background:#2a2a2a; border-radius:12px; padding:1rem; margin-bottom:1.5rem;">
-                <p style="color:#00FFFF; font-size:1rem; margin-bottom:0.8rem;"><i class="fa-solid fa-comment" aria-hidden="true"></i> Recent Comments</p>
-                {% for c in item.comments[:2] %}
-                <div style="margin-bottom:0.8rem; padding-bottom:0.8rem; border-bottom:1px solid rgba(0,255,255,0.1);">
-                    <strong style="color:#aaa;">{{ c.name or 'Guest' }}</strong>
-                    <small style="color:#666; margin-left:1rem;">{{ c.date }}</small>
-                    <p style="margin:0.4rem 0 0; color:#ddd;">{{ c.comment | truncate(140) }}</p>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div style="background:#2a2a2a; border-radius:12px; padding:1rem; margin-bottom:1.5rem; color:#666; font-style:italic; text-align:center;">
-                No comments yet
-            </div>
-            {% endif %}
-
-            <!-- INLINE QUICK COMMENT BOX (no redirect) -->
-            <form class="quick-comment-form" data-detail-url="{{ item.detail_url }}" style="margin-top:1rem;">
-                <input type="hidden" name="action" value="comment">
-
-                <div style="display:flex; gap:1rem; margin-bottom:1rem;">
-                    <input type="text" name="contributor_name" placeholder="Your name" required
-                           style="flex:1; background:#2a2a2a; border:none; border-radius:9999px; padding:1rem 1.5rem; color:#ddd; font-size:1rem;">
-
-                    <textarea name="comment" placeholder="Write a quick comment..." rows="2"
-                              style="flex:3; background:#2a2a2a; border:none; border-radius:16px; padding:1rem 1.5rem; color:#ddd; font-size:1rem; resize:vertical;"></textarea>
-                </div>
-
-                <button type="submit"
-                        style="background:#00FFFF; color:#000; border:none; border-radius:9999px; padding:0.9rem 2rem; font-weight:700; cursor:pointer; width:100%;">
-                    Post Comment
-                </button>
-            </form>
-
-            <!-- View Full Post button -->
-            <a href="{{ item.detail_url }}"
-               style="display:block; text-align:center; margin-top:1.2rem; padding:1rem 2rem; background:rgba(0,255,255,0.15); color:#00FFFF; font-weight:bold; border-radius:9999px; text-decoration:none;">
-                View Full Post &amp; All Comments ->
-            </a>
-
+      {% if item.comments and item.comments|length > 0 %}
+      <div class="glass-panel" style="padding:0.65rem 0.75rem; margin-bottom:0.75rem; background:rgba(0,0,0,0.15);">
+        <div style="font-size:0.8rem; font-weight:700; color:var(--primary); margin-bottom:0.4rem;">
+          <i class="fa-solid fa-comment" aria-hidden="true"></i> Recent comments
+        </div>
+        {% for c in item.comments[:2] %}
+        <div style="margin-bottom:0.45rem; padding-bottom:0.4rem; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.9rem;">
+          <strong style="opacity:0.85;">{{ c.name or 'Guest' }}</strong>
+          <span style="opacity:0.55; margin-left:0.4rem; font-size:0.8rem;">{{ c.date }}</span>
+          <p style="margin:0.25rem 0 0; opacity:0.85;">{{ c.comment | truncate(140) }}</p>
         </div>
         {% endfor %}
-    {% else %}
-        <p style="text-align:center; color:#666; font-size:1.3rem; padding:6rem 2rem;">
-            No public activity yet.<br>
-            Check back soon!
-        </p>
-    {% endif %}
+      </div>
+      {% endif %}
 
-</div>
+      <form class="quick-comment-form styled-form" data-detail-url="{{ item.detail_url }}" style="display:grid; gap:0.5rem;">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="comment">
+        <div style="display:grid; grid-template-columns:minmax(120px,1fr) 2fr; gap:0.5rem;">
+          <input type="text" name="contributor_name" placeholder="Your name" required
+                 class="form-control-dark" style="width:100%; padding:0.55rem 0.75rem; border-radius:10px; background:rgba(0,0,0,0.22); border:1px solid rgba(255,255,255,0.12); color:inherit;">
+          <textarea name="comment" placeholder="Write a quick comment..." rows="2" required
+                    class="form-control-dark" style="width:100%; padding:0.55rem 0.75rem; border-radius:10px; background:rgba(0,0,0,0.22); border:1px solid rgba(255,255,255,0.12); color:inherit; resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+          <button type="submit" class="btn btn-primary">Post comment</button>
+          <a href="{{ item.detail_url }}" class="btn btn-secondary">View full post</a>
+        </div>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="glass-panel" style="text-align:center; padding:2.5rem 1rem;">
+    <p style="margin:0; opacity:0.7;">No public activity yet. Check back soon.</p>
+  </div>
+{% endif %}
+
+<style>
+  .feed-type-pill {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    background: rgba(var(--primary-rgb, 0, 255, 255), 0.2);
+    color: var(--primary);
+    border: 1px solid rgba(var(--primary-rgb, 0, 255, 255), 0.35);
+  }
+  .feed-type-pill[data-type="event"] { color: #6ed4ff; border-color: rgba(110,212,255,0.45); background: rgba(110,212,255,0.12); }
+  .feed-type-pill[data-type="sermon"] { color: #4dffc8; border-color: rgba(77,255,200,0.45); background: rgba(77,255,200,0.12); }
+  .feed-type-pill[data-type="prayer"] { color: #c4a1ff; border-color: rgba(196,161,255,0.45); background: rgba(196,161,255,0.12); }
+  .feed-type-pill[data-type="announcement"] { color: #ff9a78; border-color: rgba(255,154,120,0.45); background: rgba(255,154,120,0.12); }
+  .feed-type-pill[data-type="prophecy"] { color: #ffd56a; border-color: rgba(255,213,106,0.45); background: rgba(255,213,106,0.12); }
+  .feed-type-pill[data-type="dream"] { color: #ff8fd0; border-color: rgba(255,143,208,0.45); background: rgba(255,143,208,0.12); }
+</style>
 
 <script>
-  // Social-media style inline comment handling (no page redirect)
   document.querySelectorAll('.quick-comment-form').forEach(form => {
-    form.addEventListener('submit', async function(e) {
+    form.addEventListener('submit', async function (e) {
       e.preventDefault();
-
       const detailUrl = this.getAttribute('data-detail-url');
       const formData = new FormData(this);
-
       try {
-        const response = await fetch(detailUrl, {
-          method: 'POST',
-          body: formData
-        });
-
-        const text = await response.text();
-
-        if (text.includes('success') || response.ok) {
-          const successDiv = document.createElement('div');
-          successDiv.style.cssText = 'background:#00FF00; color:#000; padding:1rem; border-radius:12px; margin-top:1rem; text-align:center; font-weight:bold;';
-          successDiv.textContent = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Comment posted successfully!';
-          this.parentNode.insertBefore(successDiv, this.nextSibling);
+        const response = await fetch(detailUrl, { method: 'POST', body: formData, credentials: 'same-origin' });
+        const note = document.createElement('div');
+        note.className = 'glass-panel';
+        note.style.cssText = 'padding:0.65rem 0.85rem; margin-top:0.5rem; text-align:center; font-weight:600;';
+        if (response.ok) {
+          note.style.borderColor = 'rgba(77,255,200,0.45)';
+          note.style.color = '#7affd8';
+          note.textContent = 'Comment posted.';
           this.reset();
-          setTimeout(() => successDiv.remove(), 4000);
         } else {
-          const errorDiv = document.createElement('div');
-          errorDiv.style.cssText = 'background:#ff4444; color:#fff; padding:1rem; border-radius:12px; margin-top:1rem; text-align:center;';
-          errorDiv.textContent = 'Name and comment are required.';
-          this.parentNode.insertBefore(errorDiv, this.nextSibling);
-          setTimeout(() => errorDiv.remove(), 4000);
+          note.style.borderColor = 'rgba(255,120,100,0.45)';
+          note.style.color = '#ff9a8a';
+          note.textContent = 'Could not post — name and comment are required.';
         }
+        this.parentNode.insertBefore(note, this.nextSibling);
+        setTimeout(() => note.remove(), 4000);
       } catch (err) {
         console.error(err);
       }
     });
   });
 </script>
-
 {% endblock %}
