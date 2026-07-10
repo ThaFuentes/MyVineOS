@@ -77,6 +77,91 @@ html[data-theme="soft-light"] .top-bar .user-info a.pn-btn {
   color: inherit;
 }
 
+/* ────────────────────────────────────────────────
+   Pastoral Command Center — multi-color hub tiles
+   (replaces dark-blue PNGs that were hard to see)
+───────────────────────────────────────────────── */
+.pastoral-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 0.75rem;
+}
+
+.pastoral-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  min-height: 128px;
+  padding: 1rem 0.7rem;
+  border-left: 4px solid var(--pt-accent, #6ed4ff);
+  color: inherit;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.pastoral-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+.pastoral-tile-icon {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 0.45rem;
+  color: var(--pt-accent, #6ed4ff);
+  filter: brightness(1.25) saturate(1.2) drop-shadow(0 0 10px currentColor);
+}
+
+.pastoral-tile-title {
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: #f2f7fc;
+  margin-bottom: 0.2rem;
+}
+
+.pastoral-tile-sub {
+  font-size: 0.78rem;
+  opacity: 0.78;
+  line-height: 1.3;
+  color: #c5d0e0;
+}
+
+/* Distinct accents per tool */
+.pastoral-tile-sermons { --pt-accent: #4dffc8; }       /* teal — preaching */
+.pastoral-tile-illustrations { --pt-accent: #c4a1ff; } /* violet — creative */
+.pastoral-tile-planning { --pt-accent: #ffc85a; }      /* amber — calendar */
+.pastoral-tile-roles { --pt-accent: #6ed4ff; }         /* sky — people */
+.pastoral-tile-podium { --pt-accent: #ff9a78; }        /* coral — stage */
+.pastoral-tile-export { --pt-accent: #ff8fd0; }        /* rose — files */
+
+.pastoral-upcoming {
+  border: 1px solid rgba(110, 212, 255, 0.35);
+  border-top: 3px solid #6ed4ff;
+}
+
+html[data-theme="soft-light"] .pastoral-tile-title {
+  color: #1a2838;
+}
+
+html[data-theme="soft-light"] .pastoral-tile-sub {
+  color: #5a6b7e;
+}
+
+html[data-theme="soft-light"] .pastoral-tile-icon {
+  filter: none;
+}
+
+@media (max-width: 480px) {
+  .pastoral-tile {
+    min-height: 112px;
+  }
+  .pastoral-tile-icon {
+    font-size: 1.75rem;
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
