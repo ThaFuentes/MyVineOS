@@ -1,0 +1,320 @@
+/* Worship Team — multi-color accents (readable, not monochrome cyan) */
+
+.worship-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.55rem 0.75rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.worship-nav a {
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8edf4;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.worship-nav a:hover {
+  filter: brightness(1.08);
+}
+
+.worship-nav a.wn-home { color: #5b9fd4; border-color: rgba(91, 159, 212, 0.4); }
+.worship-nav a.wn-templates { color: #e0a84a; border-color: rgba(224, 168, 74, 0.4); }
+.worship-nav a.wn-setlists { color: #9b7de8; border-color: rgba(155, 125, 232, 0.4); }
+.worship-nav a.wn-songs { color: #3dbf9a; border-color: rgba(61, 191, 154, 0.4); }
+.worship-nav a.wn-history { color: #e07a5f; border-color: rgba(224, 122, 95, 0.4); }
+.worship-nav a.wn-roles { color: #5eb8c9; border-color: rgba(94, 184, 201, 0.4); }
+.worship-nav a.wn-import { color: #d47ab0; border-color: rgba(212, 122, 176, 0.4); }
+.worship-nav a.wn-back { color: #a0a8b8; border-color: rgba(160, 168, 184, 0.35); opacity: 0.9; }
+
+html[data-theme="soft-light"] .worship-nav a {
+  background: rgba(30, 50, 80, 0.05);
+  border-color: rgba(30, 50, 80, 0.14);
+}
+
+/* Dashboard tiles */
+.worship-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.worship-tile {
+  padding: 0.9rem 0.75rem;
+  text-decoration: none;
+  text-align: center;
+  border-left: 3px solid var(--tile-accent, #8b9bb5);
+  color: inherit;
+  transition: transform 0.12s ease;
+}
+
+.worship-tile:hover {
+  transform: translateY(-1px);
+}
+
+.worship-tile .tile-icon {
+  font-size: 1.55rem;
+  color: var(--tile-accent);
+  margin-bottom: 0.25rem;
+}
+
+.worship-tile .tile-label {
+  font-weight: 700;
+  color: #eef2f7;
+}
+
+html[data-theme="soft-light"] .worship-tile .tile-label {
+  color: #1c2430;
+}
+
+.worship-tile-templates { --tile-accent: #e0a84a; }
+.worship-tile-setlists { --tile-accent: #9b7de8; }
+.worship-tile-songs { --tile-accent: #3dbf9a; }
+.worship-tile-history { --tile-accent: #e07a5f; }
+
+/* Song section builder */
+.song-sections-panel,
+.song-play-order-panel {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme="soft-light"] .song-sections-panel,
+html[data-theme="soft-light"] .song-play-order-panel {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(30, 50, 80, 0.12);
+}
+
+.song-sections-panel h3,
+.song-play-order-panel h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: #3dbf9a;
+}
+
+.song-sections-panel .hint,
+.song-play-order-panel .hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  opacity: 0.72;
+  line-height: 1.4;
+}
+
+.section-type-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-type-bar button {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #0f1218;
+}
+
+.stb-intro { background: #8b9bb5; }
+.stb-verse { background: #3dbf9a; }
+.stb-prechorus { background: #5eb8c9; }
+.stb-chorus { background: #e0a84a; }
+.stb-bridge { background: #9b7de8; color: #f8f6ff; }
+.stb-tag { background: #e07a5f; }
+.stb-outro { background: #d47ab0; color: #fff; }
+.stb-paste { background: #6a9fd8; color: #fff; }
+
+.song-section-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 4px solid var(--sec-accent, #3dbf9a);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.55rem;
+  background: rgba(20, 22, 28, 0.55);
+}
+
+html[data-theme="soft-light"] .song-section-card {
+  background: #fff;
+  border-color: rgba(30, 50, 80, 0.1);
+}
+
+.song-section-card[data-type="intro"] { --sec-accent: #8b9bb5; }
+.song-section-card[data-type="verse"] { --sec-accent: #3dbf9a; }
+.song-section-card[data-type="prechorus"] { --sec-accent: #5eb8c9; }
+.song-section-card[data-type="chorus"] { --sec-accent: #e0a84a; }
+.song-section-card[data-type="bridge"] { --sec-accent: #9b7de8; }
+.song-section-card[data-type="tag"] { --sec-accent: #e07a5f; }
+.song-section-card[data-type="outro"] { --sec-accent: #d47ab0; }
+
+.song-section-card .sec-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.45rem;
+}
+
+.song-section-card .sec-head label {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.song-section-card select,
+.song-section-card input[type="text"],
+.song-section-card textarea {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: inherit;
+  padding: 0.35rem 0.5rem;
+  font: inherit;
+}
+
+html[data-theme="soft-light"] .song-section-card select,
+html[data-theme="soft-light"] .song-section-card input[type="text"],
+html[data-theme="soft-light"] .song-section-card textarea {
+  background: #f4f7fb;
+  border-color: rgba(30, 50, 80, 0.18);
+  color: #1c2430;
+}
+
+.song-section-card textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.sec-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.sec-actions button,
+.play-order-actions button {
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.sec-actions button:hover,
+.play-order-actions button:hover {
+  border-color: #3dbf9a;
+  color: #3dbf9a;
+}
+
+.sec-actions .sec-remove:hover {
+  border-color: #e07a5f;
+  color: #e07a5f;
+}
+
+/* Play order list */
+.play-order-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.play-order-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.play-order-list .po-index {
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0.55;
+  min-width: 1.4rem;
+}
+
+.play-order-list .po-label {
+  flex: 1;
+  font-weight: 700;
+}
+
+.play-order-list .po-type {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.play-order-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+  align-items: center;
+}
+
+.play-order-add-row select {
+  flex: 1 1 160px;
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0.4rem 0.55rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: inherit;
+}
+
+.lyrics-paste-box {
+  display: none;
+  margin-bottom: 0.75rem;
+}
+
+.lyrics-paste-box.is-open {
+  display: block;
+}
+
+.lyrics-paste-box textarea {
+  width: 100%;
+  min-height: 110px;
+  border-radius: 8px;
+  padding: 0.55rem;
+  font: inherit;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: inherit;
+}
+
+@media (max-width: 640px) {
+  .song-section-card .sec-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sec-actions {
+    margin-left: 0;
+  }
+}

@@ -3,23 +3,42 @@
 {% block worship_title %}{{ song.title if song else 'New Song' }}{% endblock %}
 
 {% block worship_content %}
-<h1 style="margin:0 0 1rem; font-size:1.35rem; color:var(--primary);">
+<h1 style="margin:0 0 1rem; font-size:1.35rem; color:#3dbf9a;">
   {% if song %}{{ song.title }}{% else %}New Song{% endif %}
 </h1>
 
 {% if not can_manage %}
 <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
   <p style="margin:0 0 0.75rem; opacity:0.8;">View only - managers can edit the song library.</p>
-  {% if song.lyrics_raw %}
+  {% if song and song.sections %}
+    {% for sec in song.sections %}
+    <div class="song-section-card" data-type="{{ sec.type|default('verse') }}" style="margin-bottom:0.65rem;">
+      <strong>{{ sec.label or sec.type }}</strong>
+      <pre style="white-space:pre-wrap; font-family:inherit; margin:0.4rem 0 0;">{{ sec.content }}</pre>
+    </div>
+    {% endfor %}
+    {% if song.play_order %}
+    <p style="margin:0.75rem 0 0.25rem; font-size:0.85rem; opacity:0.7;">Default play order:</p>
+    <ol style="margin:0; padding-left:1.2rem; font-size:0.9rem;">
+      {% for sid in song.play_order %}
+      {% set ns = namespace(label=sid) %}
+      {% for sec in song.sections %}
+        {% if sec.id == sid %}{% set ns.label = sec.label or sec.type or sid %}{% endif %}
+      {% endfor %}
+      <li>{{ ns.label }}</li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+  {% elif song and song.lyrics_raw %}
   <pre style="white-space:pre-wrap; font-family:inherit; margin:0;">{{ song.lyrics_raw }}</pre>
   {% endif %}
-  {% if song.copyright_line %}
+  {% if song and song.copyright_line %}
   <p style="margin:1rem 0 0; font-size:0.85rem; opacity:0.65;">{{ song.copyright_line }}</p>
   {% endif %}
 </div>
 <a href="{{ url_for('worship.songs_list') }}" class="btn btn-secondary"><- Back</a>
 {% else %}
-<form method="post" enctype="multipart/form-data" class="glass-panel" style="padding:1rem; display:grid; gap:0.85rem;">
+<form method="post" enctype="multipart/form-data" class="glass-panel" style="padding:1rem; display:grid; gap:0.85rem;" id="song-edit-form">
   <label>Title *
     <input type="text" name="title" value="{{ song.title if song else '' }}" required style="width:100%; margin-top:0.25rem;">
   </label>
@@ -40,12 +59,57 @@
   <label>Publisher
     <input type="text" name="publisher" value="{{ song.publisher if song and song.publisher else '' }}" style="width:100%; margin-top:0.25rem;">
   </label>
-  <label>Lyrics - use <code>[Verse 1]</code>, <code>(Chorus)</code>, <code>Bridge</code> lines to split sections for the prompter
-    <textarea name="lyrics_raw" rows="12" style="width:100%; margin-top:0.25rem; font-family:inherit;">{{ song.lyrics_raw if song and song.lyrics_raw else '' }}</textarea>
-  </label>
-  <label>Sections JSON (optional - advanced arrangement for screen mode)
-    <textarea name="sections_json" rows="6" style="width:100%; margin-top:0.25rem; font-family:monospace; font-size:0.85rem;">{% if song and song.sections %}{{ song.sections | tojson }}{% endif %}</textarea>
-  </label>
+
+  <!-- Structured song sections (like sermon sections) -->
+  <div class="song-sections-panel">
+    <h3><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Song sections</h3>
+    <p class="hint">
+      Build the song from parts (Intro, Verse 1, Chorus…). Each part is stored once.
+      Then set the <strong>play order</strong> below so the prompter can go Intro → Chorus → Verse 1 → Chorus, etc.
+    </p>
+
+    <div class="section-type-bar" id="section-type-bar">
+      <button type="button" class="stb-intro" data-add-type="intro">+ Intro</button>
+      <button type="button" class="stb-verse" data-add-type="verse">+ Verse</button>
+      <button type="button" class="stb-prechorus" data-add-type="prechorus">+ Pre-Chorus</button>
+      <button type="button" class="stb-chorus" data-add-type="chorus">+ Chorus</button>
+      <button type="button" class="stb-bridge" data-add-type="bridge">+ Bridge</button>
+      <button type="button" class="stb-tag" data-add-type="tag">+ Tag</button>
+      <button type="button" class="stb-outro" data-add-type="outro">+ Outro</button>
+      <button type="button" class="stb-paste" id="toggle-paste">Paste lyrics</button>
+    </div>
+
+    <div class="lyrics-paste-box" id="lyrics-paste-box">
+      <p class="hint">Paste full lyrics with markers like <code>[Verse 1]</code> or <code>(Chorus)</code>, then click Parse.</p>
+      <textarea id="lyrics-paste-input" placeholder="[Verse 1]&#10;…&#10;&#10;[Chorus]&#10;…"></textarea>
+      <div style="margin-top:0.45rem; display:flex; gap:0.4rem; flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" id="lyrics-parse-btn">Parse into sections</button>
+        <button type="button" class="btn btn-secondary" id="lyrics-paste-cancel">Cancel</button>
+      </div>
+    </div>
+
+    <div id="song-sections-list">
+      {# hydrated by JS from initial data #}
+    </div>
+  </div>
+
+  <div class="song-play-order-panel">
+    <h3><i class="fa-solid fa-list-ol" aria-hidden="true"></i> Play order (arrangement)</h3>
+    <p class="hint">
+      Order the prompter slides. You can add Chorus more than once.
+      When this song is added to a setlist, this becomes the default arrangement.
+    </p>
+    <ol class="play-order-list" id="play-order-list"></ol>
+    <div class="play-order-add-row">
+      <select id="play-order-pick">
+        <option value="">Add section to order…</option>
+      </select>
+      <button type="button" class="btn btn-primary" id="play-order-add-btn">Add to order</button>
+      <button type="button" class="btn btn-secondary" id="play-order-rebuild-btn" title="One of each section in library order">Reset to library order</button>
+    </div>
+    <div id="play-order-hidden"></div>
+  </div>
+
   <label>Permanent notes (transitions, cues)
     <textarea name="notes_permanent" rows="3" style="width:100%; margin-top:0.25rem;">{{ song.notes_permanent if song and song.notes_permanent else '' }}</textarea>
   </label>
@@ -65,5 +129,13 @@
     {% endif %}
   </div>
 </form>
+
+<script>
+  window.SONG_EDITOR = {
+    sections: {{ (song.sections if song and song.sections else [])|tojson }},
+    playOrder: {{ (song.play_order if song and song.play_order else [])|tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/global/worship/song_sections.js') }}?v=20260710w"></script>
 {% endif %}
 {% endblock %}

@@ -22,6 +22,33 @@ from .utils import DEFAULT_ROLES, chords_upload_dir, save_chord_upload
 
 
 def _parse_sections_form():
+    """Prefer structured section cards from the song editor; fall back to JSON/lyrics."""
+    ids = request.form.getlist('sec_id[]')
+    types = request.form.getlist('sec_type[]')
+    labels = request.form.getlist('sec_label[]')
+    contents = request.form.getlist('sec_content[]')
+    if ids or labels or contents:
+        sections = []
+        n = max(len(ids), len(types), len(labels), len(contents))
+        for i in range(n):
+            content = (contents[i] if i < len(contents) else '') or ''
+            content = content.strip()
+            if not content:
+                continue
+            sid = (ids[i] if i < len(ids) else '') or ''
+            stype = (types[i] if i < len(types) else '') or 'verse'
+            label = (labels[i] if i < len(labels) else '') or stype.title()
+            sections.append({
+                'id': sid.strip() or f's{i + 1}',
+                'type': stype.strip().lower() or 'verse',
+                'label': label.strip() or 'Section',
+                'content': content,
+                'sort': i + 1,
+                'repeat': 1,
+            })
+        if sections:
+            return sections
+
     raw = (request.form.get('sections_json') or '').strip()
     if raw:
         try:
@@ -37,6 +64,21 @@ def _parse_sections_form():
     return []
 
 
+def _parse_play_order_form():
+    order = request.form.getlist('play_order[]')
+    if order:
+        return [x.strip() for x in order if x and x.strip()]
+    raw = (request.form.get('play_order_json') or '').strip()
+    if raw:
+        try:
+            data = json.loads(raw)
+            if isinstance(data, list):
+                return [str(x) for x in data if x]
+        except json.JSONDecodeError:
+            pass
+    return []
+
+
 def _song_form_data(chords_filename=None):
     year = request.form.get('copyright_year')
     return {
@@ -49,6 +91,7 @@ def _song_form_data(chords_filename=None):
         'lyrics_raw': (request.form.get('lyrics_raw') or '').strip() or None,
         'notes_permanent': (request.form.get('notes_permanent') or '').strip() or None,
         'sections': _parse_sections_form(),
+        'play_order': _parse_play_order_form(),
         'chords_filename': chords_filename,
     }
 

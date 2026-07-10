@@ -183,6 +183,8 @@ def create_tables(cursor):
     for col_sql in (
         "ALTER TABLE worship_setlists ADD COLUMN public_token VARCHAR(48) NULL",
         "ALTER TABLE worship_setlists ADD COLUMN service_confirmed_at TIMESTAMP NULL",
+        # Default prompter order for a song (section ids, may repeat e.g. chorus twice)
+        "ALTER TABLE worship_songs ADD COLUMN play_order_json LONGTEXT NULL",
     ):
         try:
             cursor.execute(col_sql)

@@ -26,6 +26,40 @@
   --transition: all 0.25s ease;
 }
 
+/* Multi-color pastoral top-bar / bottom-nav (icons readable, not all cyan) */
+.top-bar .user-info a.pn-btn {
+  border: 1px solid transparent !important;
+  font-weight: 600 !important;
+}
+
+.top-bar .user-info a.pn-dash { color: #5b9fd4 !important; border-color: rgba(91, 159, 212, 0.45) !important; background: rgba(91, 159, 212, 0.12) !important; }
+.top-bar .user-info a.pn-plan { color: #e0a84a !important; border-color: rgba(224, 168, 74, 0.45) !important; background: rgba(224, 168, 74, 0.12) !important; }
+.top-bar .user-info a.pn-sermons { color: #3dbf9a !important; border-color: rgba(61, 191, 154, 0.45) !important; background: rgba(61, 191, 154, 0.12) !important; }
+.top-bar .user-info a.pn-podium { color: #e07a5f !important; border-color: rgba(224, 122, 95, 0.5) !important; background: rgba(224, 122, 95, 0.16) !important; }
+.top-bar .user-info a.pn-care { color: #d47ab0 !important; border-color: rgba(212, 122, 176, 0.45) !important; background: rgba(212, 122, 176, 0.12) !important; }
+.top-bar .user-info a.pn-illustrations { color: #9b7de8 !important; border-color: rgba(155, 125, 232, 0.45) !important; background: rgba(155, 125, 232, 0.12) !important; }
+.top-bar .user-info a.pn-bible { color: #c9a227 !important; border-color: rgba(201, 162, 39, 0.45) !important; background: rgba(201, 162, 39, 0.14) !important; }
+.top-bar .user-info a.pn-upload { color: #5eb8c9 !important; border-color: rgba(94, 184, 201, 0.45) !important; background: rgba(94, 184, 201, 0.12) !important; }
+.top-bar .user-info a.pn-main { color: #a0a8b8 !important; border-color: rgba(160, 168, 184, 0.4) !important; background: rgba(160, 168, 184, 0.1) !important; }
+
+.bottom-nav a.pn-dash.active,
+.bottom-nav a.pn-dash:hover { color: #5b9fd4 !important; }
+.bottom-nav a.pn-plan.active,
+.bottom-nav a.pn-plan:hover { color: #e0a84a !important; }
+.bottom-nav a.pn-sermons.active,
+.bottom-nav a.pn-sermons:hover { color: #3dbf9a !important; }
+.bottom-nav a.pn-podium.active,
+.bottom-nav a.pn-podium:hover { color: #e07a5f !important; }
+.bottom-nav a.pn-care.active,
+.bottom-nav a.pn-care:hover { color: #d47ab0 !important; }
+.bottom-nav a.pn-illustrations.active,
+.bottom-nav a.pn-illustrations:hover { color: #9b7de8 !important; }
+
+/* Soft-light theme: pastoral still dark shell — keep icons bright */
+html[data-theme="soft-light"] .top-bar .user-info a.pn-btn {
+  color: inherit;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

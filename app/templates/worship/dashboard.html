@@ -50,23 +50,29 @@
 </div>
 {% endif %}
 
-<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.6rem; margin-bottom:1.25rem;">
-  <a href="{{ url_for('worship.templates_list') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
-    <div style="font-size:1.5rem;"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></div><div style="font-weight:600;">Weekly Defaults</div>
+<div class="worship-tile-grid">
+  <a href="{{ url_for('worship.templates_list') }}" class="glass-panel worship-tile worship-tile-templates">
+    <div class="tile-icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></div>
+    <div class="tile-label">Weekly Defaults</div>
   </a>
-  <a href="{{ url_for('worship.setlists_list') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
-    <div style="font-size:1.5rem;"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div><div style="font-weight:600;">Date Overrides</div>
+  <a href="{{ url_for('worship.setlists_list') }}" class="glass-panel worship-tile worship-tile-setlists">
+    <div class="tile-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>
+    <div class="tile-label">Date Overrides</div>
   </a>
-  <a href="{{ url_for('worship.songs_list') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
-    <div style="font-size:1.5rem;"><i class="fa-solid fa-music" aria-hidden="true"></i></div><div style="font-weight:600;">Song Library</div>
+  <a href="{{ url_for('worship.songs_list') }}" class="glass-panel worship-tile worship-tile-songs">
+    <div class="tile-icon"><i class="fa-solid fa-music" aria-hidden="true"></i></div>
+    <div class="tile-label">Song Library</div>
   </a>
-  <a href="{{ url_for('worship.history') }}" class="glass-panel" style="padding:0.85rem; text-decoration:none; text-align:center;">
-    <div style="font-size:1.5rem;"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div><div style="font-weight:600;">Play History</div>
+  <a href="{{ url_for('worship.history') }}" class="glass-panel worship-tile worship-tile-history">
+    <div class="tile-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
+    <div class="tile-label">Play History</div>
   </a>
 </div>
 
-<div class="glass-panel" style="padding:1rem; margin-bottom:1rem; font-size:0.88rem; opacity:0.85;">
-  <strong>How verses &amp; choruses work:</strong> Paste lyrics with lines like <code>[Verse 1]</code> or <code>(Chorus)</code>, import JSON with a <code>sections</code> array, or use bulk import. The prompter shows one section per slide in set order. <code>arrangement_json</code> on each setlist song can limit which sections play.
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem; font-size:0.88rem; opacity:0.9;">
+  <strong>Song sections:</strong> Open a song and add Intro / Verse / Chorus parts (like sermon sections).
+  Then set the <strong>play order</strong> — e.g. Intro, Chorus, Verse 1, Chorus, Verse 2 — so the prompter follows the arrangement.
+  You can still paste full lyrics with <code>[Verse 1]</code> markers if you prefer.
 </div>
 
 {% if play_stats %}

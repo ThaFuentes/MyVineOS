@@ -103,7 +103,8 @@ def get_template_songs(template_id: int):
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
         SELECT ts.*, s.title, s.artist, s.ccli_song_number, s.copyright_line,
-               s.publisher, s.copyright_year, s.sections_json, s.lyrics_raw, s.notes_permanent
+               s.publisher, s.copyright_year, s.sections_json, s.play_order_json,
+               s.lyrics_raw, s.notes_permanent
         FROM worship_weekly_template_songs ts
         JOIN worship_songs s ON s.id = ts.song_id
         WHERE ts.template_id = %s ORDER BY ts.sort_order, ts.id
@@ -151,15 +152,25 @@ def update_template(template_id: int, data: dict, user_id: int):
 def add_song_to_template(template_id: int, song_id: int, sort_order: int = 99):
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
-    cur.execute("SELECT sections_json FROM worship_songs WHERE id = %s", (song_id,))
+    from app.models.worship.sections import (
+        default_play_order_from_sections,
+        parse_play_order,
+    )
+
+    cur.execute(
+        "SELECT sections_json, play_order_json FROM worship_songs WHERE id = %s",
+        (song_id,),
+    )
     song = cur.fetchone()
     arrangement = []
     if song:
-        try:
-            secs = json.loads(song.get('sections_json') or '[]')
-            arrangement = [s.get('id') for s in sorted(secs, key=lambda x: x.get('sort', 0)) if s.get('id')]
-        except json.JSONDecodeError:
-            pass
+        arrangement = parse_play_order(song.get('play_order_json'))
+        if not arrangement:
+            try:
+                secs = json.loads(song.get('sections_json') or '[]')
+            except json.JSONDecodeError:
+                secs = []
+            arrangement = default_play_order_from_sections(secs)
     cur.execute("""
         INSERT INTO worship_weekly_template_songs (template_id, song_id, sort_order, arrangement_json)
         VALUES (%s, %s, %s, %s)
