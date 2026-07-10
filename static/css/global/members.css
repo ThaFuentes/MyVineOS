@@ -1,12 +1,12 @@
-/* Members module - polished form & list controls
-   Keeps the dark-blue look, more professional desktop typography.
-   Mobile sizes stay compact (base rules); desktop gets roomier type.
+/* Members module — professional multi-color accents + neutral form fields.
+   Forms: charcoal/slate (not blue). Stats/filters/actions: distinct colors.
+   Desktop: slightly larger type; mobile stays compact.
 */
 
-/* ---------- Inputs / selects (members pages) ---------- */
+/* ---------- Neutral form fields (charcoal, not navy-blue) ---------- */
 .page-content .styled-form .form-group label,
 .page-content .styled-form .control-label {
-  color: #9fd9ff;
+  color: #c8d0dc;
   font-weight: 600;
   letter-spacing: 0.01em;
   margin-bottom: 0.45rem;
@@ -24,15 +24,15 @@
 .page-content textarea.form-control-dark {
   width: 100%;
   box-sizing: border-box;
-  background: linear-gradient(180deg, #152238 0%, #101a2c 100%);
-  border: 1px solid rgba(120, 170, 220, 0.32);
+  background: linear-gradient(180deg, #1c1f26 0%, #161920 100%);
+  border: 1px solid rgba(160, 170, 185, 0.28);
   border-radius: 10px;
-  color: #eef4fb;
+  color: #eef1f5;
   font-size: 1rem;
   line-height: 1.45;
   padding: 0.7rem 0.95rem;
   min-height: 44px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   -webkit-appearance: none;
   appearance: none;
@@ -41,9 +41,9 @@
 .page-content .styled-form .form-group select,
 .page-content select.form-control-dark {
   background-image:
-    linear-gradient(45deg, transparent 50%, #8eb8e0 50%),
-    linear-gradient(135deg, #8eb8e0 50%, transparent 50%),
-    linear-gradient(180deg, #152238 0%, #101a2c 100%);
+    linear-gradient(45deg, transparent 50%, #9aa3b2 50%),
+    linear-gradient(135deg, #9aa3b2 50%, transparent 50%),
+    linear-gradient(180deg, #1c1f26 0%, #161920 100%);
   background-position:
     calc(100% - 16px) calc(50% - 3px),
     calc(100% - 11px) calc(50% - 3px),
@@ -56,7 +56,7 @@
 .page-content .styled-form .form-group input::placeholder,
 .page-content .search-input::placeholder,
 .page-content .form-control-dark::placeholder {
-  color: #8a9bb0;
+  color: #8b93a3;
   opacity: 1;
 }
 
@@ -65,7 +65,7 @@
 .page-content .styled-form .form-group textarea:hover,
 .page-content .search-input:hover,
 .page-content .form-control-dark:hover {
-  border-color: rgba(140, 190, 235, 0.48);
+  border-color: rgba(180, 190, 205, 0.42);
 }
 
 .page-content .styled-form .form-group input:focus,
@@ -74,39 +74,36 @@
 .page-content .search-input:focus,
 .page-content .form-control-dark:focus {
   outline: none;
-  border-color: rgba(100, 200, 255, 0.75);
+  border-color: rgba(120, 190, 170, 0.7);
   box-shadow:
-    0 0 0 3px rgba(70, 150, 220, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  background: linear-gradient(180deg, #172a42 0%, #122033 100%);
+    0 0 0 3px rgba(80, 160, 140, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, #1e222a 0%, #181b22 100%);
 }
 
-/* Select option list (where browser allows) */
 .page-content .styled-form select option,
 .page-content select.form-control-dark option {
-  background: #132033;
-  color: #eef4fb;
+  background: #1a1d24;
+  color: #eef1f5;
 }
 
-/* Checkbox row polish */
 .page-content .checkbox-group label,
 .page-content .form-check label {
-  color: #d5e4f2;
+  color: #d5dbe5;
   font-size: 0.95rem;
   font-weight: 500;
 }
 
 .page-content .help-text {
-  color: #8fa3b8;
+  color: #8f98a8;
   font-size: 0.88rem;
 }
 
-/* Search bar on members directory */
 .page-content .search-controls .search-input {
   max-width: 420px;
 }
 
-/* Tables a bit more readable on members pages */
+/* ---------- Tables ---------- */
 .page-content .data-table {
   font-size: 0.95rem;
 }
@@ -114,16 +111,255 @@
 .page-content .data-table th {
   font-size: 0.88rem;
   letter-spacing: 0.02em;
-  color: #9fd0ef;
+  color: #b0bac8;
   font-weight: 600;
 }
 
 .page-content .data-table td {
-  color: #e4edf7;
+  color: #e6eaf0;
   vertical-align: middle;
 }
 
-/* Desktop: larger type, more breathing room */
+/* ---------- Directory stat cards (each a different professional color) ---------- */
+.members-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.55rem;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+  border-radius: 12px;
+  background: rgba(20, 22, 28, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 3px solid var(--stat-accent, #8a94a6);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.stat-card .stat-value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--stat-accent, #c5cdd8);
+}
+
+.stat-card .stat-label {
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+  opacity: 0.78;
+  color: #c8d0dc;
+  letter-spacing: 0.02em;
+}
+
+/* Distinct palette — muted professional, not neon */
+.stat-card-total {
+  --stat-accent: #8b9bb5; /* cool slate */
+}
+
+.stat-card-members {
+  --stat-accent: #3dbf9a; /* teal */
+}
+
+.stat-card-staff {
+  --stat-accent: #e0a84a; /* amber */
+}
+
+.stat-card-admins {
+  --stat-accent: #9b7de8; /* violet */
+}
+
+.stat-card-owners {
+  --stat-accent: #d4a84b; /* gold */
+}
+
+.stat-card-families {
+  --stat-accent: #5cbf7a; /* green */
+}
+
+/* ---------- Action buttons (varied, not all cyan) ---------- */
+.members-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+}
+
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.98rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+  color: #0f1218;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+.btn-accent:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btn-accent-teal {
+  background: linear-gradient(180deg, #45c9a4 0%, #2fa884 100%);
+  box-shadow: 0 2px 10px rgba(47, 168, 132, 0.28);
+}
+
+.btn-accent-slate {
+  background: linear-gradient(180deg, #7a879c 0%, #5f6b7e 100%);
+  color: #f4f6f9;
+  box-shadow: 0 2px 10px rgba(80, 90, 110, 0.28);
+}
+
+.btn-accent-violet {
+  background: linear-gradient(180deg, #a78bf0 0%, #8666d8 100%);
+  color: #f8f6ff;
+  box-shadow: 0 2px 10px rgba(134, 102, 216, 0.28);
+}
+
+.btn-accent-amber {
+  background: linear-gradient(180deg, #e8b45a 0%, #c9942e 100%);
+  box-shadow: 0 2px 10px rgba(201, 148, 46, 0.28);
+}
+
+/* Row action: edit uses teal, not site-wide cyan primary */
+.page-content .actions-buttons .btn-edit {
+  background: linear-gradient(180deg, #45c9a4 0%, #2fa884 100%) !important;
+  border-color: transparent !important;
+  color: #0f1218 !important;
+  box-shadow: none !important;
+}
+
+.page-content .actions-buttons .btn-verify {
+  background: rgba(224, 168, 74, 0.18) !important;
+  border: 1px solid rgba(224, 168, 74, 0.45) !important;
+  color: #f0c878 !important;
+}
+
+/* ---------- Role filter pills (each role its own color when active) ---------- */
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.filter-btn {
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #c8d0dc !important;
+  font-weight: 600;
+  box-shadow: none !important;
+}
+
+.filter-btn.is-active,
+.filter-btn.filter-all.is-active {
+  background: rgba(139, 155, 181, 0.28) !important;
+  border-color: rgba(139, 155, 181, 0.55) !important;
+  color: #dce4f0 !important;
+}
+
+.filter-btn.filter-member.is-active {
+  background: rgba(61, 191, 154, 0.22) !important;
+  border-color: rgba(61, 191, 154, 0.55) !important;
+  color: #7eebc8 !important;
+}
+
+.filter-btn.filter-staff.is-active {
+  background: rgba(224, 168, 74, 0.22) !important;
+  border-color: rgba(224, 168, 74, 0.55) !important;
+  color: #f0c878 !important;
+}
+
+.filter-btn.filter-admin.is-active {
+  background: rgba(155, 125, 232, 0.22) !important;
+  border-color: rgba(155, 125, 232, 0.55) !important;
+  color: #cbb6ff !important;
+}
+
+.filter-btn.filter-owner.is-active {
+  background: rgba(212, 168, 75, 0.22) !important;
+  border-color: rgba(212, 168, 75, 0.55) !important;
+  color: #f0d080 !important;
+}
+
+/* Role chips in the table */
+.role-chip {
+  display: inline-block;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.role-chip-member {
+  background: rgba(61, 191, 154, 0.15);
+  border-color: rgba(61, 191, 154, 0.35);
+  color: #6edcb8;
+}
+
+.role-chip-staff {
+  background: rgba(224, 168, 74, 0.15);
+  border-color: rgba(224, 168, 74, 0.35);
+  color: #e8bf6a;
+}
+
+.role-chip-admin {
+  background: rgba(155, 125, 232, 0.15);
+  border-color: rgba(155, 125, 232, 0.35);
+  color: #b9a0f0;
+}
+
+.role-chip-owner {
+  background: rgba(212, 168, 75, 0.18);
+  border-color: rgba(212, 168, 75, 0.4);
+  color: #e8c56a;
+}
+
+/* ---------- Members sub-nav (neutral inactive, soft active) ---------- */
+.members-subnav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background: rgba(22, 24, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.members-subnav a {
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #e8edf4);
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.members-subnav a:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.members-subnav a.is-active {
+  background: rgba(61, 191, 154, 0.2);
+  border-color: rgba(61, 191, 154, 0.4);
+  color: #8eebc8;
+  font-weight: 600;
+}
+
+/* ---------- Desktop type ---------- */
 @media (min-width: 900px) {
   .page-content .styled-form {
     max-width: 760px;
@@ -186,13 +422,21 @@
 
   .page-content .btn-primary,
   .page-content .btn-secondary,
-  .page-content .btn-danger {
+  .page-content .btn-danger,
+  .page-content .btn-accent {
     font-size: 1rem;
     padding: 0.65rem 1.15rem;
   }
+
+  .stat-card .stat-value {
+    font-size: 1.7rem;
+  }
+
+  .stat-card .stat-label {
+    font-size: 0.82rem;
+  }
 }
 
-/* Keep mobile compact (do not force large desktop sizes) */
 @media (max-width: 899px) {
   .page-content .styled-form .form-group input,
   .page-content .styled-form .form-group select,

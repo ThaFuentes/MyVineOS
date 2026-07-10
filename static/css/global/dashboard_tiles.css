@@ -1,0 +1,80 @@
+/* Private dashboard quick tiles — multi-color professional accents */
+
+.dash-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+}
+
+.dash-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  text-decoration: none;
+  min-height: 54px;
+  border-left: 3px solid var(--tile-accent, #8b9bb5);
+  transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dash-tile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+
+.dash-tile-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--tile-accent, #8b9bb5);
+  flex-shrink: 0;
+}
+
+.dash-tile-label {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #e8edf4;
+}
+
+/* Distinct accents — muted professional palette */
+.dash-tile-community { --tile-accent: #5b9fd4; }   /* soft blue */
+.dash-tile-bible     { --tile-accent: #c9a227; }   /* warm gold */
+.dash-tile-legal     { --tile-accent: #8b9bb5; }   /* slate */
+.dash-tile-members   { --tile-accent: #3dbf9a; }   /* teal */
+.dash-tile-donations { --tile-accent: #5cbf7a; }   /* green */
+.dash-tile-bills     { --tile-accent: #e0a84a; }   /* amber */
+.dash-tile-inventory { --tile-accent: #6a9fd8; }   /* steel blue */
+.dash-tile-tickets   { --tile-accent: #e07a5f; }   /* coral */
+.dash-tile-profile   { --tile-accent: #9b7de8; }   /* violet */
+.dash-tile-help      { --tile-accent: #5eb8c9; }   /* cyan-teal */
+.dash-tile-gathering { --tile-accent: #d47ab0; }   /* rose */
+.dash-tile-worship   { --tile-accent: #b48cff; }   /* purple */
+.dash-tile-settings  { --tile-accent: #a0a8b8; }   /* neutral gray */
+
+/* Content feed cards — subtle different top accents */
+.dash-feed-card {
+  border-top: 3px solid var(--feed-accent, rgba(255, 255, 255, 0.12));
+}
+
+.dash-feed-birthdays    { --feed-accent: #e0a84a; }
+.dash-feed-prayers      { --feed-accent: #9b7de8; }
+.dash-feed-dreams       { --feed-accent: #5b9fd4; }
+.dash-feed-prophecies   { --feed-accent: #c9a227; }
+.dash-feed-sermons      { --feed-accent: #3dbf9a; }
+.dash-feed-announcements{ --feed-accent: #e07a5f; }
+.dash-feed-events       { --feed-accent: #5cbf7a; }
+
+@media (min-width: 900px) {
+  .dash-tile {
+    min-height: 58px;
+    padding: 0.75rem 0.9rem;
+  }
+
+  .dash-tile-label {
+    font-size: 0.98rem;
+  }
+
+  .dash-tile-icon {
+    font-size: 1.45rem;
+  }
+}

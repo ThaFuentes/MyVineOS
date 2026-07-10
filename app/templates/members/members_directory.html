@@ -19,49 +19,49 @@ Granted permissions control who can view, edit, or fully manage accounts.
 
 {% block members_content %}
 
-<!-- App-style stats (glass panels in responsive grid, phone friendly) -->
+<!-- Directory stats — each card a different professional accent color -->
 <div style="margin-bottom:0.75rem;">
   <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.35rem; letter-spacing:0.5px;">DIRECTORY STATS</div>
-  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:0.55rem;">
-    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
-      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ total_count }}</div>
-      <div style="font-size:0.75rem; opacity:0.7;">Total</div>
+  <div class="members-stats-grid">
+    <div class="stat-card stat-card-total">
+      <div class="stat-value">{{ total_count }}</div>
+      <div class="stat-label">Total</div>
     </div>
-    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
-      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ member_count }}</div>
-      <div style="font-size:0.75rem; opacity:0.7;">Members</div>
+    <div class="stat-card stat-card-members">
+      <div class="stat-value">{{ member_count }}</div>
+      <div class="stat-label">Members</div>
     </div>
-    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
-      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ staff_count }}</div>
-      <div style="font-size:0.75rem; opacity:0.7;">Staff</div>
+    <div class="stat-card stat-card-staff">
+      <div class="stat-value">{{ staff_count }}</div>
+      <div class="stat-label">Staff</div>
     </div>
-    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
-      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ admin_count }}</div>
-      <div style="font-size:0.75rem; opacity:0.7;">Admins</div>
+    <div class="stat-card stat-card-admins">
+      <div class="stat-value">{{ admin_count }}</div>
+      <div class="stat-label">Admins</div>
     </div>
     {% if owner_count > 0 or session.get('user_role') == 'Owner' %}
-    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
-      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ owner_count }}</div>
-      <div style="font-size:0.75rem; opacity:0.7;">Owners</div>
+    <div class="stat-card stat-card-owners">
+      <div class="stat-value">{{ owner_count }}</div>
+      <div class="stat-label">Owners</div>
     </div>
     {% endif %}
-    <div class="glass-panel" style="text-align:center; padding:0.65rem 0.5rem;">
-      <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">{{ families_linked }}</div>
-      <div style="font-size:0.75rem; opacity:0.7;">Families</div>
+    <div class="stat-card stat-card-families">
+      <div class="stat-value">{{ families_linked }}</div>
+      <div class="stat-label">Families</div>
     </div>
   </div>
 </div>
 
-<!-- Top action buttons -->
+<!-- Top actions — teal / slate / violet (not all cyan) -->
 {% if can_manage_users %}
-<div class="form-actions add-event-top" style="justify-content:center; gap:1.5rem; flex-wrap:wrap; margin:2rem 0;">
-    <a href="{{ url_for('members.add_member') }}" class="btn-primary">+ Add New Member</a>
-    <a href="{{ url_for('members.export_directory') }}" class="btn-primary">Export to DOCX</a>
-    <a href="{{ url_for('members.email_roster') }}" class="btn-primary">Member Emails</a>
+<div class="members-actions">
+    <a href="{{ url_for('members.add_member') }}" class="btn-accent btn-accent-teal">+ Add New Member</a>
+    <a href="{{ url_for('members.export_directory') }}" class="btn-accent btn-accent-slate">Export to DOCX</a>
+    <a href="{{ url_for('members.email_roster') }}" class="btn-accent btn-accent-violet">Member Emails</a>
 </div>
 {% endif %}
 
-<!-- Search & Filters (app-like section) -->
+<!-- Search & Filters -->
 <div style="margin-bottom:0.5rem;">
   <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.35rem; letter-spacing:0.5px;">ALL MEMBERS</div>
 
@@ -78,12 +78,12 @@ Granted permissions control who can view, edit, or fully manage accounts.
             <div class="form-group filter-group">
                 <label class="control-label">Role Filter</label>
                 <div class="filter-buttons">
-                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
-                    <button data-filter="Member" class="btn btn-small filter-btn btn-secondary">Members</button>
-                    <button data-filter="Staff" class="btn btn-small filter-btn btn-secondary">Staff</button>
-                    <button data-filter="Admin" class="btn btn-small filter-btn btn-secondary">Admins</button>
+                    <button type="button" data-filter="all" class="btn btn-small filter-btn filter-all is-active">All</button>
+                    <button type="button" data-filter="Member" class="btn btn-small filter-btn filter-member">Members</button>
+                    <button type="button" data-filter="Staff" class="btn btn-small filter-btn filter-staff">Staff</button>
+                    <button type="button" data-filter="Admin" class="btn btn-small filter-btn filter-admin">Admins</button>
                     {% if session.get('user_role') == 'Owner' %}
-                    <button data-filter="Owner" class="btn btn-small filter-btn btn-secondary">Owners</button>
+                    <button type="button" data-filter="Owner" class="btn btn-small filter-btn filter-owner">Owners</button>
                     {% endif %}
                 </div>
             </div>
@@ -113,7 +113,7 @@ Granted permissions control who can view, edit, or fully manage accounts.
                         <td>{{ member.email }}</td>
                         <td>{{ member.phone or '-' }}</td>
                         <td>
-                            {{ member.role }}
+                            <span class="role-chip role-chip-{{ member.role|lower }}">{{ member.role }}</span>
                             {% if not member.email_verified %}
                             <span title="Email not verified" style="margin-left:0.35rem; padding:0.1rem 0.4rem; border-radius:999px; background:#ff9944; color:#000; font-size:0.75rem;">Unverified</span>
                             {% endif %}
@@ -125,8 +125,8 @@ Granted permissions control who can view, edit, or fully manage accounts.
                         <td class="actions-cell" onclick="event.stopPropagation();">
                             <div class="actions-buttons" style="display:flex; gap:0.4rem; justify-content:flex-end; flex-wrap:wrap; align-items:center;">
                                 <a href="{{ url_for('members.add_member', member_id=member.id) }}"
-                                   class="btn-primary btn-small"
-                                   style="padding:0.45rem 0.8rem; font-size:0.9rem; min-width:60px; text-align:center;">
+                                   class="btn-small btn-edit"
+                                   style="padding:0.45rem 0.8rem; font-size:0.9rem; min-width:60px; text-align:center; border-radius:8px; text-decoration:none; font-weight:600;">
                                     Edit
                                 </a>
                                 {# Owner: any unverified account. Admin: unverified non-Admin/Owner. #}
@@ -136,8 +136,8 @@ Granted permissions control who can view, edit, or fully manage accounts.
                                 <form action="{{ url_for('members.member_admin_action', member_id=member.id) }}" method="post" class="inline-form" style="margin:0;">
                                     {% include 'partials/csrf_field.html' %}
                                     <input type="hidden" name="action" value="resend_verification">
-                                    <button type="submit" class="btn-secondary btn-small"
-                                            style="padding:0.45rem 0.6rem; font-size:0.8rem;"
+                                    <button type="submit" class="btn-small btn-verify"
+                                            style="padding:0.45rem 0.6rem; font-size:0.8rem; border-radius:8px; cursor:pointer;"
                                             title="Send a new verification email to {{ member.email }}"
                                             onclick="return confirm('Resend verification email to {{ member.email }}?');">
                                         Resend verify
@@ -147,8 +147,8 @@ Granted permissions control who can view, edit, or fully manage accounts.
                                 <form action="{{ url_for('members.member_admin_action', member_id=member.id) }}" method="post" class="inline-form" style="margin:0;">
                                     {% include 'partials/csrf_field.html' %}
                                     <input type="hidden" name="action" value="mark_email_verified">
-                                    <button type="submit" class="btn-secondary btn-small"
-                                            style="padding:0.45rem 0.6rem; font-size:0.8rem;"
+                                    <button type="submit" class="btn-small btn-verify"
+                                            style="padding:0.45rem 0.6rem; font-size:0.8rem; border-radius:8px; cursor:pointer;"
                                             title="Unblock login without waiting for email"
                                             onclick="return confirm('Mark email verified for {{ member.username }}?');">
                                         Mark verified
@@ -242,8 +242,7 @@ Granted permissions control who can view, edit, or fully manage accounts.
 
     function highlightFilters() {
       filterButtons.forEach(btn => {
-        btn.classList.toggle('btn-primary', btn.dataset.filter === roleFilter);
-        btn.classList.toggle('btn-secondary', btn.dataset.filter !== roleFilter);
+        btn.classList.toggle('is-active', btn.dataset.filter === roleFilter);
       });
     }
 

@@ -13,105 +13,109 @@
 
 {% block title %}Private Dashboard{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/dashboard_tiles.css') }}?v=20260710">
+{% endblock %}
+
 {% block content %}
 <!-- App-style home screen header -->
 <div style="margin-bottom:0.35rem;">
   <div style="font-size:0.8rem; opacity:0.6; letter-spacing:0.5px;">WELCOME BACK</div>
-  <h1 style="margin:0.1rem 0 0.6rem; font-size:1.55rem; color:var(--primary);">{{ session.username|default('Member') }}</h1>
+  <h1 style="margin:0.1rem 0 0.6rem; font-size:1.55rem; color:#e8edf4;">{{ session.username|default('Member') }}</h1>
 </div>
 
 {% if can_manage_users() and pending_registration_count > 0 %}
 <div class="glass-panel" style="margin-bottom:0.85rem; padding:0.85rem 1rem; border:1px solid rgba(255,200,80,0.35);">
   <strong>{{ pending_registration_count }} pending registration{{ 's' if pending_registration_count != 1 else '' }}</strong> awaiting review.
-  <a href="{{ url_for('members.pending_registrations') }}" style="margin-left:0.5rem; color:var(--primary);">Review now -></a>
+  <a href="{{ url_for('members.pending_registrations') }}" style="margin-left:0.5rem; color:#e0a84a;">Review now -></a>
 </div>
 {% endif %}
 
 {% if session.get('user_role') in ['Admin', 'Owner'] %}
 <div class="glass-panel" style="margin-bottom:0.85rem; padding:0.65rem 1rem; font-size:0.88rem;">
-  <a href="{{ url_for('settings.notifications') }}" style="color:var(--primary);">Settings -> Notifications</a>
+  <a href="{{ url_for('settings.notifications') }}" style="color:#8b9bb5;">Settings -> Notifications</a>
   - registration, verification, receipts, bill reminders
 </div>
 {% endif %}
 
-<!-- Quick app tiles (phone app home screen feel - all major functions accessible) -->
-<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.6rem; margin-bottom:0.9rem;">
-  <a href="{{ url_for('events.events') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Community</span>
+<!-- Quick app tiles — each module a distinct professional accent (not monochrome cyan) -->
+<div class="dash-tile-grid">
+  <a href="{{ url_for('events.events') }}" class="glass-panel dash-tile dash-tile-community">
+    <span class="dash-tile-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Community</span>
   </a>
-  <a href="{{ url_for('bible.member_study') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-book-bible" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Bible</span>
+  <a href="{{ url_for('bible.member_study') }}" class="glass-panel dash-tile dash-tile-bible">
+    <span class="dash-tile-icon"><i class="fa-solid fa-book-bible" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Bible</span>
   </a>
-  <a href="{{ url_for('legal.legal_index') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Legal</span>
+  <a href="{{ url_for('legal.legal_index') }}" class="glass-panel dash-tile dash-tile-legal">
+    <span class="dash-tile-icon"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Legal</span>
   </a>
   {% if can_view_members() %}
-  <a href="{{ url_for('members.members_directory') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-address-book" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Members</span>
+  <a href="{{ url_for('members.members_directory') }}" class="glass-panel dash-tile dash-tile-members">
+    <span class="dash-tile-icon"><i class="fa-solid fa-address-book" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Members</span>
   </a>
   {% endif %}
   {% if can_view_donations() %}
-  <a href="{{ url_for('donations.donations_dashboard') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-hand-holding-dollar" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Donations</span>
+  <a href="{{ url_for('donations.donations_dashboard') }}" class="glass-panel dash-tile dash-tile-donations">
+    <span class="dash-tile-icon"><i class="fa-solid fa-hand-holding-dollar" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Donations</span>
   </a>
   {% endif %}
-  <a href="{{ url_for('bills.bills') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Bills</span>
+  <a href="{{ url_for('bills.bills') }}" class="glass-panel dash-tile dash-tile-bills">
+    <span class="dash-tile-icon"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Bills</span>
   </a>
   {% if can_manage_inventory() %}
-  <a href="{{ url_for('inventory.inventory_dashboard') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Inventory</span>
+  <a href="{{ url_for('inventory.inventory_dashboard') }}" class="glass-panel dash-tile dash-tile-inventory">
+    <span class="dash-tile-icon"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Inventory</span>
   </a>
   {% endif %}
-  <a href="{{ url_for('support_tickets.dashboard') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-ticket" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Tickets</span>
+  <a href="{{ url_for('support_tickets.dashboard') }}" class="glass-panel dash-tile dash-tile-tickets">
+    <span class="dash-tile-icon"><i class="fa-solid fa-ticket" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Tickets</span>
   </a>
-  <a href="{{ url_for('profile.profile') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">My Stuff</span>
+  <a href="{{ url_for('profile.profile') }}" class="glass-panel dash-tile dash-tile-profile">
+    <span class="dash-tile-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">My Stuff</span>
   </a>
-  <a href="{{ url_for('help.help_index') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-circle-question" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Help</span>
+  <a href="{{ url_for('help.help_index') }}" class="glass-panel dash-tile dash-tile-help">
+    <span class="dash-tile-icon"><i class="fa-solid fa-circle-question" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Help</span>
   </a>
   {% if can_access_gathering_place %}
-  <a href="{{ url_for('the_gathering.index') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Gathering Place</span>
+  <a href="{{ url_for('the_gathering.index') }}" class="glass-panel dash-tile dash-tile-gathering">
+    <span class="dash-tile-icon"><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Gathering Place</span>
   </a>
   {% endif %}
   {% if can_access_worship %}
-  <a href="{{ url_for('worship.dashboard') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-music" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Worship Team</span>
+  <a href="{{ url_for('worship.dashboard') }}" class="glass-panel dash-tile dash-tile-worship">
+    <span class="dash-tile-icon"><i class="fa-solid fa-music" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Worship Team</span>
   </a>
   {% endif %}
   {% for cm in dashboard_custom_modules or [] %}
   <a href="{{ url_for('custom_modules.module_list', slug=cm.slug) }}"
-     class="glass-panel cm-dash-tile cm-theme-{{ cm.theme|default('ocean') }}"
-     style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px; border-left:3px solid {{ cm.theme_config.accent|default('var(--primary)') }};">
-    <span style="font-size:1.4rem;">{{ cm.type_icon|default('<i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>')|safe }}</span>
-    <span style="font-weight:600; font-size:0.9rem;">{{ cm.name }}</span>
+     class="glass-panel dash-tile cm-dash-tile cm-theme-{{ cm.theme|default('ocean') }}"
+     style="border-left-color: {{ cm.theme_config.accent|default('#8b9bb5') }};">
+    <span class="dash-tile-icon" style="color: {{ cm.theme_config.accent|default('#8b9bb5') }};">{{ cm.type_icon|default('<i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>')|safe }}</span>
+    <span class="dash-tile-label">{{ cm.name }}</span>
   </a>
   {% endfor %}
-  <a href="{{ url_for('settings.general') }}" class="glass-panel" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.7rem; text-decoration:none; min-height:52px;">
-    <span style="font-size:1.4rem;"><i class="fa-solid fa-gear" aria-hidden="true"></i></span>
-    <span style="font-weight:600; font-size:0.9rem;">Settings</span>
+  <a href="{{ url_for('settings.general') }}" class="glass-panel dash-tile dash-tile-settings">
+    <span class="dash-tile-icon"><i class="fa-solid fa-gear" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Settings</span>
   </a>
 </div>
 
 <!-- Overhauled dashboard: responsive grid of cards, good spacing for phone, uses overhaul patterns -->
 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.85rem;">
     <!-- Today's Birthdays -->
-    <div class="glass-panel">
+    <div class="glass-panel dash-feed-card dash-feed-birthdays">
         <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Today's Birthdays</h3>
         {% if birthdays %}
             <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
@@ -125,7 +129,7 @@
     </div>
 
     <!-- Recent Prayers -->
-    <div class="glass-panel">
+    <div class="glass-panel dash-feed-card dash-feed-prayers">
         <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Prayers</h3>
         {% if prayers %}
             <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
@@ -143,7 +147,7 @@
     </div>
 
     <!-- Recent Dreams & Visions -->
-    <div class="glass-panel">
+    <div class="glass-panel dash-feed-card dash-feed-dreams">
         <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Dreams &amp; Visions</h3>
         {% if dreams %}
             <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
@@ -161,7 +165,7 @@
     </div>
 
     <!-- Recent Prophecies -->
-    <div class="glass-panel">
+    <div class="glass-panel dash-feed-card dash-feed-prophecies">
         <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Prophecies</h3>
         {% if prophecies %}
             <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
@@ -179,7 +183,7 @@
     </div>
 
     <!-- Recent Sermons -->
-    <div class="glass-panel">
+    <div class="glass-panel dash-feed-card dash-feed-sermons">
         <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Sermons</h3>
         {% if sermons %}
             <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
@@ -197,7 +201,7 @@
     </div>
 
     <!-- Recent Announcements -->
-    <div class="glass-panel">
+    <div class="glass-panel dash-feed-card dash-feed-announcements">
         <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Announcements</h3>
         {% if announcements %}
             <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
@@ -215,7 +219,7 @@
     </div>
 
     <!-- Upcoming Events -->
-    <div class="glass-panel">
+    <div class="glass-panel dash-feed-card dash-feed-events">
         <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Upcoming Events</h3>
         {% if events %}
             <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">

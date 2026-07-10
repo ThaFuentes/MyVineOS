@@ -8,7 +8,7 @@
 {% extends "base.html" %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/members.css') }}?v=20260710">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/members.css') }}?v=20260710b">
 {% endblock %}
 
 {% block content %}
@@ -27,29 +27,24 @@
 {% endwith %}
 
 <!-- Internal menu -->
-<div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+<div class="members-subnav">
     <a href="{{ url_for('members.members_directory') }}"
-       {% if request.endpoint == 'members.members_directory' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Members Dashboard</a>
+       class="{% if request.endpoint == 'members.members_directory' %}is-active{% endif %}">Members Dashboard</a>
 
     {% if can_manage_users %}
     <a href="{{ url_for('members.add_member') }}"
-       {% if request.endpoint == 'members.add_member' and request.view_args.get('member_id') is none %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Member</a>
+       class="{% if request.endpoint == 'members.add_member' and request.view_args.get('member_id') is none %}is-active{% endif %}">Add Member</a>
     {% endif %}
 
     {% if can_manage_users %}
     <a href="{{ url_for('members.pending_registrations') }}"
-       {% if request.endpoint == 'members.pending_registrations' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Pending Registrations</a>
+       class="{% if request.endpoint == 'members.pending_registrations' %}is-active{% endif %}">Pending Registrations</a>
     <a href="{{ url_for('members.email_roster') }}"
-       {% if request.endpoint == 'members.email_roster' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Member Emails</a>
+       class="{% if request.endpoint == 'members.email_roster' %}is-active{% endif %}">Member Emails</a>
     {% endif %}
 
     <a href="{{ url_for('legal.legal_index') }}"
-       {% if request.endpoint and request.endpoint.startswith('legal.') %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Legal & Policies</a>
+       class="{% if request.endpoint and request.endpoint.startswith('legal.') %}is-active{% endif %}">Legal & Policies</a>
 </div>
 
 {% block members_content %}{% endblock %}
