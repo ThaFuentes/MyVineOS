@@ -393,7 +393,7 @@ def create_app():
         wants_json = (
             request.headers.get('X-Requested-With') == 'XMLHttpRequest'
             or (request.accept_mimetypes.best and 'application/json' in request.accept_mimetypes.best)
-            or (request.path or '').rstrip('/').endswith('/profile/ui-preferences')
+            or (request.path or '').rstrip('/').endswith('/ui-preferences')
         )
         if wants_json:
             from flask import jsonify
@@ -402,7 +402,11 @@ def create_app():
                 'error': 'Security check failed. Reload the page and try again.',
             }), 403
         if not session.get('user_id') or (request.endpoint and request.endpoint.startswith('auth.')):
-            flash('Security check failed or access denied. Please reload the login page and try again.', 'error')
+            flash(
+                'Login was blocked by a security check (often a timed-out form on mobile). '
+                'Please wait a moment, reload this page, and try again.',
+                'error',
+            )
             return redirect(url_for('auth.login'))
         flash('Security check failed. Please reload the page and try again.', 'error')
         return redirect(request.referrer or url_for('dashboard.dashboard'))

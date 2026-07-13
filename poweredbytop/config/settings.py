@@ -60,15 +60,23 @@ TOKEN_LIFETIME_SECONDS = 3600
 HMAC_ALGORITHM = "sha256"
 
 # ====================== BOT / SCRAPER / HACKER PROTECTION ======================
-SUSPICIOUS_UA_KEYWORDS = ["bot", "crawler", "spider", "curl", "wget", "python-requests", "scrapy", "httpclient", "java", "php"]
+# Keep this tight — overly broad keywords (java/php/httpclient) false-positive on real browsers/WebViews.
+SUSPICIOUS_UA_KEYWORDS = ["bot", "crawler", "spider", "curl", "wget", "python-requests", "scrapy"]
 ALLOWED_COUNTRIES = []
 BLOCKED_COUNTRIES = []
 
 # ====================== SESSION & AUTH ======================
+# Cookie sessions are per-browser/device. Concurrent multi-device logins are supported
+# (phone + laptop + tablet). There is no single server-side "one session only" token.
 SESSION_COOKIE_NAME = "pbt_vetted_session"
-VETTED_SESSION_TTL = 86400
+VETTED_SESSION_TTL = 86400 * 14  # 14 days permanent session lifetime per device
 CSRF_PROTECTION = True
 SESSION_COOKIE_SECURE = os.getenv('REQUIRE_HTTPS', 'False').lower() in ('1', 'true', 'yes', 'TRUE') or os.getenv('FLASK_ENV') == 'production'  # Set True in prod HTTPS
+# Do NOT bind vetted/auth session validity to client IP. Mobile carriers, Wi‑Fi,
+# VPN, and multi-device use (home + phone LTE) all change IPs constantly.
+BIND_SESSION_TO_IP = os.getenv('PBT_BIND_SESSION_TO_IP', 'false').lower() in ('1', 'true', 'yes', 'TRUE')
+# Each device refreshes its own cookie lifetime independently while in use.
+SESSION_REFRESH_EACH_REQUEST = True
 
 # ====================== LOGGING ======================
 LOG_LEVEL = "INFO"

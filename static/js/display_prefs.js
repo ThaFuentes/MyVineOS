@@ -133,9 +133,14 @@
       });
 
       if (statusEl) {
-        statusEl.textContent = 'Saved to your account.';
+        const guest = panel.dataset.guest === '1';
+        const msg =
+          data.persisted === 'session' || guest
+            ? 'Saved for this device.'
+            : 'Saved to your account.';
+        statusEl.textContent = msg;
         setTimeout(() => {
-          if (statusEl.textContent === 'Saved to your account.') statusEl.textContent = '';
+          if (statusEl.textContent === msg) statusEl.textContent = '';
         }, 1800);
       }
     } catch (e) {

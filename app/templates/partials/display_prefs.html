@@ -1,7 +1,7 @@
-{# Shared Display control — theme + page/Bible font sizes (saved to account).
-   Expects user_theme, ui_font_scale, bible_font_scale in context (or uses session). #}
+{# Shared Display control — theme + page/Bible font sizes.
+   Works for visitors (session cookie) and members (session + account DB). #}
 {% set _theme = user_theme if user_theme is defined else (session.get('user_theme') or 'cyan-glow') %}
-{% if session.get('user_id') %}
+{% set _logged_in = session.get('user_id') is not none %}
 <div class="display-prefs" id="display-prefs">
   <button type="button"
           class="display-prefs-toggle"
@@ -16,10 +16,15 @@
        id="display-prefs-panel"
        role="dialog"
        aria-label="Display settings"
-       data-save-url="{{ url_for('profile.ui_preferences') }}"
-       data-csrf="{{ csrf_token() if csrf_token else '' }}">
+       data-save-url="{% if _logged_in %}{{ url_for('profile.ui_preferences') }}{% else %}{{ url_for('public.ui_preferences') }}{% endif %}"
+       data-csrf="{{ csrf_token() if csrf_token else '' }}"
+       data-guest="{% if _logged_in %}0{% else %}1{% endif %}">
     <h3><i class="fa-solid fa-palette" aria-hidden="true"></i> Display</h3>
+    {% if _logged_in %}
     <p class="pref-hint">Saved to your account. Same theme site-wide, including Pastoral.</p>
+    {% else %}
+    <p class="pref-hint">Saved on this device for your visit. Sign in to keep preferences on your account.</p>
+    {% endif %}
 
     <div class="pref-section">
       <span class="pref-label">Theme</span>
@@ -58,4 +63,3 @@
     <div class="pref-status" aria-live="polite"></div>
   </div>
 </div>
-{% endif %}

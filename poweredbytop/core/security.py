@@ -28,6 +28,7 @@ from poweredbytop.config.settings import (
     LOG_SECURITY_EVENTS,
     REQUIRE_HTTPS,
     CSRF_PROTECTION,
+    TOKEN_SECRET,
 )
 from poweredbytop.models.connect_db import get_security_db
 from poweredbytop.utils.helpers import get_real_ip, logger, is_internal_request, is_suspicious_user_agent
@@ -37,6 +38,11 @@ from poweredbytop.auth.session import is_vetted, is_locked_out, require_vetted, 
 from poweredbytop.reputation.scorer import get_reputation_score, record_bad_behavior, record_good_behavior
 import secrets
 import hashlib
+import hmac
+
+# Signed CSRF tokens remain valid this long even if the session cookie is dropped
+# (common on some mobile browsers / in-app WebViews between GET form and POST).
+CSRF_TOKEN_MAX_AGE_SECONDS = 2 * 60 * 60
 
 # ====================== EXACT DB LOGGING ======================
 def log_traffic(vetted: bool = False, status: str = "checking", score: int = 100):
@@ -107,23 +113,75 @@ def increment_attack_stat(stat_type: str):
         logger("ATTACK STAT FAILED: " + str(e))
 
 # ====================== CSRF PROTECTION ======================
+def _csrf_secret_bytes() -> bytes:
+    """Secret used to sign self-validating CSRF tokens (mobile-safe fallback)."""
+    try:
+        from flask import current_app
+        key = current_app.secret_key
+        if key:
+            return key if isinstance(key, bytes) else str(key).encode("utf-8")
+    except Exception:
+        pass
+    return str(TOKEN_SECRET or "pbt-csrf-fallback").encode("utf-8")
+
+
+def _sign_csrf_payload(raw: str, ts: str) -> str:
+    msg = f"{raw}:{ts}".encode("utf-8")
+    return hmac.new(_csrf_secret_bytes(), msg, hashlib.sha256).hexdigest()
+
+
 def get_csrf_token():
-    """Generate or return existing CSRF token for forms (call from templates via context)"""
-    if 'csrf_token' not in session:
-        session['csrf_token'] = secrets.token_hex(32)
-    return session['csrf_token']
+    """
+    Generate CSRF token for forms.
+    Returns a signed token (raw:timestamp:sig) so login/register still work when
+    mobile browsers drop the session cookie between GET and POST.
+    """
+    if not session.get("csrf_token"):
+        session["csrf_token"] = secrets.token_hex(32)
+    # Ensure the session cookie is written on the form-render response
+    session.permanent = True
+    session.modified = True
+    raw = session["csrf_token"]
+    ts = str(int(time.time()))
+    sig = _sign_csrf_payload(raw, ts)
+    return f"{raw}:{ts}:{sig}"
+
 
 def validate_csrf(token: str) -> bool:
-    """Validate submitted CSRF token"""
+    """Validate CSRF: session match OR self-validating signed token (mobile fallback)."""
     if not CSRF_PROTECTION:
         return True
     if not token:
         return False
-    expected = session.get('csrf_token')
-    if not expected:
-        return False
-    # Constant time compare to prevent timing attacks
-    return secrets.compare_digest(expected, token or '')
+
+    token = str(token).strip()
+    expected = session.get("csrf_token")
+
+    # Exact match against whatever we stored (legacy raw or prior signed value)
+    if expected and secrets.compare_digest(str(expected), token):
+        return True
+
+    parts = token.split(":")
+    if len(parts) == 3:
+        raw, ts, sig = parts
+        if not raw or not ts or not sig:
+            return False
+        try:
+            age = abs(time.time() - int(ts))
+        except (TypeError, ValueError):
+            return False
+        if age > CSRF_TOKEN_MAX_AGE_SECONDS:
+            return False
+        expected_sig = _sign_csrf_payload(raw, ts)
+        if not secrets.compare_digest(expected_sig, sig):
+            return False
+        # Signed token is cryptographically valid (works even if session cookie dropped).
+        return True
+
+    # Legacy: form posted raw session token only
+    if expected and secrets.compare_digest(str(expected), token):
+        return True
+    return False
 
 # ====================== FULL SECURITY PIPELINE ======================
 def run_full_security_pipeline():
@@ -138,21 +196,32 @@ def run_full_security_pipeline():
 
     path = request.path or ""
     action = (request.form.get("action") or "").lower()
-    is_public_guest_mutation = path.startswith("/public/") and action in ("comment", "reply", "potluck")
-
-    # Auth entrypoints (login/register/reset flows) must be reachable even before vetting, on http dev, or low-rep recovery
-    # (they perform their own auth checks + record_login_attempt inside the view; PBT still applies rate/UA/lock/CSRF to them)
-    is_auth_entry = bool(request.endpoint and str(request.endpoint).startswith('auth.'))
-    # Logged-in display prefs (theme/font) — allow over http in local DEBUG so themes actually save
-    is_ui_prefs = (
-        request.method == 'POST'
-        and path.rstrip('/').endswith('/profile/ui-preferences')
-        and bool(session.get('user_id'))
+    is_public_guest_mutation = path.startswith("/public/") and action in (
+        "comment", "reply", "potluck", "submit_request"
     )
-    debug_http = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
+
+    # Auth entrypoints must stay reachable on mobile, shared carrier IPs (CGNAT),
+    # and when session cookies are flaky between form GET and POST.
+    is_auth_entry = bool(request.endpoint and str(request.endpoint).startswith("auth."))
+    if not is_auth_entry:
+        p = path.rstrip("/")
+        is_auth_entry = p in (
+            "/login", "/register", "/logout", "/login/2fa",
+            "/request-reset-password", "/forgot-username",
+            "/resend-verification", "/verify-email",
+        ) or p.startswith("/reset-password") or p.startswith("/verify-email")
+
+    # Display prefs (theme/font) — members (/profile/...) and visitors (/public/...)
+    path_norm = path.rstrip("/")
+    is_ui_prefs = request.method == "POST" and path_norm.endswith("/ui-preferences")
+    is_public_ui_prefs = is_ui_prefs and path_norm.endswith("/public/ui-preferences")
+    is_member_ui_prefs = is_ui_prefs and path_norm.endswith("/profile/ui-preferences") and bool(session.get("user_id"))
+    debug_http = os.getenv("DEBUG_MODE", "false").lower() == "true"
     is_safe_mutation = (
         is_public_guest_mutation
         or is_auth_entry
+        or is_public_ui_prefs
+        or (is_member_ui_prefs and debug_http)
         or (is_ui_prefs and debug_http)
     )
 
@@ -173,40 +242,47 @@ def run_full_security_pipeline():
             log_security_event("https_required", "Insecure POST blocked")
             return False
 
-    ua = request.headers.get("User-Agent", "")
-    if is_suspicious_user_agent(ua) or any(kw in ua.lower() for kw in SUSPICIOUS_UA_KEYWORDS):
-        log_security_event("suspicious_ua", "Bot/scraper/hacker UA detected")
-        increment_attack_stat("bot_attempt")
-        return False
+    ua = request.headers.get("User-Agent", "") or ""
+    # Never hard-block login/register on UA heuristics (mobile WebViews vary widely).
+    if not is_auth_entry:
+        if is_suspicious_user_agent(ua) or any(kw in ua.lower() for kw in SUSPICIOUS_UA_KEYWORDS):
+            log_security_event("suspicious_ua", "Bot/scraper/hacker UA detected")
+            increment_attack_stat("bot_attempt")
+            return False
 
     if not check_rate_limit(ip):
         g.rate_limited = True
         log_security_event("rate_limit_exceeded", "IP exceeded rate limit")
         increment_attack_stat("ddos_attempts")
         apply_stagger()
-        debug_mode = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
-        if not debug_mode:
+        debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
+        # Auth must remain usable on mobile CGNAT (many phones share one public IP).
+        if not debug_mode and not is_auth_entry:
             return False
 
     if is_locked_out():
         log_security_event("brute_force_lock", "IP is currently locked out")
         increment_attack_stat("brute_force")
-        return False
+        # Keep brute-force lock on mutating requests; allow GET login form to render.
+        if request.method in ("POST", "PUT", "DELETE", "PATCH") or not is_auth_entry:
+            return False
 
     score = get_reputation_score(ip)
     if score < 50 and not is_safe_mutation:
-        log_security_event("low_reputation", f"Reputation score {score} below threshold")
+        log_security_event("low_reputation", f"reputation score {score} below threshold")
         increment_attack_stat("reputation_block")
-        debug_mode = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
+        debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
         if not debug_mode:
             return False
 
     # CSRF for state changing requests
-    if request.method in ('POST', 'PUT', 'DELETE', 'PATCH') and CSRF_PROTECTION:
-        csrf_token = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token')
+    if request.method in ("POST", "PUT", "DELETE", "PATCH") and CSRF_PROTECTION:
+        csrf_token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
         if not validate_csrf(csrf_token):
             log_security_event("csrf_failure", "CSRF token missing or invalid on " + request.method)
-            increment_attack_stat("csrf_attack")
+            # Avoid reputation death-spiral on flaky mobile auth CSRF
+            if not is_auth_entry:
+                increment_attack_stat("csrf_attack")
             return False
 
     token = request.headers.get("X-PBT-Token") or request.args.get("pbt_token")
@@ -245,7 +321,13 @@ def before_request_security():
             log_traffic(vetted=False, status="blocked")
             abort(403)
         return None
-    apply_stagger()
+    # Skip anti-refresh stagger on auth so mobile login feels instant
+    path = (request.path or "").rstrip("/")
+    is_auth = bool(request.endpoint and str(request.endpoint).startswith("auth.")) or path in (
+        "/login", "/register", "/logout", "/login/2fa",
+    )
+    if not is_auth:
+        apply_stagger()
     logger("SECURITY PIPELINE COMPLETED in " + str(round((time.time() - start) * 1000)) + "ms")
     return None
 
