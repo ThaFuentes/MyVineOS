@@ -135,12 +135,17 @@ html[data-theme="soft-light"] .top-bar .user-info a.pn-btn {
 }
 
 /* Distinct accents per tool */
+.pastoral-tile-dash { --pt-accent: #7aa2ff; }          /* indigo — overview */
 .pastoral-tile-sermons { --pt-accent: #4dffc8; }       /* teal — preaching */
 .pastoral-tile-illustrations { --pt-accent: #c4a1ff; } /* violet — creative */
 .pastoral-tile-planning { --pt-accent: #ffc85a; }      /* amber — calendar */
 .pastoral-tile-roles { --pt-accent: #6ed4ff; }         /* sky — people */
 .pastoral-tile-podium { --pt-accent: #ff9a78; }        /* coral — stage */
-.pastoral-tile-export { --pt-accent: #ff8fd0; }        /* rose — files */
+.pastoral-tile-care { --pt-accent: #ff6b8a; }          /* rose — care */
+.pastoral-tile-bible { --pt-accent: #f0d060; }         /* gold — scripture */
+.pastoral-tile-upload { --pt-accent: #5ad4a8; }        /* mint — install */
+.pastoral-tile-export { --pt-accent: #ff8fd0; }        /* pink — files */
+.pastoral-tile-main { --pt-accent: #9ab0c8; }          /* slate — main app */
 
 .pastoral-upcoming {
   border: 1px solid rgba(110, 212, 255, 0.35);

@@ -75,7 +75,7 @@ def get_worship_leaders():
           AND ug.role_in_group = 'leader'
         ORDER BY u.last_name, u.first_name
     """, (WORSHIP_TEAM_GROUP_NAME,))
-    leaders = cur.fetchall()
+    leaders = list(cur.fetchall())
     cur.execute("""
         SELECT id, username, first_name, last_name, role AS site_role, 'site_staff' AS role_in_group
         FROM users WHERE role IN ('Owner', 'Admin', 'Staff')

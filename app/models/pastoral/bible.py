@@ -128,12 +128,143 @@ def delete_bible_translation(code: str):
     db.commit()
 
 
+# Protestant canon order → name (uploads that use book numbers 1–66)
+BOOK_NUMBER_TO_NAME = {sort_order: name for name, _abbrev, _test, sort_order in BIBLE_BOOKS}
+
+
+def clean_bible_verse_text(text: str) -> str:
+    """Normalize verse text from common Bible JSON dumps (pilcrows, markers, whitespace)."""
+    if not text:
+        return ""
+    text = text.replace("¶", " ")
+    text = text.replace("‹", "").replace("›", "")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _verse_book_from_row(v: dict) -> str | None:
+    """Resolve book name from book_name, numeric book id, or string book."""
+    if not isinstance(v, dict):
+        return None
+    for key in ("book_name", "bookName", "name"):
+        val = v.get(key)
+        if isinstance(val, str) and val.strip():
+            return normalize_book_name(val)
+    book = v.get("book")
+    if book is None:
+        return None
+    if isinstance(book, int) or (isinstance(book, str) and str(book).strip().isdigit()):
+        return BOOK_NUMBER_TO_NAME.get(int(book))
+    if isinstance(book, str) and book.strip():
+        return normalize_book_name(book)
+    return None
+
+
+def normalize_uploaded_verse_row(v: dict) -> dict | None:
+    """Convert one verse object into {book, chapter, verse, text}."""
+    if not isinstance(v, dict):
+        return None
+    book = _verse_book_from_row(v)
+    try:
+        chapter = int(v.get("chapter") or 0)
+        verse = int(v.get("verse") or v.get("verse_number") or 0)
+    except (TypeError, ValueError):
+        return None
+    text = clean_bible_verse_text(v.get("text") or v.get("content") or "")
+    if not book or chapter < 1 or verse < 1 or not text:
+        return None
+    return {"book": book, "chapter": chapter, "verse": verse, "text": text}
+
+
+def normalize_uploaded_bible_json(data) -> dict:
+    """
+    Accept multiple Bible JSON shapes and return:
+      {code, name, verses: [{book, chapter, verse, text}], set_default?}
+
+    Supports:
+      - eBible/common dumps: {metadata:{name,shortname}, verses:[{book_name,book,chapter,verse,text}]}
+      - Site format: {translation|code, name, verses:[{book, chapter, verse, text}]}
+      - Scrollmapper: {books:[{name, chapters:[...]}]}
+      - Bare verse array
+    """
+    set_default = False
+    code = ""
+    name = ""
+    raw_verses: list = []
+
+    if isinstance(data, list):
+        raw_verses = data
+    elif isinstance(data, dict):
+        set_default = bool(data.get("set_default"))
+        meta = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
+
+        if data.get("books") and not data.get("verses"):
+            raw_verses = verses_from_scrollmapper(data)
+            code = (
+                data.get("translation")
+                or data.get("code")
+                or meta.get("shortname")
+                or meta.get("module")
+                or ""
+            )
+            name = data.get("name") or meta.get("name") or str(code)
+        else:
+            raw_verses = data.get("verses") or data.get("data") or []
+            code = (
+                data.get("translation")
+                or data.get("code")
+                or meta.get("shortname")
+                or meta.get("module")
+                or data.get("shortname")
+                or ""
+            )
+            name = (
+                data.get("name")
+                or meta.get("name")
+                or data.get("englishName")
+                or str(code)
+            )
+    else:
+        raise ValueError("JSON must be an object or an array of verses")
+
+    code = str(code or "").strip()
+    name = str(name or "").strip()
+    if code and code.islower() and re.match(r"^[a-z0-9._-]{2,20}$", code):
+        code = code.upper()
+
+    if not isinstance(raw_verses, list):
+        raise ValueError("verses must be an array")
+
+    verses = []
+    for row in raw_verses:
+        if not isinstance(row, dict):
+            continue
+        norm = normalize_uploaded_verse_row(row)
+        if norm:
+            verses.append(norm)
+
+    if not name and code:
+        name = code
+    if not verses:
+        raise ValueError("No usable verses found in upload")
+
+    return {
+        "code": (code[:20] if code else ""),
+        "name": name or code,
+        "verses": verses,
+        "set_default": set_default,
+    }
+
+
 def import_bible_translation(code: str, name: str, verses: list, set_default: bool = False) -> int:
     """Replace or create a translation from a flat verses array."""
     if not code or not name:
         raise ValueError("Translation code and name are required")
     if not verses:
         raise ValueError("No verses found in upload")
+
+    code = str(code).strip()[:20]
+    name = str(name).strip()
 
     db = get_db()
     cur = db.cursor()
@@ -151,12 +282,24 @@ def import_bible_translation(code: str, name: str, verses: list, set_default: bo
     batch = []
     count = 0
     for v in verses:
-        book = normalize_book_name(v.get("book", ""))
-        chapter = int(v.get("chapter", 0))
-        verse = int(v.get("verse", 0))
-        text = (v.get("text") or "").strip()
-        if not book or chapter < 1 or verse < 1 or not text:
+        if not isinstance(v, dict):
             continue
+        # Accept pre-normalized rows or raw upload rows (book_name / numeric book)
+        if "book_name" in v or isinstance(v.get("book"), int):
+            norm = normalize_uploaded_verse_row(v)
+            if not norm:
+                continue
+            book, chapter, verse, text = norm["book"], norm["chapter"], norm["verse"], norm["text"]
+        else:
+            book = normalize_book_name(str(v.get("book", "") or ""))
+            try:
+                chapter = int(v.get("chapter", 0) or 0)
+                verse = int(v.get("verse", 0) or 0)
+            except (TypeError, ValueError):
+                continue
+            text = clean_bible_verse_text(v.get("text") or "")
+            if not book or chapter < 1 or verse < 1 or not text:
+                continue
         batch.append((code, book, chapter, verse, text))
         if len(batch) >= 500:
             cur.executemany("""

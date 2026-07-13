@@ -10,13 +10,57 @@
   let mainView = 'chapter';
   let lastChapterHtml = '';
   let activeSermonId = cfg.sermonId || null;
+  let annotationKey = null;
+  let chapterData = null;
+  let selectedVerses = new Set();
+  let lastSource = null;
 
   const el = (id) => document.getElementById(id);
   const main = () => el('bible-reader-content');
   const api = '/pastoral/bible';
 
+  function csrfToken() {
+    if (cfg.csrf) return cfg.csrf;
+    const m = document.querySelector('meta[name="csrf-token"]');
+    if (m && m.content) return m.content;
+    const i = document.querySelector('input[name="csrf_token"]');
+    return i ? i.value : '';
+  }
+
   function getTranslation() {
-    return el('bible-translation')?.value || null;
+    return el('bible-translation-toolbar')?.value
+      || el('bible-translation')?.value
+      || cfg.selectedTranslation
+      || null;
+  }
+
+  function setTranslationValue(val) {
+    if (!val) return;
+    const a = el('bible-translation');
+    const b = el('bible-translation-toolbar');
+    if (a) {
+      if (!Array.from(a.options).some((o) => o.value === val)) {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val.replace(/^online:/, '') + ' · online';
+        a.appendChild(opt);
+      }
+      a.value = val;
+    }
+    if (b) {
+      if (!Array.from(b.options).some((o) => o.value === val)) {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = (val.split(':').pop() || val);
+        b.appendChild(opt);
+      }
+      b.value = val;
+    }
+  }
+
+  function isOnlineTranslation(val) {
+    const v = val || getTranslation() || '';
+    return String(v).startsWith('online:') || String(v).startsWith('api:');
   }
 
   function getActiveSermonId() {
@@ -279,17 +323,34 @@
     } else loadChapter(currentChapter);
   }
 
-  async function prepareBook(book) {
+  function getVisibleVerseAnchor() {
+    /** First verse line that is substantially in view (for seamless version switch). */
+    const lines = Array.from(main()?.querySelectorAll('.bible-verse-line') || []);
+    if (!lines.length) return null;
+    const offset = 140; // toolbar / selection bar
+    for (const line of lines) {
+      const rect = line.getBoundingClientRect();
+      if (rect.bottom > offset && rect.top < window.innerHeight * 0.7) {
+        return parseInt(line.dataset.verse, 10) || null;
+      }
+    }
+    return parseInt(lines[0].dataset.verse, 10) || null;
+  }
+
+  async function prepareBook(book, opts = {}) {
+    currentBook = book;
     currentTranslation = getTranslation();
+    const startChapter = opts.chapter || 1;
+    const scrollToVerse = opts.scrollToVerse || null;
     try {
-      const url = `${api}/chapter/${encodeURIComponent(book)}/1` +
+      const url = `${api}/chapter/${encodeURIComponent(book)}/${startChapter}` +
         (currentTranslation ? `?translation=${encodeURIComponent(currentTranslation)}` : '');
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('no book');
       const data = await resp.json();
-      maxChapter = data.max_chapter || 1;
+      maxChapter = data.max_chapter || startChapter || 1;
       populateChapterSelect(maxChapter);
-      loadChapter(1);
+      await loadChapter(startChapter, { scrollToVerse, keepSelection: !!opts.keepSelection });
     } catch (e) {
       maxChapter = 0;
       populateChapterSelect(0);
@@ -297,14 +358,39 @@
     }
   }
 
-  async function loadChapter(chapter) {
+  async function switchTranslationSeamless(fromControl) {
+    // Keep both version dropdowns in sync (toolbar + flyout)
+    const val = fromControl?.value || getTranslation();
+    setTranslationValue(val);
+    const book = currentBook;
+    const chapter = currentChapter || 1;
+    const anchorVerse = getVisibleVerseAnchor();
+    // Keep place: same book + chapter, restore scroll to the verse that was on screen
+    await prepareBook(book, {
+      chapter,
+      scrollToVerse: anchorVerse,
+      keepSelection: false,
+    });
+    toast(anchorVerse
+      ? `Switched version · stayed at ${book} ${chapter}:${anchorVerse}`
+      : `Switched version · stayed at ${book} ${chapter}`);
+  }
+
+  async function loadChapter(chapter, opts = {}) {
     currentTranslation = getTranslation();
     if (maxChapter > 0) chapter = Math.max(1, Math.min(chapter, maxChapter));
     currentChapter = chapter;
+    if (!opts.keepSelection) {
+      selectedVerses = new Set();
+      updateSelectionBar();
+    }
     const chSel = el('bible-chapter-select');
     if (chSel?.options.length) chSel.value = String(chapter);
 
-    main().innerHTML = '<p class="text-muted small">Loading...</p>';
+    // Soft loading: keep old text until new arrives when switching versions
+    if (!opts.soft) {
+      main().innerHTML = '<p class="text-muted small">Loading...</p>';
+    }
     const title = el('bible-reader-title');
 
     try {
@@ -313,30 +399,93 @@
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('not found');
       const data = await resp.json();
+      chapterData = data;
+      annotationKey = data.annotation_key || data.translation || currentTranslation;
+      lastSource = data.source || (isOnlineTranslation(currentTranslation) ? 'online' : 'local');
       maxChapter = data.max_chapter || chapter;
       populateChapterSelect(maxChapter);
       if (chSel) chSel.value = String(chapter);
-      if (title) title.textContent = `${data.book} ${data.chapter}`;
+      const badge = el('bible-source-badge');
+      if (badge) {
+        badge.style.display = '';
+        badge.textContent = lastSource === 'online' ? 'Online' : 'Installed';
+        badge.className = 'badge ' + (lastSource === 'online' ? 'bg-info' : 'bg-success');
+      }
+      if (title) {
+        const trLabel = data.translation || data.name || '';
+        title.textContent = `${data.book} ${data.chapter}${trLabel ? ' · ' + trLabel : ''}`;
+      }
       renderVersePicker(data.verses);
       renderChapter(data);
+      renderNotesPanel(data.notes || []);
       updateNavButtons();
+      if (opts.scrollToVerse) {
+        // Wait a tick for layout so scrollIntoView hits the right place
+        requestAnimationFrame(() => {
+          scrollToVerse(opts.scrollToVerse);
+        });
+      }
     } catch (e) {
-      main().innerHTML = '<p class="text-muted">No verses for this chapter.</p>';
+      main().innerHTML = '<p class="text-muted">Could not load this chapter. Try another version or book.</p>';
       if (title) title.textContent = `${currentBook} ${chapter}`;
       renderVersePicker([]);
+      renderNotesPanel([]);
       updateNavButtons();
     }
   }
 
+  function highlightClassForVerse(verseNum, highlights) {
+    const hits = (highlights || []).filter((h) => verseNum >= h.verse_start && verseNum <= h.verse_end);
+    if (!hits.length) return '';
+    return ' hl-' + (hits[hits.length - 1].color || 'yellow');
+  }
+
+  function xrefHtmlForVerse(verseNum, crossRefs) {
+    const key = String(verseNum);
+    const refs = (crossRefs && (crossRefs[key] || crossRefs[verseNum])) || [];
+    if (!refs.length) return '';
+    const messianic = refs.filter((r) => r.kind === 'messianic');
+    const related = refs.filter((r) => r.kind !== 'messianic').slice(0, 5);
+    const show = [...messianic, ...related].slice(0, 6);
+    let html = '<div class="bible-xrefs">';
+    if (messianic.length) {
+      html += '<div class="bible-xref-row bible-xref-messianic">';
+      html += '<span class="bible-xref-label" title="Widely taught as fulfilled in Christ / NT">✝ Related to Jesus</span> ';
+      messianic.slice(0, 4).forEach((r) => {
+        const tip = r.label || r.reference;
+        html += `<button type="button" class="bible-xref-link messianic" data-xref-book="${escapeAttr(r.book)}" data-xref-chapter="${r.chapter}" data-xref-verse="${r.verse}" title="${escapeAttr(tip)}">${escapeHtml(r.reference)}</button> `;
+      });
+      html += '</div>';
+    }
+    if (related.length) {
+      html += '<div class="bible-xref-row">';
+      html += '<span class="bible-xref-label">See also</span> ';
+      related.forEach((r) => {
+        html += `<button type="button" class="bible-xref-link" data-xref-book="${escapeAttr(r.book)}" data-xref-chapter="${r.chapter}" data-xref-verse="${r.verse}" title="Cross-reference (score ${r.score || ''})">${escapeHtml(r.reference)}</button> `;
+      });
+      html += '</div>';
+    }
+    // Labels under messianic for teaching clarity
+    messianic.filter((r) => r.label).slice(0, 2).forEach((r) => {
+      html += `<div class="bible-xref-note small text-muted">${escapeHtml(r.label)}</div>`;
+    });
+    html += '</div>';
+    return html;
+  }
+
   function renderChapter(data) {
     const reader = main();
+    const highlights = data.highlights || [];
+    const crossRefs = data.cross_refs || {};
     let html = '';
     (data.verses || []).forEach((v) => {
       const ref = `${data.book} ${data.chapter}:${v.verse}`;
       const strongs = (data.strongs && data.strongs[v.verse]) || [];
-      html += `<div class="bible-verse-line" data-verse="${v.verse}">`;
+      const hl = highlightClassForVerse(v.verse, highlights);
+      html += `<div class="bible-verse-line${hl}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
       html += `<span class="bible-verse-num">${v.verse}</span>`;
       html += `<span class="bible-verse-text">${linkStrongsInVerse(v.text, strongs)}</span>`;
+      html += xrefHtmlForVerse(v.verse, crossRefs);
       html += actionButtonsHtml({ reference: ref, text: v.text, book: data.book, chapter: data.chapter, verse: v.verse });
       html += '</div>';
     });
@@ -346,12 +495,443 @@
     bindChapterEvents();
   }
 
+  function renderNotesPanel(notes) {
+    const list = el('bible-notes-list');
+    if (!list) return;
+    if (!notes || !notes.length) {
+      list.innerHTML = '<p class="small text-muted mb-0">No notes on this chapter yet. Select verses → <strong>Add note</strong>.</p>';
+      return;
+    }
+    list.innerHTML = notes.map((n) => {
+      const title = n.display_title || n.title || n.reference || 'Note';
+      const range = n.reference || (
+        n.verse_start === n.verse_end
+          ? `v${n.verse_start}`
+          : `v${n.verse_start}–${n.verse_end}`
+      );
+      return `<div class="bible-note-item" data-id="${n.id}">
+        <div class="d-flex justify-content-between gap-2 flex-wrap">
+          <div class="small text-cyan mb-1"><strong>${escapeHtml(title)}</strong> · ${escapeHtml(range)}</div>
+        </div>
+        ${n.scripture_text ? `<blockquote class="bible-note-scripture small">${escapeHtml(n.scripture_text)}</blockquote>` : ''}
+        <div class="bible-note-body">${escapeHtml(n.body || '')}</div>
+        <div class="bible-note-actions mt-1 d-flex flex-wrap gap-1">
+          <button type="button" class="btn btn-sm btn-outline-cyan" data-edit-note="${n.id}">Edit</button>
+          <button type="button" class="btn btn-sm btn-outline-cyan" data-illus-note="${n.id}">To illustrations</button>
+          <a class="btn btn-sm btn-outline-secondary" href="${api}/note/${n.id}/download">Download</a>
+          <button type="button" class="btn btn-sm btn-outline-danger" data-del-note="${n.id}">Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('[data-del-note]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this note?')) return;
+        const resp = await fetch(`${api}/note/${btn.dataset.delNote}`, {
+          method: 'DELETE',
+          headers: { 'X-CSRF-Token': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (data.ok) {
+          toast('Note deleted');
+          loadChapter(currentChapter);
+        } else toast('Could not delete note');
+      });
+    });
+    list.querySelectorAll('[data-illus-note]').forEach((btn) => {
+      btn.addEventListener('click', () => sendNoteToIllustration(parseInt(btn.dataset.illusNote, 10)));
+    });
+    list.querySelectorAll('[data-edit-note]').forEach((btn) => {
+      btn.addEventListener('click', () => openNoteModalForEdit(parseInt(btn.dataset.editNote, 10)));
+    });
+  }
+
+  function selectedScriptureBundle() {
+    const nums = Array.from(selectedVerses).sort((a, b) => a - b);
+    if (!nums.length) return null;
+    const texts = [];
+    nums.forEach((v) => {
+      const line = main()?.querySelector(`.bible-verse-line[data-verse="${v}"]`);
+      const t = line?.dataset.text || line?.querySelector('.bible-verse-text')?.textContent || '';
+      if (t) texts.push(`${v} ${t.trim()}`);
+    });
+    const ref = nums.length === 1
+      ? `${currentBook} ${currentChapter}:${nums[0]}`
+      : `${currentBook} ${currentChapter}:${nums[0]}-${nums[nums.length - 1]}`;
+    return {
+      verse_start: nums[0],
+      verse_end: nums[nums.length - 1],
+      reference: ref,
+      scripture_text: texts.join('\n'),
+    };
+  }
+
+  async function sendNoteToIllustration(noteId) {
+    const resp = await fetch(`${api}/note/${noteId}/to_illustration`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({ visibility: 'private' }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (data.ok) {
+      toast(data.message || 'Saved to illustrations');
+      if (data.library_url && confirm('Open Illustration Library?')) {
+        window.open(data.library_url, '_blank');
+      }
+    } else toast(data.error || 'Could not save to illustrations');
+  }
+
+  async function selectionToIllustration() {
+    const bundle = selectedScriptureBundle();
+    if (!bundle) return toast('Select a verse first');
+    const resp = await fetch(urls.selectionToIllustration || `${api}/selection/to_illustration`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({
+        reference: bundle.reference,
+        text: bundle.scripture_text,
+        translation: annotationKey || getTranslation(),
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (data.ok) {
+      toast(data.message || 'Saved to illustrations');
+      if (data.library_url && confirm('Open Illustration Library?')) {
+        window.open(data.library_url, '_blank');
+      }
+    } else toast(data.error || 'Could not save');
+  }
+
+  async function openNoteModalForEdit(noteId) {
+    try {
+      const resp = await fetch(`${api}/note/${noteId}`, {
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const data = await resp.json();
+      if (!data.ok || !data.note) throw new Error(data.error || 'Not found');
+      const n = data.note;
+      openNoteModal({
+        editId: n.id,
+        verse_start: n.verse_start,
+        verse_end: n.verse_end,
+        reference: n.reference,
+        title: n.title || n.display_title || '',
+        scripture_text: n.scripture_text || '',
+        body: n.body || '',
+        tags: n.tags || '',
+      });
+    } catch (e) {
+      toast(e.message || 'Could not load note');
+    }
+  }
+
+  async function loadNotesLibrary(q) {
+    const box = el('bible-notes-lib-results');
+    if (!box) return;
+    box.innerHTML = '<p class="small text-muted">Loading…</p>';
+    try {
+      const url = (urls.notesList || `${api}/notes`) + `?q=${encodeURIComponent(q || '')}&limit=40`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      const rows = data.notes || [];
+      if (!rows.length) {
+        box.innerHTML = '<p class="small text-muted">No notes found.</p>';
+        return;
+      }
+      box.innerHTML = rows.map((n) => `
+        <div class="bible-lib-note mb-2 p-2 border rounded">
+          <div class="small fw-semibold">${escapeHtml(n.display_title || n.title || n.reference)}</div>
+          <div class="small text-muted">${escapeHtml(n.reference || '')}</div>
+          <div class="small" style="max-height:3.2em;overflow:hidden;">${escapeHtml((n.body || '').slice(0, 160))}</div>
+          <div class="d-flex flex-wrap gap-1 mt-1">
+            <button type="button" class="btn btn-sm btn-outline-cyan" data-lib-goto="${escapeAttr(n.book)}|${n.chapter}|${n.verse_start}">Open</button>
+            <button type="button" class="btn btn-sm btn-outline-cyan" data-lib-illus="${n.id}">To illustrations</button>
+            <a class="btn btn-sm btn-outline-secondary" href="${api}/note/${n.id}/download">Download</a>
+          </div>
+        </div>
+      `).join('');
+      box.querySelectorAll('[data-lib-goto]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const [book, ch, v] = btn.dataset.libGoto.split('|');
+          currentBook = book;
+          closeFlyouts();
+          prepareBook(book).then(() => loadChapter(parseInt(ch, 10)).then(() => scrollToVerse(parseInt(v, 10))));
+        });
+      });
+      box.querySelectorAll('[data-lib-illus]').forEach((btn) => {
+        btn.addEventListener('click', () => sendNoteToIllustration(parseInt(btn.dataset.libIllus, 10)));
+      });
+    } catch (e) {
+      box.innerHTML = '<p class="small text-warning">Could not load notes library.</p>';
+    }
+  }
+
+  function updateSelectionBar() {
+    const bar = el('bible-selection-bar');
+    const label = el('bible-selection-label');
+    if (!bar) return;
+    if (!selectedVerses.size) {
+      bar.style.display = 'none';
+      return;
+    }
+    bar.style.display = '';
+    const nums = Array.from(selectedVerses).sort((a, b) => a - b);
+    if (label) {
+      label.textContent = nums.length === 1
+        ? `${currentBook} ${currentChapter}:${nums[0]} selected`
+        : `${currentBook} ${currentChapter}:${nums[0]}–${nums[nums.length - 1]} (${nums.length} verses)`;
+    }
+  }
+
   function bindChapterEvents() {
     const reader = main();
     reader?.querySelectorAll('.strongs-word').forEach((node) => {
-      node.addEventListener('click', () => showStrongs(node.dataset.strongs));
+      node.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showStrongs(node.dataset.strongs);
+      });
+    });
+    reader?.querySelectorAll('.bible-xref-link').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const book = btn.dataset.xrefBook;
+        const ch = parseInt(btn.dataset.xrefChapter, 10);
+        const v = parseInt(btn.dataset.xrefVerse, 10);
+        if (!book || !ch) return;
+        currentBook = book;
+        prepareBook(book, { chapter: ch, scrollToVerse: v || 1 });
+        closeFlyouts();
+      });
+    });
+    reader?.querySelectorAll('.bible-verse-line').forEach((line) => {
+      line.addEventListener('click', (e) => {
+        if (e.target.closest('.content-actions') || e.target.closest('.strongs-word') || e.target.closest('.bible-xrefs')) return;
+        const v = parseInt(line.dataset.verse, 10);
+        if (!v) return;
+        if (e.shiftKey && selectedVerses.size) {
+          const existing = Array.from(selectedVerses);
+          const anchor = existing[existing.length - 1];
+          const lo = Math.min(anchor, v);
+          const hi = Math.max(anchor, v);
+          for (let i = lo; i <= hi; i++) selectedVerses.add(i);
+        } else if (e.ctrlKey || e.metaKey) {
+          if (selectedVerses.has(v)) selectedVerses.delete(v);
+          else selectedVerses.add(v);
+        } else {
+          if (selectedVerses.size === 1 && selectedVerses.has(v)) selectedVerses.clear();
+          else {
+            selectedVerses.clear();
+            selectedVerses.add(v);
+          }
+        }
+        reader.querySelectorAll('.bible-verse-line').forEach((l) => {
+          l.classList.toggle('verse-selected', selectedVerses.has(parseInt(l.dataset.verse, 10)));
+        });
+        updateSelectionBar();
+      });
     });
     bindActionButtons(reader);
+  }
+
+  async function applyHighlight() {
+    if (!selectedVerses.size) return toast('Select a verse first');
+    const nums = Array.from(selectedVerses).sort((a, b) => a - b);
+    const color = el('bible-hl-color')?.value || 'yellow';
+    const resp = await fetch(urls.highlight || `${api}/highlight`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({
+        translation: annotationKey || getTranslation(),
+        book: currentBook,
+        chapter: currentChapter,
+        verse_start: nums[0],
+        verse_end: nums[nums.length - 1],
+        color,
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (data.ok) {
+      toast('Highlighted');
+      loadChapter(currentChapter);
+    } else toast(data.error || 'Could not highlight');
+  }
+
+  async function clearHighlight() {
+    if (!selectedVerses.size) return toast('Select a verse first');
+    const nums = Array.from(selectedVerses);
+    for (const v of nums) {
+      await fetch(urls.highlightClear || `${api}/highlight/clear`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({
+          translation: annotationKey || getTranslation(),
+          book: currentBook,
+          chapter: currentChapter,
+          verse: v,
+        }),
+      });
+    }
+    toast('Highlight cleared');
+    loadChapter(currentChapter);
+  }
+
+  function openNoteModal(prefill) {
+    const modal = el('bible-note-modal');
+    const ref = el('bible-note-ref');
+    const title = el('bible-note-title');
+    const scripture = el('bible-note-scripture');
+    const body = el('bible-note-body');
+    const tags = el('bible-note-tags');
+    const alsoIllus = el('bible-note-also-illustration');
+
+    let bundle = prefill || null;
+    if (!bundle) {
+      if (!selectedVerses.size) return toast('Select a verse first');
+      bundle = selectedScriptureBundle();
+    }
+    if (!bundle) return;
+
+    if (ref) {
+      ref.textContent = bundle.reference || `${currentBook} ${currentChapter}`;
+      ref.dataset.vStart = String(bundle.verse_start || 1);
+      ref.dataset.vEnd = String(bundle.verse_end || bundle.verse_start || 1);
+      ref.dataset.editId = bundle.editId ? String(bundle.editId) : '';
+    }
+    if (title) title.value = bundle.title || bundle.reference || '';
+    if (scripture) scripture.value = bundle.scripture_text || '';
+    if (body) body.value = bundle.body || '';
+    if (tags) tags.value = bundle.tags || 'bible,study-note';
+    if (alsoIllus) alsoIllus.checked = !bundle.editId; // default on for new notes
+
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.setAttribute('aria-hidden', 'false');
+    }
+    body?.focus();
+  }
+
+  function closeNoteModal() {
+    const modal = el('bible-note-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  async function saveNoteFromModal() {
+    const ref = el('bible-note-ref');
+    const body = (el('bible-note-body')?.value || '').trim();
+    const title = (el('bible-note-title')?.value || '').trim();
+    const scripture_text = (el('bible-note-scripture')?.value || '').trim();
+    const tags = (el('bible-note-tags')?.value || '').trim();
+    const editId = ref?.dataset.editId ? parseInt(ref.dataset.editId, 10) : null;
+    if (!body) return toast('Write a note first');
+    const resp = await fetch(urls.note || `${api}/note`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({
+        id: editId || undefined,
+        translation: annotationKey || getTranslation(),
+        book: currentBook,
+        chapter: currentChapter,
+        verse_start: parseInt(ref?.dataset.vStart || '1', 10),
+        verse_end: parseInt(ref?.dataset.vEnd || '1', 10),
+        title,
+        body,
+        scripture_text,
+        tags,
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!data.ok) {
+      toast(data.error || 'Could not save note');
+      return;
+    }
+    toast('Note saved');
+    const alsoIllus = el('bible-note-also-illustration')?.checked;
+    if (alsoIllus && data.note?.id) {
+      await sendNoteToIllustration(data.note.id);
+    }
+    closeNoteModal();
+    loadChapter(currentChapter);
+  }
+
+  function downloadChapterNotes() {
+    const params = new URLSearchParams({
+      book: currentBook,
+      chapter: String(currentChapter),
+    });
+    if (annotationKey) params.set('translation', annotationKey);
+    window.location.href = (urls.notesDownload || `${api}/notes/download`) + '?' + params.toString();
+  }
+
+  function downloadAllNotes() {
+    window.location.href = urls.notesDownload || `${api}/notes/download`;
+  }
+
+  async function searchOnlineVersions() {
+    const q = (el('bible-online-search')?.value || '').trim();
+    const box = el('bible-online-results');
+    if (!box) return;
+    box.innerHTML = '<p class="small text-muted">Searching catalog…</p>';
+    try {
+      const url = (urls.onlineTranslations || `${api}/online/translations`) +
+        `?q=${encodeURIComponent(q)}&lang=eng`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (!data.ok && data.error) {
+        box.innerHTML = `<p class="small text-warning">${escapeHtml(data.error)}</p>`;
+        return;
+      }
+      const rows = data.translations || [];
+      if (!rows.length) {
+        box.innerHTML = '<p class="small text-muted">No matches.</p>';
+        return;
+      }
+      box.innerHTML = rows.slice(0, 25).map((t) => `
+        <button type="button" class="btn btn-sm btn-outline-cyan w-100 text-start mb-1 bible-online-pick"
+          data-value="${escapeAttr(t.value)}" data-name="${escapeAttr(t.name)}">
+          ${escapeHtml(t.name)} <span class="text-muted">(${escapeHtml(t.code)})</span>
+        </button>
+      `).join('');
+      box.querySelectorAll('.bible-online-pick').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const sel = el('bible-translation');
+          if (!sel) return;
+          let opt = Array.from(sel.options).find((o) => o.value === btn.dataset.value);
+          if (!opt) {
+            opt = document.createElement('option');
+            opt.value = btn.dataset.value;
+            opt.textContent = `${btn.dataset.name} · online`;
+            sel.appendChild(opt);
+          }
+          setTranslationValue(btn.dataset.value);
+          toast(`Using ${btn.dataset.name}`);
+          switchTranslationSeamless(sel);
+        });
+      });
+    } catch (e) {
+      box.innerHTML = '<p class="small text-warning">Could not reach Bible catalog.</p>';
+    }
   }
 
   function linkStrongsInVerse(text, strongsList) {
@@ -410,6 +990,24 @@
   async function searchBible() {
     const q = (el('bible-search-input')?.value || '').trim();
     if (!q) return;
+
+    // Reference jump works for online + local (e.g. John 3:16)
+    const refMatch = q.match(/^\s*((?:\d\s*)?[A-Za-z]+(?:\s+[A-Za-z]+)?)\s+(\d+)\s*:\s*(\d+)/i);
+    if (refMatch) {
+      currentBook = refMatch[1].replace(/\s+/g, ' ').trim();
+      // normalize common casing via server when chapter loads
+      const ch = parseInt(refMatch[2], 10);
+      const v = parseInt(refMatch[3], 10);
+      closeFlyouts();
+      await prepareBook(currentBook, { chapter: ch, scrollToVerse: v });
+      return;
+    }
+
+    if (isOnlineTranslation()) {
+      toast('Full-text search needs an installed translation. Try a reference like John 3:16, or install a copy for offline search.');
+      return;
+    }
+
     const reader = main();
     reader.innerHTML = '<p class="text-muted small">Searching...</p>';
     closeFlyouts();
@@ -526,12 +1124,50 @@
     el('bible-prev-chapter')?.addEventListener('click', () => { closeFlyouts(); loadChapter(currentChapter - 1); });
     el('bible-next-chapter')?.addEventListener('click', () => { closeFlyouts(); loadChapter(currentChapter + 1); });
     el('bible-back-chapter')?.addEventListener('click', restoreChapter);
-    el('bible-translation')?.addEventListener('change', () => prepareBook(currentBook));
+    el('bible-translation')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
+    el('bible-translation-toolbar')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
     el('bible-sermon-select')?.addEventListener('change', updateSermonBar);
     el('bible-new-sermon-btn')?.addEventListener('click', async () => {
       const id = await quickCreateSermon(`${currentBook} ${currentChapter}`);
       if (id) updateSermonBar();
     });
+
+    el('bible-hl-btn')?.addEventListener('click', applyHighlight);
+    el('bible-hl-clear-btn')?.addEventListener('click', clearHighlight);
+    el('bible-note-btn')?.addEventListener('click', () => openNoteModal());
+    el('bible-to-illustration-btn')?.addEventListener('click', selectionToIllustration);
+    el('bible-note-cancel')?.addEventListener('click', closeNoteModal);
+    el('bible-note-save')?.addEventListener('click', saveNoteFromModal);
+    el('bible-note-modal')?.addEventListener('click', (e) => {
+      if (e.target === el('bible-note-modal')) closeNoteModal();
+    });
+    el('bible-online-search-btn')?.addEventListener('click', searchOnlineVersions);
+    el('bible-online-search')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchOnlineVersions();
+    });
+    el('bible-notes-library-btn')?.addEventListener('click', () => {
+      openFlyout('tools');
+      loadNotesLibrary('');
+    });
+    el('bible-notes-lib-btn')?.addEventListener('click', () => {
+      loadNotesLibrary(el('bible-notes-lib-q')?.value || '');
+    });
+    el('bible-notes-lib-q')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadNotesLibrary(el('bible-notes-lib-q')?.value || '');
+    });
+    el('bible-notes-dl-chapter')?.addEventListener('click', downloadChapterNotes);
+    el('bible-notes-dl-all')?.addEventListener('click', downloadAllNotes);
+
+    // Prefer configured default (local church default or online BSB)
+    if (cfg.selectedTranslation) {
+      const want = cfg.selectedTranslation;
+      const candidates = [want, `online:${want}`];
+      const pick = candidates.find((c) =>
+        Array.from(el('bible-translation')?.options || []).some((o) => o.value === c)
+        || Array.from(el('bible-translation-toolbar')?.options || []).some((o) => o.value === c)
+      );
+      if (pick) setTranslationValue(pick);
+    }
 
     prepareBook(currentBook);
   });

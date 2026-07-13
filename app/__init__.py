@@ -356,12 +356,24 @@ def create_app():
             flash('Initial setup required - please register the first Owner.', 'info')
             return redirect(url_for('auth.register'))
         return redirect(url_for('public.public_dashboard.public_dashboard'))
+
+    # PWA service worker at site root so it can scope to "/" and cache /static only
+    @app.route('/sw.js')
+    def service_worker():
+        from flask import send_from_directory, make_response
+        resp = make_response(send_from_directory(app.static_folder, 'sw.js'))
+        resp.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+        resp.headers['Service-Worker-Allowed'] = '/'
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return resp
+
     # OWNER ENFORCEMENT
     @app.before_request
     def enforce_owner_registration():
         if os.environ.get('TESTING') == '1':
             return
         if (request.path.startswith('/static/') or
+            request.path == '/sw.js' or
             (request.endpoint and request.endpoint.startswith('auth.'))):
             return
         if not owner_exists():

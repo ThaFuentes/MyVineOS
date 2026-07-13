@@ -572,3 +572,27 @@ html[data-theme="soft-light"] .display-prefs-panel .pref-option {
         display: none; /* free space for Display control on phones */
     }
 }
+/* ---- Installed PWA / desktop app shell ---- */
+html.standalone body.standalone-desktop {
+  /* Slightly denser chrome when browser UI is gone */
+  --app-titlebar-pad: 0.35rem;
+}
+html.standalone body.standalone-desktop .top-bar,
+html.standalone body.standalone-desktop header.top-bar {
+  /* Feels like a native title bar */
+  -webkit-app-region: drag;
+  user-select: none;
+}
+html.standalone body.standalone-desktop .top-bar a,
+html.standalone body.standalone-desktop .top-bar button,
+html.standalone body.standalone-desktop .top-bar input,
+html.standalone body.standalone-desktop .top-bar select,
+html.standalone body.standalone-desktop header.top-bar a,
+html.standalone body.standalone-desktop header.top-bar button {
+  -webkit-app-region: no-drag;
+}
+/* Hide “install me” affordances once already installed */
+html.standalone [data-install-hint],
+html.standalone .pwa-install-banner {
+  display: none !important;
+}

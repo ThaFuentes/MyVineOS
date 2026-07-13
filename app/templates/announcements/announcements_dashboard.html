@@ -1,11 +1,11 @@
 <!-- app/templates/announcements/announcements_dashboard.html -->
 <!-- Full path: WebChurchMan/app/templates/announcements/announcements_dashboard.html -->
 <!-- File name: announcements_dashboard.html -->
-<!-- Brief, detailed purpose: Announcements Dashboard - exact mirror of events_dashboard.html structure and styling.
+<!-- Brief, detailed purpose: Announcements Dashboard – exact mirror of events_dashboard.html structure and styling.
    Summary cards, + Add button (can_manage only), collapsible search/filters with live search + button filters.
    Glass table in table-wrapper glass, uniform button sizes in actions cell (flex no-wrap).
    Title clickable to toggle expandable details row (content + comments.html + add comment form).
-   Uses ONLY global classes - matches Events/Donations perfectly (dark glassmorphism, cyan accents).
+   Uses ONLY global classes – matches Events/Donations perfectly (dark glassmorphism, cyan accents).
    No inline styles except initial hide/display none. -->
 
 {% extends "announcements/base_announcements.html" %}
@@ -23,39 +23,36 @@ Overview of all church announcements.<br>
 
 {% block announcements_content %}
 
-<!-- Summary Cards -->
-<section class="content-section">
-    <h2 class="section-title">Announcements Summary</h2>
-    <div class="summary-cards">
-        <div class="card glass">
-            <h3>Total</h3>
-            <p class="large-amount">{{ total_count }}</p>
-        </div>
-        <div class="card glass">
-            <h3>Active</h3>
-            <p class="large-amount">{{ active_count }}</p>
-        </div>
-        <div class="card glass">
-            <h3>Public</h3>
-            <p class="large-amount">{{ public_count }}</p>
-        </div>
+<div class="glass-panel">
+  <div style="font-weight:600; margin-bottom:0.5rem;">Announcements Summary</div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:0.5rem;">
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ total_count }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Total</div>
     </div>
-</section>
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ active_count }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Active</div>
+    </div>
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ public_count }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Public</div>
+    </div>
+  </div>
+</div>
 
-<!-- Add New Announcement Button -->
 {% if can_manage %}
 <div class="form-actions add-event-top">
     <a href="{{ url_for('announcements.create_announcement') }}" class="btn-primary">+ Add New Announcement</a>
 </div>
 {% endif %}
 
-<!-- Search & Filters + Table -->
-<section class="content-section">
-    <h2 class="section-title">All Announcements</h2>
+<div class="glass-panel">
+  <div style="font-weight:600; margin-bottom:0.4rem;">All Announcements</div>
 
-    <details class="collapsible-controls" open>
+    <details class="collapsible-controls">
         <summary class="collapsible-summary">
-            <strong>Search & Filters</strong> <span class="arrow">v</span>
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
         </summary>
         <div class="search-controls styled-form inline-form">
             <div class="form-group search-group">
@@ -153,16 +150,16 @@ Overview of all church announcements.<br>
         </table>
     </div>
 
-    <div class="no-data" id="noResults" style="display:none;">
-        No announcements match the current search and filters.
-    </div>
-</section>
+<div class="no-data" id="noResults" style="display:none;">
+    No announcements match the current search and filters.
+</div>
+</div>
 
 <!-- Email Modal (only shown for can_manage) -->
 {% if can_manage and members %}
 <div id="emailModal" class="modal" style="display:none;">
     <div class="modal-content glass">
-        <span class="close" onclick="closeEmailModal()">x</span>
+        <span class="close" onclick="closeEmailModal()">×</span>
         <h2>Email Announcement</h2>
         <form method="POST" id="emailForm">
             <input type="hidden" name="ann_id" id="modalAnnId">

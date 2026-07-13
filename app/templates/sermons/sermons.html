@@ -16,39 +16,36 @@ Staff and above can upload new sermons.
 
 {% block sermons_content %}
 
-<!-- Optional Summary Cards -->
-<section class="content-section">
-    <h2 class="section-title">Sermons Summary</h2>
-    <div class="summary-cards">
-        <div class="card glass">
-            <h3>Total Sermons</h3>
-            <p class="large-amount">{{ total_count }}</p>
-        </div>
-        <div class="card glass">
-            <h3>Public</h3>
-            <p class="large-amount">{{ public_count }}</p>
-        </div>
-        <div class="card glass">
-            <h3>Private</h3>
-            <p class="large-amount">{{ private_count }}</p>
-        </div>
+<div class="glass-panel">
+  <div style="font-weight:600; margin-bottom:0.5rem;">Sermons Summary</div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:0.5rem;">
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ total_count }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Total</div>
     </div>
-</section>
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ public_count }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Public</div>
+    </div>
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ private_count }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Private</div>
+    </div>
+  </div>
+</div>
 
-<!-- Top Upload Button -->
 {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
 <div class="form-actions add-event-top">
     <a href="{{ url_for('sermons.upload_sermon') }}" class="btn-primary">+ Upload New Sermon</a>
 </div>
 {% endif %}
 
-<!-- Search & Filters -->
-<section class="content-section">
-    <h2 class="section-title">All Sermons</h2>
+<div class="glass-panel">
+  <div style="font-weight:600; margin-bottom:0.4rem;">All Sermons</div>
 
     <details class="collapsible-controls">
         <summary class="collapsible-summary">
-            <strong>Search & Filters</strong> <span class="arrow">v</span>
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
         </summary>
         <div class="search-controls styled-form inline-form">
             <div class="form-group search-group">
@@ -60,9 +57,9 @@ Staff and above can upload new sermons.
             <div class="form-group filter-group">
                 <label class="control-label">Visibility</label>
                 <div class="filter-buttons">
-                    <button data-filter="all" class="filter-btn btn-primary">All</button>
-                    <button data-filter="public" class="filter-btn btn-secondary">Public</button>
-                    <button data-filter="private" class="filter-btn btn-secondary">Private</button>
+                    <button data-filter="all" class="btn btn-small filter-btn btn-primary">All</button>
+                    <button data-filter="public" class="btn btn-small filter-btn btn-secondary">Public</button>
+                    <button data-filter="private" class="btn btn-small filter-btn btn-secondary">Private</button>
                 </div>
             </div>
         </div>
@@ -132,7 +129,7 @@ Staff and above can upload new sermons.
                             {% if s.details %}
                             <section class="detail-section">
                                 <h3 class="detail-heading">Details</h3>
-                                <div class="detail-content">{{ s.details|nl2br|safe }}</div>
+                                <div class="detail-content">{{ s.details|nl2br|censor }}</div>
                             </section>
                             {% endif %}
 
@@ -160,10 +157,10 @@ Staff and above can upload new sermons.
         </table>
     </div>
 
-    <div class="no-data" id="noResults" style="display:none;">
-        No sermons match the current search and filters.
-    </div>
-</section>
+<div class="no-data" id="noResults" style="display:none;">
+    No sermons match the current search and filters.
+</div>
+</div>
 
 <script>
   // Your original JS unchanged

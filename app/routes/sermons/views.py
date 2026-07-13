@@ -30,7 +30,7 @@ sermons_bp = Blueprint('sermons', __name__, url_prefix='/sermons')
 
 
 # ----------------------------------------------------------------------
-# Main Sermons List - /sermons
+# Main Sermons List – /sermons
 # ----------------------------------------------------------------------
 @sermons_bp.route('/')
 def sermons():
@@ -72,17 +72,28 @@ def sermons():
     if user_id:
         log_change(user_id, 'view', change_details='Viewed sermons list')
 
+    total_count = len(sermons_list)
+    public_count = sum(1 for s in sermons_list if s.get('visibility') == 'public')
+    private_count = sum(1 for s in sermons_list if s.get('visibility') == 'private')
+
     template = 'public/sermons/sermons.html' if not is_logged_in else 'sermons/sermons.html'
-    return render_template(template, sermons=sermons_list, is_logged_in=is_logged_in)
+    return render_template(
+        template,
+        sermons=sermons_list,
+        is_logged_in=is_logged_in,
+        total_count=total_count,
+        public_count=public_count,
+        private_count=private_count,
+    )
 
 
 # ----------------------------------------------------------------------
-# Single Sermon View - /sermons/view/<int:sermon_id>
+# Single Sermon View – /sermons/view/<int:sermon_id>
 # Guests are redirected to public view
 # ----------------------------------------------------------------------
 @sermons_bp.route('/view/<int:sermon_id>')
 def view_sermon(sermon_id):
-    """Private sermon view - guests are redirected to public view."""
+    """Private sermon view – guests are redirected to public view."""
     if 'user_id' not in session:
         return redirect(url_for('public.public_sermons.public_sermon_detail', sermon_id=sermon_id))
 
