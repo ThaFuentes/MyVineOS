@@ -7,12 +7,14 @@
 <div class="row mb-4">
     <div class="col-12 text-center">
         <h2 class="mb-1">Bible Translation Management</h2>
-        <p class="text-muted">Upload, replace, set default, or delete offline Bible translations (Admin/Owner only).</p>
-        <p class="small text-muted">
-            Pre-installed public-domain translations: <strong>KJV</strong>, <strong>ASV</strong>, and <strong>BBE</strong>
-            (via <code>scripts/import_bible_data.py</code>).
-            <strong>NIV cannot be bundled</strong> without a license from Biblica.
-            Bible Gateway and similar sites do not permit bulk download for redistribution.
+        <p class="text-muted">
+            Optional offline installs for search &amp; offline reading (Admin/Owner).
+            Everyone can already <strong>read online versions in Bible Study</strong> without installing anything.
+        </p>
+        <p class="small text-warning mb-0">
+            <i class="fas fa-balance-scale me-1"></i>
+            Only upload translations your church is licensed (or free) to store and use.
+            By uploading, you confirm you have the right to host that text here.
         </p>
     </div>
 </div>
@@ -33,8 +35,20 @@
                         <label for="bible_file" class="form-label">Bible JSON File</label>
                         <input type="file" name="bible_file" id="bible_file" class="form-control" accept=".json" required>
                         <small class="text-muted">
-                            File must be valid JSON with keys: <code>translation</code> (code), <code>name</code>, and <code>verses</code> array.<br>
-                            Uploading a file with an existing code will replace that translation.
+                            Accepted formats:
+                            <ul class="mb-1 mt-1">
+                                <li>
+                                    <strong>Your downloads</strong> (e.g. <code>kjv.json</code>, <code>asv.json</code>):
+                                    <code>metadata</code> + <code>verses</code> with
+                                    <code>book_name</code>, <code>chapter</code>, <code>verse</code>, <code>text</code>
+                                </li>
+                                <li>
+                                    Site format:
+                                    <code>translation</code>, <code>name</code>,
+                                    <code>verses: [{book, chapter, verse, text}]</code>
+                                </li>
+                            </ul>
+                            Full KJV/ASV files (~6&nbsp;MB) are fine. Re-uploading the same code replaces it.
                         </small>
                     </div>
 

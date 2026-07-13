@@ -99,18 +99,47 @@
   function detectStandalone() {
     const isStandalone = 
       window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: minimal-ui)').matches ||
       window.navigator.standalone === true ||
       document.referrer.includes('android-app://');
 
-    if (isStandalone) {
-      document.body.classList.add('standalone', 'phone-app');
-      document.documentElement.classList.add('standalone');
-    }
+    const isNarrow = window.innerWidth < 768;
 
-    // Also tag narrow phones for any extra tweaks
-    if (window.innerWidth < 768) {
+    if (isStandalone) {
+      document.body.classList.add('standalone');
+      document.documentElement.classList.add('standalone');
+      // Desktop installed app vs phone installed app (cleaner chrome rules)
+      if (isNarrow) {
+        document.body.classList.add('phone-app', 'standalone-phone');
+      } else {
+        document.body.classList.add('standalone-desktop');
+      }
+    } else if (isNarrow) {
       document.body.classList.add('phone-app');
     }
+  }
+
+  /**
+   * Register a security-conscious service worker.
+   * Caches only /static/* assets — never HTML, never POSTs, never API JSON.
+   * Safe with multi-device logins (cookies still per-device; cache is public CSS/JS only).
+   */
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    // Only on secure contexts (https or localhost)
+    if (!(window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+      return;
+    }
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then((reg) => {
+          // Quiet update check
+          try { reg.update(); } catch (e) { /* ignore */ }
+        })
+        .catch(() => {
+          // Non-fatal — app still works without SW
+        });
+    });
   }
 
   function addThemeColorMetaIfMissing() {
@@ -153,6 +182,7 @@
     detectStandalone();
     addThemeColorMetaIfMissing();
     setupInstallPrompt();
+    registerServiceWorker();
 
     // Make sure safe-area padding is respected even if CSS vars lag
     if (window.visualViewport) {

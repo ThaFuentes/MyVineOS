@@ -1,11 +1,12 @@
 # app/routes/pastoral/bible.py - Bible study, upload, search, Strong's integration.
 
 from flask import (
-    Blueprint, render_template, request, jsonify, abort, flash, redirect, url_for, session,
+    Blueprint, render_template, request, jsonify, abort, flash, redirect, url_for, session, Response,
 )
 from werkzeug.utils import secure_filename
 import json
 import os
+import re
 import tempfile
 
 from . import pastoral_required
@@ -16,6 +17,7 @@ from app.models.pastoral.bible import (
     set_bible_default,
     delete_bible_translation,
     import_bible_translation,
+    normalize_uploaded_bible_json,
     bible_search,
     bible_get_chapter,
     bible_get_verse,
@@ -28,6 +30,30 @@ from app.models.pastoral.bible import (
     import_strongs_lexicon,
     import_strongs_occurrences,
     normalize_book_name,
+    get_default_translation_code,
+)
+from app.models.pastoral.bible_online import (
+    get_unified_chapter,
+    list_online_translations,
+    combined_translation_options,
+    ONLINE_QUICK_VERSIONS,
+    save_highlight,
+    delete_highlight,
+    clear_verse_highlight,
+    save_note,
+    delete_note,
+    get_note,
+    list_all_notes,
+    list_notes,
+    format_note_export,
+    format_notes_export,
+    note_to_illustration,
+    scripture_selection_to_illustration,
+    toggle_favorite,
+    delete_favorite,
+    list_all_favorites,
+    ensure_annotation_tables,
+    HIGHLIGHT_COLORS,
 )
 from app.models.pastoral.sermons import (
     get_sermon_by_id, get_sermon_sections, save_sermon_sections,
@@ -47,6 +73,10 @@ def allowed_file(filename):
 @bible_bp.route('/study')
 @pastoral_required()
 def bible_study():
+    try:
+        ensure_annotation_tables()
+    except Exception as exc:
+        print(f'bible annotation tables: {exc}')
     translations = get_bible_translations()
     books = get_bible_books()
     user_id = session['user_id']
@@ -55,13 +85,22 @@ def bible_study():
     if sermon_id:
         sermon = get_sermon_by_id(sermon_id, user_id)
     sermons = get_visible_sermons(user_id, limit=50)
+    church_default = get_default_translation_code()
+    # Prefer local default; otherwise online BSB — no download required
+    selected = church_default or 'online:BSB'
+    version_options = combined_translation_options()
     return render_template(
         'pastoral/bible_study.html',
         translations=translations,
+        version_options=version_options,
+        online_quick=ONLINE_QUICK_VERSIONS,
+        church_default=church_default,
+        selected_translation=selected,
         books=books,
         sermon=sermon,
         sermon_id=sermon_id if sermon else None,
         sermons=sermons,
+        highlight_colors=HIGHLIGHT_COLORS,
         page_title='Bible Study',
     )
 
@@ -114,19 +153,35 @@ def bible_upload():
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     bible_data = json.load(f)
-                if not isinstance(bible_data, dict):
-                    raise ValueError('JSON must be an object with translation, name, verses')
-                code = (bible_data.get('translation') or bible_data.get('code') or '').strip()
-                name = (bible_data.get('name') or code).strip()
-                verses = bible_data.get('verses') or []
-                if not code or not name:
-                    raise ValueError('translation code and name are required')
+                parsed = normalize_uploaded_bible_json(bible_data)
+                # metadata.shortname (KJV/ASV dumps) or filename stem (kjv.json → KJV)
+                if not parsed.get('code'):
+                    stem = os.path.splitext(filename)[0].strip()
+                    if stem:
+                        parsed['code'] = stem.upper()[:20]
+                        if not parsed.get('name'):
+                            parsed['name'] = stem.upper()
+                if not parsed.get('code'):
+                    raise ValueError(
+                        "Translation code is required "
+                        "(expected metadata.shortname, translation, code, or filename like kjv.json)"
+                    )
+                if not parsed.get('name'):
+                    parsed['name'] = parsed['code']
                 count = import_bible_translation(
-                    code, name, verses,
-                    set_default=bool(bible_data.get('set_default')),
+                    parsed['code'],
+                    parsed['name'],
+                    parsed['verses'],
+                    set_default=bool(parsed.get('set_default')),
                 )
-                flash(f'Imported {count} verses for {name} ({code}).', 'success')
-                log_change(session['user_id'], 'upload', None, code, f'Imported Bible translation {code} ({count} verses)')
+                flash(
+                    f'Imported {count:,} verses for {parsed["name"]} ({parsed["code"]}).',
+                    'success',
+                )
+                log_change(
+                    session['user_id'], 'upload', None, parsed['code'],
+                    f'Imported Bible translation {parsed["code"]} ({count} verses)',
+                )
             except Exception as e:
                 flash(f'Error processing Bible file: {e}', 'error')
             finally:
@@ -187,25 +242,279 @@ def bible_search_route():
     return jsonify({'verses': verses})
 
 
+@bible_bp.route('/online/translations')
+@pastoral_required()
+def online_translations():
+    """Browse Free Bible API catalog — read online, no install required."""
+    q = request.args.get('q', '').strip()
+    lang = request.args.get('lang', 'eng').strip() or 'eng'
+    try:
+        rows = list_online_translations(query=q or None, language=lang, limit=80)
+        return jsonify({'translations': rows, 'ok': True})
+    except Exception as e:
+        return jsonify({'translations': [], 'ok': False, 'error': str(e)}), 502
+
+
 @bible_bp.route('/chapter/<book>/<int:chapter>')
 @pastoral_required()
 def bible_chapter(book, chapter):
+    """Local install if available; otherwise stream from online Bible API (no bulk download)."""
+    user_id = session.get('user_id')
     translation = request.args.get('translation')
     book = normalize_book_name(book)
-    verses = bible_get_chapter(book, chapter, translation)
-    if not verses:
+    try:
+        data = get_unified_chapter(book, chapter, translation=translation, user_id=user_id)
+    except Exception as e:
+        return jsonify({'error': str(e), 'book': book, 'chapter': chapter}), 404
+    if not data or not data.get('verses'):
         abort(404)
-    strongs_map = {}
-    for v in verses:
-        strongs_map[v['verse']] = get_strongs_for_verse(book, chapter, v['verse'])
-    return jsonify({
-        'book': book,
-        'chapter': chapter,
-        'translation': translation,
-        'max_chapter': get_chapter_count(book, translation),
-        'verses': verses,
-        'strongs': strongs_map,
-    })
+    return jsonify(data)
+
+
+@bible_bp.route('/highlight', methods=['POST'])
+@pastoral_required()
+def bible_highlight_save():
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    try:
+        row = save_highlight(
+            user_id=user_id,
+            translation=(data.get('translation') or data.get('annotation_key') or '').strip(),
+            book=data.get('book', ''),
+            chapter=int(data.get('chapter') or 0),
+            verse_start=int(data.get('verse_start') or data.get('verse') or 0),
+            verse_end=int(data.get('verse_end') or data.get('verse') or 0) or None,
+            color=(data.get('color') or 'yellow'),
+        )
+        return jsonify({'ok': True, 'highlight': row})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+
+@bible_bp.route('/highlight/<int:highlight_id>', methods=['DELETE'])
+@pastoral_required()
+def bible_highlight_delete(highlight_id):
+    ok = delete_highlight(session['user_id'], highlight_id)
+    return jsonify({'ok': ok})
+
+
+@bible_bp.route('/highlight/clear', methods=['POST'])
+@pastoral_required()
+def bible_highlight_clear():
+    data = request.get_json(silent=True) or {}
+    n = clear_verse_highlight(
+        session['user_id'],
+        (data.get('translation') or '').strip(),
+        data.get('book', ''),
+        int(data.get('chapter') or 0),
+        int(data.get('verse') or 0),
+    )
+    return jsonify({'ok': True, 'removed': n})
+
+
+@bible_bp.route('/note', methods=['POST'])
+@pastoral_required()
+def bible_note_save():
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    try:
+        row = save_note(
+            user_id=user_id,
+            translation=(data.get('translation') or data.get('annotation_key') or '').strip(),
+            book=data.get('book', ''),
+            chapter=int(data.get('chapter') or 0),
+            body=data.get('body') or data.get('text') or '',
+            verse_start=int(data.get('verse_start') or data.get('verse') or 0),
+            verse_end=int(data.get('verse_end') or data.get('verse') or 0) or None,
+            note_id=int(data['id']) if data.get('id') else None,
+            title=data.get('title'),
+            scripture_text=data.get('scripture_text') or data.get('scripture'),
+            tags=data.get('tags'),
+            scope=data.get('scope') or 'verse',
+        )
+        log_change(user_id, 'bible_note', row.get('id'), row.get('display_title'), 'Saved Bible study note')
+        return jsonify({'ok': True, 'note': row})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+
+@bible_bp.route('/note/<int:note_id>', methods=['GET'])
+@pastoral_required()
+def bible_note_get(note_id):
+    row = get_note(session['user_id'], note_id)
+    if not row:
+        return jsonify({'ok': False, 'error': 'Note not found'}), 404
+    return jsonify({'ok': True, 'note': row})
+
+
+@bible_bp.route('/note/<int:note_id>', methods=['DELETE'])
+@pastoral_required()
+def bible_note_delete(note_id):
+    ok = delete_note(session['user_id'], note_id)
+    return jsonify({'ok': ok})
+
+
+@bible_bp.route('/notes')
+@pastoral_required()
+def bible_notes_list():
+    """JSON library of the user's Bible notes (searchable, reusable)."""
+    q = request.args.get('q', '').strip()
+    limit = min(int(request.args.get('limit', 100)), 300)
+    rows = list_all_notes(session['user_id'], search=q or None, limit=limit)
+    return jsonify({'ok': True, 'notes': rows, 'count': len(rows)})
+
+
+@bible_bp.route('/note/<int:note_id>/to_illustration', methods=['POST'])
+@pastoral_required()
+def bible_note_to_illustration(note_id):
+    """Copy a study note into the Illustration Library for sermon reuse."""
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    try:
+        result = note_to_illustration(
+            user_id,
+            note_id,
+            visibility=data.get('visibility') or 'private',
+        )
+        log_change(
+            user_id, 'illustration_create', result['illustration_id'], result['title'],
+            f'Illustration from Bible note #{note_id}',
+        )
+        return jsonify({
+            'ok': True,
+            **result,
+            'library_url': url_for('pastoral.illustrations.library'),
+            'message': 'Saved to Illustration Library — reuse it in sermons anytime.',
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+
+@bible_bp.route('/selection/to_illustration', methods=['POST'])
+@pastoral_required()
+def bible_selection_to_illustration():
+    """Save selected scripture (+ optional note text) as a reusable illustration."""
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    try:
+        result = scripture_selection_to_illustration(
+            user_id=user_id,
+            reference=data.get('reference') or '',
+            text=data.get('text') or data.get('scripture_text') or '',
+            translation=data.get('translation'),
+            note_body=data.get('body') or data.get('note') or '',
+            visibility=data.get('visibility') or 'private',
+        )
+        log_change(
+            user_id, 'illustration_create', result['illustration_id'], result['title'],
+            'Illustration from Bible selection',
+        )
+        return jsonify({
+            'ok': True,
+            **result,
+            'library_url': url_for('pastoral.illustrations.library'),
+            'message': 'Saved to Illustration Library.',
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+
+@bible_bp.route('/note/<int:note_id>/download')
+@pastoral_required()
+def bible_note_download(note_id):
+    """Download one note as a .md text file."""
+    note = get_note(session['user_id'], note_id)
+    if not note:
+        abort(404)
+    body = format_note_export(note)
+    safe = re.sub(r'[^\w\-.]+', '_', (note.get('display_title') or f'note-{note_id}'))[:80]
+    return Response(
+        body,
+        mimetype='text/markdown; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename="{safe}.md"'},
+    )
+
+
+@bible_bp.route('/notes/download')
+@pastoral_required()
+def bible_notes_download_bulk():
+    """
+    Download notes as a single .md file.
+    Query: q=search | book= & chapter= & translation=
+    """
+    user_id = session['user_id']
+    book = request.args.get('book', '').strip()
+    chapter = request.args.get('chapter', type=int)
+    translation = request.args.get('translation', '').strip()
+    q = request.args.get('q', '').strip()
+
+    if book and chapter:
+        book = normalize_book_name(book) or book
+        # When translation omitted, pull chapter notes across translations for this user
+        if translation:
+            notes = list_notes(user_id, translation, book, chapter)
+        else:
+            all_notes = list_all_notes(user_id, limit=300)
+            notes = [
+                n for n in all_notes
+                if n.get('book') == book and int(n.get('chapter') or 0) == chapter
+            ]
+        heading = f"Bible notes — {book} {chapter}"
+        fname = f"bible-notes-{book}-{chapter}.md".replace(' ', '_')
+    else:
+        notes = list_all_notes(user_id, search=q or None, limit=300)
+        heading = "My Bible Study Notes"
+        fname = "bible-study-notes.md"
+
+    if not notes:
+        flash('No notes to download.', 'error')
+        return redirect(url_for('pastoral.bible.bible_study'))
+
+    body = format_notes_export(notes, heading=heading)
+    return Response(
+        body,
+        mimetype='text/markdown; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename="{fname}"'},
+    )
+
+
+@bible_bp.route('/favorite', methods=['POST'])
+@pastoral_required()
+def bible_favorite_toggle():
+    data = request.get_json(silent=True) or {}
+    try:
+        result = toggle_favorite(
+            user_id=session['user_id'],
+            scope=data.get('scope') or 'verse',
+            book=data.get('book', ''),
+            chapter=int(data.get('chapter') or 0),
+            verse=int(data.get('verse') or 0),
+            translation=(data.get('translation') or data.get('annotation_key') or '').strip(),
+            scripture_text=data.get('scripture_text') or data.get('text'),
+        )
+        return jsonify({'ok': True, **result})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+
+@bible_bp.route('/favorites')
+@pastoral_required()
+def bible_favorites_list():
+    q = request.args.get('q', '').strip()
+    scope = request.args.get('scope', '').strip() or None
+    rows = list_all_favorites(
+        session['user_id'],
+        scope=scope,
+        search=q or None,
+        limit=min(int(request.args.get('limit', 200)), 400),
+    )
+    return jsonify({'ok': True, 'favorites': rows, 'count': len(rows)})
+
+
+@bible_bp.route('/favorite/<int:favorite_id>', methods=['DELETE'])
+@pastoral_required()
+def bible_favorite_delete(favorite_id):
+    return jsonify({'ok': delete_favorite(session['user_id'], favorite_id)})
 
 
 @bible_bp.route('/verse/<book>/<int:chapter>/<int:verse>')

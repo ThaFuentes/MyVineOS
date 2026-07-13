@@ -1,11 +1,11 @@
 <!-- app/templates/events/events_dashboard.html -->
 <!-- Full path: WebChurchMan/app/templates/events/events_dashboard.html -->
 <!-- File name: events_dashboard.html -->
-<!-- Brief, detailed purpose: Events Dashboard / Main Listing page - primary entry point for Events module.
+<!-- Brief, detailed purpose: Events Dashboard / Main Listing page – primary entry point for Events module.
    Extends base_events.html for consistent glass wrapper, menu, flash messages.
    Summary cards (.card.glass), collapsible search/filters, glass table.
    + Add New Event at top (manage_events only). Event name links to view_event.
-   Actions column (Edit/Delete) only for manage_events users - buttons now uniform size, side-by-side flex, no overflow.
+   Actions column (Edit/Delete) only for manage_events users – buttons now uniform size, side-by-side flex, no overflow.
    Client-side live search + potluck/date filters preserved. Global classes only.
    FULL REBUILD: Edit/Delete now works for ALL events (past + future) for Staff/Admin/Owner. -->
 
@@ -24,40 +24,37 @@ Overview of all church events.<br>
 
 {% block events_content %}
 
-<!-- Events Summary Cards -->
-<section class="content-section">
-    <h2 class="section-title">Events Summary</h2>
-    <div class="summary-cards">
-        <div class="card glass">
-            <h3>Total Events</h3>
-            <p class="large-amount">{{ total_count }}</p>
-        </div>
-        <div class="card glass">
-            <h3>Upcoming</h3>
-            <p class="large-amount">{{ upcoming_count }}</p>
-        </div>
-        <div class="card glass">
-            <h3>Potlucks</h3>
-            <p class="large-amount">{{ potluck_count }}</p>
-        </div>
+<div class="glass-panel">
+  <div style="font-weight:600; margin-bottom:0.5rem;">Events Summary</div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:0.5rem;">
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ total_count }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Total</div>
     </div>
-</section>
-
-<!-- Main Events Section -->
-<section class="content-section">
-    <h2 class="section-title">All Events</h2>
-
-    <!-- Add New Event Button (top) -->
-    {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
-    <div class="form-actions add-event-top">
-        <a href="{{ url_for('events.add_event') }}" class="btn-primary">+ Add New Event</a>
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ upcoming_count }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Upcoming</div>
     </div>
-    {% endif %}
+    <div class="item-card" style="text-align:center; min-height:80px; display:flex; flex-direction:column; justify-content:center; margin-bottom:0;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ potluck_count }}</div>
+      <div style="font-size:0.8rem; opacity:0.7;">Potlucks</div>
+    </div>
+  </div>
+</div>
+
+{% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
+<div class="form-actions add-event-top">
+    <a href="{{ url_for('events.add_event') }}" class="btn-primary">+ Add New Event</a>
+</div>
+{% endif %}
+
+<div class="glass-panel">
+  <div style="font-weight:600; margin-bottom:0.4rem;">All Events</div>
 
     <!-- Collapsible Search & Filters -->
     <details class="collapsible-controls">
         <summary class="collapsible-summary">
-            <strong>Search & Filters</strong> <span class="arrow">v</span>
+            <strong>Search & Filters</strong> <span class="arrow">▼</span>
         </summary>
         <div class="search-controls styled-form inline-form">
             <div class="form-group search-group">
@@ -143,13 +140,13 @@ Overview of all church events.<br>
         </table>
     </div>
 
-    <div class="no-data" id="noResults" style="display:none;">
-        No events match the current search and filters.
-    </div>
-</section>
+<div class="no-data" id="noResults" style="display:none;">
+    No events match the current search and filters.
+</div>
+</div>
 
 <script>
-  /* Same script as before - unchanged */
+  /* Same script as before – unchanged */
   (function() {
     const searchBox = document.getElementById('searchBox');
     const eventsBody = document.getElementById('eventsBody');

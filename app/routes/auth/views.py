@@ -47,7 +47,17 @@ except Exception:
 
 
 def _complete_login(user):
+    """
+    Establish a session for this browser/device only.
+
+    Multi-device is intentional: Flask signed cookies are independent per device.
+    Logging in on a phone does not log out a tablet or desktop. Study notes,
+    highlights, and favorites are stored by user_id in the database and sync
+    across all of a member's devices. CSRF tokens are also per-session cookie
+    (per device), which is correct and still secure.
+    """
     record_login_attempt(True)
+    # Clear only *this* device's cookie session (not other devices).
     session.clear()
     session.permanent = True
     session['user_id'] = user['id']
@@ -62,7 +72,7 @@ def _complete_login(user):
         session['user_theme'] = 'cyan-glow'
         session['ui_font_scale'] = 'md'
         session['bible_font_scale'] = 'md'
-    log_change(user['id'], 'login', change_details='User logged in.')
+    log_change(user['id'], 'login', change_details='User logged in (multi-device allowed).')
     mark_as_vetted()
     return redirect(url_for('dashboard.dashboard'))
 

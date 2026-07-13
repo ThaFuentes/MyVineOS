@@ -1,5 +1,5 @@
 {# app/templates/pastoral/dashboard_pastoral.html #}
-{# Pastoral Command Center - multi-color quick tiles (readable icons, not monochrome dark blue). #}
+{# Pastoral Command Center - full quick-access tile grid matching top nav. #}
 
 {% extends "pastoral/base_pastoral.html" %}
 
@@ -8,7 +8,7 @@
 {% block pastoral_content %}
 <div class="glass-panel" style="text-align:center; margin-bottom:1.25rem;">
   <h1 style="margin:0 0 0.25rem; color:var(--primary);">Pastoral Command Center</h1>
-  <p style="margin:0; opacity:0.7; font-size:0.9rem;">Tools for planning, preaching, care &amp; creative prep</p>
+  <p style="margin:0; opacity:0.7; font-size:0.9rem;">Tools for planning, preaching, care &amp; study</p>
 </div>
 
 <!-- Next Upcoming Service - Prominent app-style card -->
@@ -51,18 +51,18 @@
   </div>
 </div>
 
-<!-- Quick access — multi-color tiles (bright icons, not dark-blue PNGs) -->
+<!-- Quick access — full set matching top pastoral nav + related tools -->
 <div class="pastoral-tile-grid">
+  <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="glass-panel pastoral-tile pastoral-tile-dash">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></span>
+    <span class="pastoral-tile-title">Dashboard</span>
+    <span class="pastoral-tile-sub">Command center home</span>
+  </a>
+
   <a href="{{ url_for('pastoral.sermons.list') }}" class="glass-panel pastoral-tile pastoral-tile-sermons">
     <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
     <span class="pastoral-tile-title">Sermon Builder</span>
     <span class="pastoral-tile-sub">Create, edit &amp; export</span>
-  </a>
-
-  <a href="{{ url_for('pastoral.illustrations.library') }}" class="glass-panel pastoral-tile pastoral-tile-illustrations">
-    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-pen-to-square"></i></span>
-    <span class="pastoral-tile-title">Illustrations Library</span>
-    <span class="pastoral-tile-sub">Stories, analogies &amp; written sections</span>
   </a>
 
   <a href="{{ url_for('pastoral.planning.index') }}" class="glass-panel pastoral-tile pastoral-tile-planning">
@@ -82,6 +82,32 @@
     <span class="pastoral-tile-title">Podium Mode</span>
     <span class="pastoral-tile-sub">Teleprompter</span>
   </a>
+
+  <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="glass-panel pastoral-tile pastoral-tile-care">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-heart"></i></span>
+    <span class="pastoral-tile-title">Pastoral Care</span>
+    <span class="pastoral-tile-sub">Requests, notes &amp; follow-up</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.illustrations.library') }}" class="glass-panel pastoral-tile pastoral-tile-illustrations">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-pen-to-square"></i></span>
+    <span class="pastoral-tile-title">Illustrations Library</span>
+    <span class="pastoral-tile-sub">Stories, analogies &amp; sections</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.bible.bible_study') }}" class="glass-panel pastoral-tile pastoral-tile-bible">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-scroll"></i></span>
+    <span class="pastoral-tile-title">Bible Study</span>
+    <span class="pastoral-tile-sub">Read, notes &amp; cross-refs</span>
+  </a>
+
+  {% if session.get('user_role') in ['Admin', 'Owner'] %}
+  <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="glass-panel pastoral-tile pastoral-tile-upload">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-download"></i></span>
+    <span class="pastoral-tile-title">Bible Translations</span>
+    <span class="pastoral-tile-sub">Install &amp; manage versions</span>
+  </a>
+  {% endif %}
 
   <a href="{{ url_for('pastoral.sermons_export.list') }}" class="glass-panel pastoral-tile pastoral-tile-export">
     <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-file-export"></i></span>

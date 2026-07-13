@@ -1,0 +1,143 @@
+================================================================================
+MyVineChurch.online — production deploy commands (shared hosting / Passenger)
+================================================================================
+Site path:
+  /home/ua882038/public_html/myvinechurch.online
+
+Repo (GitHub):
+  https://github.com/ThaFuentes/MyVineOS
+  branch: main
+
+IMPORTANT
+---------
+Do NOT only update app/. Display options, themes, icons, and most UI live in
+static/ as well. Missing static/ makes the Display panel stay open / look broken.
+
+Also update poweredbytop/ when security / CSRF / login pipeline changes.
+
+DO NOT overwrite (host-only files):
+  - passenger_wsgi.py / passenger.py
+  - .htaccess
+  - .env / secrets
+  - uploads/ (user media)
+  - any host venv outside the repo (if you manage one separately)
+
+================================================================================
+1) Go to the site directory
+================================================================================
+
+cd /home/ua882038/public_html/myvinechurch.online
+
+
+================================================================================
+2) Confirm git remote (optional but recommended)
+================================================================================
+
+git remote -v
+# should point at MyVineOS (or whatever remote name you use for that repo)
+
+# If origin is wrong, you can still fetch by URL later, or:
+# git remote set-url origin https://github.com/ThaFuentes/MyVineOS.git
+
+
+================================================================================
+3) Fetch latest from GitHub
+================================================================================
+
+git fetch origin
+
+
+================================================================================
+4) Update only the folders that ship from git (safe for host config)
+================================================================================
+
+# REQUIRED for almost every UI / template / theme deploy:
+git checkout origin/main -- app/ static/
+
+# REQUIRED when security / CSRF / login pipeline changed:
+git checkout origin/main -- poweredbytop/
+
+# OPTIONAL — only if you intentionally want these from the repo:
+# git checkout origin/main -- main.py wsgi.py requirements.txt README.md
+
+
+================================================================================
+5) Clear the Passenger / app error log (recommended)
+================================================================================
+
+> stderr.log
+
+
+================================================================================
+6) Restart the app (Passenger)
+================================================================================
+
+mkdir -p tmp
+touch tmp/restart.txt
+
+# If your host uses a different restart method, use that instead, e.g.:
+# passenger-config restart-app /home/ua882038/public_html/myvinechurch.online
+
+
+================================================================================
+7) Browser
+================================================================================
+
+Hard refresh so old CSS/JS is not cached:
+  Ctrl+Shift+R   (Windows/Linux)
+  Cmd+Shift+R    (Mac)
+
+Optional check in DevTools → Network:
+  - static/css/global/theme.css  (new ?v= query if templates request it)
+  - static/js/display_prefs.js
+
+
+================================================================================
+ONE-SHOT copy/paste (usual full UI + security update)
+================================================================================
+
+cd /home/ua882038/public_html/myvinechurch.online
+git fetch origin
+git checkout origin/main -- app/ static/ poweredbytop/
+> stderr.log
+mkdir -p tmp
+touch tmp/restart.txt
+
+
+================================================================================
+If git remote is not "origin" or branch is not main
+================================================================================
+
+# Example with remote named "myvineos":
+# git fetch myvineos
+# git checkout myvineos/main -- app/ static/ poweredbytop/
+
+# Example with main branch named "master":
+# git fetch origin
+# git checkout origin/master -- app/ static/ poweredbytop/
+
+
+================================================================================
+After deploy smoke checks
+================================================================================
+
+1. Log in as Owner/Admin
+2. Display panel should be CLOSED until you click Display
+3. Change theme → should show "Saved to your account."
+4. Reload page → theme still applied
+5. Pastoral Command Center + Worship still load
+6. Podium → View in Podium opens a sermon (not 404)
+
+
+================================================================================
+Notes
+================================================================================
+
+- app/     = Python routes + Jinja templates
+- static/  = CSS, JS, images (Display panel CSS/JS lives here)
+- poweredbytop/ = security pipeline (needed for reliable theme save / CSRF)
+
+Updating only app/ is why Display stayed open: new HTML, old CSS that did not
+hide .display-prefs-panel.
+
+End of file.
