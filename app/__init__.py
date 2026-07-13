@@ -385,6 +385,16 @@ def create_app():
         return render_template('errors/404.html'), 404
     @app.errorhandler(500)
     def internal_error(e):
+        # Always log so hosting (Passenger) has a trail when the themed page hides the cause
+        try:
+            app.logger.exception('HTTP 500 on %s: %s', getattr(request, 'path', '?'), e)
+        except Exception:
+            pass
+        try:
+            import traceback
+            print('HTTP 500:\n' + traceback.format_exc(), flush=True)
+        except Exception:
+            pass
         return render_template('errors/500.html'), 500
     @app.errorhandler(403)
     def forbidden(e):

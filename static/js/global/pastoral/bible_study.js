@@ -447,10 +447,18 @@
     }
   }
 
+  function updateDefaultBadge(val) {
+    const badge = el('bible-my-version-badge');
+    if (!badge) return;
+    const label = String(val || '').replace(/^online:/, '') || '—';
+    badge.textContent = `My Bible: ${label}`;
+    badge.style.display = val ? '' : 'none';
+  }
+
   async function savePreferredTranslation(val) {
-    if (!val || !csrfToken()) return;
+    if (!val || !csrfToken()) return null;
     try {
-      await fetch(urls.preferred || `${api}/preferred`, {
+      const resp = await fetch(urls.preferred || `${api}/preferred`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -459,11 +467,48 @@
           Accept: 'application/json',
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ translation: val }),
+        body: JSON.stringify({
+          translation: val,
+          book: currentBook,
+          chapter: currentChapter || 1,
+          verse: getVisibleVerseAnchor() || 1,
+        }),
       });
+      const data = await resp.json().catch(() => ({}));
+      if (data && data.ok) updateDefaultBadge(val);
+      return data;
     } catch (e) {
       console.warn('Could not save preferred translation', e);
+      return null;
     }
+  }
+
+  async function saveReadingPlace(extra = {}) {
+    if (!csrfToken()) return;
+    const body = {
+      translation: getTranslation(),
+      book: currentBook,
+      chapter: currentChapter || 1,
+      verse: getVisibleVerseAnchor() || extra.verse || 1,
+      ...extra,
+    };
+    try {
+      localStorage.setItem('pastoral_bible_place', JSON.stringify(body));
+      localStorage.setItem('pastoral_bible_translation', body.translation || '');
+    } catch (e) { /* ignore */ }
+    try {
+      await fetch(urls.place || `${api}/place`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(body),
+      });
+    } catch (e) { /* quiet */ }
   }
 
   async function switchTranslationSeamless(fromControl) {
@@ -471,7 +516,7 @@
     const val = fromControl?.value || getTranslation();
     setTranslationValue(val);
     // Personal study version overrides church default next visit / any device after login
-    savePreferredTranslation(val);
+    const saved = await savePreferredTranslation(val);
     try {
       localStorage.setItem('pastoral_bible_translation', val);
     } catch (e) { /* ignore */ }
@@ -484,9 +529,13 @@
       scrollToVerse: anchorVerse,
       keepSelection: false,
     });
-    toast(anchorVerse
-      ? `Saved version · stayed at ${book} ${chapter}:${anchorVerse}`
-      : `Saved your study version · stayed at ${book} ${chapter}`);
+    if (saved && saved.ok) {
+      toast(saved.message || `Saved as your study Bible: ${String(val).replace(/^online:/, '')}`);
+    } else {
+      toast(anchorVerse
+        ? `Switched · stayed at ${book} ${chapter}:${anchorVerse}`
+        : `Switched · stayed at ${book} ${chapter}`);
+    }
   }
 
   async function loadChapter(chapter, opts = {}) {
@@ -538,6 +587,8 @@
           scrollToVerse(opts.scrollToVerse);
         });
       }
+      // Remember version + book + chapter so reopening Bible continues here
+      saveReadingPlace({ verse: opts.scrollToVerse || getVisibleVerseAnchor() || 1 });
     } catch (e) {
       main().innerHTML = '<p class="text-muted">Could not load this chapter. Try another version or book.</p>';
       if (title) title.textContent = `${currentBook} ${chapter}`;
@@ -1299,8 +1350,20 @@
 
     // Personal preference (server) → localStorage → church default
     let want = cfg.selectedTranslation || cfg.userPreferred || null;
+    let resumeBook = cfg.lastBook || null;
+    let resumeChapter = cfg.lastChapter || null;
+    let resumeVerse = cfg.lastVerse || null;
     try {
       want = want || localStorage.getItem('pastoral_bible_translation');
+      const raw = localStorage.getItem('pastoral_bible_place');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (!want && p.translation) want = p.translation;
+        // Prefer server place; fill gaps from browser backup
+        if (!resumeBook && p.book) resumeBook = p.book;
+        if (!resumeChapter && p.chapter) resumeChapter = p.chapter;
+        if (!resumeVerse && p.verse) resumeVerse = p.verse;
+      }
     } catch (e) { /* ignore */ }
     if (want) {
       const candidates = [want, `online:${want}`, String(want).replace(/^online:/, '')];
@@ -1310,8 +1373,26 @@
       );
       if (pick) setTranslationValue(pick);
       else setTranslationValue(want);
+      updateDefaultBadge(pick || want);
     }
 
-    prepareBook(currentBook);
+    el('bible-save-my-bible')?.addEventListener('click', async () => {
+      const val = getTranslation();
+      if (!val) return toast('Pick a Bible version first');
+      const data = await savePreferredTranslation(val);
+      if (data && data.ok) {
+        updateDefaultBadge(val);
+        toast(data.message || 'Saved as your study Bible');
+      } else {
+        toast((data && data.error) || 'Could not save — try again');
+      }
+    });
+
+    // Resume last place (version already applied above)
+    const startBook = resumeBook || currentBook || 'John';
+    const startCh = parseInt(resumeChapter, 10) || 1;
+    const startV = parseInt(resumeVerse, 10) || 1;
+    currentBook = startBook;
+    prepareBook(startBook, { chapter: startCh, scrollToVerse: startV });
   });
 })();

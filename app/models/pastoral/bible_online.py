@@ -169,38 +169,79 @@ FAVORITE_SCOPES = ("verse", "chapter", "book")
 
 
 def ensure_user_bible_pref_column():
-    """users.preferred_bible_translation — personal version that overrides church default."""
+    """Personal Bible prefs on users: version + last reading place."""
     db = get_db()
     cur = db.cursor()
-    try:
-        cur.execute(
-            "ALTER TABLE users ADD COLUMN preferred_bible_translation VARCHAR(40) NULL"
-        )
-        db.commit()
-    except Exception:
-        pass
+    for col, coldef in (
+        ("preferred_bible_translation", "VARCHAR(40) NULL"),
+        ("bible_last_book", "VARCHAR(50) NULL"),
+        ("bible_last_chapter", "INT UNSIGNED NULL"),
+        ("bible_last_verse", "INT UNSIGNED NULL"),
+    ):
+        try:
+            cur.execute(f"ALTER TABLE users ADD COLUMN {col} {coldef}")
+            db.commit()
+        except Exception:
+            pass
 
 
 def get_user_preferred_translation(user_id: int | None) -> str | None:
     """User's saved Bible version (e.g. online:BSB or KJV), or None for church default."""
+    place = get_user_bible_place(user_id)
+    return place.get("translation") if place else None
+
+
+def get_user_bible_place(user_id: int | None) -> dict:
+    """
+    Saved study place for a member:
+      {translation, book, chapter, verse}
+    Empty fields mean “not set yet.”
+    """
+    empty = {"translation": None, "book": None, "chapter": None, "verse": None}
     if not user_id:
-        return None
+        return empty
     try:
         ensure_user_bible_pref_column()
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
         cur.execute(
-            "SELECT preferred_bible_translation FROM users WHERE id = %s LIMIT 1",
+            """
+            SELECT preferred_bible_translation, bible_last_book,
+                   bible_last_chapter, bible_last_verse
+              FROM users WHERE id = %s LIMIT 1
+            """,
             (user_id,),
         )
         row = cur.fetchone()
         if not row:
-            return None
-        code = (row.get("preferred_bible_translation") or "").strip()
-        return code[:40] if code else None
+            return empty
+        code = (row.get("preferred_bible_translation") or "").strip() or None
+        book = (row.get("bible_last_book") or "").strip() or None
+        if book:
+            book = normalize_book_name(book) or book
+        chapter = row.get("bible_last_chapter")
+        verse = row.get("bible_last_verse")
+        try:
+            chapter = int(chapter) if chapter is not None else None
+        except (TypeError, ValueError):
+            chapter = None
+        try:
+            verse = int(verse) if verse is not None else None
+        except (TypeError, ValueError):
+            verse = None
+        if chapter is not None and chapter < 1:
+            chapter = None
+        if verse is not None and verse < 1:
+            verse = None
+        return {
+            "translation": code[:40] if code else None,
+            "book": book,
+            "chapter": chapter,
+            "verse": verse,
+        }
     except Exception as exc:
-        print(f"get_user_preferred_translation: {exc}")
-        return None
+        print(f"get_user_bible_place: {exc}")
+        return empty
 
 
 def set_user_preferred_translation(user_id: int, code: str | None) -> str | None:
@@ -224,6 +265,69 @@ def set_user_preferred_translation(user_id: int, code: str | None) -> str | None
         raise RuntimeError(f"No user row updated for id={user_id}")
     db.commit()
     return code
+
+
+def save_user_bible_place(
+    user_id: int,
+    translation: str | None = None,
+    book: str | None = None,
+    chapter: int | None = None,
+    verse: int | None = None,
+    set_translation: bool = True,
+) -> dict:
+    """
+    Save where the user is studying. Always updates provided fields.
+    set_translation=True also stores preferred version so it overrides church default.
+    """
+    if not user_id:
+        raise ValueError("user_id is required")
+    ensure_user_bible_pref_column()
+
+    updates = []
+    params: list = []
+
+    if set_translation and translation is not None:
+        tr = (translation or "").strip()[:40] or None
+        updates.append("preferred_bible_translation = %s")
+        params.append(tr)
+
+    if book is not None:
+        b = normalize_book_name((book or "").strip()) or (book or "").strip() or None
+        updates.append("bible_last_book = %s")
+        params.append(b)
+
+    if chapter is not None:
+        try:
+            ch = int(chapter)
+        except (TypeError, ValueError):
+            ch = None
+        if ch is not None and ch < 1:
+            ch = None
+        updates.append("bible_last_chapter = %s")
+        params.append(ch)
+
+    if verse is not None:
+        try:
+            v = int(verse)
+        except (TypeError, ValueError):
+            v = None
+        if v is not None and v < 1:
+            v = None
+        updates.append("bible_last_verse = %s")
+        params.append(v)
+
+    if not updates:
+        return get_user_bible_place(user_id)
+
+    params.append(user_id)
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        f"UPDATE users SET {', '.join(updates)} WHERE id = %s",
+        params,
+    )
+    db.commit()
+    return get_user_bible_place(user_id)
 
 
 def resolve_user_translation(user_id: int | None = None, explicit: str | None = None) -> str:

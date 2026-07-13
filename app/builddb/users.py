@@ -105,6 +105,10 @@ def create_tables(cursor):
         'ui_font_scale':               "VARCHAR(10) DEFAULT 'md'",
         'bible_font_scale':            "VARCHAR(10) DEFAULT 'md'",
         'preferred_bible_translation': "VARCHAR(40) NULL",
+        # Last Bible study place (resume version + book/chapter/verse per user)
+        'bible_last_book':             "VARCHAR(50) NULL",
+        'bible_last_chapter':          "INT UNSIGNED NULL",
+        'bible_last_verse':            "INT UNSIGNED NULL",
         'created_at':                  "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         'updated_at':                  "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
     }

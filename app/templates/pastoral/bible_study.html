@@ -10,10 +10,17 @@
 {% block pastoral_content %}
 <div class="bible-study-header text-center mb-3">
     <h2 class="mb-1"><i class="fas fa-book-bible me-2"></i>Bible Study</h2>
-    <p class="text-muted mb-0">
+    <p class="text-muted mb-2">
         Pick any version and read online — no download required.
-        Click verses to highlight or add notes.
+        Your last version, book, and chapter are saved so you can pick up studying anytime.
     </p>
+    <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-1">
+        <span id="bible-my-version-badge" class="badge bg-info text-dark" style="display:none;"></span>
+        <button type="button" id="bible-save-my-bible" class="btn btn-sm btn-cyan" title="Remember this version as yours on every device">
+            <i class="fas fa-bookmark me-1"></i>Save as my Bible
+        </button>
+        <span class="small text-muted">Also saves when you change the version dropdown. Place updates as you read.</span>
+    </div>
 </div>
 
 <div class="bible-sermon-bar glass-card mb-3">
@@ -240,14 +247,17 @@
 <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
 <script>
   window.BIBLE_STUDY = {
-    csrf: {{ (csrf_token() if csrf_token else '')|tojson }},
-    books: {{ books|tojson }},
-    translations: {{ translations|tojson }},
-    versionOptions: {{ version_options|tojson }},
-    sermonId: {{ sermon_id|tojson if sermon_id else 'null' }},
-    selectedTranslation: {{ selected_translation|tojson }},
-    userPreferred: {{ user_preferred|tojson }},
-    churchDefault: {{ church_default|tojson }},
+    csrf: {{ (csrf_token() if csrf_token is defined and csrf_token else '')|tojson }},
+    books: {{ (books if books is defined else [])|tojson }},
+    translations: {{ (translations if translations is defined else [])|tojson }},
+    versionOptions: {{ (version_options if version_options is defined else [])|tojson }},
+    sermonId: {{ (sermon_id if sermon_id is defined and sermon_id else none)|tojson }},
+    selectedTranslation: {{ (selected_translation if selected_translation is defined else none)|tojson }},
+    userPreferred: {{ (user_preferred if user_preferred is defined else none)|tojson }},
+    churchDefault: {{ (church_default if church_default is defined else none)|tojson }},
+    lastBook: {{ (last_book if last_book is defined and last_book else 'John')|tojson }},
+    lastChapter: {{ (last_chapter if last_chapter is defined and last_chapter else 1)|tojson }},
+    lastVerse: {{ (last_verse if last_verse is defined and last_verse else 1)|tojson }},
     urls: {
       quickSermon: {{ url_for('pastoral.bible.quick_sermon')|tojson }},
       saveIllustration: {{ url_for('pastoral.bible.save_illustration')|tojson }},
@@ -261,8 +271,9 @@
       selectionToIllustration: {{ url_for('pastoral.bible.bible_selection_to_illustration')|tojson }},
       illustrationsLibrary: {{ url_for('pastoral.illustrations.library')|tojson }},
       preferred: {{ url_for('pastoral.bible.set_preferred_translation')|tojson }},
+      place: {{ url_for('pastoral.bible.save_bible_place')|tojson }},
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260713f"></script>
+<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260713h"></script>
 {% endblock %}

@@ -10,10 +10,17 @@
 {% block content %}
 <div class="member-bible-header">
     <h1 class="page-title" style="margin-bottom:0.25rem;"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Bible Study</h1>
-    <p class="page-description" style="margin-bottom:0.75rem;">
-        Read any version online. Highlight, heart favorites (verse · chapter · book), and leave notes —
-        then search them by title or tag.
+    <p class="page-description" style="margin-bottom:0.5rem;">
+        Read any version online. Highlight, heart favorites, and leave notes.
+        Your last version, book, and chapter are saved so you can pick up studying anytime — even on another device after login.
     </p>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span id="member-my-version-badge" class="badge member-my-version-badge" style="display:none;"></span>
+        <button type="button" id="member-save-my-bible" class="btn btn-sm btn-primary" title="Remember this version as yours">
+            Save as my Bible
+        </button>
+        <span class="small text-muted">Version saves when you change the dropdown or press the button. Place updates as you read.</span>
+    </div>
 </div>
 
 <div class="bible-stage" id="member-bible-stage">
@@ -231,12 +238,15 @@
 <input type="hidden" name="csrf_token" id="member-bible-csrf" value="{{ csrf_token() if csrf_token else '' }}">
 <script>
   window.MEMBER_BIBLE = {
-    books: {{ books|tojson }},
-    selectedTranslation: {{ selected_translation|tojson }},
-    userPreferred: {{ user_preferred|tojson }},
-    churchDefault: {{ church_default|tojson }},
-    highlightColors: {{ highlight_colors|tojson }},
-    csrf: {{ (csrf_token() if csrf_token else '')|tojson }},
+    books: {{ (books if books is defined else [])|tojson }},
+    selectedTranslation: {{ (selected_translation if selected_translation is defined else none)|tojson }},
+    userPreferred: {{ (user_preferred if user_preferred is defined else none)|tojson }},
+    churchDefault: {{ (church_default if church_default is defined else none)|tojson }},
+    lastBook: {{ (last_book if last_book is defined and last_book else 'John')|tojson }},
+    lastChapter: {{ (last_chapter if last_chapter is defined and last_chapter else 1)|tojson }},
+    lastVerse: {{ (last_verse if last_verse is defined and last_verse else 1)|tojson }},
+    highlightColors: {{ (highlight_colors if highlight_colors is defined else [])|tojson }},
+    csrf: {{ (csrf_token() if csrf_token is defined and csrf_token else '')|tojson }},
     urls: {
       search: {{ url_for('bible.member_search')|tojson }},
       strongsSearch: {{ url_for('bible.member_strongs_search')|tojson }},
@@ -248,8 +258,9 @@
       favorite: {{ url_for('bible.member_favorite_toggle')|tojson }},
       favorites: {{ url_for('bible.member_favorites_list')|tojson }},
       preferred: {{ url_for('bible.member_set_preferred_translation')|tojson }},
+      place: {{ url_for('bible.member_save_bible_place')|tojson }},
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260713f"></script>
+<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260713h"></script>
 {% endblock %}
