@@ -16,6 +16,8 @@
   let favoriteVerses = new Set();
   let favChapter = false;
   let favBook = false;
+  let chapterPage = 0;
+  const CHAPTERS_PER_PAGE = 20;
 
   const el = (id) => document.getElementById(id);
   const base = '/bible';
@@ -179,14 +181,95 @@
   }
 
   function populateChapters(max) {
+    maxChapter = Math.max(1, max || 1);
+    // Keep hidden select in sync (toolbar prev/next still use it)
     const sel = el('member-bible-chapter');
-    if (!sel) return;
-    sel.innerHTML = '';
-    for (let i = 1; i <= Math.max(1, max); i++) {
-      const o = document.createElement('option');
-      o.value = String(i);
-      o.textContent = String(i);
-      sel.appendChild(o);
+    if (sel) {
+      sel.innerHTML = '';
+      for (let i = 1; i <= maxChapter; i++) {
+        const o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = String(i);
+        sel.appendChild(o);
+      }
+      sel.value = String(Math.min(Math.max(1, currentChapter), maxChapter));
+    }
+    // Show the page that contains the open chapter
+    chapterPage = Math.floor((Math.min(currentChapter, maxChapter) - 1) / CHAPTERS_PER_PAGE);
+    renderChapterGrid();
+  }
+
+  function renderChapterGrid() {
+    const grid = el('member-bible-chapter-grid');
+    const label = el('member-chapter-page-label');
+    const prev = el('member-chapter-page-prev');
+    const next = el('member-chapter-page-next');
+    const hint = el('member-chapter-scroll-hint');
+    const pager = el('member-chapter-pager');
+    if (!grid) return;
+
+    const total = Math.max(1, maxChapter || 1);
+    const maxPage = Math.max(0, Math.ceil(total / CHAPTERS_PER_PAGE) - 1);
+    if (chapterPage > maxPage) chapterPage = maxPage;
+    if (chapterPage < 0) chapterPage = 0;
+
+    const start = chapterPage * CHAPTERS_PER_PAGE + 1;
+    const end = Math.min(total, start + CHAPTERS_PER_PAGE - 1);
+    const multi = total > CHAPTERS_PER_PAGE;
+
+    if (label) {
+      label.textContent = multi
+        ? `Chapters ${start}–${end} of ${total}`
+        : (total === 1 ? '1 chapter' : `${total} chapters`);
+    }
+    if (pager) pager.classList.toggle('is-multi', multi);
+    if (prev) {
+      prev.disabled = chapterPage <= 0;
+      prev.hidden = !multi;
+    }
+    if (next) {
+      next.disabled = end >= total;
+      next.hidden = !multi;
+    }
+    if (hint) {
+      if (!multi) {
+        hint.style.display = 'none';
+        hint.textContent = '';
+      } else {
+        hint.style.display = '';
+        if (end < total) {
+          hint.innerHTML = '👉 Tap <strong>More →</strong> for chapters ' +
+            `${end + 1}–${Math.min(total, end + CHAPTERS_PER_PAGE)}.`;
+        } else if (start > 1) {
+          hint.innerHTML = '👉 Tap <strong>← Earlier</strong> to go back toward chapter 1.';
+        } else {
+          hint.textContent = '';
+          hint.style.display = 'none';
+        }
+      }
+    }
+
+    grid.innerHTML = '';
+    for (let i = start; i <= end; i++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'bible-chapter-num' + (i === currentChapter ? ' active' : '');
+      b.textContent = String(i);
+      b.setAttribute('aria-label', `Chapter ${i}`);
+      b.setAttribute('role', 'option');
+      b.setAttribute('aria-selected', i === currentChapter ? 'true' : 'false');
+      b.addEventListener('click', () => {
+        const sel = el('member-bible-chapter');
+        if (sel) sel.value = String(i);
+        loadChapter(i);
+        grid.querySelectorAll('button').forEach((x) => {
+          x.classList.remove('active');
+          x.setAttribute('aria-selected', 'false');
+        });
+        b.classList.add('active');
+        b.setAttribute('aria-selected', 'true');
+      });
+      grid.appendChild(b);
     }
   }
 
@@ -260,17 +343,32 @@
     }
   }
 
+  async function savePreferredTranslation(val) {
+    if (!val || !csrfToken()) return;
+    try {
+      await apiPost(urls.preferred || `${base}/preferred`, { translation: val });
+    } catch (e) {
+      // Non-blocking — reading still works if save fails
+      console.warn('Could not save preferred translation', e);
+    }
+  }
+
   async function switchTranslationSeamless(fromControl) {
     const val = fromControl?.value || translation();
     setTranslationValue(val);
+    // Persist as personal study version (overrides church default next visit)
+    savePreferredTranslation(val);
+    try {
+      localStorage.setItem('member_bible_translation', val);
+    } catch (e) { /* ignore */ }
     const anchor = getVisibleVerseAnchor();
     await prepareBook(currentBook, {
       chapter: currentChapter || 1,
       scrollToVerse: anchor,
     });
     toast(anchor
-      ? `Switched · stayed at ${currentBook} ${currentChapter}:${anchor}`
-      : `Switched · stayed at ${currentBook} ${currentChapter}`);
+      ? `Saved version · stayed at ${currentBook} ${currentChapter}:${anchor}`
+      : `Saved your study version · stayed at ${currentBook} ${currentChapter}`);
   }
 
   async function loadChapter(chapter, opts = {}) {
@@ -295,6 +393,8 @@
       maxChapter = data.max_chapter || chapter;
       populateChapters(maxChapter);
       if (chSel) chSel.value = String(chapter);
+      chapterPage = Math.floor((chapter - 1) / CHAPTERS_PER_PAGE);
+      renderChapterGrid();
       if (title) {
         const trLabel = data.translation || '';
         title.textContent = `${data.book} ${data.chapter}${trLabel ? ' · ' + trLabel : ''}`;
@@ -771,7 +871,7 @@
           <h4 class="member-note-card-title">${escapeHtml(n.display_title || n.title || n.reference)}</h4>
           ${scopeBadge}
         </header>
-        <div class="member-note-card-meta">${escapeHtml(n.reference || '')}${n.tags ? ' · ' + escapeHtml(n.tags) : ''}</div>
+        <div class="member-note-card-meta">${escapeHtml(n.reference || '')}${n.translation ? ' · noted in ' + escapeHtml(String(n.translation).replace(/^online:/, '')) : ''}${n.tags ? ' · ' + escapeHtml(n.tags) : ''}</div>
         ${n.scripture_text ? `<blockquote class="member-note-scripture">${escapeHtml(n.scripture_text)}</blockquote>` : ''}
         <div class="member-note-body">${escapeHtml(n.body || '')}</div>
         <footer class="member-note-card-actions">
@@ -971,10 +1071,36 @@
 
     el('member-bible-chapter')?.addEventListener('change', () => {
       const ch = parseInt(el('member-bible-chapter').value, 10);
-      if (ch) loadChapter(ch);
+      if (ch) {
+        chapterPage = Math.floor((ch - 1) / CHAPTERS_PER_PAGE);
+        loadChapter(ch);
+      }
     });
-    el('member-bible-prev')?.addEventListener('click', () => { closeFlyouts(); loadChapter(currentChapter - 1); });
-    el('member-bible-next')?.addEventListener('click', () => { closeFlyouts(); loadChapter(currentChapter + 1); });
+    el('member-chapter-page-prev')?.addEventListener('click', () => {
+      if (chapterPage <= 0) return;
+      chapterPage -= 1;
+      renderChapterGrid();
+    });
+    el('member-chapter-page-next')?.addEventListener('click', () => {
+      const maxPage = Math.max(0, Math.ceil((maxChapter || 1) / CHAPTERS_PER_PAGE) - 1);
+      if (chapterPage >= maxPage) return;
+      chapterPage += 1;
+      renderChapterGrid();
+    });
+    el('member-bible-prev')?.addEventListener('click', () => {
+      closeFlyouts();
+      loadChapter(currentChapter - 1).then(() => {
+        chapterPage = Math.floor((currentChapter - 1) / CHAPTERS_PER_PAGE);
+        renderChapterGrid();
+      });
+    });
+    el('member-bible-next')?.addEventListener('click', () => {
+      closeFlyouts();
+      loadChapter(currentChapter + 1).then(() => {
+        chapterPage = Math.floor((currentChapter - 1) / CHAPTERS_PER_PAGE);
+        renderChapterGrid();
+      });
+    });
     el('member-bible-back')?.addEventListener('click', restoreChapter);
     el('member-bible-translation')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
     el('member-translation-toolbar')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
@@ -1062,14 +1188,19 @@
       window.location.href = (urls.notesDownload || `${base}/notes/download`) + '?' + params.toString();
     });
 
-    if (cfg.selectedTranslation) {
-      const want = cfg.selectedTranslation;
-      const candidates = [want, `online:${want}`];
+    // Order: server personal preference → localStorage backup → church default
+    let want = cfg.selectedTranslation || null;
+    try {
+      want = want || localStorage.getItem('member_bible_translation');
+    } catch (e) { /* ignore */ }
+    if (want) {
+      const candidates = [want, `online:${want}`, want.replace(/^online:/, '')];
       const pick = candidates.find((c) =>
         Array.from(el('member-bible-translation')?.options || []).some((o) => o.value === c)
         || Array.from(el('member-translation-toolbar')?.options || []).some((o) => o.value === c)
       );
       if (pick) setTranslationValue(pick);
+      else setTranslationValue(want); // add option if missing
     }
 
     if (books.length) prepareBook(currentBook);

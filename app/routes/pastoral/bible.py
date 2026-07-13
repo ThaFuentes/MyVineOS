@@ -54,6 +54,9 @@ from app.models.pastoral.bible_online import (
     list_all_favorites,
     ensure_annotation_tables,
     HIGHLIGHT_COLORS,
+    get_user_preferred_translation,
+    set_user_preferred_translation,
+    resolve_user_translation,
 )
 from app.models.pastoral.sermons import (
     get_sermon_by_id, get_sermon_sections, save_sermon_sections,
@@ -86,8 +89,9 @@ def bible_study():
         sermon = get_sermon_by_id(sermon_id, user_id)
     sermons = get_visible_sermons(user_id, limit=50)
     church_default = get_default_translation_code()
-    # Prefer local default; otherwise online BSB — no download required
-    selected = church_default or 'online:BSB'
+    user_preferred = get_user_preferred_translation(user_id)
+    # Personal study version overrides church default
+    selected = resolve_user_translation(user_id)
     version_options = combined_translation_options()
     return render_template(
         'pastoral/bible_study.html',
@@ -95,6 +99,7 @@ def bible_study():
         version_options=version_options,
         online_quick=ONLINE_QUICK_VERSIONS,
         church_default=church_default,
+        user_preferred=user_preferred,
         selected_translation=selected,
         books=books,
         sermon=sermon,
@@ -103,6 +108,41 @@ def bible_study():
         highlight_colors=HIGHLIGHT_COLORS,
         page_title='Bible Study',
     )
+
+
+@bible_bp.route('/preferred', methods=['POST'])
+@pastoral_required()
+def set_preferred_translation():
+    """Personal study version — overrides church default for this user only."""
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    code = (
+        request.form.get('translation')
+        or data.get('translation')
+        or data.get('translation_code')
+        or ''
+    ).strip()
+    clear = request.form.get('clear') or data.get('clear')
+    try:
+        if clear or code in ('', '__church__', '__default__'):
+            saved = set_user_preferred_translation(user_id, None)
+            msg = 'Using the church default translation again.'
+        else:
+            saved = set_user_preferred_translation(user_id, code)
+            msg = f'Your study version is now {saved}.'
+        log_change(
+            user_id, 'update', None, saved or 'church',
+            f'Personal Bible preference → {saved or "church default"}',
+        )
+        return jsonify({
+            'ok': True,
+            'preferred': saved,
+            'effective': resolve_user_translation(user_id),
+            'church_default': get_default_translation_code(),
+            'message': msg,
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
 
 
 @bible_bp.route('/upload', methods=['GET', 'POST'])

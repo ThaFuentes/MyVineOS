@@ -14,6 +14,8 @@
   let chapterData = null;
   let selectedVerses = new Set();
   let lastSource = null;
+  let chapterPage = 0;
+  const CHAPTERS_PER_PAGE = 20;
 
   const el = (id) => document.getElementById(id);
   const main = () => el('bible-reader-content');
@@ -268,12 +270,99 @@
   }
 
   function populateChapterSelect(max) {
+    maxChapter = Math.max(0, max || 0);
     const sel = el('bible-chapter-select');
-    if (!sel) return;
-    sel.innerHTML = '';
-    if (!max) { sel.appendChild(new Option('—', '')); return; }
-    for (let i = 1; i <= max; i++) sel.appendChild(new Option(String(i), String(i)));
-    sel.value = String(Math.min(currentChapter, max) || 1);
+    if (sel) {
+      sel.innerHTML = '';
+      if (!maxChapter) {
+        sel.appendChild(new Option('—', ''));
+      } else {
+        for (let i = 1; i <= maxChapter; i++) sel.appendChild(new Option(String(i), String(i)));
+        sel.value = String(Math.min(currentChapter, maxChapter) || 1);
+      }
+    }
+    if (maxChapter > 0) {
+      chapterPage = Math.floor((Math.min(currentChapter || 1, maxChapter) - 1) / CHAPTERS_PER_PAGE);
+    } else {
+      chapterPage = 0;
+    }
+    renderChapterGrid();
+  }
+
+  function renderChapterGrid() {
+    const grid = el('bible-chapter-grid');
+    const label = el('bible-chapter-page-label');
+    const prev = el('bible-chapter-page-prev');
+    const next = el('bible-chapter-page-next');
+    const hint = el('bible-chapter-scroll-hint');
+    const pager = el('bible-chapter-pager');
+    if (!grid) return;
+
+    const total = Math.max(0, maxChapter || 0);
+    if (!total) {
+      grid.innerHTML = '';
+      if (label) label.textContent = 'No chapters yet';
+      if (prev) prev.hidden = true;
+      if (next) next.hidden = true;
+      if (hint) hint.style.display = 'none';
+      return;
+    }
+
+    const maxPage = Math.max(0, Math.ceil(total / CHAPTERS_PER_PAGE) - 1);
+    if (chapterPage > maxPage) chapterPage = maxPage;
+    if (chapterPage < 0) chapterPage = 0;
+
+    const start = chapterPage * CHAPTERS_PER_PAGE + 1;
+    const end = Math.min(total, start + CHAPTERS_PER_PAGE - 1);
+    const multi = total > CHAPTERS_PER_PAGE;
+
+    if (label) {
+      label.textContent = multi
+        ? `Chapters ${start}–${end} of ${total}`
+        : (total === 1 ? '1 chapter' : `${total} chapters`);
+    }
+    if (pager) pager.classList.toggle('is-multi', multi);
+    if (prev) {
+      prev.disabled = chapterPage <= 0;
+      prev.hidden = !multi;
+    }
+    if (next) {
+      next.disabled = end >= total;
+      next.hidden = !multi;
+    }
+    if (hint) {
+      if (!multi) {
+        hint.style.display = 'none';
+        hint.textContent = '';
+      } else {
+        hint.style.display = '';
+        if (end < total) {
+          hint.innerHTML = '👉 Tap <strong>More →</strong> for chapters ' +
+            `${end + 1}–${Math.min(total, end + CHAPTERS_PER_PAGE)}.`;
+        } else if (start > 1) {
+          hint.innerHTML = '👉 Tap <strong>← Earlier</strong> to go back toward chapter 1.';
+        } else {
+          hint.style.display = 'none';
+        }
+      }
+    }
+
+    grid.innerHTML = '';
+    for (let i = start; i <= end; i++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'bible-chapter-num' + (i === currentChapter ? ' active' : '');
+      b.textContent = String(i);
+      b.setAttribute('aria-label', `Chapter ${i}`);
+      b.addEventListener('click', () => {
+        const sel = el('bible-chapter-select');
+        if (sel) sel.value = String(i);
+        loadChapter(i);
+        grid.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
+        b.classList.add('active');
+      });
+      grid.appendChild(b);
+    }
   }
 
   function renderVersePicker(verses) {
@@ -358,10 +447,34 @@
     }
   }
 
+  async function savePreferredTranslation(val) {
+    if (!val || !csrfToken()) return;
+    try {
+      await fetch(urls.preferred || `${api}/preferred`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ translation: val }),
+      });
+    } catch (e) {
+      console.warn('Could not save preferred translation', e);
+    }
+  }
+
   async function switchTranslationSeamless(fromControl) {
     // Keep both version dropdowns in sync (toolbar + flyout)
     const val = fromControl?.value || getTranslation();
     setTranslationValue(val);
+    // Personal study version overrides church default next visit / any device after login
+    savePreferredTranslation(val);
+    try {
+      localStorage.setItem('pastoral_bible_translation', val);
+    } catch (e) { /* ignore */ }
     const book = currentBook;
     const chapter = currentChapter || 1;
     const anchorVerse = getVisibleVerseAnchor();
@@ -372,8 +485,8 @@
       keepSelection: false,
     });
     toast(anchorVerse
-      ? `Switched version · stayed at ${book} ${chapter}:${anchorVerse}`
-      : `Switched version · stayed at ${book} ${chapter}`);
+      ? `Saved version · stayed at ${book} ${chapter}:${anchorVerse}`
+      : `Saved your study version · stayed at ${book} ${chapter}`);
   }
 
   async function loadChapter(chapter, opts = {}) {
@@ -1115,14 +1228,40 @@
 
     el('bible-chapter-select')?.addEventListener('change', () => {
       const ch = parseInt(el('bible-chapter-select').value, 10);
-      if (ch) loadChapter(ch);
+      if (ch) {
+        chapterPage = Math.floor((ch - 1) / CHAPTERS_PER_PAGE);
+        loadChapter(ch);
+      }
+    });
+    el('bible-chapter-page-prev')?.addEventListener('click', () => {
+      if (chapterPage <= 0) return;
+      chapterPage -= 1;
+      renderChapterGrid();
+    });
+    el('bible-chapter-page-next')?.addEventListener('click', () => {
+      const maxPage = Math.max(0, Math.ceil((maxChapter || 1) / CHAPTERS_PER_PAGE) - 1);
+      if (chapterPage >= maxPage) return;
+      chapterPage += 1;
+      renderChapterGrid();
     });
     el('bible-search-btn')?.addEventListener('click', searchBible);
     el('bible-search-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchBible(); });
     el('strongs-search-btn')?.addEventListener('click', searchStrongs);
     el('strongs-search-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchStrongs(); });
-    el('bible-prev-chapter')?.addEventListener('click', () => { closeFlyouts(); loadChapter(currentChapter - 1); });
-    el('bible-next-chapter')?.addEventListener('click', () => { closeFlyouts(); loadChapter(currentChapter + 1); });
+    el('bible-prev-chapter')?.addEventListener('click', () => {
+      closeFlyouts();
+      loadChapter(currentChapter - 1).then(() => {
+        chapterPage = Math.floor((currentChapter - 1) / CHAPTERS_PER_PAGE);
+        renderChapterGrid();
+      });
+    });
+    el('bible-next-chapter')?.addEventListener('click', () => {
+      closeFlyouts();
+      loadChapter(currentChapter + 1).then(() => {
+        chapterPage = Math.floor((currentChapter - 1) / CHAPTERS_PER_PAGE);
+        renderChapterGrid();
+      });
+    });
     el('bible-back-chapter')?.addEventListener('click', restoreChapter);
     el('bible-translation')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
     el('bible-translation-toolbar')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
@@ -1158,15 +1297,19 @@
     el('bible-notes-dl-chapter')?.addEventListener('click', downloadChapterNotes);
     el('bible-notes-dl-all')?.addEventListener('click', downloadAllNotes);
 
-    // Prefer configured default (local church default or online BSB)
-    if (cfg.selectedTranslation) {
-      const want = cfg.selectedTranslation;
-      const candidates = [want, `online:${want}`];
+    // Personal preference (server) → localStorage → church default
+    let want = cfg.selectedTranslation || cfg.userPreferred || null;
+    try {
+      want = want || localStorage.getItem('pastoral_bible_translation');
+    } catch (e) { /* ignore */ }
+    if (want) {
+      const candidates = [want, `online:${want}`, String(want).replace(/^online:/, '')];
       const pick = candidates.find((c) =>
         Array.from(el('bible-translation')?.options || []).some((o) => o.value === c)
         || Array.from(el('bible-translation-toolbar')?.options || []).some((o) => o.value === c)
       );
       if (pick) setTranslationValue(pick);
+      else setTranslationValue(want);
     }
 
     prepareBook(currentBook);

@@ -168,8 +168,87 @@ NOTE_SCOPES = ("verse", "chapter", "book")
 FAVORITE_SCOPES = ("verse", "chapter", "book")
 
 
+def ensure_user_bible_pref_column():
+    """users.preferred_bible_translation — personal version that overrides church default."""
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute(
+            "ALTER TABLE users ADD COLUMN preferred_bible_translation VARCHAR(40) NULL"
+        )
+        db.commit()
+    except Exception:
+        pass
+
+
+def get_user_preferred_translation(user_id: int | None) -> str | None:
+    """User's saved Bible version (e.g. online:BSB or KJV), or None for church default."""
+    if not user_id:
+        return None
+    try:
+        ensure_user_bible_pref_column()
+        db = get_db()
+        cur = db.cursor(pymysql.cursors.DictCursor)
+        cur.execute(
+            "SELECT preferred_bible_translation FROM users WHERE id = %s LIMIT 1",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        code = (row.get("preferred_bible_translation") or "").strip()
+        return code[:40] if code else None
+    except Exception as exc:
+        print(f"get_user_preferred_translation: {exc}")
+        return None
+
+
+def set_user_preferred_translation(user_id: int, code: str | None) -> str | None:
+    """
+    Persist personal Bible version. Empty/None clears (falls back to church default).
+    Accepts local codes (KJV) or online refs (online:BSB).
+    """
+    if not user_id:
+        raise ValueError("user_id is required")
+    ensure_user_bible_pref_column()
+    code = (code or "").strip() or None
+    if code:
+        code = code[:40]
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        "UPDATE users SET preferred_bible_translation = %s WHERE id = %s",
+        (code, user_id),
+    )
+    if cur.rowcount == 0:
+        raise RuntimeError(f"No user row updated for id={user_id}")
+    db.commit()
+    return code
+
+
+def resolve_user_translation(user_id: int | None = None, explicit: str | None = None) -> str:
+    """
+    Effective translation for study:
+      1) explicit (this request)
+      2) user's preferred version
+      3) church default (local install)
+      4) online BSB
+    """
+    explicit = (explicit or "").strip() or None
+    if explicit:
+        return explicit
+    pref = get_user_preferred_translation(user_id)
+    if pref:
+        return pref
+    church = bible_mod.get_default_translation_code()
+    if church:
+        return church
+    return f"online:{DEFAULT_ONLINE_TRANSLATION}"
+
+
 def ensure_annotation_tables():
     """Create highlights/notes/favorites tables if missing (safe to call repeatedly)."""
+    ensure_user_bible_pref_column()
     db = get_db()
     cur = db.cursor()
     cur.execute("""
@@ -594,18 +673,36 @@ def get_unified_chapter(
 
 
 def list_highlights(user_id: int, translation: str, book: str, chapter: int) -> list[dict]:
+    """
+    Highlights for a passage — follow the book/chapter (not locked to one translation).
+    Switching KJV → BSB still shows your yellow marks on the same verses.
+    """
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
+    book = normalize_book_name(book) or book
+    # Prefer rows for current translation first, then any other version for same passage
     cur.execute(
         """
         SELECT id, translation, book, chapter, verse_start, verse_end, color, created_at
           FROM bible_highlights
-         WHERE user_id = %s AND translation = %s AND book = %s AND chapter = %s
-         ORDER BY verse_start, id
+         WHERE user_id = %s AND book = %s AND chapter = %s
+         ORDER BY
+           CASE WHEN translation = %s THEN 0 ELSE 1 END,
+           verse_start, id
         """,
-        (user_id, translation, book, chapter),
+        (user_id, book, chapter, translation or ""),
     )
-    return cur.fetchall() or []
+    rows = cur.fetchall() or []
+    # Dedupe overlapping ranges preferring current translation's color
+    seen = set()
+    out = []
+    for r in rows:
+        key = (int(r.get("verse_start") or 0), int(r.get("verse_end") or 0))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+    return out
 
 
 def _note_reference(row: dict) -> str:
@@ -651,7 +748,13 @@ def list_notes(user_id: int, translation: str, book: str, chapter: int) -> list[
 
 
 def list_notes_for_reader(user_id: int, translation: str, book: str, chapter: int) -> list[dict]:
-    """Notes visible while reading a chapter: verse + chapter + whole-book notes."""
+    """
+    Notes for the open passage, across translations.
+
+    Study notes follow the reference (John 3:16), not a single Bible version —
+    so switching from KJV to BSB still shows your notes. The stored translation
+    is kept as metadata (which text you were reading when you wrote it).
+    """
     ensure_annotation_tables()
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
@@ -662,18 +765,18 @@ def list_notes_for_reader(user_id: int, translation: str, book: str, chapter: in
                title, body, scripture_text, tags, created_at, updated_at
           FROM bible_notes
          WHERE user_id = %s
+           AND book = %s
            AND (
-                (COALESCE(scope, 'verse') = 'verse' AND translation = %s AND book = %s AND chapter = %s)
-             OR (scope = 'chapter' AND book = %s AND chapter = %s
-                 AND (translation = %s OR translation = '' OR translation IS NULL))
-             OR (scope = 'book' AND book = %s
-                 AND (translation = %s OR translation = '' OR translation IS NULL))
+                (COALESCE(scope, 'verse') = 'verse' AND chapter = %s)
+             OR (scope = 'chapter' AND chapter = %s)
+             OR (scope = 'book')
            )
          ORDER BY
            FIELD(COALESCE(scope, 'verse'), 'book', 'chapter', 'verse'),
+           CASE WHEN translation = %s THEN 0 ELSE 1 END,
            verse_start, id
         """,
-        (user_id, translation, book, chapter, book, chapter, translation, book, translation),
+        (user_id, book, chapter, chapter, translation or ""),
     )
     return [_enrich_note_row(r) for r in (cur.fetchall() or [])]
 
@@ -963,7 +1066,7 @@ def _favorite_label(row: dict) -> str:
 
 
 def list_favorites_for_reader(user_id: int, translation: str, book: str, chapter: int) -> dict:
-    """Favorites relevant to the open chapter."""
+    """Favorites for the open passage — carry across translations (same verse/book)."""
     ensure_annotation_tables()
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
@@ -973,16 +1076,14 @@ def list_favorites_for_reader(user_id: int, translation: str, book: str, chapter
         SELECT id, translation, book, chapter, verse, scope, scripture_text, created_at
           FROM bible_favorites
          WHERE user_id = %s
+           AND book = %s
            AND (
-                (scope = 'verse' AND book = %s AND chapter = %s
-                 AND (translation = %s OR translation = '' OR translation IS NULL))
-             OR (scope = 'chapter' AND book = %s AND chapter = %s
-                 AND (translation = %s OR translation = '' OR translation IS NULL))
-             OR (scope = 'book' AND book = %s
-                 AND (translation = %s OR translation = '' OR translation IS NULL))
+                (scope = 'verse' AND chapter = %s)
+             OR (scope = 'chapter' AND chapter = %s)
+             OR (scope = 'book')
            )
         """,
-        (user_id, book, chapter, translation, book, chapter, translation, book, translation),
+        (user_id, book, chapter, chapter),
     )
     rows = cur.fetchall() or []
     verse_favs = []
@@ -1072,14 +1173,15 @@ def toggle_favorite(
 
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
+    # Match by passage (not translation) so hearts follow the reference across versions
     cur.execute(
         """
         SELECT id FROM bible_favorites
          WHERE user_id = %s AND scope = %s AND book = %s AND chapter = %s
-           AND verse = %s AND translation = %s
+           AND verse = %s
          LIMIT 1
         """,
-        (user_id, scope, book, chapter, verse, translation),
+        (user_id, scope, book, chapter, verse),
     )
     existing = cur.fetchone()
     if existing:

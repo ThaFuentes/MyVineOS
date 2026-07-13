@@ -3,8 +3,8 @@
 {% block title %}Bible Study{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713a">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260713a">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713f">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260713f">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -155,13 +155,24 @@
         </div>
         <div id="bible-book-list" class="bible-book-list"></div>
         <div id="bible-chapter-section" class="bible-flyout-anchor-section">
-        <label class="form-label small mt-3" for="bible-chapter-select">Chapter</label>
-        <select id="bible-chapter-select" class="form-select form-control-dark mb-2">
+        <label class="form-label small mt-3">Chapter</label>
+        <p class="bible-chapter-help small text-muted mb-1">
+            Tap a chapter number. Long books (like Isaiah) use <strong>More →</strong> and <strong>← Earlier</strong> to page through.
+        </p>
+        <div class="bible-chapter-pager" id="bible-chapter-pager">
+            <button type="button" id="bible-chapter-page-prev" class="btn btn-sm btn-outline-secondary bible-chapter-page-btn" disabled>← Earlier</button>
+            <span id="bible-chapter-page-label" class="bible-chapter-page-label">Chapters 1–1</span>
+            <button type="button" id="bible-chapter-page-next" class="btn btn-sm btn-outline-secondary bible-chapter-page-btn" disabled>More →</button>
+        </div>
+        <div id="bible-chapter-grid" class="bible-chapter-grid" role="listbox" aria-label="Choose a chapter"></div>
+        <p id="bible-chapter-scroll-hint" class="bible-chapter-scroll-hint small" style="display:none;"></p>
+        <select id="bible-chapter-select" class="visually-hidden" tabindex="-1" aria-hidden="true">
             <option value="1">1</option>
         </select>
-        <p id="bible-chapter-meta" class="small text-muted mb-2">Select a book to see chapters and verses.</p>
+        <p id="bible-chapter-meta" class="small text-muted mb-2 mt-2">Select a book to see chapters and verses.</p>
         <label class="form-label small">Verses in chapter</label>
-        <div id="bible-verse-picker" class="bible-verse-picker"></div>
+        <p class="small text-muted mb-1">Tap a verse number to jump there. Scroll the list if needed.</p>
+        <div id="bible-verse-picker" class="bible-verse-picker bible-num-scroll"></div>
         </div>
     </div>
 </div>
@@ -235,6 +246,7 @@
     versionOptions: {{ version_options|tojson }},
     sermonId: {{ sermon_id|tojson if sermon_id else 'null' }},
     selectedTranslation: {{ selected_translation|tojson }},
+    userPreferred: {{ user_preferred|tojson }},
     churchDefault: {{ church_default|tojson }},
     urls: {
       quickSermon: {{ url_for('pastoral.bible.quick_sermon')|tojson }},
@@ -248,8 +260,9 @@
       notesDownload: {{ url_for('pastoral.bible.bible_notes_download_bulk')|tojson }},
       selectionToIllustration: {{ url_for('pastoral.bible.bible_selection_to_illustration')|tojson }},
       illustrationsLibrary: {{ url_for('pastoral.illustrations.library')|tojson }},
+      preferred: {{ url_for('pastoral.bible.set_preferred_translation')|tojson }},
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260713a"></script>
+<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260713f"></script>
 {% endblock %}

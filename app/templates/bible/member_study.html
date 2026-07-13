@@ -3,8 +3,8 @@
 {% block title %}Bible{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713c">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260713d">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713f">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260713f">
 {% endblock %}
 
 {% block content %}
@@ -115,13 +115,25 @@
         </div>
         <div id="member-bible-book-list" class="member-bible-book-list"></div>
         <div id="member-bible-chapter-section" class="bible-flyout-anchor-section">
-            <label class="form-label small mt-2" for="member-bible-chapter">Chapter</label>
-            <select id="member-bible-chapter" class="form-control" style="margin-bottom:0.5rem;">
+            <label class="form-label small mt-2">Chapter</label>
+            <p class="bible-chapter-help small text-muted mb-1">
+                Tap a chapter number. Long books (like Isaiah) use <strong>More →</strong> and <strong>← Earlier</strong> to page through.
+            </p>
+            <div class="bible-chapter-pager" id="member-chapter-pager">
+                <button type="button" id="member-chapter-page-prev" class="btn btn-sm btn-secondary bible-chapter-page-btn" disabled>← Earlier</button>
+                <span id="member-chapter-page-label" class="bible-chapter-page-label">Chapters 1–1</span>
+                <button type="button" id="member-chapter-page-next" class="btn btn-sm btn-secondary bible-chapter-page-btn" disabled>More →</button>
+            </div>
+            <div id="member-bible-chapter-grid" class="bible-chapter-grid" role="listbox" aria-label="Choose a chapter"></div>
+            <p id="member-chapter-scroll-hint" class="bible-chapter-scroll-hint small" style="display:none;"></p>
+            <!-- Hidden select kept for sync with prev/next chapter controls -->
+            <select id="member-bible-chapter" class="visually-hidden" tabindex="-1" aria-hidden="true">
                 <option value="1">1</option>
             </select>
-            <p id="member-bible-chapter-meta" class="small text-muted">Pick a book to begin.</p>
-            <label class="form-label small">Verses</label>
-            <div id="member-bible-verse-picker" class="member-bible-verse-picker"></div>
+            <p id="member-bible-chapter-meta" class="small text-muted mt-2">Pick a book to begin.</p>
+            <label class="form-label small">Verses in this chapter</label>
+            <p class="small text-muted mb-1">Tap a verse number to jump there. Scroll the list if needed.</p>
+            <div id="member-bible-verse-picker" class="member-bible-verse-picker bible-num-scroll"></div>
         </div>
     </div>
 </div>
@@ -221,6 +233,8 @@
   window.MEMBER_BIBLE = {
     books: {{ books|tojson }},
     selectedTranslation: {{ selected_translation|tojson }},
+    userPreferred: {{ user_preferred|tojson }},
+    churchDefault: {{ church_default|tojson }},
     highlightColors: {{ highlight_colors|tojson }},
     csrf: {{ (csrf_token() if csrf_token else '')|tojson }},
     urls: {
@@ -233,8 +247,9 @@
       highlightClear: {{ url_for('bible.member_highlight_clear')|tojson }},
       favorite: {{ url_for('bible.member_favorite_toggle')|tojson }},
       favorites: {{ url_for('bible.member_favorites_list')|tojson }},
+      preferred: {{ url_for('bible.member_set_preferred_translation')|tojson }},
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260713d"></script>
+<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260713f"></script>
 {% endblock %}
