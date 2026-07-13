@@ -26,13 +26,46 @@ def is_internal_request(req):
     """Bypass for internal paths (static, health, favicon)"""
     return req.path.startswith(("/static/", "/health", "/favicon", "/robots.txt"))
 # ====================== SUSPICIOUS USER AGENT CHECK ======================
+def is_allowed_crawler(ua: str) -> bool:
+    """Search engines we allow through (not members — but not 'attacks' either)."""
+    if not ua:
+        return False
+    try:
+        from poweredbytop.config.settings import ALLOWED_CRAWLER_UA
+        low = ua.lower()
+        return any(k in low for k in ALLOWED_CRAWLER_UA)
+    except Exception:
+        low = ua.lower()
+        return any(k in low for k in ("googlebot", "bingbot", "applebot"))
+
+
 def is_suspicious_user_agent(ua: str) -> bool:
-    """Basic bot/user-agent detection"""
+    """
+    Scraper/tool detection for anonymous traffic.
+    Empty UA is NOT treated as bot (some privacy browsers strip it).
+    Allowed search crawlers return False (handled separately if needed).
+    """
     if not ua:
         return False
     ua_lower = ua.lower()
-    bad_agents = ["bot", "crawler", "spider", "curl", "wget", "python-requests", "scrapy"]
-    return any(agent in ua_lower for agent in bad_agents)
+    if is_allowed_crawler(ua_lower):
+        return False
+    # Normal browsers: Mozilla/… Chrome/… Safari/… — never hard-flag on bare "bot"
+    # unless they also look non-browser (curl etc.).
+    try:
+        from poweredbytop.config.settings import SUSPICIOUS_UA_KEYWORDS, SUSPICIOUS_UA_LOOSE
+        strict = list(SUSPICIOUS_UA_KEYWORDS)
+        loose = list(SUSPICIOUS_UA_LOOSE)
+    except Exception:
+        strict = ["curl", "wget", "python-requests", "scrapy", "headlesschrome", "selenium"]
+        loose = ["crawler", "spider", "scraper"]
+    if any(k in ua_lower for k in strict):
+        return True
+    # Loose tokens: only if UA does not look like a normal browser
+    looks_browser = any(x in ua_lower for x in ("mozilla/", "chrome/", "safari/", "firefox/", "edg/"))
+    if looks_browser:
+        return False
+    return any(k in ua_lower for k in loose)
 # ====================== CONSTANT TIME COMPARE (for tokens) ======================
 def constant_time_compare(a: str, b: str) -> bool:
     """Constant-time string comparison to prevent timing attacks"""

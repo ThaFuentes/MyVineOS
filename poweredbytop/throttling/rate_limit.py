@@ -59,12 +59,11 @@ def check_rate_limit(ip: str) -> bool:
         g.rate_limited = False
         return True
 
-    # JAIL CHECK
+    # JAIL CHECK — light penalty once, not every subsequent request
     if ip in ip_jail and ip_jail[ip] > now:
         remaining = int(ip_jail[ip] - now)
         logger("IP " + ip[:8] + "... is JAILED - " + str(remaining) + "s remaining")
         g.rate_limited = True
-        record_bad_behavior(ip)
         return False
 
     # GLOBAL RATE LIMIT (DDoS protection)
@@ -72,17 +71,22 @@ def check_rate_limit(ip: str) -> bool:
     global_requests = _clean_old_requests(global_requests, RATE_WINDOW_SECONDS)
     if not _check_limit(global_requests, GLOBAL_RATE_LIMIT, RATE_WINDOW_SECONDS):
         logger("GLOBAL rate limit exceeded - IP " + ip[:8] + "...")
-        record_bad_behavior(ip)
+        # Cap how often we punish (death spiral fix)
+        if not getattr(g, "_pbt_rate_penalized", False):
+            record_bad_behavior(ip)
+            g._pbt_rate_penalized = True
         g.rate_limited = True
         return False
 
-    # PER-IP RATE LIMIT
+    # PER-IP RATE LIMIT (high enough for shared mobile carrier IPs)
     ip_list = ip_requests[ip]
     ip_list = _clean_old_requests(ip_list, RATE_WINDOW_SECONDS)
     ip_requests[ip] = ip_list
     if not _check_limit(ip_list, PER_IP_RATE_LIMIT, RATE_WINDOW_SECONDS, BURST_TOLERANCE):
         logger("Per-IP rate limit hit - IP " + ip[:8] + "...")
-        record_bad_behavior(ip)
+        if not getattr(g, "_pbt_rate_penalized", False):
+            record_bad_behavior(ip)
+            g._pbt_rate_penalized = True
         g.rate_limited = True
         return False
 
