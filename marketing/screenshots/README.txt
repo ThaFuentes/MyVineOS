@@ -1,20 +1,15 @@
-MyVineOS — product screenshots (real browser captures)
-======================================================
+MyVineOS product screenshots — FRESH live captures
+==================================================
 
-These are viewport screenshots of the running MyVineOS UI with demo/dummy
-church content — not composites. Captured for GitHub and marketing.
+Captured from the running local app with Playwright/Chromium on 2026-07-13.
+These replace all previous marketing images.
 
-Folders
--------
-  gallery/       Full curated set (numbered) for README
-  best_for_ads/  Same images for social / ads
-  mobile/        Phone viewport frames
+Source: http://127.0.0.1:5001 (local MariaDB demo data)
+Folders:
+  gallery/       Full numbered set for GitHub README
+  best_for_ads/  Same images
+  mobile/        Phone viewports
 
-How captured
-------------
-  Local MyVineOS instance with demo data (Playwright/Chromium frames).
-  Files refreshed from Desktop/MyVineOS_Live_Screenshots for the public repo.
-
-Privacy
--------
-  Demo/dummy information only intended for product preview.
+Re-capture:
+  Start app, then:
+  python scripts/capture_fresh_screenshots.py http://127.0.0.1:5001
