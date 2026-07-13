@@ -1,9 +1,10 @@
-<!-- Public master layout — same theme system as private app -->
+<!-- Public / visitor master layout — same theme + display system as private members app -->
 {% set s = g.settings|default({}) %}
 {% set user_theme = session.get('user_theme') or 'cyan-glow' %}
 {% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
 {% set bible_font_scale = session.get('bible_font_scale') or 'md' %}
-{% set personal_theme_wins = session.get('user_id') is not none %}
+{# Match members: personal/display theme wins over church primary color overrides #}
+{% set personal_theme_wins = true %}
 <!DOCTYPE html>
 <html lang="en"
       data-theme="{{ user_theme }}"
@@ -25,7 +26,7 @@
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/public/base_public.css') }}?v=20260710i">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/public/base_public.css') }}?v=20260711n">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
   {% block extra_css %}{% endblock %}
@@ -67,8 +68,8 @@
       {{ s.get('church_name') or 'Church Portal' }}
     </div>
     <div class="user-info">
+      {% include 'partials/display_prefs.html' %}
       {% if session.get('user_id') %}
-        {% include 'partials/display_prefs.html' %}
         <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">My Dashboard</a>
         <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Logout</a>
       {% else %}
@@ -79,7 +80,6 @@
 
   <nav class="top-nav">
     {% if session.get('user_id') %}
-      {# Logged-in Home = private app home (not the old public feed shell) #}
       <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard.dashboard' else '' }}">Home</a>
       <a href="{{ url_for('public.public_dashboard.public_community') }}" class="{{ 'active' if request.endpoint == 'public.public_dashboard.public_community' else '' }}">Community Feed</a>
     {% else %}
@@ -158,9 +158,7 @@
 
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
-    {% if session.get('user_id') %}
-    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260710g"></script>
-    {% endif %}
+    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260711n"></script>
   {% endblock %}
 </body>
 </html>

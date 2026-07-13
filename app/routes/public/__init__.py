@@ -7,7 +7,7 @@
 # Sub bps use names like 'public_dreams' so full endpoints are 'public.public_dreams.public_dreams' (unambiguous).
 # Private bps (short names at /dreams etc.) are registered earlier but paths no longer collide.
 
-from flask import Blueprint, flash, redirect, url_for
+from flask import Blueprint, flash, redirect, url_for, request, session, jsonify
 
 # 
 # Main public blueprint (url_prefix='/public' for clean public community area)
@@ -68,3 +68,77 @@ def donate():
     # and give a helpful flash. Future: dedicated page listing Stripe/PayPal/Venmo/QR options from DB.
     flash('Thank you for supporting the ministry! Online giving options and links are available from our team or will appear here soon.', 'info')
     return redirect(url_for('public.public_dashboard.public_dashboard'))
+
+
+@public_bp.route('/ui-preferences', methods=['POST'])
+def ui_preferences():
+    """
+    Display prefs for visitors and members on public pages.
+    Always stores in this browser session. Logged-in users also persist to their account.
+    """
+    from app.utils.ui_prefs import (
+        apply_ui_prefs_to_session,
+        save_user_ui_prefs,
+        normalize_theme,
+        normalize_font_scale,
+        normalize_bible_scale,
+    )
+
+    payload = request.get_json(silent=True) or {}
+    theme = (
+        request.form.get('theme')
+        or payload.get('theme')
+        or request.values.get('theme')
+        or session.get('user_theme')
+    )
+    font_scale = (
+        request.form.get('font_scale')
+        or payload.get('font_scale')
+        or request.values.get('font_scale')
+        or session.get('ui_font_scale')
+    )
+    bible_scale = (
+        request.form.get('bible_scale')
+        or payload.get('bible_scale')
+        or request.values.get('bible_scale')
+        or session.get('bible_font_scale')
+    )
+
+    theme = normalize_theme(theme)
+    font_scale = normalize_font_scale(font_scale)
+    bible_scale = normalize_bible_scale(bible_scale)
+
+    apply_ui_prefs_to_session(
+        session,
+        theme=theme,
+        font_scale=font_scale,
+        bible_scale=bible_scale,
+    )
+    session['guest_display_prefs'] = True
+    session.modified = True
+
+    saved = {
+        'theme': theme,
+        'font_scale': font_scale,
+        'bible_scale': bible_scale,
+    }
+    user_id = session.get('user_id')
+    if user_id:
+        try:
+            saved = save_user_ui_prefs(user_id, theme, font_scale, bible_scale)
+            apply_ui_prefs_to_session(
+                session,
+                theme=saved['theme'],
+                font_scale=saved['font_scale'],
+                bible_scale=saved['bible_scale'],
+            )
+        except Exception as exc:
+            print(f"public.ui_preferences account save: {exc}")
+            # Session already updated — still OK for this visit
+            return jsonify({'ok': True, **saved, 'persisted': 'session'})
+
+    return jsonify({
+        'ok': True,
+        **saved,
+        'persisted': 'account' if user_id else 'session',
+    })
