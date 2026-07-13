@@ -37,6 +37,20 @@ def get_email_account():
     return account
 
 
+def get_outgoing_from_address() -> str | None:
+    """
+    Public “From” address used for activation / church mail (default email account username).
+    Safe to show on register/check-email pages. Updates automatically when Settings email changes.
+    """
+    try:
+        account = get_email_account()
+        raw = decrypt(account.get('outgoing_username') or '')
+        addr = (raw or '').strip()
+        return addr or None
+    except Exception:
+        return None
+
+
 def send_email(to_email: str, subject: str, body: str, html_body: str = None):
     """Send plain-text (and optional HTML) email using the configured default account."""
     account = get_email_account()

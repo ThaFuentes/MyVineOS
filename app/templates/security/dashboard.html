@@ -1,0 +1,123 @@
+{% extends "security/base_security.html" %}
+
+{% block security_content %}
+<div class="sec-cards">
+  <div class="sec-card"><div class="n">{{ stats.events_24h }}</div><div class="l">Events (24h)</div></div>
+  <div class="sec-card"><div class="n">{{ stats.events_total }}</div><div class="l">Events total</div></div>
+  <div class="sec-card"><div class="n">{{ stats.active_temp_bans }}</div><div class="l">Temp bans</div></div>
+  <div class="sec-card"><div class="n">{{ stats.perm_bans }}</div><div class="l">Perm bans</div></div>
+  <div class="sec-card"><div class="n">{{ stats.low_reputation }}</div><div class="l">Low score IPs</div></div>
+  <div class="sec-card"><div class="n">{{ stats.account_login_locks }}</div><div class="l">Login locks</div></div>
+  <div class="sec-card"><div class="n">{{ stats.attack_types }}</div><div class="l">Attack types</div></div>
+</div>
+
+<div class="glass" style="padding:1rem; border-radius:12px; margin-bottom:1.25rem;">
+  <h2 class="section-title" style="font-size:1.05rem; margin-top:0;">Active IP bans</h2>
+  {% if bans %}
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>IP</th><th>Grade</th><th>Score</th><th>Until</th><th>Reason</th><th></th></tr></thead>
+      <tbody>
+      {% for r in bans %}
+        <tr>
+          <td class="sec-ip">{{ r.ip }}</td>
+          <td><span class="sec-badge {{ r.grade }}">{{ r.grade }}</span></td>
+          <td>{{ r.score }}</td>
+          <td>{{ r.ban_until or '—' }}</td>
+          <td>{{ r.ban_reason or '—' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('security.bans') }}" class="sec-inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+              <input type="hidden" name="action" value="unban">
+              <input type="hidden" name="ip" value="{{ r.ip }}">
+              <button type="submit" class="btn btn-sm btn-primary">Remove ban</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="sec-muted"><a href="{{ url_for('security.bans') }}">View all IP bans →</a></p>
+  {% else %}
+  <p class="sec-muted mb-0">No active IP bans right now.</p>
+  {% endif %}
+</div>
+
+<div class="glass" style="padding:1rem; border-radius:12px; margin-bottom:1.25rem;">
+  <h2 class="section-title" style="font-size:1.05rem; margin-top:0;">Account login locks</h2>
+  {% if locks %}
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>User</th><th>Locked until</th><th>By</th><th></th></tr></thead>
+      <tbody>
+      {% for u in locks %}
+        <tr>
+          <td>{{ u.username }} <span class="sec-muted">({{ u.role }})</span></td>
+          <td>{{ u.login_locked_until }}</td>
+          <td>{{ u.locked_by_name or '—' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('security.account_locks') }}" class="sec-inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+              <input type="hidden" name="action" value="unlock">
+              <input type="hidden" name="user_id" value="{{ u.id }}">
+              <button type="submit" class="btn btn-sm btn-primary">Unlock login</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="sec-muted mb-0">No members currently blocked from logging in.</p>
+  {% endif %}
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem;">
+  <div class="glass" style="padding:1rem; border-radius:12px;">
+    <h2 class="section-title" style="font-size:1.05rem; margin-top:0;">Recent attack events</h2>
+    {% if recent_events %}
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead><tr><th>When</th><th>Type</th><th>IP</th></tr></thead>
+        <tbody>
+        {% for e in recent_events %}
+          <tr>
+            <td>{{ e.timestamp }}</td>
+            <td>{{ e.event_type }}</td>
+            <td class="sec-ip">{{ e.ip }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="sec-muted"><a href="{{ url_for('security.events') }}">All events →</a></p>
+    {% else %}
+    <p class="sec-muted mb-0">No events logged yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="glass" style="padding:1rem; border-radius:12px;">
+    <h2 class="section-title" style="font-size:1.05rem; margin-top:0;">Attack totals</h2>
+    {% if attack_stats %}
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead><tr><th>Type</th><th>Blocked</th><th>Last IP</th></tr></thead>
+        <tbody>
+        {% for a in attack_stats %}
+          <tr>
+            <td>{{ a.attack_type }}</td>
+            <td>{{ a.blocked_count or a.total_attempts }}</td>
+            <td class="sec-ip">{{ a.last_attack_ip or '—' }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="sec-muted mb-0">No attack stats yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -45,14 +45,17 @@
 <form method="POST" action="{{ url_for('auth.register') }}" id="register-form" class="styled-form" style="display:none;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
   {% if notification_settings %}
-  <div class="registration-policy-notice" style="margin-bottom:1.25rem; padding:0.85rem; border-radius:8px; background:rgba(0,255,255,0.08); border:1px solid rgba(0,255,255,0.2); font-size:0.9rem; line-height:1.5;">
+  <div class="registration-policy-notice" style="margin-bottom:1rem; padding:0.85rem; border-radius:8px; background:rgba(0,255,255,0.08); border:1px solid rgba(0,255,255,0.2); font-size:0.9rem; line-height:1.5;">
     {% if not notification_settings.registration_auto_approve %}
     <strong>Account review:</strong> An administrator will approve your account before you can log in.<br>
     {% endif %}
     {% if notification_settings.registration_require_email_verification %}
-    <strong>Email verification:</strong> You'll receive a link to verify your email{% if not notification_settings.registration_auto_approve %} after approval{% endif %}.
+    <strong>Email verification:</strong> You'll receive a link to verify your email{% if not notification_settings.registration_auto_approve %} (often right after you register){% endif %}.
     {% endif %}
   </div>
+  {% endif %}
+  {% if not notification_settings or notification_settings.registration_require_email_verification %}
+  {% include 'partials/registration_email_notice.html' %}
   {% endif %}
   <div class="form-group">
     <label for="first_name">First Name <span class="required">*</span></label>

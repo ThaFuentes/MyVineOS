@@ -1,0 +1,76 @@
+{% extends "security/base_security.html" %}
+
+{% block security_content %}
+<form method="GET" class="styled-form inline-form" style="margin-bottom:1.25rem; display:flex; flex-wrap:wrap; gap:0.75rem; align-items:end;">
+  <div class="form-group">
+    <label class="control-label" for="search">Search</label>
+    <input type="text" id="search" name="search" class="form-control" value="{{ search }}" placeholder="IP, type, notes…">
+  </div>
+  <div class="form-group">
+    <label class="control-label" for="type">Event type</label>
+    <select id="type" name="type" class="form-control">
+      <option value="">All types</option>
+      {% for t in event_types %}
+      <option value="{{ t }}" {% if event_type == t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary">Filter</button>
+  {% if search or event_type %}
+  <a href="{{ url_for('security.events') }}" class="btn btn-secondary">Clear</a>
+  {% endif %}
+</form>
+
+<p class="sec-muted">{{ total }} event{{ 's' if total != 1 else '' }} · page {{ page }} / {{ total_pages }}</p>
+
+{% if events %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Type</th>
+        <th>IP</th>
+        <th>Score</th>
+        <th>Grade</th>
+        <th>Notes</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for e in events %}
+      <tr>
+        <td>{{ e.timestamp }}</td>
+        <td>{{ e.event_type }}</td>
+        <td class="sec-ip">{{ e.ip }}</td>
+        <td>{{ e.reputation_score }}</td>
+        <td><span class="sec-badge {{ e.behavior_grade or 'normal' }}">{{ e.behavior_grade or '—' }}</span></td>
+        <td>{{ e.notes or '—' }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('security.bans') }}" class="sec-inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="unban">
+            <input type="hidden" name="ip" value="{{ e.ip }}">
+            <button type="submit" class="btn btn-sm btn-secondary" title="Clear any ban / restore score">Clear ban</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if total_pages > 1 %}
+<div style="display:flex; gap:0.5rem; margin-top:1rem; flex-wrap:wrap;">
+  {% if page > 1 %}
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('security.events', page=page-1, search=search, type=event_type) }}">← Prev</a>
+  {% endif %}
+  {% if page < total_pages %}
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('security.events', page=page+1, search=search, type=event_type) }}">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
+{% else %}
+<p class="sec-muted">No security events match.</p>
+{% endif %}
+{% endblock %}

@@ -31,6 +31,7 @@
 
       <form method="POST" action="{{ url_for('auth.register') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        {% include 'partials/registration_email_notice.html' %}
         <div style="margin-bottom: 1.5rem;">
           <label for="first_name" style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 1.2rem;">First Name *</label>
           <input type="text" name="first_name" id="first_name" required

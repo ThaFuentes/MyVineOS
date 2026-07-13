@@ -1,0 +1,46 @@
+{% extends "security/base_security.html" %}
+
+{% block security_content %}
+<p class="sec-muted" style="margin-bottom:1rem;">
+  These are <strong>member accounts</strong> blocked from logging in (separate from IP reputation bans).
+  Clearing a lock lets that person sign in again immediately.
+</p>
+
+{% if locks %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Name</th>
+        <th>Role</th>
+        <th>Locked until</th>
+        <th>Locked by</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for u in locks %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td>{{ u.first_name or '' }} {{ u.last_name or '' }}</td>
+        <td>{{ u.role }}</td>
+        <td>{{ u.login_locked_until }}</td>
+        <td>{{ u.locked_by_name or '—' }}</td>
+        <td>
+          <form method="POST" class="sec-inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="unlock">
+            <input type="hidden" name="user_id" value="{{ u.id }}">
+            <button type="submit" class="btn btn-sm btn-primary">Unlock login</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="sec-muted">No accounts currently have an active login lock.</p>
+{% endif %}
+{% endblock %}
