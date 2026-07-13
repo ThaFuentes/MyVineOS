@@ -1,0 +1,21 @@
+{# Shared public top nav — same links on Welcome, Bible, Events, etc. #}
+{% set ep = request.endpoint or '' %}
+{% set s = g.settings|default({}) if g is defined else {} %}
+{% if session.get('user_id') %}
+  <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if ep == 'dashboard.dashboard' else '' }}">Home</a>
+  <a href="{{ url_for('public.public_dashboard.public_community') }}" class="{{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">Community Feed</a>
+{% else %}
+  <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="{{ 'active' if ep in ('auth.auth_index', 'public.public_dashboard.public_dashboard', 'public.public_dashboard.public_community') else '' }}">Welcome</a>
+{% endif %}
+<a href="{{ url_for('bible.member_study') }}" class="{{ 'active' if ep.startswith('bible.') else '' }}">Bible</a>
+<a href="{{ url_for('public.public_events.public_events') }}" class="{{ 'active' if ep.startswith('public.public_events') else '' }}">Events</a>
+<a href="{{ url_for('public.public_prayers.public_prayers') }}" class="{{ 'active' if ep.startswith('public.public_prayers') else '' }}">Prayers</a>
+<a href="{{ url_for('public.public_sermons.public_sermons') }}" class="{{ 'active' if ep.startswith('public.public_sermons') else '' }}">Sermons</a>
+<a href="{{ url_for('public.public_prophecies.public_prophecies') }}" class="{{ 'active' if ep.startswith('public.public_prophecies') else '' }}">Prophecies</a>
+<a href="{{ url_for('public.public_announcements.public_announcements') }}" class="{{ 'active' if ep.startswith('public.public_announcements') else '' }}">Announcements</a>
+{% if s.get('online_donations_enabled') %}
+<a href="{{ url_for('public.donate') }}" class="{{ 'active' if ep == 'public.donate' else '' }}">Donate</a>
+{% endif %}
+{% if not session.get('user_id') %}
+  <a href="{{ url_for('auth.login') }}" class="{{ 'active' if ep in ('auth.login', 'auth.register') else '' }}">Login / Register</a>
+{% endif %}
