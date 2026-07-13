@@ -176,3 +176,101 @@
     background: rgba(0, 0, 0, 0.35);
   }
 }
+/* ---- Easy chapter picking (Isaiah-sized books) ---- */
+.bible-chapter-help {
+  line-height: 1.4;
+}
+.bible-chapter-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.5rem;
+  flex-wrap: wrap;
+}
+.bible-chapter-page-btn {
+  min-height: 2.25rem;
+  min-width: 5.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.bible-chapter-page-label {
+  flex: 1 1 auto;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--primary, #00ffff);
+  opacity: 0.95;
+}
+.bible-chapter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+.bible-chapter-num {
+  min-height: 2.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.35rem;
+}
+.bible-chapter-num:hover {
+  border-color: var(--primary, #00ffff);
+  color: var(--primary, #00ffff);
+  background: rgba(0, 255, 255, 0.08);
+}
+.bible-chapter-num.active {
+  border-color: var(--primary, #00ffff);
+  background: rgba(0, 255, 255, 0.18);
+  color: var(--primary, #00ffff);
+  box-shadow: 0 0 0 1px rgba(0, 255, 255, 0.25);
+}
+.bible-chapter-scroll-hint {
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(0, 255, 255, 0.08);
+  border: 1px dashed rgba(0, 255, 255, 0.28);
+  line-height: 1.4;
+  color: rgba(220, 245, 255, 0.95);
+}
+.bible-num-scroll {
+  max-height: 11rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.35rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.12);
+  /* Subtle cue that the list continues */
+  mask-image: linear-gradient(to bottom, #000 85%, transparent 100%);
+}
+.bible-num-scroll:focus-within,
+.bible-num-scroll:hover {
+  mask-image: none;
+}
+html[data-theme="soft-light"] .bible-chapter-num {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+html[data-theme="soft-light"] .bible-chapter-scroll-hint {
+  background: rgba(0, 120, 160, 0.08);
+  border-color: rgba(0, 120, 160, 0.25);
+  color: #234;
+}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

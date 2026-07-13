@@ -35,6 +35,9 @@ from app.models.pastoral.bible_online import (
     list_all_favorites,
     ensure_annotation_tables,
     HIGHLIGHT_COLORS,
+    get_user_preferred_translation,
+    set_user_preferred_translation,
+    resolve_user_translation,
 )
 
 from . import bible_bp
@@ -48,21 +51,56 @@ def member_study():
         ensure_annotation_tables()
     except Exception as exc:
         print(f'member bible tables: {exc}')
+    user_id = session.get('user_id')
     translations = get_bible_translations()
     books = get_bible_books()
     church_default = get_default_translation_code()
-    selected = church_default or 'online:BSB'
+    user_preferred = get_user_preferred_translation(user_id)
+    # Personal choice wins over church default; church default until they pick
+    selected = resolve_user_translation(user_id)
     return render_template(
         'bible/member_study.html',
         translations=translations,
         version_options=combined_translation_options(),
         online_quick=ONLINE_QUICK_VERSIONS,
         church_default=church_default,
+        user_preferred=user_preferred,
         selected_translation=selected,
         books=books,
         highlight_colors=HIGHLIGHT_COLORS,
         page_title='Bible',
     )
+
+
+@bible_bp.route('/preferred', methods=['POST'])
+@login_required
+def member_set_preferred_translation():
+    """Save personal Bible version (overrides church default for this user only)."""
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    code = (
+        request.form.get('translation')
+        or data.get('translation')
+        or data.get('translation_code')
+        or ''
+    ).strip()
+    clear = request.form.get('clear') or data.get('clear')
+    try:
+        if clear or code in ('', '__church__', '__default__'):
+            saved = set_user_preferred_translation(user_id, None)
+            msg = 'Using the church default translation again.'
+        else:
+            saved = set_user_preferred_translation(user_id, code)
+            msg = f'Your study version is now {saved}.'
+        return jsonify({
+            'ok': True,
+            'preferred': saved,
+            'effective': resolve_user_translation(user_id),
+            'church_default': get_default_translation_code(),
+            'message': msg,
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
 
 
 @bible_bp.route('/online/translations')

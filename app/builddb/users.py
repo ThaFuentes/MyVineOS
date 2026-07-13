@@ -104,6 +104,7 @@ def create_tables(cursor):
         'ui_theme':                    "VARCHAR(40) DEFAULT 'cyan-glow'",
         'ui_font_scale':               "VARCHAR(10) DEFAULT 'md'",
         'bible_font_scale':            "VARCHAR(10) DEFAULT 'md'",
+        'preferred_bible_translation': "VARCHAR(40) NULL",
         'created_at':                  "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         'updated_at':                  "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
     }
