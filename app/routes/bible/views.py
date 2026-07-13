@@ -97,6 +97,8 @@ def member_study():
 
     return render_template(
         'bible/member_study.html',
+        # Same public top/bottom nav as Welcome/homepage for guests
+        base_layout='base.html' if is_logged_in else 'base_public.html',
         translations=translations or [],
         version_options=combined_translation_options() or [],
         online_quick=ONLINE_QUICK_VERSIONS,

@@ -79,22 +79,7 @@
   </header>
 
   <nav class="top-nav">
-    {% if session.get('user_id') %}
-      <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard.dashboard' else '' }}">Home</a>
-      <a href="{{ url_for('public.public_dashboard.public_community') }}" class="{{ 'active' if request.endpoint == 'public.public_dashboard.public_community' else '' }}">Community Feed</a>
-    {% else %}
-      <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="{{ 'active' if request.endpoint in ('auth.auth_index', 'public.public_dashboard.public_dashboard', 'public.public_dashboard.public_community') else '' }}">Welcome</a>
-    {% endif %}
-    <a href="{{ url_for('bible.member_study') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('bible.') else '' }}">Bible</a>
-    <a href="{{ url_for('public.public_events.public_events') }}">Events</a>
-    <a href="{{ url_for('public.public_prayers.public_prayers') }}">Prayers</a>
-    <a href="{{ url_for('public.public_sermons.public_sermons') }}">Sermons</a>
-    <a href="{{ url_for('public.public_prophecies.public_prophecies') }}">Prophecies</a>
-    <a href="{{ url_for('public.public_announcements.public_announcements') }}">Announcements</a>
-    {% if s.get('online_donations_enabled') %}<a href="{{ url_for('public.donate') }}">Donate</a>{% endif %}
-    {% if not session.get('user_id') %}
-      <a href="{{ url_for('auth.login') }}" class="{{ 'active' if request.endpoint in ('auth.login', 'auth.register') else '' }}">Login / Register</a>
-    {% endif %}
+    {% include 'partials/nav_public_top.html' %}
   </nav>
 
   <div class="page-content">
@@ -112,49 +97,7 @@
     </main>
   </div>
 
-  <nav class="bottom-nav" aria-label="Public navigation">
-    {% if session.get('user_id') %}
-    <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard.dashboard' else '' }}">
-      <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
-      <span class="label">Home</span>
-    </a>
-    <a href="{{ url_for('public.public_dashboard.public_community') }}" class="{{ 'active' if request.endpoint == 'public.public_dashboard.public_community' else '' }}">
-      <span class="icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
-      <span class="label">Feed</span>
-    </a>
-    {% else %}
-    <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">
-      <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
-      <span class="label">Welcome</span>
-    </a>
-    {% endif %}
-    <a href="{{ url_for('bible.member_study') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('bible.') else '' }}">
-      <span class="icon"><i class="fa-solid fa-scroll" aria-hidden="true"></i></span>
-      <span class="label">Bible</span>
-    </a>
-    <a href="{{ url_for('public.public_events.public_events') }}">
-      <span class="icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span>
-      <span class="label">Events</span>
-    </a>
-    <a href="{{ url_for('public.public_prayers.public_prayers') }}">
-      <span class="icon"><i class="fa-solid fa-hands-praying" aria-hidden="true"></i></span>
-      <span class="label">Prayers</span>
-    </a>
-    <a href="{{ url_for('public.public_sermons.public_sermons') }}">
-      <span class="icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
-      <span class="label">Sermons</span>
-    </a>
-    <a href="{{ url_for('public.public_announcements.public_announcements') }}">
-      <span class="icon"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></span>
-      <span class="label">Announce</span>
-    </a>
-    {% if not session.get('user_id') %}
-    <a href="{{ url_for('auth.login') }}">
-      <span class="icon"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i></span>
-      <span class="label">Login</span>
-    </a>
-    {% endif %}
-  </nav>
+  {% include 'partials/nav_public_bottom.html' %}
 
   <footer style="text-align:center; padding:0.5rem 0.5rem 4.25rem; font-size:0.62rem; color:var(--text-muted); opacity:0.45;">
     <a href="{{ url_for('legal.legal_index') }}" style="color:inherit; text-decoration:none; margin-right:0.75rem;">Legal & Policies</a>

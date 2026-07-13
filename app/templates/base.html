@@ -98,37 +98,30 @@
         </div>
         <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Logout</a>
       {% else %}
-        <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Login</a>
+        {% include 'partials/display_prefs.html' %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Login / Register</a>
       {% endif %}
       <div class="clock desktop-only" id="clock" style="font-size:0.8rem; margin-left:0.5rem; opacity:0.7;">--:--</div>
     </div>
   </header>
 
-  <!-- Desktop top nav - grouped dropdowns when signed in (mobile uses bottom nav) -->
+  <!-- Desktop top nav: private groups when signed in; same public menu as homepage when guest -->
   <nav class="top-nav">
     {% if session.get('user_id') %}
       {% include 'partials/nav_private_groups.html' %}
     {% else %}
-      <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">Home</a>
-      <a href="{{ url_for('bible.member_study') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('bible.') else '' }}">Bible</a>
-      <a href="{{ url_for('public.public_sermons.public_sermons') }}">Sermons</a>
-      <a href="{{ url_for('public.public_events.public_events') }}">Events</a>
-      <a href="{{ url_for('auth.login') }}">Login</a>
+      {% include 'partials/nav_public_top.html' %}
     {% endif %}
   </nav>
 
-
-
-
-
-  <!-- Bottom fixed nav - the core of the complete mobile GUI overhaul -->
+  <!-- Bottom nav: member app chrome when signed in; public chrome (same as homepage) for guests -->
   {% if session.get('user_id') %}
   <nav class="bottom-nav" aria-label="Primary mobile navigation">
     <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard.dashboard' else '' }}">
       <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
       <span class="label">Home</span>
     </a>
-    <a href="{{ url_for('events.events') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('events','prayers','sermons','dreams','prophecies','announcements'))) else '' }}">
+    <a href="{{ url_for('events.events') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('events','prayers','sermons','dreams','prophecies','announcements','bible'))) else '' }}">
       <span class="icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
       <span class="label">Community</span>
     </a>
@@ -141,6 +134,8 @@
       <span class="label">Manager</span>
     </a>
   </nav>
+  {% else %}
+  {% include 'partials/nav_public_bottom.html' %}
   {% endif %}
 
   <!-- NEW CLEAN CONTENT WRAPPER -->
@@ -167,9 +162,7 @@
 
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
-    {% if session.get('user_id') %}
     <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260710g"></script>
-    {% endif %}
     <script>
       function updateClock() {
         const now = new Date();
