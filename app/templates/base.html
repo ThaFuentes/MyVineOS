@@ -110,8 +110,10 @@
       {% include 'partials/nav_private_groups.html' %}
     {% else %}
       <a href="{{ url_for('public.public_dashboard.public_dashboard') }}">Home</a>
+      <a href="{{ url_for('bible.member_study') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('bible.') else '' }}">Bible</a>
+      <a href="{{ url_for('public.public_sermons.public_sermons') }}">Sermons</a>
+      <a href="{{ url_for('public.public_events.public_events') }}">Events</a>
       <a href="{{ url_for('auth.login') }}">Login</a>
-      <a href="{{ url_for('auth.auth_index') }}">Welcome</a>
     {% endif %}
   </nav>
 

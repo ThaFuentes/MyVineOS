@@ -4,12 +4,13 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713f">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260713f">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260713i">
 {% endblock %}
 
 {% block content %}
 <div class="member-bible-header">
     <h1 class="page-title" style="margin-bottom:0.25rem;"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Bible Study</h1>
+    {% if is_logged_in %}
     <p class="page-description" style="margin-bottom:0.5rem;">
         Read any version online. Highlight, heart favorites, and leave notes.
         Your last version, book, and chapter are saved so you can pick up studying anytime — even on another device after login.
@@ -21,6 +22,21 @@
         </button>
         <span class="small text-muted">Version saves when you change the dropdown or press the button. Place updates as you read.</span>
     </div>
+    {% else %}
+    <p class="page-description" style="margin-bottom:0.5rem;">
+        Read Scripture online, browse versions, and use Strong’s and cross-references freely.
+        Highlights, notes, favorites, and a saved reading place need a free account.
+    </p>
+    <div class="member-bible-guest-banner glass-panel mb-2" style="padding:0.65rem 0.85rem;">
+        <p class="mb-1 small" style="margin:0;">
+            <strong>Browsing as a visitor.</strong>
+            You’ll start on the church default Bible each visit. Try other versions while you’re here — nothing is saved until you log in.
+        </p>
+        <a href="{{ login_url }}" class="btn btn-sm btn-primary" id="member-bible-login-cta">
+            Log in to save highlights, notes &amp; favorites
+        </a>
+    </div>
+    {% endif %}
 </div>
 
 <div class="bible-stage" id="member-bible-stage">
@@ -247,6 +263,8 @@
     lastVerse: {{ (last_verse if last_verse is defined and last_verse else 1)|tojson }},
     highlightColors: {{ (highlight_colors if highlight_colors is defined else [])|tojson }},
     csrf: {{ (csrf_token() if csrf_token is defined and csrf_token else '')|tojson }},
+    isLoggedIn: {{ (is_logged_in if is_logged_in is defined else false)|tojson }},
+    loginUrl: {{ (login_url if login_url is defined else url_for('auth.login'))|tojson }},
     urls: {
       search: {{ url_for('bible.member_search')|tojson }},
       strongsSearch: {{ url_for('bible.member_strongs_search')|tojson }},
@@ -262,5 +280,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260713h"></script>
+<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260713i"></script>
 {% endblock %}

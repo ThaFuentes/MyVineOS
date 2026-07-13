@@ -85,6 +85,7 @@
     {% else %}
       <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="{{ 'active' if request.endpoint in ('auth.auth_index', 'public.public_dashboard.public_dashboard', 'public.public_dashboard.public_community') else '' }}">Welcome</a>
     {% endif %}
+    <a href="{{ url_for('bible.member_study') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('bible.') else '' }}">Bible</a>
     <a href="{{ url_for('public.public_events.public_events') }}">Events</a>
     <a href="{{ url_for('public.public_prayers.public_prayers') }}">Prayers</a>
     <a href="{{ url_for('public.public_sermons.public_sermons') }}">Sermons</a>
@@ -127,6 +128,10 @@
       <span class="label">Welcome</span>
     </a>
     {% endif %}
+    <a href="{{ url_for('bible.member_study') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('bible.') else '' }}">
+      <span class="icon"><i class="fa-solid fa-scroll" aria-hidden="true"></i></span>
+      <span class="label">Bible</span>
+    </a>
     <a href="{{ url_for('public.public_events.public_events') }}">
       <span class="icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span>
       <span class="label">Events</span>

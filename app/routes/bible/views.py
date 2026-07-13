@@ -1,8 +1,8 @@
-# Member Bible — read online/local, highlights, notes (verse/chapter/book),
-# favorites (verse/chapter/book), cross-refs, searchable note library.
+# Member + public Bible — visitors can read / Strong's / search;
+# highlights, notes, favorites, and saved place require login.
 
 from flask import (
-    render_template, request, jsonify, abort, session, Response,
+    render_template, request, jsonify, abort, session, Response, url_for,
 )
 
 from app.utils.decorators import login_required
@@ -45,32 +45,56 @@ from app.models.pastoral.bible_online import (
 from . import bible_bp
 
 
+def _login_required_json():
+    """JSON 401 for AJAX personalization when guest hits a write endpoint."""
+    return jsonify({
+        'ok': False,
+        'login_required': True,
+        'error': 'Log in to use study features like highlights, notes, and favorites.',
+        'login_url': url_for('auth.login', next=request.url),
+    }), 401
+
+
 @bible_bp.route('/')
 @bible_bp.route('/study')
-@login_required
 def member_study():
-    try:
-        ensure_annotation_tables()
-    except Exception as exc:
-        print(f'member bible tables: {exc}')
+    """Open Bible reader for everyone. Guests always start on church default."""
     user_id = session.get('user_id')
+    is_logged_in = bool(user_id)
+
+    if is_logged_in:
+        try:
+            ensure_annotation_tables()
+        except Exception as exc:
+            print(f'member bible tables: {exc}')
+
     translations = get_bible_translations()
     books = get_bible_books()
     church_default = get_default_translation_code()
-    place = get_user_bible_place(user_id) or {}
-    user_preferred = place.get('translation') or get_user_preferred_translation(user_id)
-    # Personal choice wins over church default; church default until they pick
-    selected = resolve_user_translation(user_id)
-    # Always plain JSON-safe types (Jinja |tojson crashes on Undefined)
-    last_book = place.get('book') or 'John'
-    try:
-        last_chapter = int(place.get('chapter') or 1)
-    except (TypeError, ValueError):
+
+    if is_logged_in:
+        place = get_user_bible_place(user_id) or {}
+        user_preferred = place.get('translation') or get_user_preferred_translation(user_id)
+        # Personal choice wins over church default
+        selected = resolve_user_translation(user_id)
+        last_book = place.get('book') or 'John'
+        try:
+            last_chapter = int(place.get('chapter') or 1)
+        except (TypeError, ValueError):
+            last_chapter = 1
+        try:
+            last_verse = int(place.get('verse') or 1)
+        except (TypeError, ValueError):
+            last_verse = 1
+    else:
+        # Visitors: church default only, no saved place (nothing personal in DB)
+        place = {}
+        user_preferred = None
+        selected = resolve_user_translation(None)
+        last_book = 'John'
         last_chapter = 1
-    try:
-        last_verse = int(place.get('verse') or 1)
-    except (TypeError, ValueError):
         last_verse = 1
+
     return render_template(
         'bible/member_study.html',
         translations=translations or [],
@@ -84,6 +108,8 @@ def member_study():
         last_verse=last_verse,
         books=books or [],
         highlight_colors=list(HIGHLIGHT_COLORS),
+        is_logged_in=is_logged_in,
+        login_url=url_for('auth.login', next=request.path),
         page_title='Bible',
     )
 
@@ -155,8 +181,8 @@ def member_save_bible_place():
 
 
 @bible_bp.route('/online/translations')
-@login_required
 def member_online_translations():
+    """Public: list streamable versions (no personal data)."""
     q = request.args.get('q', '').strip()
     lang = request.args.get('lang', 'eng').strip() or 'eng'
     try:
@@ -167,8 +193,8 @@ def member_online_translations():
 
 
 @bible_bp.route('/search')
-@login_required
 def member_search():
+    """Public: reference / full-text search of installed text only."""
     query = request.args.get('q', '').strip()
     translation = request.args.get('translation')
     limit = int(request.args.get('limit', 30))
@@ -183,28 +209,46 @@ def member_search():
 
 
 @bible_bp.route('/chapter/<book>/<int:chapter>')
-@login_required
 def member_chapter(book, chapter):
+    """Public chapter text + Strong's + cross-refs. Annotations only when logged in."""
     user_id = session.get('user_id')
     translation = request.args.get('translation')
     book = normalize_book_name(book)
     try:
-        data = get_unified_chapter(book, chapter, translation=translation, user_id=user_id)
+        data = get_unified_chapter(
+            book,
+            chapter,
+            translation=translation,
+            user_id=user_id if user_id else None,
+            include_annotations=bool(user_id),
+        )
     except Exception as e:
         return jsonify({'error': str(e), 'book': book, 'chapter': chapter}), 404
     if not data or not data.get('verses'):
         abort(404)
+    if not user_id:
+        # Explicit empty personal data for guests (no DB personalization)
+        data.setdefault('highlights', [])
+        data.setdefault('notes', [])
+        data.setdefault('favorites', {'verses': [], 'chapter': False, 'book': False, 'items': []})
+        data['guest'] = True
     return jsonify(data)
 
 
 @bible_bp.route('/verse/<book>/<int:chapter>/<int:verse>')
-@login_required
 def member_verse(book, chapter, verse):
+    """Public single-verse payload (text + Strong's)."""
     user_id = session.get('user_id')
     translation = request.args.get('translation')
     book = normalize_book_name(book)
     try:
-        data = get_unified_chapter(book, chapter, translation=translation, user_id=user_id)
+        data = get_unified_chapter(
+            book,
+            chapter,
+            translation=translation,
+            user_id=user_id if user_id else None,
+            include_annotations=bool(user_id),
+        )
     except Exception:
         abort(404)
     for v in data.get('verses') or []:
@@ -388,10 +432,9 @@ def member_favorite_delete(favorite_id):
     return jsonify({'ok': delete_favorite(session['user_id'], favorite_id)})
 
 
-# ---- Strong's ----
+# ---- Strong's (public study tool — no personal data) ----
 
 @bible_bp.route('/strongs/<number>')
-@login_required
 def member_strongs_detail(number):
     entry = get_strongs_entry(number)
     if not entry:
@@ -401,7 +444,6 @@ def member_strongs_detail(number):
 
 
 @bible_bp.route('/strongs/search')
-@login_required
 def member_strongs_search():
     q = request.args.get('q', '').strip()
     limit = int(request.args.get('limit', 40))

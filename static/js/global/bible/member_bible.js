@@ -1,9 +1,11 @@
-// Member Bible Study — online reading, multi-color highlights, favorites
-// (verse / chapter / book), notes with scopes, searchable libraries.
+// Member + public Bible Study — online reading for everyone.
+// Highlights / notes / favorites / saved place require login.
 (function () {
   const cfg = window.MEMBER_BIBLE || {};
   const books = cfg.books || [];
   const urls = cfg.urls || {};
+  const isLoggedIn = !!cfg.isLoggedIn;
+  const loginUrl = cfg.loginUrl || '/auth/login?next=/bible/';
 
   let currentBook = 'John';
   let currentChapter = 1;
@@ -22,6 +24,21 @@
   const el = (id) => document.getElementById(id);
   const base = '/bible';
   const main = () => el('member-bible-content');
+
+  /** Guests may read / Strong's; personal study features need an account. */
+  function requireLogin(feature) {
+    if (isLoggedIn) return true;
+    const label = feature || 'this feature';
+    toast(`Log in to use ${label}`);
+    // Highlight the guest banner / login CTA if present (no forced redirect)
+    const cta = el('member-bible-login-cta');
+    if (cta) {
+      cta.classList.add('member-bible-login-pulse');
+      cta.focus?.();
+      window.setTimeout(() => cta.classList.remove('member-bible-login-pulse'), 1800);
+    }
+    return false;
+  }
 
   function csrfToken() {
     // PBT security expects header "X-CSRF-Token" or form field csrf_token
@@ -354,6 +371,7 @@
   }
 
   async function savePreferredTranslation(val) {
+    if (!isLoggedIn) return null;
     if (!val || !csrfToken()) return null;
     try {
       const data = await apiPost(urls.preferred || `${base}/preferred`, {
@@ -372,6 +390,8 @@
   }
 
   async function saveReadingPlace(extra = {}) {
+    // Guests: never write place/version to server or localStorage (always church default next visit)
+    if (!isLoggedIn) return;
     if (!csrfToken()) return;
     const body = placePayload(extra);
     try {
@@ -396,11 +416,14 @@
   async function switchTranslationSeamless(fromControl) {
     const val = fromControl?.value || translation();
     setTranslationValue(val);
-    // Persist as personal study version (overrides church default next visit)
-    const saved = await savePreferredTranslation(val);
-    try {
-      localStorage.setItem('member_bible_translation', val);
-    } catch (e) { /* ignore */ }
+    // Logged-in: persist personal study version. Guests: this visit only.
+    let saved = null;
+    if (isLoggedIn) {
+      saved = await savePreferredTranslation(val);
+      try {
+        localStorage.setItem('member_bible_translation', val);
+      } catch (e) { /* ignore */ }
+    }
     const anchor = getVisibleVerseAnchor();
     await prepareBook(currentBook, {
       chapter: currentChapter || 1,
@@ -408,6 +431,10 @@
     });
     if (saved && saved.ok) {
       toast(saved.message || `Saved as your study Bible: ${String(val).replace(/^online:/, '')}`);
+    } else if (!isLoggedIn) {
+      toast(anchor
+        ? `Switched for this visit · ${currentBook} ${currentChapter}:${anchor} (log in to keep a default)`
+        : `Switched for this visit · ${currentBook} ${currentChapter} (log in to keep a default)`);
     } else {
       toast(anchor
         ? `Switched · stayed at ${currentBook} ${currentChapter}:${anchor}`
@@ -689,6 +716,7 @@
 
   // ---- Favorites ----
   async function toggleFavorite(scope, extra = {}) {
+    if (!requireLogin('favorites')) return;
     const body = {
       scope,
       book: currentBook,
@@ -732,6 +760,7 @@
 
   // ---- Highlights (inline swatches or selection bar) ----
   async function applyHighlightVerse(verseStart, verseEnd, color) {
+    if (!requireLogin('highlights')) return;
     try {
       if (!csrfToken()) throw new Error('Security token missing — refresh the page');
       const data = await apiPost(urls.highlight || `${base}/highlight`, {
@@ -756,6 +785,7 @@
   }
 
   async function clearHighlightVerse(verse) {
+    if (!requireLogin('highlights')) return;
     try {
       if (!csrfToken()) throw new Error('Security token missing — refresh the page');
       await apiPost(urls.highlightClear || `${base}/highlight/clear`, {
@@ -798,6 +828,7 @@
   }
 
   function openNoteModal(opts = {}) {
+    if (!requireLogin('notes')) return;
     const scope = opts.scope || 'verse';
     const modal = el('member-note-modal');
     const ref = el('member-note-ref');
@@ -871,6 +902,7 @@
   }
 
   async function saveNoteFromModal() {
+    if (!requireLogin('notes')) return;
     const ref = el('member-note-ref');
     const scope = el('member-note-scope')?.value || 'verse';
     const body = (el('member-note-body')?.value || '').trim();
@@ -904,6 +936,11 @@
   function renderNotesPanel(notes) {
     const list = el('member-notes-list');
     if (!list) return;
+    if (!isLoggedIn) {
+      list.innerHTML = `<p class="member-notes-empty">Notes are for members.
+        <a href="${escapeAttr(loginUrl)}">Log in</a> to save verse, chapter, and book notes.</p>`;
+      return;
+    }
     if (!notes?.length) {
       list.innerHTML = '<p class="member-notes-empty">No notes yet. Tap a verse → <strong>Note</strong>, or use <strong>Note chapter</strong> / <strong>Note book</strong>.</p>';
       return;
@@ -950,6 +987,10 @@
   async function loadNotesLibrary() {
     const box = el('member-notes-lib');
     if (!box) return;
+    if (!isLoggedIn) {
+      box.innerHTML = `<p class="small text-muted"><a href="${escapeAttr(loginUrl)}">Log in</a> to search and download your notes.</p>`;
+      return;
+    }
     const q = el('member-notes-q')?.value || '';
     const scope = el('member-notes-scope')?.value || '';
     box.innerHTML = '<p class="small text-muted">Loading…</p>';
@@ -988,6 +1029,10 @@
   async function loadFavoritesLibrary() {
     const box = el('member-favs-lib');
     if (!box) return;
+    if (!isLoggedIn) {
+      box.innerHTML = `<p class="small text-muted"><a href="${escapeAttr(loginUrl)}">Log in</a> to save and browse favorites.</p>`;
+      return;
+    }
     const scope = el('member-favs-scope')?.value || '';
     box.innerHTML = '<p class="small text-muted">Loading…</p>';
     try {
@@ -1234,22 +1279,30 @@
       window.location.href = (urls.notesDownload || `${base}/notes/download`) + '?' + params.toString();
     });
 
-    // Order: server personal preference → localStorage backup → church default
+    // Logged-in: personal preference + place. Guests: church default only (no localStorage sticky).
     let want = cfg.selectedTranslation || cfg.userPreferred || null;
     let resumeBook = cfg.lastBook || null;
     let resumeChapter = cfg.lastChapter || null;
     let resumeVerse = cfg.lastVerse || null;
-    try {
-      want = want || localStorage.getItem('member_bible_translation');
-      const raw = localStorage.getItem('member_bible_place');
-      if (raw) {
-        const p = JSON.parse(raw);
-        if (!want && p.translation) want = p.translation;
-        if (!resumeBook && p.book) resumeBook = p.book;
-        if (!resumeChapter && p.chapter) resumeChapter = p.chapter;
-        if (!resumeVerse && p.verse) resumeVerse = p.verse;
-      }
-    } catch (e) { /* ignore */ }
+    if (isLoggedIn) {
+      try {
+        want = want || localStorage.getItem('member_bible_translation');
+        const raw = localStorage.getItem('member_bible_place');
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (!want && p.translation) want = p.translation;
+          if (!resumeBook && p.book) resumeBook = p.book;
+          if (!resumeChapter && p.chapter) resumeChapter = p.chapter;
+          if (!resumeVerse && p.verse) resumeVerse = p.verse;
+        }
+      } catch (e) { /* ignore */ }
+    } else {
+      // Force church default / server-selected for visitors
+      want = cfg.selectedTranslation || cfg.churchDefault || want;
+      resumeBook = 'John';
+      resumeChapter = 1;
+      resumeVerse = 1;
+    }
     if (want) {
       const candidates = [want, `online:${want}`, String(want).replace(/^online:/, '')];
       const pick = candidates.find((c) =>
@@ -1258,15 +1311,34 @@
       );
       if (pick) setTranslationValue(pick);
       else setTranslationValue(want);
-      updateDefaultBadge(pick || want);
+      if (isLoggedIn) updateDefaultBadge(pick || want);
     }
 
     el('member-save-my-bible')?.addEventListener('click', async () => {
+      if (!requireLogin('a saved Bible version')) return;
       const val = translation();
       if (!val) return toast('Pick a Bible version first');
       const data = await savePreferredTranslation(val);
       if (data && data.ok) toast(data.message || 'Saved as your study Bible');
     });
+
+    // Open notes/favs libraries: login required
+    const openNotesLib = el('member-open-notes-lib');
+    if (openNotesLib && !isLoggedIn) {
+      openNotesLib.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        requireLogin('your notes library');
+      }, true);
+    }
+    const openFavsLib = el('member-open-favs-lib');
+    if (openFavsLib && !isLoggedIn) {
+      openFavsLib.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        requireLogin('favorites');
+      }, true);
+    }
 
     // Resume last place (version already applied above)
     if (books.length) {
