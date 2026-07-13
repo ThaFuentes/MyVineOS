@@ -57,6 +57,8 @@ from app.models.pastoral.bible_online import (
     get_user_preferred_translation,
     set_user_preferred_translation,
     resolve_user_translation,
+    get_user_bible_place,
+    save_user_bible_place,
 )
 from app.models.pastoral.sermons import (
     get_sermon_by_id, get_sermon_sections, save_sermon_sections,
@@ -89,23 +91,37 @@ def bible_study():
         sermon = get_sermon_by_id(sermon_id, user_id)
     sermons = get_visible_sermons(user_id, limit=50)
     church_default = get_default_translation_code()
-    user_preferred = get_user_preferred_translation(user_id)
+    place = get_user_bible_place(user_id) or {}
+    user_preferred = place.get('translation') or get_user_preferred_translation(user_id)
     # Personal study version overrides church default
     selected = resolve_user_translation(user_id)
     version_options = combined_translation_options()
+    # Always plain JSON-safe types (Jinja |tojson crashes on Undefined)
+    last_book = place.get('book') or 'John'
+    try:
+        last_chapter = int(place.get('chapter') or 1)
+    except (TypeError, ValueError):
+        last_chapter = 1
+    try:
+        last_verse = int(place.get('verse') or 1)
+    except (TypeError, ValueError):
+        last_verse = 1
     return render_template(
         'pastoral/bible_study.html',
-        translations=translations,
-        version_options=version_options,
+        translations=translations or [],
+        version_options=version_options or [],
         online_quick=ONLINE_QUICK_VERSIONS,
         church_default=church_default,
         user_preferred=user_preferred,
         selected_translation=selected,
-        books=books,
+        last_book=str(last_book),
+        last_chapter=last_chapter,
+        last_verse=last_verse,
+        books=books or [],
         sermon=sermon,
         sermon_id=sermon_id if sermon else None,
-        sermons=sermons,
-        highlight_colors=HIGHLIGHT_COLORS,
+        sermons=sermons or [],
+        highlight_colors=list(HIGHLIGHT_COLORS),
         page_title='Bible Study',
     )
 
@@ -113,7 +129,7 @@ def bible_study():
 @bible_bp.route('/preferred', methods=['POST'])
 @pastoral_required()
 def set_preferred_translation():
-    """Personal study version — overrides church default for this user only."""
+    """Personal study version + place — overrides church default for this user only."""
     user_id = session['user_id']
     data = request.get_json(silent=True) or {}
     code = (
@@ -126,10 +142,19 @@ def set_preferred_translation():
     try:
         if clear or code in ('', '__church__', '__default__'):
             saved = set_user_preferred_translation(user_id, None)
+            place = get_user_bible_place(user_id)
             msg = 'Using the church default translation again.'
         else:
-            saved = set_user_preferred_translation(user_id, code)
-            msg = f'Your study version is now {saved}.'
+            place = save_user_bible_place(
+                user_id,
+                translation=code,
+                book=data.get('book'),
+                chapter=data.get('chapter'),
+                verse=data.get('verse'),
+                set_translation=True,
+            )
+            saved = place.get('translation') or code
+            msg = f'Your study Bible is saved as {saved}.'
         log_change(
             user_id, 'update', None, saved or 'church',
             f'Personal Bible preference → {saved or "church default"}',
@@ -139,8 +164,29 @@ def set_preferred_translation():
             'preferred': saved,
             'effective': resolve_user_translation(user_id),
             'church_default': get_default_translation_code(),
+            'place': place,
             'message': msg,
         })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+
+@bible_bp.route('/place', methods=['POST'])
+@pastoral_required()
+def save_bible_place():
+    """Quietly save last book/chapter/verse for resume later."""
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    try:
+        place = save_user_bible_place(
+            user_id,
+            translation=data.get('translation'),
+            book=data.get('book'),
+            chapter=data.get('chapter'),
+            verse=data.get('verse'),
+            set_translation=bool(data.get('translation')),
+        )
+        return jsonify({'ok': True, 'place': place})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
 

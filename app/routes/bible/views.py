@@ -38,6 +38,8 @@ from app.models.pastoral.bible_online import (
     get_user_preferred_translation,
     set_user_preferred_translation,
     resolve_user_translation,
+    get_user_bible_place,
+    save_user_bible_place,
 )
 
 from . import bible_bp
@@ -55,19 +57,33 @@ def member_study():
     translations = get_bible_translations()
     books = get_bible_books()
     church_default = get_default_translation_code()
-    user_preferred = get_user_preferred_translation(user_id)
+    place = get_user_bible_place(user_id) or {}
+    user_preferred = place.get('translation') or get_user_preferred_translation(user_id)
     # Personal choice wins over church default; church default until they pick
     selected = resolve_user_translation(user_id)
+    # Always plain JSON-safe types (Jinja |tojson crashes on Undefined)
+    last_book = place.get('book') or 'John'
+    try:
+        last_chapter = int(place.get('chapter') or 1)
+    except (TypeError, ValueError):
+        last_chapter = 1
+    try:
+        last_verse = int(place.get('verse') or 1)
+    except (TypeError, ValueError):
+        last_verse = 1
     return render_template(
         'bible/member_study.html',
-        translations=translations,
-        version_options=combined_translation_options(),
+        translations=translations or [],
+        version_options=combined_translation_options() or [],
         online_quick=ONLINE_QUICK_VERSIONS,
         church_default=church_default,
         user_preferred=user_preferred,
         selected_translation=selected,
-        books=books,
-        highlight_colors=HIGHLIGHT_COLORS,
+        last_book=str(last_book),
+        last_chapter=last_chapter,
+        last_verse=last_verse,
+        books=books or [],
+        highlight_colors=list(HIGHLIGHT_COLORS),
         page_title='Bible',
     )
 
@@ -75,7 +91,7 @@ def member_study():
 @bible_bp.route('/preferred', methods=['POST'])
 @login_required
 def member_set_preferred_translation():
-    """Save personal Bible version (overrides church default for this user only)."""
+    """Save personal Bible version + optional reading place (overrides church default)."""
     user_id = session['user_id']
     data = request.get_json(silent=True) or {}
     code = (
@@ -85,20 +101,55 @@ def member_set_preferred_translation():
         or ''
     ).strip()
     clear = request.form.get('clear') or data.get('clear')
+    book = data.get('book')
+    chapter = data.get('chapter')
+    verse = data.get('verse')
     try:
         if clear or code in ('', '__church__', '__default__'):
             saved = set_user_preferred_translation(user_id, None)
+            place = get_user_bible_place(user_id)
             msg = 'Using the church default translation again.'
         else:
-            saved = set_user_preferred_translation(user_id, code)
-            msg = f'Your study version is now {saved}.'
+            place = save_user_bible_place(
+                user_id,
+                translation=code,
+                book=book,
+                chapter=chapter,
+                verse=verse,
+                set_translation=True,
+            )
+            saved = place.get('translation') or code
+            msg = f'Your study Bible is saved as {saved}.'
+            if place.get('book') and place.get('chapter'):
+                msg += f" Resume at {place['book']} {place['chapter']}."
         return jsonify({
             'ok': True,
             'preferred': saved,
             'effective': resolve_user_translation(user_id),
             'church_default': get_default_translation_code(),
+            'place': place if not clear else get_user_bible_place(user_id),
             'message': msg,
         })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+
+@bible_bp.route('/place', methods=['POST'])
+@login_required
+def member_save_bible_place():
+    """Quietly save last book/chapter/verse (+ version if sent) for resume later."""
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    try:
+        place = save_user_bible_place(
+            user_id,
+            translation=data.get('translation'),
+            book=data.get('book'),
+            chapter=data.get('chapter'),
+            verse=data.get('verse'),
+            set_translation=bool(data.get('translation')),
+        )
+        return jsonify({'ok': True, 'place': place})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
 
