@@ -19,7 +19,8 @@ MyVineOS is a full-stack platform built like serious software for real ministry 
 | **All-in-one** | Public portal + members + pastoral + worship + finance ops + community moderation |
 | **Ownership** | Full source code — fork it, brand it, host it, audit it |
 | **Cost control** | Free to download and run; you only pay for hosting if you choose hosted infrastructure |
-| **Security-minded** | Encryption for sensitive credentials, CSRF, rate limits, RBAC, optional 2FA, re-auth for vault reveals, secure cookies & headers |
+| **Security-minded** | PoweredByTop request pipeline + in-app **Security Console**, encryption for credentials, CSRF, rate limits, RBAC, optional 2FA, re-auth for vault reveals |
+| **Bible built-in** | Live multi-version reader (public + members), highlights/notes/favorites when logged in, Strong’s, cross-refs, personal defaults |
 | **Practical stack** | Python **Flask**, **MariaDB/MySQL**, vanilla JS/CSS — no mandatory Node frontend build |
 | **Maintainable** | Clear `app/routes`, `app/models`, `app/templates`, and `builddb` schema modules |
 
@@ -66,6 +67,7 @@ This is software that ships **modules you can turn on for real church life** —
 - Welcome / church overview (services, events, contact)  
 - Public **events**, **sermons**, **announcements**, **prayers**, **prophecies**, **dreams**  
 - Community feed and guest-friendly navigation  
+- **Public Bible Study** in the same top/bottom nav as Welcome (visitors can read without an account)  
 - Display themes (theme + text size) available to visitors and members  
 - Comments / contributions where enabled, with moderation paths for managers  
 
@@ -75,7 +77,7 @@ This is software that ships **modules you can turn on for real church life** —
 - Groups, roles, pending registration workflows  
 - Attendance tools including **kiosk** sign-in flows  
 - Email roster and bulk communication hooks  
-- Security lockouts / admin moderation helpers  
+- Account login locks / shadow-ban helpers (also surfaced in **Security Console**)  
 
 ### Dashboard & day-to-day UX
 
@@ -92,6 +94,7 @@ This is software that ships **modules you can turn on for real church life** —
 - **Podium mode** for live preaching  
 - Care dashboard and pastoral follow-up flows  
 - Pastoral vault library for notes and shared pastoral content  
+- Pastoral **Bible Study** with sermon insert, notes → illustration library, installable translations  
 
 ### Worship team
 
@@ -100,11 +103,32 @@ This is software that ships **modules you can turn on for real church life** —
 - Setlists, notes, public/prompter-style links where configured  
 - Import/export oriented workflows for plans  
 
-### Bible & study
+### Bible Study (member + public)
 
-- Scripture viewing and navigation  
-- **Strong’s** lexicon / occurrence data support (seed + import paths in the Bible models)  
-- Member study surfaces  
+A full in-app Bible reader — not just a verse lookup:
+
+| Capability | Details |
+|------------|---------|
+| **Live online versions** | Stream chapters from the Free Bible API (HelloAO) — no bulk download required to start reading |
+| **Installed translations** | Optional JSON upload for offline / full-text search; church **default** version set by Admin/Owner |
+| **Personal study version** | Each logged-in user can save “my Bible” (overrides church default for them only) |
+| **Resume place** | Last book / chapter / verse remembered per account across devices |
+| **Highlights** | Multi-color verse highlights |
+| **Notes** | Verse, chapter, or book scope; searchable library + download |
+| **Favorites** | Heart verses, chapters, or whole books |
+| **Strong’s** | Lexicon lookup + occurrences (when data is seeded/imported) |
+| **Cross-references** | Related passages + curated messianic / “related to Jesus” links |
+| **Chapter grid** | Paged chapter picker for long books (e.g. Isaiah) |
+| **Visitors** | Can **read**, switch versions for the visit, Strong’s & cross-refs — **no** highlights/notes/favorites (login CTA) |
+| **Members** | Full personal study features; version + place sticky after login |
+
+**Where to open it**
+
+| Audience | Path / nav |
+|----------|------------|
+| **Everyone (public)** | **`/bible/`** · public top nav **Bible** · mobile bottom nav **Bible** |
+| **Logged-in members** | Same URL · also under **Community → Bible** |
+| **Pastoral** | Pastoral nav **Bible** · study tools + sermon integration |
 
 ### Donations, bills & inventory
 
@@ -124,10 +148,38 @@ This is software that ships **modules you can turn on for real church life** —
 ### Auth & admin
 
 - Login / register, email verification flows (configurable)  
+- **Check your email** guidance after register: shows the **live From address** from Settings → Email (e.g. `admin@poweredby.top`) and spam-folder reminders  
 - Optional **TOTP 2FA** (`pyotp`)  
 - Roles such as Owner / Admin / Staff / Member (plus pending/banned workflows)  
 - Permission helpers and group-aware gates across modules  
 - Audit-style **change logging** for important actions  
+- **Security Console** (see below)  
+
+---
+
+## Security Console (in-app)
+
+MyVineOS ships a **Security Console** so Owners and trusted staff can *see* what the automated defenses are doing — and fix false positives so real members stay online.
+
+### Where to open it
+
+| | |
+|--|--|
+| **URL** | **`/security/`** |
+| **Desktop nav** | **Admin → Security** |
+| **Who can open it** | **Owner / Admin / Staff** always · or group permission **`manage_security`** · or a **named grant** (Owner/Admin adds a username under **Who can access**) |
+
+### What you can do there
+
+| Tab | Purpose |
+|-----|---------|
+| **Overview** | Counts for events (24h), temp/perm-style bans, low scores, account login locks, recent attacks |
+| **Attack events** | Search/filter PoweredByTop security events (UA, rate limit, CSRF, reputation, etc.) |
+| **IP bans** | List bruised IPs; **Remove ban**, **Trust**, or manual temp/perm ban |
+| **Account locks** | Members blocked from login — **Unlock** so they can sign in again |
+| **Who can access** | Grant/revoke Security Console by **username** (in addition to the `manage_security` permission on groups) |
+
+False positives (shared mobile carrier IPs, etc.) are expected on the open internet. Use **Remove ban** / **Trust** when a real person is stuck; scrapers and noisy VPS ranges can stay blocked.
 
 ---
 
@@ -135,18 +187,35 @@ This is software that ships **modules you can turn on for real church life** —
 
 Open source is not “insecure by default.” Security comes from design, operation, and review. MyVineOS includes **real controls in the codebase**, and the source is fully auditable by your team or a contractor.
 
+### PoweredByTop request pipeline (`poweredbytop/`)
+
+Every (non-static) request can pass through a sovereign security layer that is **vendored in this repo** — not a black-box SaaS:
+
+| Layer | Behavior (high level) |
+|-------|------------------------|
+| **User-Agent heuristics** | Flags obvious scrapers/tools (`curl`, `scrapy`, headless clients, etc.). Normal browsers pass. Search crawlers (e.g. Googlebot) are allowed. **Logged-in members** skip hard UA blocks. |
+| **Rate limiting** | Per-IP + global sliding windows; tuned for **shared mobile / CGNAT** IPs so one church’s phones don’t false-positive as a botnet. |
+| **Reputation (per IP)** | Good traffic heals score; abusive traffic lowers it. Caps + faster recovery so an IP is not “score 0 forever.” |
+| **Low reputation** | Hard-block is **softened for real users**: members, auth flows, and normal **GET** browsing stay usable; scrapers still get stopped on abusive mutators. |
+| **CSRF** | State-changing requests need valid tokens (session + signed fallback for flaky mobile cookies). |
+| **Brute-force lock** | Failed logins jam the browser session temporarily. |
+| **Event logging** | `pbt_security_events`, `pbt_attack_stats`, `pbt_reputation`, `pbt_traffic` — visible in the **Security Console**. |
+
+Source of truth for the pipeline: `poweredbytop/core/security.py`, `poweredbytop/reputation/scorer.py`, `poweredbytop/throttling/rate_limit.py`, `poweredbytop/config/settings.py`.
+
 ### Built into the project today
 
 | Control | What it means in MyVineOS |
 |---------|---------------------------|
+| **Security Console** | In-app UI at `/security/` (Admin → Security) to review attacks, clear IP bans, unlock logins, manage who can open the console. |
 | **Password hashing** | Passwords are hashed with Werkzeug’s secure password helpers (not stored as plain text). |
 | **Optional 2FA** | TOTP second factor on login when enabled for a user. |
 | **CSRF protection** | Form/state-changing requests checked by the PoweredByTop security pipeline; signed tokens for resilience. |
 | **Request pipeline** | Rate limiting, reputation-oriented blocking, HTTPS enforcement options, security event logging (`poweredbytop/`). |
-| **Secure cookies & headers** | HttpOnly / SameSite session cookies; headers such as `X-Content-Type-Options`, `X-Frame-Options`, CSP baseline, HSTS when HTTPS is on. |
+| **Secure cookies & headers** | HttpOnly / SameSite session cookies; headers such as `X-Content-Type-Options`, `X-Frame-Options`, CSP baseline, HSTS when HTTPS is on. Multi-device sessions allowed (phone + laptop). |
 | **Credential encryption** | Sensitive stored credentials (e.g. bill vault fields, related secrets) use **Fernet** (`cryptography`) with keys from environment / key material — not plain text in the DB. |
 | **Re-authentication** | Revealing encrypted bill credentials requires the user to re-enter their password; access is intentional, not one-click. |
-| **RBAC & permissions** | Role checks and permission/group helpers gate admin and ministry tools. |
+| **RBAC & permissions** | Role checks and permission/group helpers gate admin and ministry tools (including `manage_security`). |
 | **Parameterized SQL** | PyMySQL queries use parameter binding (`%s`) to reduce SQL injection risk. |
 | **HTML sanitization** | Bleach used where rich/community content needs cleaning. |
 | **Schema on deploy** | `builddb` modules create/update tables on startup so installs stay consistent. |
@@ -179,13 +248,20 @@ These are best practices — do them when going live:
 ```
 MyVineOS/
 ├── app/                 # Flask application
-│   ├── routes/          # Feature modules (public, pastoral, worship, …)
-│   ├── models/          # Data access
-│   ├── templates/       # Jinja HTML
+│   ├── routes/          # Feature modules (public, pastoral, worship, bible, security, …)
+│   │   ├── bible/       # Public + member Bible Study API & pages
+│   │   ├── security/    # Security Console (attacks, bans, unlocks, access grants)
+│   │   └── pastoral/    # Pastoral tools including Bible study + upload
+│   ├── models/          # Data access (incl. pastoral/bible_online.py — HelloAO + annotations)
+│   ├── templates/       # Jinja HTML (bible/, security/, public/, …)
 │   ├── builddb/         # Schema bootstrap / migrations-style builders
 │   └── utils/           # Email, permissions, crypto helpers, prefs
-├── poweredbytop/        # Vendored security/session/rate-limit layer
-├── static/              # CSS, JS, images (no required Node build)
+├── poweredbytop/        # Vendored security pipeline (session, rate limit, reputation, CSRF)
+│   ├── core/security.py
+│   ├── reputation/
+│   ├── throttling/
+│   └── config/settings.py
+├── static/              # CSS, JS, images (member_bible.js, bible_study.js, …)
 ├── main.py / wsgi.py / passenger_wsgi.py
 ├── docker-compose.yml   # Dev MariaDB
 ├── requirements.txt
@@ -193,6 +269,14 @@ MyVineOS/
 ```
 
 **Stack:** Flask 3 · PyMySQL · MariaDB · cryptography · pyotp · python-docx · bleach · python-dotenv  
+
+**Key routes (after login / public as noted)**
+
+| Area | Example paths |
+|------|----------------|
+| Bible Study | `/bible/`, `/bible/study`, `/bible/chapter/<book>/<n>` |
+| Security Console | `/security/`, `/security/events`, `/security/bans`, `/security/account-locks`, `/security/access` |
+| Pastoral Bible | `/pastoral/bible/study`, `/pastoral/bible/upload` |
 
 ---
 
