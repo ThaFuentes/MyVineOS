@@ -29,9 +29,12 @@ from poweredbytop.config.settings import (
     REQUIRE_HTTPS,
     CSRF_PROTECTION,
     TOKEN_SECRET,
+    REPUTATION_BLOCK_THRESHOLD,
 )
 from poweredbytop.models.connect_db import get_security_db
-from poweredbytop.utils.helpers import get_real_ip, logger, is_internal_request, is_suspicious_user_agent
+from poweredbytop.utils.helpers import (
+    get_real_ip, logger, is_internal_request, is_suspicious_user_agent, is_allowed_crawler,
+)
 from poweredbytop.firewall.tokens import validate_token
 from poweredbytop.throttling.rate_limit import check_rate_limit, apply_stagger
 from poweredbytop.auth.session import is_vetted, is_locked_out, require_vetted, mark_as_vetted
@@ -90,7 +93,11 @@ def log_security_event(event_type: str, details: str, severity: str = "medium"):
     except Exception as e:
         logger("SECURITY EVENT FAILED: " + str(e))
 
-def increment_attack_stat(stat_type: str):
+def increment_attack_stat(stat_type: str, penalize: bool = True):
+    """
+    Count an attack type. Set penalize=False for secondary/cascade blocks
+    (e.g. already-low reputation) so we do not death-spiral real users.
+    """
     db = get_security_db()
     if db is None:
         return
@@ -107,10 +114,23 @@ def increment_attack_stat(stat_type: str):
                 last_attack_time = NOW()
         """, (stat_type, b'', ip))
         db.commit()
-        record_bad_behavior(ip)
+        # Never pile penalties for cascade types that fire after score is already low
+        no_pen = {
+            "reputation_block", "refresh_spam", "n1_attack",
+        }
+        if penalize and stat_type not in no_pen:
+            record_bad_behavior(ip)
         logger("ATTACK STAT INCREMENTED | TYPE=" + stat_type + " | IP=" + ip[:8] + "...")
     except Exception as e:
         logger("ATTACK STAT FAILED: " + str(e))
+
+
+def _is_logged_in_member() -> bool:
+    """Church members with a session must not be hard-blocked like anonymous scrapers."""
+    try:
+        return bool(session.get("user_id"))
+    except Exception:
+        return False
 
 # ====================== CSRF PROTECTION ======================
 def _csrf_secret_bytes() -> bytes:
@@ -243,37 +263,57 @@ def run_full_security_pipeline():
             return False
 
     ua = request.headers.get("User-Agent", "") or ""
-    # Never hard-block login/register on UA heuristics (mobile WebViews vary widely).
-    if not is_auth_entry:
-        if is_suspicious_user_agent(ua) or any(kw in ua.lower() for kw in SUSPICIOUS_UA_KEYWORDS):
-            log_security_event("suspicious_ua", "Bot/scraper/hacker UA detected")
+    member = _is_logged_in_member()
+    vetted = False
+    try:
+        vetted = bool(is_vetted())
+    except Exception:
+        vetted = False
+
+    # UA hard-block: tools/scrapers only. Never block members, auth, or known browsers.
+    # Allowed search crawlers pass. Empty UA is not treated as a bot.
+    if not is_auth_entry and not member and not vetted:
+        if is_allowed_crawler(ua):
+            pass  # Googlebot/Bingbot etc. — allow (log-only if needed)
+        elif is_suspicious_user_agent(ua):
+            log_security_event("suspicious_ua", "Bot/scraper UA detected")
             increment_attack_stat("bot_attempt")
             return False
 
     if not check_rate_limit(ip):
         g.rate_limited = True
         log_security_event("rate_limit_exceeded", "IP exceeded rate limit")
-        increment_attack_stat("ddos_attempts")
-        apply_stagger()
+        # Do not death-spiral reputation on rate limit for members / GET browsing
+        increment_attack_stat("ddos_attempts", penalize=not member)
         debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
-        # Auth must remain usable on mobile CGNAT (many phones share one public IP).
-        if not debug_mode and not is_auth_entry:
+        # Auth + logged-in members always continue. Guests: allow safe GET reads.
+        if debug_mode or is_auth_entry or member:
+            pass
+        elif request.method in ("GET", "HEAD", "OPTIONS"):
+            # Soft: let them read pages; still counted in logs
+            pass
+        else:
             return False
 
     if is_locked_out():
         log_security_event("brute_force_lock", "IP is currently locked out")
-        increment_attack_stat("brute_force")
+        increment_attack_stat("brute_force", penalize=not member)
         # Keep brute-force lock on mutating requests; allow GET login form to render.
         if request.method in ("POST", "PUT", "DELETE", "PATCH") or not is_auth_entry:
-            return False
+            if not member:
+                return False
 
     score = get_reputation_score(ip)
-    if score < 50 and not is_safe_mutation:
-        log_security_event("low_reputation", f"reputation score {score} below threshold")
-        increment_attack_stat("reputation_block")
+    rep_floor = int(REPUTATION_BLOCK_THRESHOLD) if REPUTATION_BLOCK_THRESHOLD is not None else 10
+    # Low reputation: only hard-block anonymous mutators / deep scrapers.
+    # Members, auth, vetted browsers, and normal GET browsing stay open.
+    if score < rep_floor and not is_safe_mutation and not member and not vetted:
+        log_security_event("low_reputation", f"reputation score {score} below threshold {rep_floor}")
+        increment_attack_stat("reputation_block", penalize=False)
         debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
-        if not debug_mode:
+        if not debug_mode and request.method not in ("GET", "HEAD", "OPTIONS"):
             return False
+        # GET still allowed so a human can open the homepage / Bible even on a bruised IP
 
     # CSRF for state changing requests
     if request.method in ("POST", "PUT", "DELETE", "PATCH") and CSRF_PROTECTION:
@@ -281,7 +321,7 @@ def run_full_security_pipeline():
         if not validate_csrf(csrf_token):
             log_security_event("csrf_failure", "CSRF token missing or invalid on " + request.method)
             # Avoid reputation death-spiral on flaky mobile auth CSRF
-            if not is_auth_entry:
+            if not is_auth_entry and not member:
                 increment_attack_stat("csrf_attack")
             return False
 
@@ -289,28 +329,31 @@ def run_full_security_pipeline():
     if token:
         if not validate_token(token, ip):
             log_security_event("invalid_token", "Token validation failed")
-            increment_attack_stat("token_attack")
+            increment_attack_stat("token_attack", penalize=not member)
             return False
 
     # AUTO VET THE SESSION ON FIRST GOOD REQUEST
     if not is_vetted():
         mark_as_vetted()
-        logger("AUTO-MARKED SESSION AS VETTED for IP " + ip)
+        logger("AUTO-MARKED SESSION AS VETTED for IP " + (ip or "")[:8])
 
-    if not require_vetted() and not is_safe_mutation:
+    if not require_vetted() and not is_safe_mutation and not member:
+        # Members always pass; guests get one soft miss then vet above
         log_security_event("not_vetted", "Session not vetted")
         return False
 
     if DB_BULKHEAD_ENABLED:
         if hasattr(g, 'query_count') and g.query_count > N1_QUERY_THRESHOLD:
             log_security_event("n1_query_detected", "N+1 query threshold exceeded")
-            increment_attack_stat("n1_attack")
-            return False
+            increment_attack_stat("n1_attack", penalize=False)
+            # Never hard-block members on internal query counting
+            if not member:
+                return False
 
     record_good_behavior(ip)
     log_traffic(vetted=True, status="full_pass", score=score)
     g.pbt_vetted = True
-    logger("FULL PIPELINE PASS | IP=" + ip[:8] + "... | SCORE=" + str(score))
+    logger("FULL PIPELINE PASS | IP=" + (ip or "")[:8] + "... | SCORE=" + str(score))
     return True
 
 def before_request_security():
@@ -321,12 +364,14 @@ def before_request_security():
             log_traffic(vetted=False, status="blocked")
             abort(403)
         return None
-    # Skip anti-refresh stagger on auth so mobile login feels instant
-    path = (request.path or "").rstrip("/")
-    is_auth = bool(request.endpoint and str(request.endpoint).startswith("auth.")) or path in (
-        "/login", "/register", "/logout", "/login/2fa",
-    )
-    if not is_auth:
+    # Optional soft stagger only (default 0ms). Never delay static or auth.
+    path = (request.path or "")
+    if (
+        STAGGER_DELAY and STAGGER_DELAY > 0
+        and not path.startswith(("/static/", "/favicon", "/sw.js"))
+        and not (request.endpoint and str(request.endpoint).startswith("auth."))
+        and not _is_logged_in_member()
+    ):
         apply_stagger()
     logger("SECURITY PIPELINE COMPLETED in " + str(round((time.time() - start) * 1000)) + "ms")
     return None

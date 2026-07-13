@@ -21,6 +21,7 @@ from poweredbytop.config.settings import (
     REPUTATION_DECAY_PER_HOUR,
     FAST_LANE_THRESHOLD,
     STRICT_MODE_THRESHOLD,
+    MAX_NEGATIVE_POINTS,
 )
 
 REPUTATION_TABLE = "pbt_reputation"
@@ -98,10 +99,10 @@ def get_reputation_score(ip: str) -> int:
         except Exception as e:
             logger("Reputation decay failed: " + str(e))
 
-    # Recalculate score
+    # Recalculate score (lighter negative weight so shared mobile IPs can recover)
     positive = row_dict.get("positive_requests", 0)
-    negative = row_dict.get("negative_points", 0)
-    score = 100 + (positive * 2) - (negative * 10)
+    negative = min(int(row_dict.get("negative_points", 0) or 0), int(MAX_NEGATIVE_POINTS))
+    score = 100 + (positive * 2) - (negative * 3)
     score = max(MIN_REPUTATION_SCORE, min(MAX_REPUTATION_SCORE, score))
 
     grade = _get_grade(score)
@@ -122,29 +123,37 @@ def record_good_behavior(ip: str):
     if db is None:
         return
     cursor = db.cursor()
+    # Heal negatives faster when the visitor is actually using the site normally
+    heal = max(1, int(GOOD_BEHAVIOR_BONUS // 2) or 1)
     cursor.execute(f"""
         INSERT INTO {REPUTATION_TABLE} (ip, positive_requests, last_seen)
         VALUES (%s, 1, NOW())
         ON DUPLICATE KEY UPDATE
             positive_requests = positive_requests + 1,
-            negative_points = GREATEST(0, negative_points - 1),
+            negative_points = GREATEST(0, negative_points - %s),
             last_seen = NOW()
-    """, (ip,))
+    """, (ip, heal))
     db.commit()
 
 def record_bad_behavior(ip: str, reason: str = "suspicious"):
+    """
+    Record a light penalty. Caps total negatives so one bad hour on a shared
+    carrier IP cannot lock out real members forever.
+    """
     db = get_security_db()
     if db is None:
         return
+    pen = max(1, int(BAD_BEHAVIOR_PENALTY))
+    cap = max(pen, int(MAX_NEGATIVE_POINTS))
     cursor = db.cursor()
     cursor.execute(f"""
-        INSERT INTO {REPUTATION_TABLE} (ip, negative_points, last_bad_behavior, last_seen)
-        VALUES (%s, %s, NOW(), NOW())
+        INSERT INTO {REPUTATION_TABLE} (ip, negative_points, last_bad_behavior, last_seen, score, grade)
+        VALUES (%s, %s, NOW(), NOW(), %s, 'watch')
         ON DUPLICATE KEY UPDATE
-            negative_points = negative_points + %s,
+            negative_points = LEAST(%s, negative_points + %s),
             last_bad_behavior = NOW(),
             last_seen = NOW()
-    """, (ip, BAD_BEHAVIOR_PENALTY, BAD_BEHAVIOR_PENALTY))
+    """, (ip, pen, INITIAL_REPUTATION, cap, pen))
     db.commit()
 
 def ban_ip(ip: str, reason: str, permanent: bool = False, hours: int = 1):

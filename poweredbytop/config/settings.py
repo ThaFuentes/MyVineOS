@@ -22,28 +22,37 @@ WRITE_PASS_FAIL_TO_DB = True
 BLOCK_ON_ANY_FAILURE = True
 
 # ====================== RATE LIMITING & DDoS / REFRESH SPAM ======================
-GLOBAL_RATE_LIMIT = 300
-PER_IP_RATE_LIMIT = 60
+# Real members often share carrier NATs (many phones → one public IP). Keep limits
+# high enough for normal browsing; hard abuse still trips jail/global limits.
+GLOBAL_RATE_LIMIT = 600
+PER_IP_RATE_LIMIT = 180
 RATE_WINDOW_SECONDS = 60
-STAGGER_DELAY_MS = 800
-BURST_TOLERANCE = 5
-JAIL_THRESHOLD = 10
-JAIL_DURATION_SECONDS = 300
-STAGGER_DELAY = 0.8
+# Never sleep on every request — that made the whole site feel "broken" for humans.
+# Soft delay is applied only when near the rate limit (see rate_limit.apply_stagger).
+STAGGER_DELAY_MS = 0
+BURST_TOLERANCE = 40
+JAIL_THRESHOLD = 15
+JAIL_DURATION_SECONDS = 120
+STAGGER_DELAY = 0.0
 
 # ====================== BRUTE FORCE PROTECTION ======================
-BRUTE_FORCE_MAX_ATTEMPTS = 5
-BRUTE_FORCE_JAIL_SECONDS = 300
+BRUTE_FORCE_MAX_ATTEMPTS = 8
+BRUTE_FORCE_JAIL_SECONDS = 180
 
 # ====================== REPUTATION SYSTEM ======================
+# Score death-spirals were the main false-positive source for real users.
 MAX_REPUTATION_SCORE = 100
 MIN_REPUTATION_SCORE = 0
-FAST_LANE_THRESHOLD = 85
-STRICT_MODE_THRESHOLD = 25
-INITIAL_REPUTATION = 60
+FAST_LANE_THRESHOLD = 70
+STRICT_MODE_THRESHOLD = 15
+INITIAL_REPUTATION = 80
 GOOD_BEHAVIOR_BONUS = 5
-BAD_BEHAVIOR_PENALTY = 15
-REPUTATION_DECAY_PER_HOUR = 1
+BAD_BEHAVIOR_PENALTY = 3          # was 15 — one burst no longer floors an IP forever
+REPUTATION_DECAY_PER_HOUR = 15    # recover within hours, not weeks
+# Only hard-block anonymous traffic below this (was effectively 50).
+REPUTATION_BLOCK_THRESHOLD = 10
+# Cap stored negatives so shared mobile IPs can recover
+MAX_NEGATIVE_POINTS = 40
 
 # ====================== DB GUARD / N+1 / SQL INJECTION PROTECTION ======================
 DB_MAX_CONNECTIONS = 20
@@ -60,8 +69,17 @@ TOKEN_LIFETIME_SECONDS = 3600
 HMAC_ALGORITHM = "sha256"
 
 # ====================== BOT / SCRAPER / HACKER PROTECTION ======================
-# Keep this tight — overly broad keywords (java/php/httpclient) false-positive on real browsers/WebViews.
-SUSPICIOUS_UA_KEYWORDS = ["bot", "crawler", "spider", "curl", "wget", "python-requests", "scrapy"]
+# Prefer tool/scraper tokens over bare "bot" alone where possible.
+# Logged-in members and vetted browser sessions skip hard UA blocks (see security.py).
+SUSPICIOUS_UA_KEYWORDS = [
+    "curl", "wget", "python-requests", "scrapy", "httpclient",
+    "headlesschrome", "phantomjs", "selenium",
+    "bytespider", "semrush", "ahrefs", "mj12bot", "dotbot",
+]
+# Bare tokens matched with word-ish checks in helpers (avoids random browser false hits).
+SUSPICIOUS_UA_LOOSE = ["crawler", "spider", "scraper"]
+# Well-known search crawlers: log but do not hard-block (SEO + not "members").
+ALLOWED_CRAWLER_UA = ["googlebot", "bingbot", "applebot", "duckduckbot", "yandexbot"]
 ALLOWED_COUNTRIES = []
 BLOCKED_COUNTRIES = []
 
