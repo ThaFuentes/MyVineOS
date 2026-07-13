@@ -28,6 +28,48 @@ If you only need a static webpage, this is more than that. If you need a **churc
 
 ---
 
+## Screenshots (demo data)
+
+Real browser captures of MyVineOS with sample church content so you can see how the product looks in use. Full set under [`marketing/screenshots/gallery/`](marketing/screenshots/gallery/).
+
+### Public site
+
+| Welcome | Events | Prayers |
+|:-------:|:------:|:-------:|
+| ![Welcome](marketing/screenshots/gallery/03_public_welcome.jpg) | ![Events](marketing/screenshots/gallery/04_public_events.jpg) | ![Prayers](marketing/screenshots/gallery/05_public_prayers.jpg) |
+
+| Sermons | Announcements | Login |
+|:-------:|:-------------:|:-----:|
+| ![Sermons](marketing/screenshots/gallery/06_public_sermons.jpg) | ![Announcements](marketing/screenshots/gallery/07_public_announcements.jpg) | ![Login](marketing/screenshots/gallery/01_login.jpg) |
+
+### Members & operations
+
+| Private dashboard | Members | Events admin |
+|:-----------------:|:-------:|:------------:|
+| ![Dashboard](marketing/screenshots/gallery/10_private_dashboard.jpg) | ![Members](marketing/screenshots/gallery/11_members_directory.jpg) | ![Events](marketing/screenshots/gallery/12_events_dashboard.jpg) |
+
+| Donations | Bills | Attendance |
+|:---------:|:-----:|:----------:|
+| ![Donations](marketing/screenshots/gallery/17_donations.jpg) | ![Bills](marketing/screenshots/gallery/18_bills.jpg) | ![Attendance](marketing/screenshots/gallery/16_attendance.jpg) |
+
+### Pastoral, worship & mobile
+
+| Pastoral hub | Podium | Worship |
+|:------------:|:------:|:-------:|
+| ![Pastoral](marketing/screenshots/gallery/24_pastoral_hub.jpg) | ![Podium](marketing/screenshots/gallery/26_podium.jpg) | ![Worship](marketing/screenshots/gallery/32_worship.jpg) |
+
+| Bible study | Service planning | Gathering manager |
+|:-----------:|:----------------:|:-----------------:|
+| ![Bible](marketing/screenshots/gallery/28_bible_study.jpg) | ![Planning](marketing/screenshots/gallery/27_service_planning.jpg) | ![Gathering](marketing/screenshots/gallery/33_gathering_manager.jpg) |
+
+| Mobile dashboard | Mobile pastoral | Mobile public |
+|:----------------:|:---------------:|:-------------:|
+| ![Mobile home](marketing/screenshots/mobile/01_dashboard.jpg) | ![Mobile pastoral](marketing/screenshots/mobile/02_pastoral.jpg) | ![Mobile public](marketing/screenshots/mobile/04_public.jpg) |
+
+More modules (inventory, tickets, vault, illustrations, settings, profile, dreams, prophecies, …) are in the same `gallery/` folder.
+
+---
+
 ## Quick start (local)
 
 Anyone with a normal developer laptop can try it:

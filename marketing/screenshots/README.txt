@@ -1,37 +1,20 @@
-MyVineOS — REAL PAGE SCREENSHOTS (browser captures)
-===================================================
+MyVineOS — product screenshots (real browser captures)
+======================================================
 
-These are actual Playwright/Chromium screenshots of the running app UI —
-not the earlier marketing composites.
-
-Location: Desktop/MyVineOS_Live_Screenshots/
+These are viewport screenshots of the running MyVineOS UI with demo/dummy
+church content — not composites. Captured for GitHub and marketing.
 
 Folders
 -------
-  best_for_ads/   Curated viewport frames ready for social ads
-  guest/          Public + login (local app, not signed in)
-  member/         Logged in as member
-  pastor/         Logged in as pastor (pastoral tools)
-  admin/          Logged in as Owner/admin (full tools)
-  live_site/      https://myvinechurch.online (guest; security may limit some pages)
+  gallery/       Full curated set (numbered) for README
+  best_for_ads/  Same images for social / ads
+  mobile/        Phone viewport frames
 
-Naming
-------
-  *_desktop.jpg         full-page scroll capture
-  *_desktop_frame.jpg   visible browser viewport (best for ads)
-  *_mobile_frame.jpg    phone viewport
+How captured
+------------
+  Local MyVineOS instance with demo data (Playwright/Chromium frames).
+  Files refreshed from Desktop/MyVineOS_Live_Screenshots for the public repo.
 
-Sources
+Privacy
 -------
-  Local running app:  http://127.0.0.1:5001  (your MyVineOS code + MariaDB)
-  Live production:    https://myvinechurch.online  (guest pages only)
-
-How to use for ads
-------------------
-  Start with best_for_ads/ — those are clean viewport shots of real UI.
-  Overlay short copy in Canva/Figma if you want promo text on top.
-
-Note
-----
-  Logged-in production pages need your live admin password; those were
-  captured from the local running instance of the same software instead.
+  Demo/dummy information only intended for product preview.
