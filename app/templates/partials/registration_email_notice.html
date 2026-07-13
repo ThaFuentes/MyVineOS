@@ -1,0 +1,33 @@
+{#
+  Dynamic activation-email notice.
+  Uses outgoing_from_email from the default Settings → Email account (e.g. admin@poweredby.top).
+  When that account changes, this text updates automatically.
+#}
+{% set from_addr = outgoing_from_email or None %}
+<div class="registration-email-notice" role="note"
+     style="margin:0 0 1.15rem; padding:0.9rem 1rem; border-radius:10px;
+            background:rgba(255, 200, 80, 0.1); border:1px solid rgba(255, 200, 80, 0.35);
+            font-size:0.95rem; line-height:1.55;">
+  <p style="margin:0 0 0.45rem; font-weight:700; color:#ffd27a;">
+    <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
+    After you register — check your email (and Spam)
+  </p>
+  <p style="margin:0;">
+    We’ll send your <strong>activation / verification</strong> message
+    {% if from_addr %}
+      from <strong style="word-break:break-all;">{{ from_addr }}</strong>.
+    {% else %}
+      from the church’s configured mail account.
+    {% endif %}
+  </p>
+  <p style="margin:0.45rem 0 0;">
+    If you don’t see it in a few minutes, open your <strong>Spam</strong>, <strong>Junk</strong>,
+    or <strong>Promotions</strong> folder and look for
+    {% if from_addr %}
+      <strong style="word-break:break-all;">{{ from_addr }}</strong>.
+    {% else %}
+      the activation email from us.
+    {% endif %}
+    You can also use <em>Resend email verification</em> on the login page.
+  </p>
+</div>

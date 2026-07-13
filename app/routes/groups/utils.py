@@ -51,6 +51,7 @@ KNOWN_PERMISSIONS = {
     'access_pastoral': 'Access to the private Pastoral Care section',
     'manage_legal_notices': 'Create and edit legal notices, policies, and community guidelines',
     'manage_help': 'Create and edit help categories and how-to guides',
+    'manage_security': 'Access Security console (attacks, IP bans, unlock false positives)',
 
     # Add even more here as new features are built
 }

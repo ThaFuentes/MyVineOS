@@ -95,10 +95,21 @@ def _login_blocked_reason(user):
     if settings['registration_require_email_verification'] and not user.get('email_verified'):
         if user['role'] != 'Owner':
             email = (user.get('email') or '').strip()
-            msg = (
-                'Please verify your email address before logging in. '
-                'Use "Resend email verification" on the login page if you need a new link.'
-            )
+            try:
+                from app.utils.emailer import get_outgoing_from_address
+                from_addr = get_outgoing_from_address()
+            except Exception:
+                from_addr = None
+            if from_addr:
+                msg = (
+                    f'Please verify your email before logging in. Check your inbox and Spam for mail from '
+                    f'{from_addr}. Use “Resend email verification” if you need a new link.'
+                )
+            else:
+                msg = (
+                    'Please verify your email address before logging in. '
+                    'Check Spam/Junk, then use “Resend email verification” if you need a new link.'
+                )
             return msg, {'email': email} if email else None
     return None, None
 
@@ -251,9 +262,16 @@ def register():
                 pass
 
             if verify_token:
-                flash('Registration successful! Check your email to verify your account before logging in.', 'success')
-            elif role == 'pending':
-                flash('Registration submitted. An administrator will review your account.', 'success')
+                # Dedicated waiting page — shows live From address + spam guidance
+                return redirect(url_for(
+                    'auth.check_email',
+                    email=clean_data['email'],
+                ))
+            if role == 'pending':
+                flash(
+                    'Registration submitted. An administrator will review your account before you can log in.',
+                    'success',
+                )
             else:
                 flash('Registration successful. Please log in.', 'success')
             return redirect(url_for('auth.login'))
@@ -267,6 +285,17 @@ def register():
                 notif_settings=notif_settings,
             )
     return redirect(url_for('auth.login', tab='register'))
+
+
+@auth_bp.route('/check-email')
+def check_email():
+    """Post-register waiting page: activation mail + spam folder + current From address."""
+    registered_email = (request.args.get('email') or '').strip()
+    return render_template(
+        'auth/check_email.html',
+        registered_email=registered_email,
+        page_title='Check your email',
+    )
 
 
 @auth_bp.route('/resend-verification', methods=['GET', 'POST'])
@@ -299,18 +328,25 @@ def resend_verification():
             if not sent:
                 flash(
                     'Could not send the verification email. '
-                    'Check that site email (SMTP) is configured, or contact an admin.',
+                    'Check that site email (SMTP) is configured under Settings, or contact an admin.',
                     'error',
                 )
                 return render_template('auth/resend_verification.html', email=prefill)
 
         # Same message whether or not the address matched (avoid account enumeration)
+        from app.utils.emailer import get_outgoing_from_address
+        from_addr = get_outgoing_from_address()
+        spam_hint = (
+            f'Look for mail from {from_addr} and check Spam/Junk/Promotions.'
+            if from_addr
+            else 'Check your inbox and Spam/Junk/Promotions folders.'
+        )
         flash(
             'If that email is registered and not yet verified, a new verification link has been sent. '
-            'Check your inbox and spam folder.',
+            + spam_hint,
             'success',
         )
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('auth.check_email', email=email))
 
     return render_template('auth/resend_verification.html', email=prefill)
 

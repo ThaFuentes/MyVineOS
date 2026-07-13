@@ -147,11 +147,17 @@ def record_bad_behavior(ip: str, reason: str = "suspicious"):
     """, (ip, BAD_BEHAVIOR_PENALTY, BAD_BEHAVIOR_PENALTY))
     db.commit()
 
-def ban_ip(ip: str, reason: str, permanent: bool = False):
+def ban_ip(ip: str, reason: str, permanent: bool = False, hours: int = 1):
     db = get_security_db()
     if db is None:
         return
     cursor = db.cursor()
+    # Ensure row exists
+    cursor.execute(f"""
+        INSERT INTO {REPUTATION_TABLE} (ip, score, grade, positive_requests, negative_points, first_seen, last_seen)
+        VALUES (%s, %s, 'normal', 0, 0, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE last_seen = NOW()
+    """, (ip, INITIAL_REPUTATION))
     if permanent:
         cursor.execute(f"""
             UPDATE {REPUTATION_TABLE}
@@ -159,12 +165,65 @@ def ban_ip(ip: str, reason: str, permanent: bool = False):
             WHERE ip=%s
         """, (reason, ip))
     else:
-        ban_until = datetime.now() + timedelta(hours=1)
+        ban_until = datetime.now() + timedelta(hours=max(1, int(hours or 1)))
         cursor.execute(f"""
             UPDATE {REPUTATION_TABLE}
             SET grade='temp_ban', ban_until=%s, ban_reason=%s, ban_count=ban_count+1
             WHERE ip=%s
         """, (ban_until, reason, ip))
     db.commit()
+
+
+def unban_ip(ip: str, restore_score: int | None = 80) -> bool:
+    """
+    Clear temp/perm ban for an IP and optionally restore a usable reputation score
+    so legitimate users are not stuck blocked after a false positive.
+    """
+    db = get_security_db()
+    if db is None:
+        return False
+    cursor = db.cursor()
+    score = INITIAL_REPUTATION if restore_score is None else int(restore_score)
+    score = max(MIN_REPUTATION_SCORE, min(MAX_REPUTATION_SCORE, score))
+    grade = _get_grade(score)
+    cursor.execute(f"""
+        UPDATE {REPUTATION_TABLE}
+        SET grade=%s,
+            ban_until=NULL,
+            ban_reason=NULL,
+            negative_points=LEAST(negative_points, 5),
+            score=%s,
+            last_seen=NOW()
+        WHERE ip=%s
+    """, (grade, score, ip))
+    affected = cursor.rowcount
+    db.commit()
+    return affected > 0
+
+
+def trust_ip(ip: str, score: int = 200) -> bool:
+    """Boost an IP into a healthy lane (for known-good church members / office IP)."""
+    db = get_security_db()
+    if db is None:
+        return False
+    cursor = db.cursor()
+    score = max(MIN_REPUTATION_SCORE, min(MAX_REPUTATION_SCORE, int(score)))
+    grade = _get_grade(score)
+    cursor.execute(f"""
+        INSERT INTO {REPUTATION_TABLE}
+            (ip, score, grade, positive_requests, negative_points, ban_until, ban_reason, first_seen, last_seen)
+        VALUES (%s, %s, %s, 10, 0, NULL, NULL, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            score=%s,
+            grade=%s,
+            positive_requests=GREATEST(positive_requests, 10),
+            negative_points=0,
+            ban_until=NULL,
+            ban_reason=NULL,
+            last_seen=NOW()
+    """, (ip, score, grade, score, grade))
+    db.commit()
+    return True
+
 
 logger("poweredbytop/reputation/scorer.py - 100% fresh rebuild loaded successfully (dynamic column mapping fixed)")

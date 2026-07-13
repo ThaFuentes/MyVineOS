@@ -280,6 +280,24 @@ def create_app():
             notification_settings=notif_settings,
             pending_registration_count=pending_count,
         )
+
+    @app.context_processor
+    def inject_security_console_access():
+        """Nav flag for Security console (role, permission, or named grant)."""
+        try:
+            from app.routes.security.utils import can_access_security_console
+            return dict(can_access_security_console=can_access_security_console())
+        except Exception:
+            return dict(can_access_security_console=False)
+
+    @app.context_processor
+    def inject_outgoing_from_email():
+        """Current activation/mail From address (Settings → Email default account)."""
+        try:
+            from app.utils.emailer import get_outgoing_from_address
+            return dict(outgoing_from_email=get_outgoing_from_address())
+        except Exception:
+            return dict(outgoing_from_email=None)
     # 
     # BLUEPRINT REGISTRATION - PRIVATE FIRST (logged-in users always win)
     # 
@@ -310,6 +328,7 @@ def create_app():
         'support_tickets',
         'custom_modules',
         'help',
+        'security',
     ]
     for name in private_blueprints:
         try:

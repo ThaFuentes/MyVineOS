@@ -4,8 +4,9 @@
 {% set community_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'bible.')) %}
 {% set church_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.')) %}
 {% set account_active = ep.startswith(('profile.', 'settings.', 'help.')) %}
-{% set admin_active = ep.startswith(('pastoral.', 'the_gathering.', 'log.', 'support_tickets.')) %}
+{% set admin_active = ep.startswith(('pastoral.', 'the_gathering.', 'log.', 'support_tickets.', 'security.')) %}
 {% set show_gathering = session.user_role in ['Staff', 'Admin', 'Owner'] or user_has_permission('settings.ticket_managers') %}
+{% set show_security = can_access_security_console|default(false) %}
 
 <a href="{{ url_for('dashboard.dashboard') }}"
    class="{{ 'active' if ep == 'dashboard.dashboard' else '' }}">Dashboard</a>
@@ -66,6 +67,9 @@
     <a href="{{ url_for('pastoral.dashboard_pastoral') }}" role="menuitem" class="{{ 'active' if ep.startswith('pastoral.') else '' }}">Pastoral</a>
     <a href="{{ url_for('tickets.manager_dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('support_tickets.') else '' }}">Support Tickets</a>
     <a href="{{ url_for('log.change_records') }}" role="menuitem" class="{{ 'active' if ep.startswith('log.') else '' }}">Change Log</a>
+    {% if show_security %}
+    <a href="{{ url_for('security.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('security.') else '' }}">Security</a>
+    {% endif %}
     {% if show_gathering %}
     <a href="{{ url_for('the_gathering.index') }}" role="menuitem" class="{{ 'active' if ep.startswith('the_gathering.') else '' }}">Gathering Manager</a>
     {% endif %}
