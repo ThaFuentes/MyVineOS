@@ -46,6 +46,22 @@ def _csrf_ok() -> bool:
         return token == (sess.get('csrf_token') or '')
 
 
+@security_bp.route('/csrf-token')
+@login_required
+def csrf_token_refresh():
+    """
+    Return a fresh CSRF token for long-lived pages / multi-tab editors.
+    Authenticated same-origin only — reduces false-positive CSRF events.
+    """
+    from flask import jsonify
+    try:
+        from poweredbytop.core.security import get_csrf_token
+        token = get_csrf_token()
+    except Exception:
+        token = session.get('csrf_token') or ''
+    return jsonify({'ok': True, 'csrf_token': token})
+
+
 @security_bp.route('/')
 @security_required
 def dashboard():

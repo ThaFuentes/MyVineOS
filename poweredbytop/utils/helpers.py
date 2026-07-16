@@ -14,13 +14,16 @@ def logger(msg):
     print(msg)
 # ====================== REAL IP DETECTION ======================
 def get_real_ip(req):
-    """Get real client IP from headers or remote_addr"""
-    return (
+    """Get real client IP from headers or remote_addr (never empty for DB NOT NULL)."""
+    raw = (
         req.headers.get("CF-Connecting-IP") or
-        req.headers.get("X-Real-IP") or 
-        req.headers.get("X-Forwarded-For", "").split(",")[0] or 
-        req.remote_addr
+        req.headers.get("X-Real-IP") or
+        (req.headers.get("X-Forwarded-For") or "").split(",")[0] or
+        req.remote_addr or
+        ""
     )
+    ip = (raw or "").strip()
+    return ip if ip else "0.0.0.0"
 # ====================== INTERNAL REQUEST BYPASS ======================
 def is_internal_request(req):
     """Bypass for internal paths (static, health, favicon)"""

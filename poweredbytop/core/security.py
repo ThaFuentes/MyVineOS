@@ -45,9 +45,25 @@ import hmac
 
 # Signed CSRF tokens remain valid this long even if the session cookie is dropped
 # (common on some mobile browsers / in-app WebViews between GET form and POST).
-CSRF_TOKEN_MAX_AGE_SECONDS = 2 * 60 * 60
+CSRF_TOKEN_MAX_AGE_SECONDS = 8 * 60 * 60
+# Logged-in members with same-origin POSTs: accept slightly stale signed tokens
+# instead of treating multi-tab / long sermon edits as "attacks".
+CSRF_MEMBER_GRACE_SECONDS = 24 * 60 * 60
 
 # ====================== EXACT DB LOGGING ======================
+def _safe_ip() -> str:
+    try:
+        ip = get_real_ip(request)
+    except Exception:
+        ip = None
+    if not ip:
+        try:
+            ip = request.remote_addr
+        except Exception:
+            ip = None
+    return (ip or "0.0.0.0").strip() or "0.0.0.0"
+
+
 def log_traffic(vetted: bool = False, status: str = "checking", score: int = 100):
     if not WRITE_PASS_FAIL_TO_DB:
         return
@@ -56,7 +72,7 @@ def log_traffic(vetted: bool = False, status: str = "checking", score: int = 100
         logger("TRAFFIC LOG SKIPPED - NO DB")
         return
     try:
-        ip = get_real_ip(request)
+        ip = _safe_ip()
         domain = request.host or "unknown"
         now = datetime.now()
         expires = now + timedelta(minutes=5)
@@ -81,13 +97,25 @@ def log_security_event(event_type: str, details: str, severity: str = "medium"):
     if db is None:
         return
     try:
-        ip = get_real_ip(request)
+        ip = _safe_ip()
+        # Map severity into behavior_grade so console can filter false-positives
+        grade = {
+            "low": "soft",
+            "info": "info",
+            "medium": "watch",
+            "high": "alert",
+            "critical": "critical",
+        }.get((severity or "medium").lower(), "watch")
+        notes = (details or "")[:900]
+        # Tag likely false-positives for the Security console
+        if (severity or "").lower() in ("low", "info") or "false_positive" in (event_type or ""):
+            notes = "[likely-false-positive] " + notes
         cursor = db.cursor()
         cursor.execute("""
             INSERT INTO pbt_security_events
             (event_type, ip, reputation_score, behavior_grade, notes)
             VALUES (%s, %s, %s, %s, %s)
-        """, (event_type, ip, 100, "normal", details))
+        """, (event_type, ip, 100, grade, notes))
         db.commit()
         logger("SECURITY EVENT | TYPE=" + event_type + " | IP=" + ip[:8] + "...")
     except Exception as e:
@@ -150,6 +178,33 @@ def _sign_csrf_payload(raw: str, ts: str) -> str:
     return hmac.new(_csrf_secret_bytes(), msg, hashlib.sha256).hexdigest()
 
 
+def _session_csrf_raws() -> list[str]:
+    """Current + previous raw secrets (multi-tab / mid-session rotation safe)."""
+    out = []
+    for key in ("csrf_token", "csrf_token_prev"):
+        val = session.get(key)
+        if not val:
+            continue
+        s = str(val).strip()
+        # If a signed value was stored by mistake, use the raw prefix
+        if ":" in s:
+            s = s.split(":", 1)[0]
+        if s and s not in out:
+            out.append(s)
+    return out
+
+
+def rotate_csrf_token() -> str:
+    """Force a new CSRF secret (call after login/logout). Keeps previous for one cycle."""
+    old = session.get("csrf_token")
+    if old:
+        session["csrf_token_prev"] = old
+    session["csrf_token"] = secrets.token_hex(32)
+    session.permanent = True
+    session.modified = True
+    return get_csrf_token()
+
+
 def get_csrf_token():
     """
     Generate CSRF token for forms.
@@ -161,47 +216,127 @@ def get_csrf_token():
     # Ensure the session cookie is written on the form-render response
     session.permanent = True
     session.modified = True
-    raw = session["csrf_token"]
+    raw = str(session["csrf_token"])
+    if ":" in raw:
+        raw = raw.split(":", 1)[0]
+        session["csrf_token"] = raw
     ts = str(int(time.time()))
     sig = _sign_csrf_payload(raw, ts)
     return f"{raw}:{ts}:{sig}"
 
 
-def validate_csrf(token: str) -> bool:
-    """Validate CSRF: session match OR self-validating signed token (mobile fallback)."""
-    if not CSRF_PROTECTION:
-        return True
-    if not token:
+def _same_origin_request() -> bool:
+    """True if Origin/Referer matches this host (real browser form, not cross-site)."""
+    try:
+        host = (request.host or "").split(":")[0].lower()
+        if not host:
+            return False
+        origin = (request.headers.get("Origin") or "").strip()
+        referer = (request.headers.get("Referer") or "").strip()
+        for candidate in (origin, referer):
+            if not candidate:
+                continue
+            # https://example.com/path → example.com
+            try:
+                # avoid importing urllib if not needed
+                from urllib.parse import urlparse
+                netloc = urlparse(candidate).netloc.split(":")[0].lower()
+                if netloc == host or netloc.endswith("." + host):
+                    return True
+            except Exception:
+                if host in candidate.lower():
+                    return True
+        return False
+    except Exception:
         return False
 
-    token = str(token).strip()
-    expected = session.get("csrf_token")
 
-    # Exact match against whatever we stored (legacy raw or prior signed value)
-    if expected and secrets.compare_digest(str(expected), token):
-        return True
+def classify_csrf_token(token: str | None) -> tuple[bool, str, dict]:
+    """
+    Validate CSRF and explain the result for threat classification.
+    Returns (ok, reason, meta).
+    reason examples: ok, missing, session_match, signed_ok, signed_grace,
+                     expired, bad_signature, mismatch
+    """
+    meta: dict = {"age": None, "same_origin": _same_origin_request(), "member": _is_logged_in_member()}
+    if not CSRF_PROTECTION:
+        return True, "disabled", meta
+    if not token or not str(token).strip():
+        return False, "missing", meta
+
+    token = str(token).strip()
+    raws = _session_csrf_raws()
+
+    # Exact match against session raw (or full signed value stored)
+    for expected in raws:
+        if secrets.compare_digest(expected, token):
+            return True, "session_match", meta
+        # Form posted full signed token that matches stored raw prefix
+        if token.startswith(expected + ":"):
+            parts = token.split(":")
+            if len(parts) == 3:
+                raw, ts, sig = parts
+                try:
+                    age = abs(time.time() - int(ts))
+                    meta["age"] = age
+                except (TypeError, ValueError):
+                    age = None
+                expected_sig = _sign_csrf_payload(raw, ts)
+                if secrets.compare_digest(expected_sig, sig):
+                    if age is not None and age <= CSRF_TOKEN_MAX_AGE_SECONDS:
+                        return True, "signed_ok", meta
+                    if (
+                        age is not None
+                        and age <= CSRF_MEMBER_GRACE_SECONDS
+                        and meta["member"]
+                        and meta["same_origin"]
+                    ):
+                        return True, "signed_grace", meta
+                    return False, "expired", meta
 
     parts = token.split(":")
     if len(parts) == 3:
         raw, ts, sig = parts
         if not raw or not ts or not sig:
-            return False
+            return False, "malformed", meta
         try:
             age = abs(time.time() - int(ts))
+            meta["age"] = age
         except (TypeError, ValueError):
-            return False
-        if age > CSRF_TOKEN_MAX_AGE_SECONDS:
-            return False
+            return False, "malformed", meta
         expected_sig = _sign_csrf_payload(raw, ts)
         if not secrets.compare_digest(expected_sig, sig):
-            return False
-        # Signed token is cryptographically valid (works even if session cookie dropped).
-        return True
+            return False, "bad_signature", meta
+        # Signature valid — works even if session cookie was dropped mid-submit
+        if age <= CSRF_TOKEN_MAX_AGE_SECONDS:
+            # Bind raw into session for subsequent requests
+            try:
+                if not session.get("csrf_token"):
+                    session["csrf_token"] = raw
+                    session.modified = True
+            except Exception:
+                pass
+            return True, "signed_ok", meta
+        if age <= CSRF_MEMBER_GRACE_SECONDS and meta["member"] and meta["same_origin"]:
+            try:
+                session["csrf_token"] = raw
+                session.modified = True
+            except Exception:
+                pass
+            return True, "signed_grace", meta
+        return False, "expired", meta
 
-    # Legacy: form posted raw session token only
-    if expected and secrets.compare_digest(str(expected), token):
-        return True
-    return False
+    # Legacy raw-only form token vs session
+    for expected in raws:
+        if secrets.compare_digest(expected, token):
+            return True, "session_match", meta
+    return False, "mismatch", meta
+
+
+def validate_csrf(token: str) -> bool:
+    """Validate CSRF: session match OR self-validating signed token (mobile fallback)."""
+    ok, _reason, _meta = classify_csrf_token(token)
+    return ok
 
 # ====================== FULL SECURITY PIPELINE ======================
 def run_full_security_pipeline():
@@ -316,22 +451,49 @@ def run_full_security_pipeline():
         if request.method not in ("GET", "HEAD", "OPTIONS") and not is_safe_mutation:
             return False
 
-    # CSRF for state changing requests
+    # CSRF for state changing requests — classify before treating as an "attack"
     if request.method in ("POST", "PUT", "DELETE", "PATCH") and CSRF_PROTECTION:
         csrf_token = (
             request.form.get("csrf_token")
             or request.headers.get("X-CSRF-Token")
             or request.headers.get("X-CSRFToken")
         )
-        if not validate_csrf(csrf_token):
-            log_security_event("csrf_failure", "CSRF token missing or invalid on " + request.method)
-            # Auth entry: soft-fail so mobile WebViews can still log in (session cookie races).
-            # Real app forms for members still hard-require CSRF.
+        ok, reason, meta = classify_csrf_token(csrf_token)
+        if ok:
+            if reason == "signed_grace":
+                log_security_event(
+                    "csrf_grace_member",
+                    f"Accepted slightly stale CSRF for member on {request.path} (age={meta.get('age')})",
+                    severity="info",
+                )
+        else:
+            same_origin = bool(meta.get("same_origin"))
+            path = request.path or "?"
+            detail = (
+                f"CSRF {reason} on {request.method} {path}"
+                f" | member={member} same_origin={same_origin}"
+                f" | age={meta.get('age')}"
+            )
+            # Auth entry: soft-fail so mobile WebViews can still log in
             if is_auth_entry:
+                log_security_event("csrf_soft_auth", detail, severity="low")
                 logger("CSRF soft-allow on auth entry (mobile-friendly)")
+            # Logged-in member + same-origin browser: almost always multi-tab / stale tab /
+            # long form — NOT a cross-site attack. Soft-allow and do not jail the IP.
+            elif member and same_origin:
+                # Same-site logged-in POSTs (multi-tab, long sermon forms, stale cache)
+                # are not cross-site CSRF. Session cookie already binds identity.
+                # Still log distinctly so Security console can filter noise vs real attacks.
+                log_security_event("csrf_soft_member", detail, severity="low")
+                logger("CSRF soft-allow for logged-in same-origin member | " + reason)
+            elif member and not same_origin:
+                # Unusual for real browsers; still don't reputation-jail members
+                log_security_event("csrf_member_cross_origin", detail, severity="medium")
+                return False
             else:
-                if not member:
-                    increment_attack_stat("csrf_attack")
+                # Anonymous / unknown: treat as real threat signal
+                log_security_event("csrf_failure", detail, severity="high")
+                increment_attack_stat("csrf_attack")
                 return False
 
     token = request.headers.get("X-PBT-Token") or request.args.get("pbt_token")

@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from flask import (
-    abort, current_app, flash, redirect, render_template, request,
+    abort, current_app, flash, jsonify, redirect, render_template, request,
     send_from_directory, session, url_for,
 )
 
@@ -183,25 +183,197 @@ def songs_import():
         return redirect(url_for('worship.songs_list'))
 
     result = None
+    chart_preview = None
     if request.method == 'POST':
-        raw = (request.form.get('json_data') or '').strip()
-        if not raw and request.files.get('json_file'):
-            raw = request.files['json_file'].read().decode('utf-8', errors='replace')
-        try:
-            payload = json.loads(raw)
-            items = payload.get('songs', payload) if isinstance(payload, dict) else payload
-            if not isinstance(items, list):
-                raise ValueError('Expected a JSON array or {"songs": [...]}')
-            result = song_model.bulk_import_songs(items, session['user_id'])
-            flash(
-                f"Import done: {result['created']} created, {result['updated']} updated, "
-                f"{result['skipped']} skipped.",
-                'success',
-            )
-        except (json.JSONDecodeError, ValueError) as e:
-            flash(f'Invalid JSON: {e}', 'error')
+        action = (request.form.get('action') or 'json').strip()
+        if action == 'chart':
+            from app.models.worship.song_parse import extract_text_from_upload, parse_song_text
+            parse_mode = (request.form.get('parse_mode') or 'auto').strip().lower()
+            if parse_mode not in ('rules', 'auto', 'ai'):
+                parse_mode = 'auto'
+            raw = (request.form.get('chart_text') or '').strip()
+            f = request.files.get('chart_file')
+            if not raw and f and f.filename:
+                try:
+                    raw = extract_text_from_upload(f.filename, f.read())
+                except ValueError as e:
+                    flash(str(e), 'error')
+                    return redirect(url_for('worship.songs_import'))
+            if not raw:
+                flash('Paste a chord chart or upload a .txt / ChordPro / .docx file.', 'error')
+            else:
+                parsed = parse_song_text(
+                    raw,
+                    title_hint=request.form.get('title') or '',
+                    artist_hint=request.form.get('artist') or '',
+                    use_ai=parse_mode,
+                )
+                if request.form.get('save_now') == '1':
+                    ccli = (
+                        parsed.get('ccli_song_number')
+                        or (request.form.get('ccli_hint') or '').strip()
+                        or None
+                    )
+                    copyright_line = (
+                        parsed.get('copyright_line')
+                        or (request.form.get('copyright_hint') or '').strip()
+                        or None
+                    )
+                    data = {
+                        'title': parsed.get('title') or 'Untitled Song',
+                        'artist': parsed.get('artist') or None,
+                        'ccli_song_number': ccli,
+                        'copyright_line': copyright_line,
+                        'publisher': None,
+                        'copyright_year': None,
+                        'lyrics_raw': parsed.get('lyrics_raw'),
+                        'notes_permanent': parsed.get('notes') or None,
+                        'sections': parsed.get('sections') or [],
+                        'play_order': parsed.get('play_order') or [],
+                        'chords_filename': None,
+                    }
+                    song_id = song_model.save_song(data, session['user_id'])
+                    flash(
+                        f"Song saved ({parsed.get('parse_mode', 'rules')}"
+                        + (', AI assisted' if parsed.get('ai_used') else '')
+                        + f", {len(data['sections'])} sections).",
+                        'success',
+                    )
+                    return redirect(url_for('worship.song_edit', song_id=song_id))
+                chart_preview = parsed
+                flash('Chart parsed — review below, then save to library or open the editor.', 'success')
+        else:
+            raw = (request.form.get('json_data') or '').strip()
+            if not raw and request.files.get('json_file'):
+                raw = request.files['json_file'].read().decode('utf-8', errors='replace')
+            try:
+                payload = json.loads(raw)
+                items = payload.get('songs', payload) if isinstance(payload, dict) else payload
+                if not isinstance(items, list):
+                    raise ValueError('Expected a JSON array or {"songs": [...]}')
+                result = song_model.bulk_import_songs(items, session['user_id'])
+                flash(
+                    f"Import done: {result['created']} created, {result['updated']} updated, "
+                    f"{result['skipped']} skipped.",
+                    'success',
+                )
+            except (json.JSONDecodeError, ValueError) as e:
+                flash(f'Invalid JSON: {e}', 'error')
 
-    return render_template('worship/songs_import.html', result=result, can_manage=True)
+    return render_template(
+        'worship/songs_import.html',
+        result=result,
+        chart_preview=chart_preview,
+        can_manage=True,
+    )
+
+
+@worship_bp.route('/songs/parse-chart', methods=['POST'])
+@worship_required
+def songs_parse_chart():
+    """JSON API: parse pasted chart / upload text with rules or AI (managers only)."""
+    if not can_manage_worship():
+        return jsonify({'ok': False, 'error': 'Permission denied'}), 403
+    from app.models.worship.song_parse import extract_text_from_upload, parse_song_text
+
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        raw = (data.get('chart_text') or data.get('text') or '').strip()
+        title_hint = data.get('title') or ''
+        artist_hint = data.get('artist') or ''
+        parse_mode = (data.get('parse_mode') or 'auto').strip().lower()
+    else:
+        raw = (request.form.get('chart_text') or '').strip()
+        title_hint = request.form.get('title') or ''
+        artist_hint = request.form.get('artist') or ''
+        parse_mode = (request.form.get('parse_mode') or 'auto').strip().lower()
+        f = request.files.get('chart_file')
+        if not raw and f and f.filename:
+            try:
+                raw = extract_text_from_upload(f.filename, f.read())
+            except ValueError as e:
+                return jsonify({'ok': False, 'error': str(e)}), 400
+    if parse_mode not in ('rules', 'auto', 'ai'):
+        parse_mode = 'auto'
+    if not raw:
+        return jsonify({'ok': False, 'error': 'No chart text provided'}), 400
+    parsed = parse_song_text(raw, title_hint=title_hint, artist_hint=artist_hint, use_ai=parse_mode)
+    return jsonify({'ok': True, 'song': parsed})
+
+
+@worship_bp.route('/songs/public-domain', methods=['GET', 'POST'])
+@worship_required
+def songs_public_domain():
+    """Browse public-domain starter pack; add selected songs to the library."""
+    from app.models.worship.public_domain import (
+        get_public_domain_song,
+        get_public_domain_songs,
+        list_public_domain_pack,
+    )
+    from app.models.worship.song_parse import parse_chart_to_sections, sections_to_lyrics_raw
+    from app.models.worship.sections import default_play_order_from_sections, normalize_sections
+
+    if request.method == 'POST':
+        if not can_manage_worship():
+            flash('Only worship managers can add pack songs.', 'error')
+            return redirect(url_for('worship.songs_public_domain'))
+        ids = request.form.getlist('pack_id')
+        if not ids:
+            flash('Select at least one song to add.', 'error')
+            return redirect(url_for('worship.songs_public_domain'))
+        items = []
+        for pack_id in ids:
+            song = get_public_domain_song(pack_id)
+            if not song:
+                continue
+            sections = normalize_sections(None, song.get('lyrics_raw'))
+            if not sections:
+                sections = parse_chart_to_sections(song.get('lyrics_raw') or '')
+            items.append({
+                'title': song['title'],
+                'artist': song.get('artist'),
+                'ccli_song_number': song.get('ccli_song_number') or None,
+                'copyright_line': song.get('copyright_line') or 'Public Domain',
+                'lyrics_raw': song.get('lyrics_raw'),
+                'sections': sections,
+                'notes_permanent': 'From MyVine public-domain starter pack. Simple chords for church use.',
+            })
+        if not items:
+            flash('No valid songs selected.', 'error')
+            return redirect(url_for('worship.songs_public_domain'))
+        # Prefer play_order on save via sections
+        for it in items:
+            if it.get('sections') and not it.get('play_order'):
+                it['play_order'] = default_play_order_from_sections(it['sections'])
+        result = song_model.bulk_import_songs(items, session['user_id'])
+        # bulk_import may not save play_order — update after
+        flash(
+            f"Added pack songs: {result['created']} new, {result['updated']} updated, "
+            f"{result['skipped']} skipped.",
+            'success',
+        )
+        return redirect(url_for('worship.songs_list'))
+
+    pack = list_public_domain_pack()
+    # Mark already in library (by title match)
+    existing_titles = {
+        (s.get('title') or '').strip().lower()
+        for s in (song_model.list_songs() or [])
+    }
+    for p in pack:
+        p['in_library'] = p['title'].strip().lower() in existing_titles
+
+    preview = None
+    pid = request.args.get('preview')
+    if pid:
+        preview = get_public_domain_song(pid)
+
+    return render_template(
+        'worship/songs_public_domain.html',
+        pack=pack,
+        preview=preview,
+        can_manage=can_manage_worship(),
+    )
 
 
 @worship_bp.route('/songs/new', methods=['GET', 'POST'])

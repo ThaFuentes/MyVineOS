@@ -38,6 +38,78 @@ def _strip_for_prompt(text: str, limit: int = 9000) -> str:
     return text.strip()
 
 
+def ai_parse_worship_song(
+    chart_text: str,
+    *,
+    title_hint: str = '',
+    artist_hint: str = '',
+) -> tuple[Optional[dict], Optional[str]]:
+    """
+    Structure a chord+lyrics chart into worship song sections.
+    Prefer preserving ChordPro [C] and original lyric wording — do not invent new lyrics.
+    Returns dict with title, artist, ccli_song_number, copyright_line, sections, play_order.
+    """
+    if not ai_configured():
+        return None, 'AI is not configured (Settings → AI Providers).'
+
+    system = (
+        'You parse worship song chord charts for a church worship app. '
+        'Return ONLY JSON with keys: '
+        'title, artist, ccli_song_number (or empty), copyright_line (or empty), '
+        'sections (array), play_order (array of section ids). '
+        'Each section: id (e.g. "v1","c1"), type (intro|verse|prechorus|chorus|bridge|tag|outro|interlude), '
+        'label (e.g. "Verse 1"), content (string), sort (int), repeat (1). '
+        'CRITICAL: Keep original lyrics and chord symbols. Prefer ChordPro style like [G]Amazing [C]grace. '
+        'Do NOT invent verses that are not in the source. Do NOT remove large parts of the song. '
+        'If source has chord lines above lyrics, convert to ChordPro inline on the lyric line. '
+        'play_order lists section ids in a typical performance order (chorus may repeat). '
+        'If public domain / unknown CCLI, leave ccli_song_number empty and set copyright_line to "Public Domain" when appropriate.'
+    )
+    user = (
+        f'Title hint: {title_hint or "(none)"}\n'
+        f'Artist hint: {artist_hint or "(none)"}\n\n'
+        f'Song chart:\n{_strip_for_prompt(chart_text, 11000)}\n\n'
+        'Return JSON only.'
+    )
+    text, err = call_ai(user, system=system, timeout=70, max_prompt_chars=14000)
+    if err:
+        log_ai_usage(
+            feature='worship_song_parse',
+            provider=None,
+            model=None,
+            status='error',
+            prompt_chars=len(user),
+            detail=err,
+        )
+        return None, err
+    data = extract_json_payload(text or '')
+    if not isinstance(data, dict):
+        log_ai_usage(
+            feature='worship_song_parse',
+            provider=None,
+            model=None,
+            status='error',
+            prompt_chars=len(user),
+            detail='invalid json',
+        )
+        return None, 'AI returned unusable song JSON.'
+    # Normalize section ids
+    secs = data.get('sections') or []
+    if isinstance(secs, list):
+        for i, s in enumerate(secs):
+            if isinstance(s, dict) and not s.get('id'):
+                s['id'] = f's{i + 1}'
+    log_ai_usage(
+        feature='worship_song_parse',
+        provider=None,
+        model=None,
+        status='ok',
+        prompt_chars=len(user),
+        response_chars=len(text or ''),
+    )
+    return data, None
+
+
 def ai_parse_donation_email(
     subject: str,
     body: str,
