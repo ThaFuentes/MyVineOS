@@ -1,6 +1,62 @@
 {% extends "custom_modules/base.html" %}
 
 {% block module_content %}
+{% if is_bus %}
+<section class="content-section glass-panel cm-bus-banner" style="padding:1rem 1.1rem; margin-bottom:1rem;">
+  <h2 class="section-title" style="margin-top:0; font-size:1.15rem;">
+    <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Service area
+  </h2>
+  {% if bus_settings and bus_settings.church_location and bus_settings.bus_start_location %}
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0.75rem; font-size:0.92rem;">
+    <div>
+      <strong style="display:block; opacity:0.75; font-size:0.75rem; text-transform:uppercase;">Bus starts</strong>
+      {{ bus_settings.bus_start_location }}
+    </div>
+    <div>
+      <strong style="display:block; opacity:0.75; font-size:0.75rem; text-transform:uppercase;">Church</strong>
+      {{ bus_settings.church_location }}
+    </div>
+    <div>
+      <strong style="display:block; opacity:0.75; font-size:0.75rem; text-transform:uppercase;">Max radius</strong>
+      {{ bus_settings.max_radius_miles }} miles from church
+    </div>
+  </div>
+  {% if bus_settings.approved_routes %}
+  <div style="margin-top:0.85rem;">
+    <strong style="font-size:0.75rem; text-transform:uppercase; opacity:0.75;">Approved routes</strong>
+    <ul style="margin:0.35rem 0 0; padding-left:1.15rem; line-height:1.5;">
+      {% for r in bus_settings.approved_routes %}
+      <li>
+        <strong>{{ r.name }}</strong>
+        {% if r.max_miles is not none %} · up to {{ r.max_miles }} mi{% endif %}
+        {% if r.notes %} — <span style="opacity:0.85;">{{ r.notes }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  <p class="help-text small" style="margin:0.75rem 0 0;">
+    Stops must use an approved route and stay inside the radius. Managers set this under
+    {% if can_manage %}
+    <a href="{{ url_for('custom_modules.module_settings', slug=module.slug) }}">Bus settings</a>.
+    {% else %}
+    Bus settings.
+    {% endif %}
+  </p>
+  {% else %}
+  <p class="help-text" style="margin:0;">
+    {% if can_manage %}
+    Set the <strong>bus start location</strong>, <strong>church location</strong>, and
+    <strong>approved routes</strong> before adding stops.
+    <a href="{{ url_for('custom_modules.module_settings', slug=module.slug) }}" class="btn-primary" style="margin-left:0.35rem;">Open bus settings</a>
+    {% else %}
+    A bus manager still needs to set start / church locations and approved routes.
+    {% endif %}
+  </p>
+  {% endif %}
+</section>
+{% endif %}
+
 <section class="content-section">
     <h2 class="section-title">{{ schema.list_label|default('Records') }}</h2>
 

@@ -56,6 +56,16 @@ def get_visible_illustrations(user_id: int, search: str | None = None) -> list[d
     """
     params = [user_id, user_id]
 
+    try:
+        from app.models.campuses import content_campus_filter_sql
+        frag, cparams = content_campus_filter_sql(
+            'il.campus_id', user_id=user_id, owner_column='il.user_id'
+        )
+        sql += frag
+        params.extend(cparams)
+    except Exception:
+        pass
+
     if search:
         like = f"%{search}%"
         sql += " AND (il.title LIKE %s OR il.content LIKE %s OR il.source LIKE %s OR il.tags LIKE %s)"
@@ -76,7 +86,7 @@ def get_illustration_by_id(illus_id: int, user_id: int) -> dict | None:
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 
-    cur.execute("""
+    sql = """
         SELECT il.*,
                u.username AS creator_name,
                CASE WHEN il.user_id = %s THEN 'private' ELSE 'pastoral_group' END AS visibility
@@ -84,7 +94,18 @@ def get_illustration_by_id(illus_id: int, user_id: int) -> dict | None:
         LEFT JOIN users u ON il.user_id = u.id
         WHERE il.id = %s
           AND (il.user_id = %s OR il.user_id IS NULL)
-    """, (user_id, illus_id, user_id))
+    """
+    params = [user_id, illus_id, user_id]
+    try:
+        from app.models.campuses import content_campus_filter_sql
+        frag, cparams = content_campus_filter_sql(
+            'il.campus_id', user_id=user_id, owner_column='il.user_id'
+        )
+        sql += frag
+        params.extend(cparams)
+    except Exception:
+        pass
+    cur.execute(sql, params)
 
     result = cur.fetchone()
     if result:
@@ -97,11 +118,25 @@ def create_illustration(data: dict, user_id: int) -> int:
     cur = db.cursor()
 
     owner = user_id if data.get('visibility') == 'private' else None
+    campus_id = data.get('campus_id')
+    if campus_id in (None, '', 0, '0'):
+        try:
+            from app.models.campuses import resolve_campus_id_for_write
+            campus_id = resolve_campus_id_for_write(data.get('campus_id'))
+        except Exception:
+            campus_id = None
 
     cur.execute("""
-        INSERT INTO illustration_library (user_id, title, content, source, tags)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (owner, data['title'], data['content'], data.get('source'), _normalize_tags_for_storage(data.get('tags'))))
+        INSERT INTO illustration_library (user_id, title, content, source, tags, campus_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (
+        owner,
+        data['title'],
+        data['content'],
+        data.get('source'),
+        _normalize_tags_for_storage(data.get('tags')),
+        campus_id,
+    ))
 
     db.commit()
     return cur.lastrowid

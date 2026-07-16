@@ -115,12 +115,14 @@ def create_tables(cursor):
         'header_text': "TEXT",
         'footer_text': "TEXT",
         'series_tags': "TEXT",
-        'visibility': "VARCHAR(20) DEFAULT 'private'"
+        'visibility': "VARCHAR(20) DEFAULT 'private'",
+        'campus_id': "INT UNSIGNED NULL",
     }
     for col, definition in columns_to_add.items():
         if col not in existing:
             print(f" Migration: Adding column '{col}' to pastoral_sermons")
             cursor.execute(f"ALTER TABLE pastoral_sermons ADD COLUMN {col} {definition}")
+    safe_exec(cursor, "CREATE INDEX IF NOT EXISTS idx_pastoral_sermons_campus ON pastoral_sermons(campus_id)")
 
     safe_exec(cursor, """
         ALTER TABLE pastoral_sermons
@@ -430,6 +432,31 @@ def create_tables(cursor):
     safe_exec(cursor, "CREATE INDEX IF NOT EXISTS idx_vault_section_type ON pastoral_vault(section_type)")
     safe_exec(cursor, "CREATE INDEX IF NOT EXISTS idx_vault_source_url ON pastoral_vault(source_url(191))")
     safe_exec(cursor, "CREATE INDEX IF NOT EXISTS idx_sermon_edits_sermon ON sermon_edits(sermon_id)")
+
+    # Campus tagging for multi-branch isolation (nullable = org-wide / legacy)
+    for table in ('illustration_library', 'pastoral_vault', 'pastoral_care_requests'):
+        cursor.execute(
+            """
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'campus_id'
+            """,
+            (table,),
+        )
+        if not cursor.fetchone():
+            cursor.execute(
+                f"""
+                SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s
+                """,
+                (table,),
+            )
+            if cursor.fetchone():
+                print(f" Migration: Adding campus_id to {table}")
+                try:
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN campus_id INT UNSIGNED NULL")
+                    safe_exec(cursor, f"CREATE INDEX IF NOT EXISTS idx_{table}_campus ON {table}(campus_id)")
+                except Exception as e:
+                    print(f"  (skip {table}.campus_id: {e})")
 
     # NEW: Seed default Sunday template if none exist; remove duplicate weekday masters
     print("Seeding default Sunday template (if needed)...")

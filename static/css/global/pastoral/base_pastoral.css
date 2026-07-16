@@ -33,6 +33,78 @@ body.pastoral-shell {
   color: var(--text-primary, #e0e0e0);
 }
 
+/* ── Pastoral top bar: never let title and nav sit on top of each other ── */
+body.pastoral-shell .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem 0.75rem;
+  row-gap: 0.45rem;
+  min-height: 3.25rem;
+  height: auto;
+  padding: 0.45rem 0.75rem;
+  overflow: visible;
+}
+
+body.pastoral-shell .top-bar .church-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: min(40%, 16rem) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+body.pastoral-shell .top-bar .user-info {
+  flex: 1 1 14rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem !important;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Icon-first nav: keep chips compact so they don't crush the title */
+body.pastoral-shell .top-bar .user-info a.pn-btn {
+  border: 1px solid transparent !important;
+  font-weight: 600 !important;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Display prefs sits in the nav row without overlapping links */
+body.pastoral-shell .top-bar .display-prefs {
+  position: relative;
+  z-index: 1001;
+  flex: 0 0 auto;
+}
+body.pastoral-shell .top-bar .display-prefs-panel {
+  right: 0;
+  left: auto;
+  z-index: 1100;
+}
+
+@media (max-width: 900px) {
+  body.pastoral-shell .top-bar .church-name {
+    max-width: 100% !important;
+    flex: 1 1 100%;
+    text-align: left;
+  }
+  body.pastoral-shell .top-bar .user-info {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+}
+
 /* Multi-color pastoral top-bar / bottom-nav (icons readable, not all cyan) */
 .top-bar .user-info a.pn-btn {
   border: 1px solid transparent !important;

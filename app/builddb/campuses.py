@@ -67,6 +67,11 @@ def create_tables(cursor):
     # Global multi-campus flag on settings
     _ensure_column(cursor, 'settings', 'multi_campus_enabled', "TINYINT(1) NOT NULL DEFAULT 0")
     _ensure_column(cursor, 'settings', 'default_campus_id', "INT UNSIGNED NULL")
+    # When 1: only Admin/Owner may use "All campuses" in the switcher (isolates branch staff by default)
+    _ensure_column(cursor, 'settings', 'campus_all_view_admin_only', "TINYINT(1) NOT NULL DEFAULT 0")
+
+    # Per-branch: keep this campus's content private from other campuses
+    _ensure_column(cursor, 'campuses', 'content_isolation', "TINYINT(1) NOT NULL DEFAULT 0")
 
     # Users: primary / home campus
     _ensure_column(cursor, 'users', 'primary_campus_id', "INT UNSIGNED NULL")
@@ -96,6 +101,12 @@ def create_tables(cursor):
         'service_templates',
         'recurring_bills',
         'inventory_batches',
+        # Pastoral creator content — scoped so isolated branches do not intermingle
+        'pastoral_sermons',
+        'illustration_library',
+        'pastoral_vault',
+        'pastoral_care_requests',
+        'bible_notes',
     ):
         # Only alter if table exists
         cursor.execute(

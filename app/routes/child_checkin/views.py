@@ -43,7 +43,7 @@ def _can_manage():
 
 @child_checkin_bp.route('/')
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def dashboard():
     stats = cc.dashboard_stats()
     rooms = cc.list_classrooms()
@@ -63,7 +63,7 @@ def dashboard():
 
 @child_checkin_bp.route('/children')
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def children_list():
     q = (request.args.get('q') or '').strip()
     kids = cc.list_children(search=q or None)
@@ -77,7 +77,7 @@ def children_list():
 
 @child_checkin_bp.route('/children/new', methods=['GET', 'POST'])
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def child_new():
     if request.method == 'POST':
         try:
@@ -109,7 +109,7 @@ def child_new():
 
 @child_checkin_bp.route('/children/<int:child_id>', methods=['GET', 'POST'])
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def child_detail(child_id):
     child = cc.get_child(child_id)
     if not child:
@@ -197,7 +197,7 @@ def _member_options(limit=400):
 
 @child_checkin_bp.route('/rooms', methods=['GET', 'POST'])
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def rooms():
     if request.method == 'POST':
         rid = request.form.get('room_id')
@@ -232,7 +232,7 @@ def rooms():
 
 @child_checkin_bp.route('/kiosk')
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def kiosk():
     return render_template(
         'child_checkin/kiosk.html',
@@ -244,7 +244,7 @@ def kiosk():
 
 @child_checkin_bp.route('/api/search')
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def api_search():
     q = (request.args.get('q') or '').strip()
     if len(q) < 1:
@@ -282,7 +282,7 @@ def api_search():
 
 @child_checkin_bp.route('/api/checkin', methods=['POST'])
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def api_checkin():
     data = request.get_json(silent=True) or request.form
     child_ids = data.get('child_ids') or data.getlist('child_ids') if hasattr(data, 'getlist') else data.get('child_ids')
@@ -358,7 +358,7 @@ def _checkin_payload(row: dict) -> dict:
 
 @child_checkin_bp.route('/labels')
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def labels():
     """Print labels for one or more check-in IDs (?ids=1,2,3)."""
     raw = request.args.get('ids') or ''
@@ -383,7 +383,7 @@ def labels():
 
 @child_checkin_bp.route('/pickup', methods=['GET', 'POST'])
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def pickup():
     result = None
     if request.method == 'POST':
@@ -427,7 +427,7 @@ def pickup():
 
 @child_checkin_bp.route('/api/pickup', methods=['POST'])
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def api_pickup():
     data = request.get_json(silent=True) or {}
     code = data.get('code') or ''
@@ -446,7 +446,7 @@ def api_pickup():
 
 @child_checkin_bp.route('/board')
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def room_board():
     room_id = request.args.get('room', type=int)
     rooms = cc.list_classrooms()
@@ -466,7 +466,7 @@ def room_board():
 
 @child_checkin_bp.route('/api/board')
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def api_board():
     room_id = request.args.get('room', type=int)
     kids = cc.list_checked_in(classroom_id=room_id)
@@ -484,7 +484,7 @@ def api_board():
 
 @child_checkin_bp.route('/report')
 @login_required
-@permission_required('manage_attendance')
+@permission_required('manage_attendance', 'manage_child_checkin')
 def report():
     date = request.args.get('date') or cc.church_today_str()
     data = cc.day_report(date)

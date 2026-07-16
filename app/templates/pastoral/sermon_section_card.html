@@ -12,7 +12,9 @@
     'vault_visibility': 'private'
 }) %}
 
-<div class="section-card card glass-card mb-4 position-relative" data-section-id="{{ section.id }}">
+<div class="section-card card glass-card mb-4 position-relative"
+     data-section-id="{{ section.id }}"
+     {% if is_section_template|default(false) %}data-template{% endif %}>
     <div class="card-header d-flex align-items-center gap-2 bg-dark py-2 flex-wrap">
         <button type="button" class="btn btn-sm btn-outline-secondary move-up" title="Move up">
             <i class="fas fa-arrow-up"></i>

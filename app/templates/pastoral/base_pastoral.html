@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/base_pastoral.css') }}?v=20260713e">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/base_pastoral.css') }}?v=20260716nav1">
 
   <style>
     :root {
@@ -50,22 +50,22 @@
 </head>
 <body class="pastoral-shell">
 
-  <header class="top-bar">
-    <div class="church-name" style="max-width:42%;">Pastoral Command Center</div>
-    <div class="user-info" style="gap:0.35rem; flex-wrap:wrap; justify-content:flex-end;">
+  <header class="top-bar pastoral-top-bar">
+    <div class="church-name">Pastoral</div>
+    <div class="user-info">
       {% include 'partials/display_prefs.html' %}
 
-      <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="btn btn-secondary pn-btn pn-dash" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Dashboard"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></a>
-      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary pn-btn pn-plan" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Planning"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></a>
-      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary pn-btn pn-sermons" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Sermons"><i class="fa-solid fa-book-open" aria-hidden="true"></i></a>
-      <a href="{{ url_for('pastoral.podium.index') }}" class="btn btn-secondary pn-btn pn-podium" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Podium"><i class="fa-solid fa-microphone" aria-hidden="true"></i> Podium</a>
-      <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary pn-btn pn-care" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Care"><i class="fa-solid fa-heart" aria-hidden="true"></i> Care</a>
-      <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-secondary pn-btn pn-illustrations" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Illustrations"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Illustrations</a>
-      <a href="{{ url_for('pastoral.bible.bible_study') }}" class="btn btn-secondary pn-btn pn-bible" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Bible"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Bible</a>
+      <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="btn btn-secondary pn-btn pn-dash" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Dashboard"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary pn-btn pn-plan" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Planning"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary pn-btn pn-sermons" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Sermons"><i class="fa-solid fa-book-open" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.podium.index') }}" class="btn btn-secondary pn-btn pn-podium" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Podium"><i class="fa-solid fa-microphone" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary pn-btn pn-care" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Care"><i class="fa-solid fa-heart" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-secondary pn-btn pn-illustrations" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Illustrations"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.bible.bible_study') }}" class="btn btn-secondary pn-btn pn-bible" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Bible"><i class="fa-solid fa-scroll" aria-hidden="true"></i></a>
       {% if session.get('user_role') in ['Admin', 'Owner'] %}
-      <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="btn btn-secondary pn-btn pn-upload" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Bible translations"><i class="fa-solid fa-download" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="btn btn-secondary pn-btn pn-upload" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Bible translations"><i class="fa-solid fa-download" aria-hidden="true"></i></a>
       {% endif %}
-      <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-secondary pn-btn pn-main" style="padding:0.25rem 0.55rem; font-size:0.75rem; min-height:auto;" title="Main dashboard"><i class="fa-solid fa-house" aria-hidden="true"></i> Main</a>
+      <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-secondary pn-btn pn-main" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Main dashboard"><i class="fa-solid fa-house" aria-hidden="true"></i></a>
     </div>
   </header>
 

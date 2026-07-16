@@ -1,60 +1,290 @@
-/* app/static/css/global/pastoral/podium.css */
-/* Full path: WebChurchMan/app/static/css/global/pastoral/podium.css */
-/* File name: podium.css */
-/* Brief, detailed purpose:
-   Full-screen teleprompter styles for podium_view.html.
-   - Large readable text
-   - Centered narrow column
-   - Fixed bottom controls
-   - High contrast on black */
+/* Pastoral podium / teleprompter — viewport-fixed controls (see also inline critical CSS) */
 
-.podium-container {
-    padding: 4rem 10%;
-    max-width: 1000px;
-    margin: 0 auto;
-    font-size: 2rem;
-    line-height: 1.8;
-    overflow-y: auto;
-    height: 100vh;
+html.podium-page body.pastoral-shell .bottom-nav,
+html.podium-page body.pastoral-shell .top-bar,
+body.podium-mode .bottom-nav,
+body.podium-mode .top-bar {
+  display: none !important;
+}
+html.podium-page body.pastoral-shell .page-content,
+body.podium-mode .page-content {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+}
+html.podium-page body.pastoral-shell,
+body.podium-mode {
+  overflow: hidden !important;
+  background: #000 !important;
+}
+
+/* Fixed dock styles (ids preferred — highest specificity with critical CSS) */
+#podium-dock-fixed {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 2147483000 !important;
+}
+
+.podium-shell {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  color: #f5f5f5;
+}
+
+/* legacy class kept for compatibility */
+.podium-dock {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2147483000;
+  flex: 0 0 auto;
+  background: rgba(8, 10, 14, 0.94);
+  border-bottom: 2px solid rgba(0, 255, 255, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.55rem 0.75rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+}
+
+.podium-dock-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
+  justify-content: center;
+}
+
+.podium-dock .btn {
+  min-height: 2.5rem;
+  white-space: nowrap;
+}
+
+.podium-dock-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.podium-dock-group label {
+  margin: 0;
+  opacity: 0.9;
+  color: #a5f3fc;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.podium-dock input[type="range"] {
+  width: 7.5rem;
+  accent-color: #22d3ee;
+  min-height: auto;
+}
+
+.podium-timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #67e8f9;
+  min-width: 4.5rem;
+  text-align: center;
+}
+
+.podium-dock .podium-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.podium-dock .podium-toggle input {
+  width: auto;
+  min-height: auto;
+  margin: 0;
+  accent-color: #22d3ee;
+}
+.podium-dock .podium-toggle.is-on {
+  border-color: rgba(34, 211, 238, 0.55);
+  background: rgba(34, 211, 238, 0.15);
+  color: #a5f3fc;
+}
+
+.podium-hint {
+  flex: 1 1 100%;
+  text-align: center;
+  font-size: 0.72rem;
+  opacity: 0.55;
+  margin: 0;
+}
+
+/* ── Scrollable sermon body (viewport-fixed under dock) ─────── */
+#podium-scroll,
+.podium-scroll {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex: 1 1 auto;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 7rem 1rem 5rem;
+  scroll-behavior: smooth;
+  z-index: 1;
+  background: #000;
+}
+
+.podium-content {
+  max-width: 48rem;
+  margin: 0 auto;
+  font-size: 40px;
+  line-height: 1.65;
+  text-align: left;
+}
+
+/* Double-spaced reading mode */
+.podium-content.is-double-spaced {
+  line-height: 2.35;
+}
+.podium-content.is-double-spaced .podium-block,
+.podium-content.is-double-spaced p,
+.podium-content.is-double-spaced li {
+  margin-bottom: 0.85em;
 }
 
 .podium-title {
-    font-size: 4rem;
-    font-weight: bold;
+  font-size: 1.55em;
+  text-align: center;
+  color: #22d3ee;
+  margin: 0 0 0.6em;
+  line-height: 1.25;
 }
 .podium-passage {
-    font-size: 2.5rem;
-    font-style: italic;
+  font-size: 0.85em;
+  text-align: center;
+  color: #67e8f9;
+  font-style: italic;
+  margin: 0 0 1.25em;
 }
 
-.section-title {
-    font-size: 2.5rem;
-    margin-top: 3rem;
-    margin-bottom: 1rem;
+.podium-section {
+  margin-bottom: 2.25em;
 }
-.conclusion-section .section-title { color: var(--cyan); }
+.podium-section-title {
+  font-size: 1.15em;
+  color: #22d3ee;
+  margin: 0 0 0.45em;
+  line-height: 1.3;
+}
+.podium-scripture {
+  font-size: 0.85em;
+  color: #a5f3fc;
+  font-style: italic;
+  margin: 0 0 0.5em;
+}
 
-.scripture-ref {
-    font-style: italic;
-    font-size: 1.8rem;
+.podium-body {
+  font-size: 1em;
+}
+.podium-body p {
+  margin: 0 0 0.55em;
+}
+.podium-body p:last-child {
+  margin-bottom: 0;
 }
 
-.subtle-divider {
-    border-color: #333;
-    margin: 4rem 0;
+.podium-notes summary {
+  color: #67e8f9;
+  cursor: pointer;
+  font-size: 0.75em;
+}
+.podium-notes-body {
+  color: #d1d5db;
+  font-size: 0.85em;
+  margin-top: 0.5em;
 }
 
-/* Controls */
-.podium-controls {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: var(--glass-blur);
-    padding: 1rem;
+/* ── Click-to-follow line markers ────────────────────────────── */
+.podium-line {
+  display: block;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0.12em 0.28em;
+  margin: 0 -0.28em 0.12em;
+  transition: background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+  border-left: 4px solid transparent;
 }
-.speed-slider {
-    width: 150px;
-    accent-color: var(--cyan);
+.podium-line:hover {
+  background: rgba(34, 211, 238, 0.08);
+}
+/* Where you ARE */
+.podium-line.is-current {
+  background: rgba(34, 211, 238, 0.22);
+  border-left-color: #22d3ee;
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.35);
+  color: #fff;
+}
+/* Where you WERE */
+.podium-line.is-prev {
+  background: rgba(250, 204, 21, 0.14);
+  border-left-color: #facc15;
+  color: #fef9c3;
+}
+
+/* Compact bottom mini-bar (viewport-fixed) */
+#podium-minibar-fixed,
+.podium-minibar {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 2147483000 !important;
+  display: flex !important;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem calc(0.45rem + env(safe-area-inset-bottom, 0));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.92) 35%);
+  pointer-events: none;
+}
+#podium-minibar-fixed > *,
+.podium-minibar > * {
+  pointer-events: auto !important;
+}
+#podium-minibar-fixed .btn,
+.podium-minibar .btn {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 640px) {
+  .podium-dock-inner {
+    justify-content: flex-start;
+  }
+  .podium-dock input[type="range"] {
+    width: 5.5rem;
+  }
+  .podium-content {
+    font-size: 28px;
+  }
+  .podium-hint {
+    display: none;
+  }
 }

@@ -5,13 +5,15 @@
     {% include 'partials/csrf_field.html' %}
     <label for="campus-switch-select" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Campus</label>
     <select name="campus_id" id="campus-switch-select" class="form-input"
-            style="min-height:34px; padding:0.25rem 0.5rem; font-size:0.8rem; max-width:11rem;"
+            style="min-height:34px; padding:0.25rem 0.5rem; font-size:0.8rem; max-width:12.5rem;"
             onchange="this.form.submit()"
-            title="Campus scope">
+            title="Campus scope — isolated branches stay private">
+      {% if can_view_all_campuses|default(true) %}
       <option value="all" {% if viewing_all_campuses %}selected{% endif %}>All campuses</option>
+      {% endif %}
       {% for c in campuses %}
       <option value="{{ c.id }}" {% if active_campus_id == c.id and not viewing_all_campuses %}selected{% endif %}>
-        {{ c.short_name or c.name }}
+        {{ c.short_name or c.name }}{% if c.content_isolation %} · private{% endif %}
       </option>
       {% endfor %}
     </select>

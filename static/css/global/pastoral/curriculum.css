@@ -453,6 +453,17 @@ a.curr-card:hover {
 }
 
 /* Lesson builder */
+/* Ensure add panels can unhide reliably (some browsers leave [hidden] stuck with display:none) */
+.curr-add-panel[hidden],
+.curr-add-panel.hidden {
+  display: none !important;
+}
+.curr-add-panel.is-open,
+.curr-add-panel:not([hidden]) {
+  display: block;
+  margin-bottom: 0.85rem;
+}
+
 .curr-toolbar {
   display: flex;
   flex-wrap: wrap;

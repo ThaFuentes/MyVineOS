@@ -1,0 +1,148 @@
+{% extends "custom_modules/base.html" %}
+
+{% block module_content %}
+<section class="content-section cm-bus-settings">
+  <h2 class="section-title"><i class="fa-solid fa-bus" aria-hidden="true"></i> Bus settings</h2>
+  <p class="help-text" style="max-width:40rem;">
+    Set where the bus <strong>starts</strong>, where the <strong>church</strong> is, and which
+    <strong>routes you are willing to run</strong>. Stops people add must use an approved route
+    and stay within your max miles from church — so nobody can put a pickup way outside your area.
+  </p>
+
+  <form method="post" class="styled-form glass-panel" style="padding:1.1rem 1.15rem; max-width:48rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+    <div class="form-group">
+      <label class="control-label" for="bus_start_location">Bus starting location (depot) <span class="required">*</span></label>
+      <input type="text" class="form-input" id="bus_start_location" name="bus_start_location"
+             value="{{ settings.bus_start_location or '' }}" required
+             placeholder="e.g. Church parking lot north gate, or 100 Depot Rd">
+      <p class="help-text small">Where the bus begins the morning / route run.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="control-label" for="church_location">Church location <span class="required">*</span></label>
+      <input type="text" class="form-input" id="church_location" name="church_location"
+             value="{{ settings.church_location or '' }}" required
+             placeholder="e.g. 456 Main St, City, ST">
+      <p class="help-text small">Home base for drop-off and for measuring how far stops are allowed.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="control-label" for="max_radius_miles">Max service radius (miles from church) <span class="required">*</span></label>
+      <input type="number" class="form-input" id="max_radius_miles" name="max_radius_miles"
+             value="{{ settings.max_radius_miles or 25 }}" min="1" max="200" step="0.5" required>
+      <p class="help-text small">Hard cap for every route. Individual routes can be tighter below.</p>
+    </div>
+
+    <h3 class="section-subtitle" style="margin-top:1.25rem;">Approved routes</h3>
+    <p class="help-text small">
+      Only these route names can be chosen when adding a stop. Add corridors you actually run
+      (e.g. “North Side”, “South Loop”). Optional max miles per route cannot exceed the overall radius.
+    </p>
+
+    <div id="routes-list" style="display:flex; flex-direction:column; gap:0.65rem; margin:0.75rem 0 1rem;">
+      {% set routes = settings.approved_routes or [] %}
+      {% if routes %}
+        {% for r in routes %}
+        <div class="bus-route-row glass-panel" style="padding:0.65rem 0.75rem; margin:0;">
+          <div class="form-grid" style="display:grid; grid-template-columns:1.4fr 0.7fr; gap:0.5rem;">
+            <div class="form-group" style="margin:0;">
+              <label class="control-label">Route name</label>
+              <input type="text" class="form-input" name="route_name" value="{{ r.name }}" required maxlength="120">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="control-label">Max miles (optional)</label>
+              <input type="number" class="form-input" name="route_max_miles"
+                     value="{{ r.max_miles if r.max_miles is not none else '' }}"
+                     min="1" max="200" step="0.5" placeholder="Use overall max">
+            </div>
+          </div>
+          <div class="form-group" style="margin:0.45rem 0 0;">
+            <label class="control-label">Notes</label>
+            <input type="text" class="form-input" name="route_notes" value="{{ r.notes or '' }}"
+                   placeholder="e.g. Sunday only, no dirt roads">
+          </div>
+          <button type="button" class="btn-secondary btn-small bus-remove-route" style="margin-top:0.4rem;">Remove route</button>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="bus-route-row glass-panel" style="padding:0.65rem 0.75rem; margin:0;">
+          <div class="form-grid" style="display:grid; grid-template-columns:1.4fr 0.7fr; gap:0.5rem;">
+            <div class="form-group" style="margin:0;">
+              <label class="control-label">Route name</label>
+              <input type="text" class="form-input" name="route_name" value="" required maxlength="120"
+                     placeholder="North Side">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="control-label">Max miles (optional)</label>
+              <input type="number" class="form-input" name="route_max_miles" value="" min="1" max="200" step="0.5"
+                     placeholder="Use overall max">
+            </div>
+          </div>
+          <div class="form-group" style="margin:0.45rem 0 0;">
+            <label class="control-label">Notes</label>
+            <input type="text" class="form-input" name="route_notes" value="" placeholder="Optional">
+          </div>
+          <button type="button" class="btn-secondary btn-small bus-remove-route" style="margin-top:0.4rem;">Remove route</button>
+        </div>
+      {% endif %}
+    </div>
+
+    <button type="button" id="add-route-btn" class="btn-secondary" style="margin-bottom:1rem;">
+      <i class="fa-solid fa-plus" aria-hidden="true"></i> Add another route
+    </button>
+
+    <div class="form-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+      <button type="submit" class="btn-primary">Save bus settings</button>
+      <a href="{{ url_for('custom_modules.module_list', slug=module.slug) }}" class="btn-secondary">Cancel</a>
+    </div>
+  </form>
+</section>
+
+<template id="bus-route-row-template">
+  <div class="bus-route-row glass-panel" style="padding:0.65rem 0.75rem; margin:0;">
+    <div class="form-grid" style="display:grid; grid-template-columns:1.4fr 0.7fr; gap:0.5rem;">
+      <div class="form-group" style="margin:0;">
+        <label class="control-label">Route name</label>
+        <input type="text" class="form-input" name="route_name" value="" required maxlength="120">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="control-label">Max miles (optional)</label>
+        <input type="number" class="form-input" name="route_max_miles" value="" min="1" max="200" step="0.5"
+               placeholder="Use overall max">
+      </div>
+    </div>
+    <div class="form-group" style="margin:0.45rem 0 0;">
+      <label class="control-label">Notes</label>
+      <input type="text" class="form-input" name="route_notes" value="" placeholder="Optional">
+    </div>
+    <button type="button" class="btn-secondary btn-small bus-remove-route" style="margin-top:0.4rem;">Remove route</button>
+  </div>
+</template>
+
+<script>
+(function () {
+  var list = document.getElementById('routes-list');
+  var tpl = document.getElementById('bus-route-row-template');
+  var addBtn = document.getElementById('add-route-btn');
+  if (!list || !tpl || !addBtn) return;
+
+  addBtn.addEventListener('click', function () {
+    list.appendChild(tpl.content.cloneNode(true));
+  });
+
+  list.addEventListener('click', function (e) {
+    var btn = e.target.closest('.bus-remove-route');
+    if (!btn) return;
+    var row = btn.closest('.bus-route-row');
+    if (!row) return;
+    if (list.querySelectorAll('.bus-route-row').length <= 1) {
+      alert('Keep at least one approved route, or clear its name and save after adding another.');
+      return;
+    }
+    row.remove();
+  });
+})();
+</script>
+{% endblock %}

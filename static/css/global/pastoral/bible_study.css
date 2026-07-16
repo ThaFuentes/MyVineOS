@@ -1,24 +1,75 @@
+/* Active-sermon picker — stacked, never overlapping title/buttons */
 .bible-sermon-bar {
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1rem 1rem;
   border-radius: 12px;
+  overflow: visible !important;
+  position: relative;
+  z-index: 1;
 }
 
 .bible-sermon-bar-inner {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem 1rem;
+  align-items: end;
+  width: 100%;
 }
 
 .bible-sermon-field {
-  flex: 1 1 220px;
-  min-width: 200px;
+  min-width: 0; /* critical: allow shrink so select doesn't cover buttons */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.bible-sermon-field .form-label,
+.bible-sermon-field label {
+  display: block;
+  margin: 0;
+  line-height: 1.25;
+  position: relative;
+  z-index: 1;
+}
+
+.bible-sermon-field select,
+.bible-sermon-field #bible-sermon-select {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 0;
 }
 
 .bible-sermon-actions {
   display: flex;
-  gap: 0.5rem;
   flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.bible-sermon-actions .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Stack fully on phones / narrow pastoral panes */
+@media (max-width: 720px) {
+  .bible-sermon-bar-inner {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .bible-sermon-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 .bible-book-tabs {
@@ -432,12 +483,6 @@
   border-color: var(--primary, #0ff) !important;
 }
 
-.bible-sermon-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
-}
 .bible-sermon-actions .btn.disabled,
 .bible-sermon-actions a.disabled {
   pointer-events: none;

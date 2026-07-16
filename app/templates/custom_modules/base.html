@@ -33,7 +33,12 @@
             </div>
         </div>
         {% if can_manage %}
-        <div class="cm-header-actions">
+        <div class="cm-header-actions" style="display:flex; flex-wrap:wrap; gap:0.45rem; align-items:center;">
+            {% if module.type_key == 'bus_routes' %}
+            <a href="{{ url_for('custom_modules.module_settings', slug=module.slug) }}" class="btn-secondary">
+              <i class="fa-solid fa-sliders" aria-hidden="true"></i> Bus settings
+            </a>
+            {% endif %}
             <a href="{{ url_for('custom_modules.add_record', slug=module.slug) }}" class="btn-primary">+ Add {{ schema.record_label|default('Record') }}</a>
         </div>
         {% endif %}

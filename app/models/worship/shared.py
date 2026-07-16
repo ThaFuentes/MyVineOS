@@ -10,30 +10,54 @@ def is_in_worship_team(user_id: int) -> bool:
         return False
     if session.get('user_role') in ('Owner', 'Admin', 'Staff'):
         return True
+    import json as _json
     db = get_db()
-    cur = db.cursor()
+    cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
-        SELECT 1 FROM user_groups ug
+        SELECT g.system_key, g.name, g.permissions
+        FROM user_groups ug
         JOIN groups g ON g.id = ug.group_id
-        WHERE ug.user_id = %s AND (g.system_key = 'worship_team' OR g.name = %s)
-        LIMIT 1
-    """, (user_id, WORSHIP_TEAM_GROUP_NAME))
-    return cur.fetchone() is not None
+        WHERE ug.user_id = %s
+    """, (user_id,))
+    for row in cur.fetchall() or []:
+        if row.get('system_key') == 'worship_team' or row.get('name') == WORSHIP_TEAM_GROUP_NAME:
+            return True
+        try:
+            perms = _json.loads(row.get('permissions') or '[]')
+        except (TypeError, ValueError):
+            perms = []
+        if isinstance(perms, list) and (
+            'access_worship' in perms or 'manage_worship' in perms
+        ):
+            return True
+    return False
 
 
 def is_worship_group_manager(user_id: int) -> bool:
     if not user_id:
         return False
+    import json as _json
     db = get_db()
-    cur = db.cursor()
+    cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
-        SELECT 1 FROM user_groups ug
+        SELECT g.system_key, g.name, g.permissions, ug.role_in_group
+        FROM user_groups ug
         JOIN groups g ON g.id = ug.group_id
-        WHERE ug.user_id = %s AND (g.system_key = 'worship_team' OR g.name = %s)
-          AND ug.role_in_group = 'leader'
-        LIMIT 1
-    """, (user_id, WORSHIP_TEAM_GROUP_NAME))
-    return cur.fetchone() is not None
+        WHERE ug.user_id = %s
+    """, (user_id,))
+    for row in cur.fetchall() or []:
+        try:
+            perms = _json.loads(row.get('permissions') or '[]')
+        except (TypeError, ValueError):
+            perms = []
+        if isinstance(perms, list) and 'manage_worship' in perms:
+            return True
+        if (
+            (row.get('system_key') == 'worship_team' or row.get('name') == WORSHIP_TEAM_GROUP_NAME)
+            and row.get('role_in_group') == 'leader'
+        ):
+            return True
+    return False
 
 
 def can_manage_worship(user_id: int = None) -> bool:

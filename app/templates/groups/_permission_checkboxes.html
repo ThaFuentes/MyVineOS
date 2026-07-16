@@ -1,165 +1,269 @@
-{# Shared permission checkbox sections for create/edit group forms. #}
+{# Enterprise permission editor — data-driven from permission_categories.
+   Expects: known_permissions, permission_categories, current_permissions (or selected),
+            grantable_permissions (none = all editable), locked_permissions,
+            permissions_limited, permission_total_count, permission_selected_count
+#}
 {% set selected = current_permissions|default([]) %}
 {% set grantable = grantable_permissions|default(none) %}
 {% set locked = locked_permissions|default([]) %}
+{% set categories = permission_categories|default([]) %}
+{% set total_count = permission_total_count|default(0) %}
+{% set selected_count = permission_selected_count|default(0) %}
 
-<div class="form-group permissions-group">
-    <label class="section-label">Permissions Granted by Membership <span class="required">(select all that apply)</span></label>
-    {% if permissions_limited|default(false) %}
-    <p class="help-text" style="margin-bottom:1rem;">
-        You can only grant permissions you already have. Permissions set by site Owner, Admin, or Staff
-        that are above your level appear as <strong>locked</strong> and cannot be removed here.
-    </p>
+<div class="form-group permissions-group pe-editor" id="permission-editor"
+     data-total="{{ total_count }}"
+     data-selected="{{ selected_count }}">
+
+    <div class="pe-header">
+        <div class="pe-header-text">
+            <label class="section-label pe-title">Permissions Granted by Membership</label>
+            {% if permissions_limited|default(false) %}
+            <p class="help-text pe-help">
+                You can only grant permissions you already have. Permissions set by site Owner, Admin, or Staff
+                that are above your level appear as <strong>locked</strong> and cannot be removed here.
+            </p>
+            {% else %}
+            <p class="help-text pe-help">
+                Search, filter, and grant exactly the abilities this group should receive.
+                Changes apply to all members of the group immediately after save.
+            </p>
+            {% endif %}
+        </div>
+        <div class="pe-stats" aria-live="polite">
+            <span class="pe-stat"><strong id="pe-selected-count">{{ selected_count }}</strong> selected</span>
+            <span class="pe-stat-sep">·</span>
+            <span class="pe-stat"><strong id="pe-visible-count">{{ total_count }}</strong> available</span>
+        </div>
+    </div>
+
+    <div class="pe-toolbar glass-panel">
+        <div class="pe-search-wrap">
+            <label for="pe-search" class="sr-only">Search permissions</label>
+            <input type="search" id="pe-search" class="form-input pe-search"
+                   placeholder="Search permissions by name or key…"
+                   autocomplete="off" spellcheck="false">
+        </div>
+        <div class="pe-toolbar-actions">
+            <button type="button" class="btn-secondary btn-small pe-btn" id="pe-expand-all" title="Expand all categories">Expand all</button>
+            <button type="button" class="btn-secondary btn-small pe-btn" id="pe-collapse-all" title="Collapse all categories">Collapse all</button>
+            <button type="button" class="btn-secondary btn-small pe-btn" id="pe-select-visible" title="Select all visible (editable) permissions">Select visible</button>
+            <button type="button" class="btn-secondary btn-small pe-btn" id="pe-clear-visible" title="Clear all visible (editable) permissions">Clear visible</button>
+        </div>
+    </div>
+
+    {% if not categories %}
+    <p class="help-text">No permissions available to assign.</p>
     {% else %}
-    <p class="help-text" style="margin-bottom:1.5rem;">
-        These are grouped for easier navigation. Expand each section to select permissions.
-    </p>
-    {% endif %}
+    <div class="pe-categories" id="pe-categories">
+        {% for cat in categories %}
+        <details class="pe-category collapsible-section glass" data-category="{{ cat.id }}" {% if loop.first or cat.id == 'ministry' or cat.id == 'admin' %}open{% endif %}>
+            <summary class="pe-category-summary collapsible-summary">
+                <span class="pe-category-label">
+                    <span class="pe-category-title">{{ cat.label }}</span>
+                    {% if cat.description %}
+                    <span class="pe-category-desc">{{ cat.description }}</span>
+                    {% endif %}
+                </span>
+                <span class="pe-category-meta">
+                    <span class="pe-cat-count" data-cat-count="{{ cat.id }}">
+                        {# filled by JS; initial server-side #}
+                        {% set ns = namespace(n=0) %}
+                        {% for key in cat.permission_keys %}
+                            {% if key in selected %}{% set ns.n = ns.n + 1 %}{% endif %}
+                        {% endfor %}
+                        {{ ns.n }}/{{ cat.permission_keys|length }}
+                    </span>
+                    <button type="button" class="pe-cat-select-all btn-tiny" data-cat-select="{{ cat.id }}" title="Select all in this category">All</button>
+                    <button type="button" class="pe-cat-clear btn-tiny" data-cat-clear="{{ cat.id }}" title="Clear this category">None</button>
+                </span>
+            </summary>
+            <div class="collapsible-content pe-category-body">
+                <div class="pe-grid permissions-grid summary-cards">
+                    {% for key in cat.permission_keys %}
+                        {% set label = known_permissions.get(key, key) %}
+                        {% set is_locked = key in locked and (grantable is not none and key not in grantable) %}
+                        {% set is_editable = grantable is none or key in grantable %}
+                        {% set is_checked = key in selected %}
 
-    <details open class="collapsible-section glass">
-        <summary class="collapsible-summary section-subtitle">Core Content Creation & Moderation</summary>
-        <div class="collapsible-content">
-            <div class="summary-cards permissions-grid">
-                {% for key in ['create_announcements', 'moderate_announcements', 'create_events', 'moderate_events', 'manage_event_registration', 'upload_sermons', 'moderate_sermons', 'moderate_prayers', 'moderate_dreams', 'moderate_prophecies'] %}
-                    {% if key in known_permissions %}
-                        {% if grantable is none or key in grantable %}
-                        <div class="card glass">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
+                        {% if is_editable %}
+                        <div class="pe-item card glass"
+                             data-key="{{ key }}"
+                             data-label="{{ label|e }}"
+                             data-search="{{ (key ~ ' ' ~ label)|lower|e }}">
+                            <label class="checkbox-label pe-checkbox">
+                                <input type="checkbox"
+                                       name="permissions"
+                                       value="{{ key }}"
+                                       class="pe-check"
+                                       data-category="{{ cat.id }}"
+                                       {% if is_checked %}checked{% endif %}>
                                 <span class="checkbox-custom"></span>
-                                {{ known_permissions[key] }}
+                                <span class="pe-item-text">
+                                    <span class="pe-item-label">{{ label }}</span>
+                                    <span class="pe-item-key">{{ key }}</span>
+                                </span>
                             </label>
                         </div>
-                        {% elif key in locked %}
-                        <div class="card glass" style="opacity:0.85;">
-                            <div class="checkbox-label" style="cursor:default;">
-                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
-                                {{ known_permissions[key] }}
-                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
+                        {% elif is_locked %}
+                        <div class="pe-item pe-item-locked card glass"
+                             data-key="{{ key }}"
+                             data-label="{{ label|e }}"
+                             data-search="{{ (key ~ ' ' ~ label)|lower|e }}"
+                             data-locked="1">
+                            <div class="checkbox-label pe-checkbox pe-locked-label">
+                                <span class="checkbox-custom pe-locked-box" aria-hidden="true"></span>
+                                <span class="pe-item-text">
+                                    <span class="pe-item-label">{{ label }}
+                                        <span class="pe-lock-badge">locked</span>
+                                    </span>
+                                    <span class="pe-item-key">{{ key }}</span>
+                                </span>
                             </div>
+                            {# Preserve locked permissions on submit #}
+                            <input type="hidden" name="permissions" value="{{ key }}">
                         </div>
                         {% endif %}
-                    {% endif %}
-                {% endfor %}
+                    {% endfor %}
+                </div>
             </div>
-        </div>
-    </details>
-
-    <details class="collapsible-section glass">
-        <summary class="collapsible-summary section-subtitle">Financial & Operational</summary>
-        <div class="collapsible-content">
-            <div class="summary-cards permissions-grid">
-                {% for key in ['view_donations', 'manage_donations', 'manage_bills', 'manage_inventory', 'manage_tickets', 'submit_tickets', 'send_emails'] %}
-                    {% if key in known_permissions %}
-                        {% if grantable is none or key in grantable %}
-                        <div class="card glass">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
-                                <span class="checkbox-custom"></span>
-                                {{ known_permissions[key] }}
-                            </label>
-                        </div>
-                        {% elif key in locked %}
-                        <div class="card glass" style="opacity:0.85;">
-                            <div class="checkbox-label" style="cursor:default;">
-                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
-                                {{ known_permissions[key] }}
-                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
-                            </div>
-                        </div>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-    </details>
-
-    <details class="collapsible-section glass">
-        <summary class="collapsible-summary section-subtitle">Member & Attendance Management</summary>
-        <div class="collapsible-content">
-            <div class="summary-cards permissions-grid">
-                {% for key in ['view_members', 'manage_members', 'manage_family_links', 'manage_attendance'] %}
-                    {% if key in known_permissions %}
-                        {% if grantable is none or key in grantable %}
-                        <div class="card glass">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
-                                <span class="checkbox-custom"></span>
-                                {{ known_permissions[key] }}
-                            </label>
-                        </div>
-                        {% elif key in locked %}
-                        <div class="card glass" style="opacity:0.85;">
-                            <div class="checkbox-label" style="cursor:default;">
-                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
-                                {{ known_permissions[key] }}
-                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
-                            </div>
-                        </div>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-    </details>
-
-    <details class="collapsible-section glass">
-        <summary class="collapsible-summary section-subtitle">Administration & Settings</summary>
-        <div class="collapsible-content">
-            <div class="summary-cards permissions-grid">
-                {% for key in ['manage_users', 'manage_groups', 'manage_settings', 'manage_help', 'view_audit_logs', 'access_pastoral', 'manage_legal_notices'] %}
-                    {% if key in known_permissions %}
-                        {% if grantable is none or key in grantable %}
-                        <div class="card glass">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
-                                <span class="checkbox-custom"></span>
-                                {{ known_permissions[key] }}
-                            </label>
-                        </div>
-                        {% elif key in locked %}
-                        <div class="card glass" style="opacity:0.85;">
-                            <div class="checkbox-label" style="cursor:default;">
-                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
-                                {{ known_permissions[key] }}
-                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
-                            </div>
-                        </div>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-    </details>
-
-    {% if app_permission_keys|default([]) %}
-    <details class="collapsible-section glass">
-        <summary class="collapsible-summary section-subtitle">Church Apps</summary>
-        <div class="collapsible-content">
-            <div class="summary-cards permissions-grid">
-                {% for key in app_permission_keys %}
-                    {% if key in known_permissions %}
-                        {% if grantable is none or key in grantable %}
-                        <div class="card glass">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="permissions" value="{{ key }}" {% if key in selected %}checked{% endif %}>
-                                <span class="checkbox-custom"></span>
-                                {{ known_permissions[key] }}
-                            </label>
-                        </div>
-                        {% elif key in locked %}
-                        <div class="card glass" style="opacity:0.85;">
-                            <div class="checkbox-label" style="cursor:default;">
-                                <span class="checkbox-custom" style="background:var(--primary); border-color:var(--primary);"></span>
-                                {{ known_permissions[key] }}
-                                <span style="font-size:0.75rem; margin-left:0.35rem; color:var(--primary);">(locked)</span>
-                            </div>
-                        </div>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-    </details>
+        </details>
+        {% endfor %}
+    </div>
+    <p class="pe-empty-search help-text" id="pe-empty-search" hidden>No permissions match your search.</p>
     {% endif %}
 </div>
+
+<script>
+(function () {
+  const root = document.getElementById('permission-editor');
+  if (!root) return;
+
+  const search = document.getElementById('pe-search');
+  const selectedEl = document.getElementById('pe-selected-count');
+  const visibleEl = document.getElementById('pe-visible-count');
+  const emptyMsg = document.getElementById('pe-empty-search');
+  const categories = root.querySelectorAll('.pe-category');
+
+  function items() {
+    return Array.from(root.querySelectorAll('.pe-item'));
+  }
+
+  function editableChecks(scope) {
+    return Array.from((scope || root).querySelectorAll('input.pe-check:not([disabled])'));
+  }
+
+  function updateCounts() {
+    const allItems = items();
+    const visible = allItems.filter(el => el.style.display !== 'none');
+    const checks = editableChecks();
+    const selected = checks.filter(c => c.checked).length
+      + root.querySelectorAll('.pe-item-locked[data-locked="1"]').length;
+    // Count selected among visible editable + all locked (locked always count if present)
+    let sel = 0;
+    allItems.forEach(el => {
+      if (el.style.display === 'none') return;
+      const cb = el.querySelector('input.pe-check');
+      if (cb && cb.checked) sel++;
+      else if (el.dataset.locked === '1') sel++;
+    });
+    if (selectedEl) selectedEl.textContent = String(sel);
+    if (visibleEl) visibleEl.textContent = String(visible.length);
+
+    categories.forEach(cat => {
+      const id = cat.dataset.category;
+      const countEl = cat.querySelector('[data-cat-count="' + id + '"]');
+      if (!countEl) return;
+      const catItems = Array.from(cat.querySelectorAll('.pe-item')).filter(el => el.style.display !== 'none');
+      let n = 0;
+      catItems.forEach(el => {
+        const cb = el.querySelector('input.pe-check');
+        if (cb && cb.checked) n++;
+        else if (el.dataset.locked === '1') n++;
+      });
+      countEl.textContent = n + '/' + catItems.length;
+    });
+  }
+
+  function applySearch() {
+    const q = (search && search.value || '').trim().toLowerCase();
+    let any = false;
+    items().forEach(el => {
+      const hay = (el.dataset.search || '').toLowerCase();
+      const show = !q || hay.indexOf(q) !== -1;
+      el.style.display = show ? '' : 'none';
+      if (show) any = true;
+    });
+    // Hide empty categories; auto-open categories with matches when searching
+    categories.forEach(cat => {
+      const hasVisible = Array.from(cat.querySelectorAll('.pe-item')).some(el => el.style.display !== 'none');
+      cat.style.display = hasVisible ? '' : 'none';
+      if (q && hasVisible) cat.open = true;
+    });
+    if (emptyMsg) emptyMsg.hidden = any || !q;
+    updateCounts();
+  }
+
+  if (search) {
+    search.addEventListener('input', applySearch);
+  }
+
+  root.addEventListener('change', function (e) {
+    if (e.target && e.target.classList.contains('pe-check')) updateCounts();
+  });
+
+  document.getElementById('pe-expand-all')?.addEventListener('click', function () {
+    categories.forEach(c => { if (c.style.display !== 'none') c.open = true; });
+  });
+  document.getElementById('pe-collapse-all')?.addEventListener('click', function () {
+    categories.forEach(c => { c.open = false; });
+  });
+  document.getElementById('pe-select-visible')?.addEventListener('click', function () {
+    items().forEach(el => {
+      if (el.style.display === 'none') return;
+      const cb = el.querySelector('input.pe-check');
+      if (cb) cb.checked = true;
+    });
+    updateCounts();
+  });
+  document.getElementById('pe-clear-visible')?.addEventListener('click', function () {
+    items().forEach(el => {
+      if (el.style.display === 'none') return;
+      const cb = el.querySelector('input.pe-check');
+      if (cb) cb.checked = false;
+    });
+    updateCounts();
+  });
+
+  // Per-category All / None (stop details toggle)
+  root.querySelectorAll('[data-cat-select]').forEach(btn => {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const cat = root.querySelector('.pe-category[data-category="' + btn.dataset.catSelect + '"]');
+      if (!cat) return;
+      cat.querySelectorAll('input.pe-check').forEach(cb => {
+        const item = cb.closest('.pe-item');
+        if (item && item.style.display === 'none') return;
+        cb.checked = true;
+      });
+      updateCounts();
+    });
+  });
+  root.querySelectorAll('[data-cat-clear]').forEach(btn => {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const cat = root.querySelector('.pe-category[data-category="' + btn.dataset.catClear + '"]');
+      if (!cat) return;
+      cat.querySelectorAll('input.pe-check').forEach(cb => {
+        const item = cb.closest('.pe-item');
+        if (item && item.style.display === 'none') return;
+        cb.checked = false;
+      });
+      updateCounts();
+    });
+  });
+
+  updateCounts();
+})();
+</script>

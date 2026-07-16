@@ -1,0 +1,77 @@
+{% extends "pastoral/base_pastoral.html" %}
+{% block title %}Import Sermons{% endblock %}
+
+{% block pastoral_content %}
+<div style="padding:0.25rem 0 1.25rem; max-width:52rem; margin:0 auto;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.75rem; margin-bottom:1rem;">
+    <div>
+      <h1 style="color:var(--primary); margin:0 0 0.25rem;">
+        <i class="fa-solid fa-file-import" aria-hidden="true"></i> Upload / Import Sermons
+      </h1>
+      <p style="margin:0; opacity:0.75; font-size:0.9rem;">
+        Bring in sermons you already wrote (Word .docx, or plain .txt / .md).
+        We parse Introduction, Sermon Content, points, and Verses &amp; Notes so they’re podium-ready.
+      </p>
+    </div>
+    <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary">← Library</a>
+  </div>
+
+  <div class="glass-panel" style="padding:1.1rem 1.15rem;">
+    <form method="post" enctype="multipart/form-data" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="control-label" for="sermon-files">Sermon files <span style="color:#f87171;">*</span></label>
+        <input type="file" id="sermon-files" name="files" class="form-input" multiple
+               accept=".docx,.txt,.md,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+               required>
+        <p class="help-text" style="margin:0.4rem 0 0; font-size:0.8rem; opacity:0.7;">
+          Select one or many. Dates in the filename (e.g. <code>2025-09-19</code> or <code>2025_10_31</code>) become the service date.
+        </p>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="control-label" for="import-visibility">Visibility</label>
+        <select id="import-visibility" name="visibility" class="form-input">
+          <option value="private" selected>Private (only you)</option>
+          <option value="pastoral_group">Pastoral group</option>
+          <option value="collaborators">Collaborators</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0.65rem;">
+        <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:500; cursor:pointer;">
+          <input type="checkbox" name="open_first" value="1" checked style="width:auto; min-height:auto; margin-top:0.2rem;">
+          <span>Open the sermon editor after importing a single file</span>
+        </label>
+      </div>
+      <div class="form-group" style="margin-bottom:1.1rem;">
+        <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:500; cursor:pointer;">
+          <input type="checkbox" name="also_illustrations" value="1" style="width:auto; min-height:auto; margin-top:0.2rem;">
+          <span>Also save each section into Illustrations Library (optional)</span>
+        </label>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:0.55rem;">
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-upload" aria-hidden="true"></i> Import sermons
+        </button>
+        <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="glass-panel" style="padding:1rem 1.15rem; margin-top:0.85rem; font-size:0.88rem; opacity:0.88;">
+    <strong style="color:var(--primary);">Best results with this structure</strong>
+    <ul style="margin:0.5rem 0 0; padding-left:1.2rem; line-height:1.5;">
+      <li><strong>Title</strong> as Heading 1</li>
+      <li><strong>Introduction</strong>, <strong>Sermon Content</strong>, <strong>Verses and Notes</strong> as Heading 2</li>
+      <li>Inside body: <code>Point 1:</code> / <code>Section 2:</code> lines for separate podium sections</li>
+      <li>Notes lines like <code>Note: John 3:16: …</code></li>
+    </ul>
+    <p style="margin:0.75rem 0 0; opacity:0.75;">
+      Your content stays yours — after import, use <strong>Export DOCX</strong> anytime from the library.
+    </p>
+  </div>
+</div>
+{% endblock %}

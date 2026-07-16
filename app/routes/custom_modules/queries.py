@@ -32,11 +32,60 @@ def create_permission_group_for_module(name: str, slug: str, description: str, u
     )
 
 
+def parse_module_settings(raw) -> dict:
+    if isinstance(raw, dict):
+        return raw
+    try:
+        data = json.loads(raw or '{}')
+        return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+def default_bus_settings() -> dict:
+    return {
+        'bus_start_location': '',
+        'church_location': '',
+        'max_radius_miles': 25,
+        'approved_routes': [],  # [{name, max_miles, notes}]
+    }
+
+
 def _hydrate_module(row: dict) -> dict:
     if not row:
         return row
     row['schema'] = parse_type_schema(row.get('schema_json'))
     row['theme_config'] = get_theme(row.get('theme') or 'ocean')
+    settings = parse_module_settings(row.get('settings_json'))
+    if (row.get('type_key') or '') == 'bus_routes':
+        base = default_bus_settings()
+        base.update(settings or {})
+        # Normalize approved routes
+        routes = base.get('approved_routes') or []
+        clean_routes = []
+        for r in routes:
+            if not isinstance(r, dict):
+                continue
+            name = (r.get('name') or '').strip()
+            if not name:
+                continue
+            try:
+                max_m = r.get('max_miles')
+                max_m = float(max_m) if max_m not in (None, '') else None
+            except (TypeError, ValueError):
+                max_m = None
+            clean_routes.append({
+                'name': name[:120],
+                'max_miles': max_m,
+                'notes': (r.get('notes') or '').strip()[:500],
+            })
+        base['approved_routes'] = clean_routes
+        try:
+            base['max_radius_miles'] = float(base.get('max_radius_miles') or 25)
+        except (TypeError, ValueError):
+            base['max_radius_miles'] = 25.0
+        settings = base
+    row['settings'] = settings
     return row
 
 
@@ -264,6 +313,46 @@ def delete_record(record_id: int, module_id: int):
         cur.execute(
             "DELETE FROM custom_module_records WHERE id = %s AND module_id = %s",
             (record_id, module_id),
+        )
+        db.commit()
+        return cur.rowcount > 0
+    except Exception:
+        db.rollback()
+        raise
+
+
+def ensure_settings_column():
+    """Idempotent: add settings_json if missing (for installs without full rebuild)."""
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'custom_modules'
+              AND COLUMN_NAME = 'settings_json'
+            """
+        )
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE custom_modules ADD COLUMN settings_json TEXT NULL")
+            db.commit()
+    except Exception:
+        db.rollback()
+
+
+def update_module_settings(module_id: int, settings: dict, user_id: int) -> bool:
+    ensure_settings_column()
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute(
+            """
+            UPDATE custom_modules
+            SET settings_json = %s, updated_by = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            """,
+            (json.dumps(settings or {}), user_id, module_id),
         )
         db.commit()
         return cur.rowcount > 0

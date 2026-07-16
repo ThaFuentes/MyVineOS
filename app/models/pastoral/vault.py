@@ -60,12 +60,19 @@ def add_vault_item(data: dict, owner_id: int | None):
     cur = db.cursor()
 
     tags_json = json.dumps(data.get('tags', [])) if isinstance(data.get('tags'), list) else data.get('tags', '[]')
+    campus_id = data.get('campus_id')
+    if campus_id in (None, '', 0, '0'):
+        try:
+            from app.models.campuses import resolve_campus_id_for_write
+            campus_id = resolve_campus_id_for_write(data.get('campus_id'))
+        except Exception:
+            campus_id = None
 
     cur.execute("""
         INSERT INTO pastoral_vault
         (user_id, title, content, reference, notes, tags,
-         section_type, scripture_reference, source_url, visibility)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+         section_type, scripture_reference, source_url, visibility, campus_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         owner_id,
         data['title'],
@@ -76,7 +83,8 @@ def add_vault_item(data: dict, owner_id: int | None):
         data.get('section_type', 'point'),
         data.get('scripture_reference'),
         data.get('source_url'),
-        data['visibility']
+        data['visibility'],
+        campus_id,
     ))
     db.commit()
     return cur.lastrowid

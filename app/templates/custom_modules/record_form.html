@@ -4,6 +4,21 @@
 <section class="content-section">
     <h2 class="section-title">{{ 'Edit' if record else 'Add' }} {{ schema.record_label|default('Record') }}</h2>
 
+    {% if is_bus and bus_settings %}
+    <div class="glass-panel" style="padding:0.75rem 1rem; margin-bottom:0.85rem; max-width:720px; font-size:0.9rem;">
+      <strong>Service area:</strong>
+      within {{ bus_settings.max_radius_miles }} mi of
+      <em>{{ bus_settings.church_location }}</em>
+      · bus starts at <em>{{ bus_settings.bus_start_location }}</em>
+      {% if bus_settings.approved_routes %}
+      · routes:
+      {% for r in bus_settings.approved_routes %}
+        <span class="cm-badge">{{ r.name }}{% if r.max_miles is not none %} (≤{{ r.max_miles }} mi){% endif %}</span>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
+
     <form method="POST" action="{{ form_action }}" class="styled-form glass-panel" style="padding:1rem; max-width:720px;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
@@ -18,14 +33,17 @@
 
             {% elif field.type == 'select' %}
             <select id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" {% if field.required %}required{% endif %}>
-                <option value="">- Select -</option>
+                <option value="">— Select —</option>
                 {% for opt in field.options or [] %}
                 <option value="{{ opt }}" {% if val == opt %}selected{% endif %}>{{ opt }}</option>
                 {% endfor %}
             </select>
+            {% if field.key == 'route_name' and not (field.options or []) %}
+            <p class="help-text small" style="color:#fca5a5;">No approved routes yet — open Bus settings first.</p>
+            {% endif %}
 
             {% elif field.type == 'number' %}
-            <input type="number" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" step="any" {% if field.required %}required{% endif %}>
+            <input type="number" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" step="any" min="0" {% if field.required %}required{% endif %}>
 
             {% elif field.type == 'date' %}
             <input type="date" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" {% if field.required %}required{% endif %}>
@@ -47,6 +65,10 @@
 
             {% else %}
             <input type="text" id="field_{{ field.key }}" name="{{ field.key }}" class="form-input" value="{{ val }}" {% if field.required %}required{% endif %}>
+            {% endif %}
+
+            {% if field.help %}
+            <p class="help-text small" style="margin:0.3rem 0 0;">{{ field.help }}</p>
             {% endif %}
         </div>
         {% endfor %}

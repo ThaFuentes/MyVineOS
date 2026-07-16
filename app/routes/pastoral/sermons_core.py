@@ -101,6 +101,110 @@ def list():
     return render_template('pastoral/sermons_list.html', sermons=sermons)
 
 
+@sermons_bp.route('/import', methods=['GET', 'POST'])
+@pastoral_required()
+def import_sermons():
+    """Upload one or more DOCX/TXT/MD sermons into the library (podium-ready sections)."""
+    user_id = session['user_id']
+    if request.method == 'GET':
+        return render_template('pastoral/sermons_import.html')
+
+    files = request.files.getlist('files') or []
+    # Also accept single field name="file"
+    one = request.files.get('file')
+    if one and one.filename:
+        files.append(one)
+    files = [f for f in files if f and f.filename]
+    if not files:
+        flash('Choose at least one .docx, .txt, or .md sermon file to upload.', 'error')
+        return redirect(url_for('pastoral.sermons.import_sermons'))
+
+    visibility = request.form.get('visibility') or 'private'
+    if visibility not in ('private', 'collaborators', 'pastoral_group'):
+        visibility = 'private'
+    also_illustrations = request.form.get('also_illustrations') == '1'
+    open_first = request.form.get('open_first') == '1'
+
+    from app.models.pastoral.sermon_import import parse_sermon_document
+    from app.models.pastoral.illustrations import create_illustration
+    from werkzeug.utils import secure_filename
+
+    created = []
+    errors = []
+    for f in files:
+        name = secure_filename(f.filename) or f.filename
+        lower = name.lower()
+        if not (lower.endswith('.docx') or lower.endswith('.txt') or lower.endswith('.md')):
+            errors.append(f'{name}: unsupported type (use .docx, .txt, or .md)')
+            continue
+        try:
+            raw = f.read()
+            parsed = parse_sermon_document(raw, filename=name, as_html=True)
+            title = (request.form.get('title_override') or '').strip() if len(files) == 1 else ''
+            if not title:
+                title = parsed.get('title') or name
+            if contains_censored_word(title + ' ' + (parsed.get('notes') or '')):
+                errors.append(f'{name}: prohibited content detected')
+                continue
+
+            sermon_id = create_sermon(
+                {
+                    'title': title,
+                    'primary_passage': parsed.get('primary_passage') or None,
+                    'service_date': parsed.get('service_date') or None,
+                    'visibility': visibility,
+                    'notes': parsed.get('notes') or None,
+                    'series_tags': 'imported',
+                },
+                user_id,
+            )
+            sections = parsed.get('sections') or []
+            if sections:
+                save_sermon_sections(sermon_id, sections)
+            if also_illustrations:
+                for sec in sections:
+                    content = (sec.get('content') or '').strip()
+                    if not content or content in ('<p></p>', '<p><br></p>'):
+                        continue
+                    try:
+                        create_illustration(
+                            {
+                                'title': f"{title}: {sec.get('title') or 'Section'}"[:200],
+                                'content': content,
+                                'source': f'Imported from {name}',
+                                'tags': ['imported', 'sermon'],
+                                'visibility': 'private',
+                            },
+                            user_id,
+                        )
+                    except Exception:
+                        pass
+            log_change(
+                user_id,
+                'import',
+                sermon_id,
+                title,
+                f'Imported sermon from {name} ({len(sections)} sections)',
+            )
+            created.append({'id': sermon_id, 'title': title, 'file': name, 'sections': len(sections)})
+        except Exception as e:
+            errors.append(f'{name}: {e}')
+
+    if created:
+        flash(
+            f"Imported {len(created)} sermon{'s' if len(created) != 1 else ''}."
+            + (f" {len(errors)} file(s) failed." if errors else ''),
+            'success',
+        )
+    for err in errors[:8]:
+        flash(err, 'error')
+    if not created:
+        return redirect(url_for('pastoral.sermons.import_sermons'))
+    if open_first and len(created) == 1:
+        return redirect(url_for('pastoral.sermons.edit', sermon_id=created[0]['id']))
+    return redirect(url_for('pastoral.sermons.list'))
+
+
 @sermons_bp.route('/new', methods=['GET', 'POST'])
 @pastoral_required()
 def new():

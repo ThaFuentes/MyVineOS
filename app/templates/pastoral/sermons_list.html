@@ -22,9 +22,17 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.75rem; margin-bottom:1rem;">
         <div>
             <h1 style="color:var(--primary); margin:0 0 0.25rem;">Sermon Library</h1>
-            <p style="margin:0; opacity:0.7; font-size:0.9rem;">{{ sermons|length }} sermon{{ 's' if sermons|length != 1 else '' }} visible to you</p>
+            <p style="margin:0; opacity:0.7; font-size:0.9rem;">{{ sermons|length }} sermon{{ 's' if sermons|length != 1 else '' }} visible to you — your content, always downloadable</p>
         </div>
-        <a href="{{ url_for('pastoral.sermons.new') }}" class="btn btn-primary">+ New Sermon</a>
+        <div style="display:flex; flex-wrap:wrap; gap:0.45rem;">
+            <a href="{{ url_for('pastoral.sermons.import_sermons') }}" class="btn btn-secondary" title="Upload Word / text sermons you already wrote">
+                <i class="fa-solid fa-file-import" aria-hidden="true"></i> Upload sermons
+            </a>
+            <a href="{{ url_for('pastoral.sermons_export.list') }}" class="btn btn-secondary" title="Bulk export sermons to DOCX/ZIP">
+                <i class="fa-solid fa-download" aria-hidden="true"></i> Export library
+            </a>
+            <a href="{{ url_for('pastoral.sermons.new') }}" class="btn btn-primary">+ New Sermon</a>
+        </div>
     </div>
 
     <!-- Search / Filter Bar -->
@@ -108,7 +116,9 @@
                                 <a href="{{ url_for('pastoral.podium.view', sermon_id=sermon.id) }}"
                                    class="btn btn-sm btn-outline-cyan" target="_blank">Podium</a>
                                 <a href="{{ url_for('pastoral.sermons_export.single', sermon_id=sermon.id) }}"
-                                   class="btn btn-sm btn-outline-cyan">Export DOCX</a>
+                                   class="btn btn-sm btn-outline-cyan" title="Download this sermon as Word">
+                                    <i class="fa-solid fa-download" aria-hidden="true"></i> DOCX
+                                </a>
 
                                 {% if sermon.created_by == session.user_id %}
                                     <form method="POST" action="{{ url_for('pastoral.sermons.delete', sermon_id=sermon.id) }}"
@@ -132,10 +142,15 @@
         <div class="text-center py-5">
             <i class="fas fa-book-open fa-5x text-muted mb-4 opacity-50"></i>
             <h3 class="text-muted">No Sermons Found</h3>
-            <p class="text-muted mb-4">Create your first sermon or adjust filters to see existing ones.</p>
-            <a href="{{ url_for('pastoral.sermons.new') }}" class="btn btn-success btn-lg">
-                <i class="fas fa-plus me-2"></i>Create Your First Sermon
-            </a>
+            <p class="text-muted mb-4">Create a new sermon, or upload ones you already wrote in Word.</p>
+            <div style="display:flex; flex-wrap:wrap; gap:0.55rem; justify-content:center;">
+                <a href="{{ url_for('pastoral.sermons.import_sermons') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-file-import me-2"></i>Upload sermons
+                </a>
+                <a href="{{ url_for('pastoral.sermons.new') }}" class="btn btn-success btn-lg">
+                    <i class="fas fa-plus me-2"></i>Create Your First Sermon
+                </a>
+            </div>
         </div>
     {% endif %}
 </div>
