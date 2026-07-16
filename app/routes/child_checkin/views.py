@@ -501,15 +501,61 @@ def report():
 @child_checkin_bp.route('/my-kids', methods=['GET', 'POST'])
 @login_required
 def my_kids():
-    """Parents manage links / see today's status. Staff can also use this for their kids."""
+    """Parents add kids, set family/child PINs, and see today's check-in status."""
     uid = _uid()
     kids = cc.children_for_user(uid)
 
-    if request.method == 'POST' and _can_manage():
-        # Quick link existing child to me
-        action = request.form.get('action')
-        if action == 'link_self':
-            try:
+    if request.method == 'POST':
+        action = request.form.get('action') or ''
+        try:
+            if action == 'add_child':
+                # Any logged-in member can register their own child + PIN
+                cid = cc.parent_create_child(uid, {
+                    'first_name': request.form.get('first_name'),
+                    'last_name': request.form.get('last_name'),
+                    'nickname': request.form.get('nickname'),
+                    'birthdate': request.form.get('birthdate'),
+                    'gender': request.form.get('gender'),
+                    'allergies': request.form.get('allergies'),
+                    'medical_notes': request.form.get('medical_notes'),
+                    'pin_code': request.form.get('pin_code'),
+                    'family_pin': request.form.get('family_pin') or request.form.get('pin_code'),
+                    'relationship': request.form.get('relationship') or 'parent',
+                    'default_classroom_id': request.form.get('default_classroom_id') or None,
+                    'notify_email': request.form.get('notify_email') == '1',
+                    'notify_checkin': request.form.get('notify_checkin') != '0',
+                    'notify_checkout': request.form.get('notify_checkout') != '0',
+                })
+                flash(
+                    'Child added to your profile. Use the family/child PIN at the check-in kiosk.',
+                    'success',
+                )
+                log_change(uid, 'create', cid, change_details='Parent added child via My Kids')
+            elif action == 'update_child':
+                cid = int(request.form.get('child_id') or 0)
+                pin = (request.form.get('pin_code') or '').strip()
+                data = {
+                    'first_name': request.form.get('first_name'),
+                    'last_name': request.form.get('last_name'),
+                    'nickname': request.form.get('nickname'),
+                    'birthdate': request.form.get('birthdate'),
+                    'allergies': request.form.get('allergies'),
+                    'medical_notes': request.form.get('medical_notes'),
+                }
+                if pin:
+                    data['pin_code'] = pin
+                cc.parent_update_child(uid, cid, data)
+                # Family PIN / notify on guardian link
+                cc.update_guardian_for_user(uid, cid, {
+                    'family_pin': request.form.get('family_pin'),
+                    'relationship': request.form.get('relationship'),
+                    'notify_email': request.form.get('notify_email') == '1',
+                    'notify_checkin': request.form.get('notify_checkin') == '1',
+                    'notify_checkout': request.form.get('notify_checkout') == '1',
+                })
+                flash('Child / PIN settings updated.', 'success')
+                log_change(uid, 'update', cid, change_details='Parent updated child via My Kids')
+            elif action == 'link_self' and _can_manage():
                 cid = int(request.form.get('child_id') or 0)
                 cc.add_guardian(cid, {
                     'user_id': uid,
@@ -522,9 +568,13 @@ def my_kids():
                     'notify_checkout': True,
                 })
                 flash('Child linked to your account.', 'success')
-            except Exception as e:
-                flash(str(e), 'error')
-            return redirect(url_for('child_checkin.my_kids'))
+            else:
+                flash('Unknown action.', 'error')
+        except ValueError as e:
+            flash(str(e), 'error')
+        except Exception as e:
+            flash(str(e), 'error')
+        return redirect(url_for('child_checkin.my_kids'))
 
     today_status = []
     for k in kids:
@@ -537,5 +587,6 @@ def my_kids():
         today_status=today_status,
         can_manage=_can_manage(),
         all_children=cc.list_children() if _can_manage() else [],
+        rooms=cc.list_classrooms(active_only=True),
         settings=cc.get_checkin_settings(),
     )

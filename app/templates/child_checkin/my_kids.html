@@ -1,30 +1,131 @@
 {% extends "base.html" %}
 {% block title %}My Kids{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/child_checkin.css') }}?v=20260714a">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/child_checkin.css') }}?v=20260716k">
 {% endblock %}
 
 {% block content %}
 <div class="glass-panel cci-hero">
   <h1><i class="fa-solid fa-child-reaching" aria-hidden="true"></i> My Kids</h1>
-  <p>See who’s checked in today and your pickup codes. Staff can also link children to your account here.</p>
+  <p>
+    Add your children, set a <strong>family / child PIN</strong> for kiosk check-in &amp; pickup,
+    and see who’s checked in today.
+  </p>
+  {% include 'partials/my_stuff_nav.html' %}
   {% if can_manage %}
-  <div class="cci-actions">
+  <div class="cci-actions" style="margin-top:0.75rem;">
     <a href="{{ url_for('child_checkin.dashboard') }}" class="btn btn-secondary">Staff Check-In Console</a>
   </div>
   {% endif %}
 </div>
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-messages">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+{# ── Add child (all parents) ── #}
+<div class="glass-panel" style="padding:1.15rem; margin-bottom:1.25rem; max-width:640px;">
+  <h2 style="margin:0 0 0.35rem; font-size:1.05rem; color:var(--primary);">
+    <i class="fa-solid fa-plus" aria-hidden="true"></i> Add my child
+  </h2>
+  <p class="help-text" style="margin:0 0 0.85rem;">
+    Creates a child profile linked to <strong>your account</strong>.
+    Use the same PIN at the church check-in kiosk to sign them in / pick them up.
+  </p>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="add_child">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+      <div class="form-group" style="margin:0;">
+        <label for="add_first">First name <span class="required">*</span></label>
+        <input type="text" id="add_first" name="first_name" class="form-input" required autocomplete="off">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label for="add_last">Last name <span class="required">*</span></label>
+        <input type="text" id="add_last" name="last_name" class="form-input" required autocomplete="off">
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; margin-top:0.65rem;">
+      <div class="form-group" style="margin:0;">
+        <label for="add_birth">Birthday</label>
+        <input type="date" id="add_birth" name="birthdate" class="form-input">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label for="add_rel">Your relationship</label>
+        <select id="add_rel" name="relationship" class="form-input">
+          <option value="parent" selected>Parent</option>
+          <option value="guardian">Guardian</option>
+          <option value="grandparent">Grandparent</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:0.65rem;">
+      <label for="add_allergies">Allergies / medical notes (optional)</label>
+      <input type="text" id="add_allergies" name="allergies" class="form-input" placeholder="e.g. Peanuts, asthma inhaler">
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; margin-top:0.65rem;">
+      <div class="form-group" style="margin:0;">
+        <label for="add_pin">Child / Family PIN <span class="required">*</span></label>
+        <input type="text" id="add_pin" name="pin_code" class="form-input" inputmode="numeric"
+               pattern="[0-9]{4,6}" minlength="4" maxlength="6" required
+               placeholder="4–6 digits" autocomplete="off">
+        <p class="help-text" style="margin:0.25rem 0 0;">Used at the kiosk to find / check in your child.</p>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label for="add_fpin">Confirm PIN</label>
+        <input type="text" id="add_fpin" name="family_pin" class="form-input" inputmode="numeric"
+               pattern="[0-9]{4,6}" minlength="4" maxlength="6"
+               placeholder="Same 4–6 digits" autocomplete="off">
+      </div>
+    </div>
+    {% if rooms %}
+    <div class="form-group" style="margin-top:0.65rem;">
+      <label for="add_room">Default classroom (optional)</label>
+      <select id="add_room" name="default_classroom_id" class="form-input">
+        <option value="">— Assign later —</option>
+        {% for r in rooms %}
+        <option value="{{ r.id }}">{{ r.name }}{% if r.age_label %} ({{ r.age_label }}){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div style="display:flex; flex-wrap:wrap; gap:0.75rem 1.1rem; margin:0.75rem 0; font-size:0.88rem;">
+      <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+        <input type="checkbox" name="notify_checkin" value="1" checked> Email me on check-in
+      </label>
+      <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+        <input type="checkbox" name="notify_checkout" value="1" checked> Email me on pickup
+      </label>
+      <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+        <input type="checkbox" name="notify_email" value="1" checked> Allow check-in emails
+      </label>
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Save child to my profile
+    </button>
+  </form>
+</div>
+
+{# ── Status cards ── #}
 {% if today_status %}
+<h2 class="section-title" style="margin:0 0 0.65rem;">Today</h2>
 <div class="cci-board-grid">
   {% for row in today_status %}
   {% set k = row.child %}
   {% set ci = row.checkin %}
-  <div class="glass-panel cci-board-card {% if k.allergies %}has-allergy{% endif %}">
+  <div class="glass-panel cci-board-card {% if k.allergies %}has-allergy{% endif %}" id="kid-{{ k.id }}">
     <strong style="font-size:1.1rem;">{{ k.display_name }}</strong>
     <div style="font-size:0.85rem; opacity:0.75; margin-top:0.2rem;">
       {{ k.default_classroom_name or 'No default room' }}
       {% if k.age_label %} · {{ k.age_label }}{% endif %}
+      {% if k.pin_code %} · PIN on file{% endif %}
     </div>
     {% if ci %}
     <div style="margin-top:0.55rem; padding:0.55rem; border-radius:10px; background:color-mix(in srgb, #22c55e 15%, transparent);">
@@ -35,19 +136,52 @@
     {% else %}
     <div style="margin-top:0.55rem; font-size:0.88rem; opacity:0.65;">Not checked in today</div>
     {% endif %}
+
+    <details style="margin-top:0.75rem;">
+      <summary style="cursor:pointer; font-size:0.88rem; color:var(--primary);">Edit child / change PIN</summary>
+      <form method="post" class="styled-form" style="margin-top:0.65rem;">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="update_child">
+        <input type="hidden" name="child_id" value="{{ k.id }}">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <label>First <input type="text" name="first_name" class="form-input" value="{{ k.first_name }}" required></label>
+          <label>Last <input type="text" name="last_name" class="form-input" value="{{ k.last_name }}" required></label>
+        </div>
+        <label style="display:block; margin-top:0.45rem;">Birthday
+          <input type="date" name="birthdate" class="form-input" value="{{ k.birthdate or '' }}">
+        </label>
+        <label style="display:block; margin-top:0.45rem;">Allergies
+          <input type="text" name="allergies" class="form-input" value="{{ k.allergies or '' }}">
+        </label>
+        <label style="display:block; margin-top:0.45rem;">Child PIN (4–6 digits)
+          <input type="text" name="pin_code" class="form-input" inputmode="numeric" maxlength="6"
+                 placeholder="{% if k.pin_code %}Leave blank to keep current{% else %}Set a PIN{% endif %}" autocomplete="off">
+        </label>
+        <label style="display:block; margin-top:0.45rem;">Family PIN for kiosk (4–6 digits)
+          <input type="text" name="family_pin" class="form-input" inputmode="numeric" maxlength="6"
+                 placeholder="{% if k.family_pin %}Leave blank to keep current{% else %}Optional family PIN{% endif %}" autocomplete="off">
+        </label>
+        <div style="display:flex; flex-wrap:wrap; gap:0.55rem 0.9rem; margin:0.55rem 0; font-size:0.85rem;">
+          <label><input type="checkbox" name="notify_checkin" value="1" {% if k.notify_checkin %}checked{% endif %}> Check-in email</label>
+          <label><input type="checkbox" name="notify_checkout" value="1" {% if k.notify_checkout %}checked{% endif %}> Pickup email</label>
+          <label><input type="checkbox" name="notify_email" value="1" {% if k.notify_email %}checked{% endif %}> Allow emails</label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-small">Save changes</button>
+      </form>
+    </details>
   </div>
   {% endfor %}
 </div>
 {% else %}
-<div class="glass-panel" style="padding:1.5rem; text-align:center;">
-  <p style="margin:0 0 0.5rem;">No children linked to your account yet.</p>
-  <p style="margin:0; opacity:0.7; font-size:0.9rem;">Ask a staff member to add you as a guardian on your child’s profile — or if you’re staff, link below.</p>
+<div class="glass-panel" style="padding:1.25rem; text-align:center; margin-bottom:1rem;">
+  <p style="margin:0 0 0.35rem;">No children on your account yet.</p>
+  <p style="margin:0; opacity:0.75; font-size:0.9rem;">Use <strong>Add my child</strong> above to register them and set a PIN.</p>
 </div>
 {% endif %}
 
 {% if can_manage and all_children %}
 <div class="glass-panel" style="padding:1.1rem; margin-top:1.25rem; max-width:520px;">
-  <h2 style="margin:0 0 0.5rem; font-size:1rem;">Staff: link a child to me</h2>
+  <h2 style="margin:0 0 0.5rem; font-size:1rem;">Staff: link an existing child to me</h2>
   <form method="post" class="styled-form">
     {% include 'partials/csrf_field.html' %}
     <input type="hidden" name="action" value="link_self">
@@ -64,4 +198,20 @@
   </form>
 </div>
 {% endif %}
+
+<script>
+(function () {
+  var pin = document.getElementById('add_pin');
+  var fpin = document.getElementById('add_fpin');
+  if (!pin || !fpin) return;
+  var form = pin.closest('form');
+  form && form.addEventListener('submit', function (e) {
+    if (fpin.value && pin.value && fpin.value !== pin.value) {
+      e.preventDefault();
+      alert('Child PIN and Confirm PIN must match.');
+    }
+    if (!fpin.value && pin.value) fpin.value = pin.value;
+  });
+})();
+</script>
 {% endblock %}

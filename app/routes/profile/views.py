@@ -29,6 +29,7 @@ from .queries import (
 )
 from .forms import validate_profile_form
 from .utils import REQUIRED_ROLES, current_user_id, hash_checkin_pin
+from .security import EMAIL_PREFERENCE_FIELDS
 
 from app.utils.decorators import login_required
 from app.utils.helpers import contains_censored_word
@@ -54,6 +55,28 @@ def profile():
             if action == 'search':
                 search_query = request.form['search_query'].strip().lower()
                 search_results = search_family_members(user_id, search_query)
+
+            elif action == 'email_preferences':
+                # Opt-in/out of church emails (same fields as Security page)
+                updates = {
+                    field: 1 if request.form.get(field) else 0
+                    for field, _ in EMAIL_PREFERENCE_FIELDS
+                }
+                if not updates.get('accepts_emails'):
+                    for field, _ in EMAIL_PREFERENCE_FIELDS:
+                        if field != 'accepts_emails':
+                            updates[field] = 0
+                db = get_db()
+                cur = db.cursor()
+                set_clause = ', '.join(f'{field} = %s' for field in updates)
+                cur.execute(
+                    f'UPDATE users SET {set_clause} WHERE id = %s',
+                    (*updates.values(), user_id),
+                )
+                db.commit()
+                log_change(user_id, 'update', change_details='Updated email preferences from profile')
+                flash('Email preferences saved.', 'success')
+                return redirect(url_for('profile.profile') + '#email-prefs')
 
             else:  # Profile update
                 clean_data = validate_profile_form(request.form, current_role=session.get('user_role'))
@@ -137,7 +160,8 @@ def profile():
         pending_requests=pending_requests,
         family=family,
         suggested_users=suggested_users,
-        search_results=search_results
+        search_results=search_results,
+        email_preferences=EMAIL_PREFERENCE_FIELDS,
     )
 
 
