@@ -20,7 +20,9 @@ MyVineOS is a full-stack platform built like serious software for real ministry 
 | **Ownership** | Full source code — fork it, brand it, host it, audit it |
 | **Cost control** | Free to download and run; you only pay for hosting if you choose hosted infrastructure |
 | **Security-minded** | PoweredByTop request pipeline + in-app **Security Console**, encryption for credentials, CSRF, rate limits, RBAC, optional 2FA, re-auth for vault reveals |
-| **Bible built-in** | Live multi-version reader (public + members), highlights/notes/favorites when logged in, Strong’s, cross-refs, personal defaults |
+| **Bible built-in** | Live multi-version reader (public + members), pastoral sermon insert, study notes, Strong’s, cross-ref popups |
+| **Ops modules** | Multi-campus, volunteers/My Serving, child check-in, curriculum studio, accounting, inventory, tickets, help packs |
+| **Accessible UI** | Large page/Bible text sizes; cards and forms grow so older eyes can read without text spilling off |
 | **Practical stack** | Python **Flask**, **MariaDB/MySQL**, vanilla JS/CSS — no mandatory Node frontend build |
 | **Maintainable** | Clear `app/routes`, `app/models`, `app/templates`, and `builddb` schema modules |
 
