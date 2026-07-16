@@ -1,0 +1,137 @@
+{% extends "pastoral/base_pastoral.html" %}
+{% block title %}{{ series.title }} · Curriculum{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260716form">
+{% endblock %}
+
+{% block pastoral_content %}
+<section class="content-section curr-series-edit">
+  <p class="curr-back-row" style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+    <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn-secondary">← Curriculum Studio</a>
+    {% if series.status == 'published' %}
+    <a href="{{ url_for('curriculum.course', series_id=series.id) }}" class="btn-secondary" target="_blank" rel="noopener">
+      Open as learner
+    </a>
+    {% endif %}
+  </p>
+
+  <div class="curr-layout">
+    <div>
+      <div class="glass-panel curr-edit-panel">
+        <div class="curr-edit-title-row">
+          <h1>{{ series.title }}</h1>
+          <span class="curr-pill curr-pill--{{ series.status }}">{{ series.status }}</span>
+        </div>
+
+        <div class="curr-stat-row">
+          <div class="glass-panel curr-stat"><strong>{{ lessons|length }}</strong><span>Lessons</span></div>
+          <div class="glass-panel curr-stat"><strong>{{ stats.enrolled or 0 }}</strong><span>Learners</span></div>
+          <div class="glass-panel curr-stat"><strong>{{ stats.avg_progress or 0 }}%</strong><span>Avg progress</span></div>
+        </div>
+
+        <form method="post" class="styled-form curr-styled-form">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="save">
+
+          <div class="form-group">
+            <label for="edit-title" class="control-label">Course title <span class="required">*</span></label>
+            <input type="text" id="edit-title" name="title" class="form-input" value="{{ series.title }}" required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-subtitle" class="control-label">Subtitle <span class="help-optional">(optional)</span></label>
+            <input type="text" id="edit-subtitle" name="subtitle" class="form-input" value="{{ series.subtitle or '' }}">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-description" class="control-label">Description <span class="help-optional">(optional)</span></label>
+            <textarea id="edit-description" name="description" class="form-input" rows="5">{{ series.description or '' }}</textarea>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="edit-audience" class="control-label">Audience</label>
+              <select id="edit-audience" name="audience" class="form-input">
+                {% for key, label in audiences %}
+                <option value="{{ key }}" {% if series.audience==key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-visibility" class="control-label">Who can study it</label>
+              <select id="edit-visibility" name="visibility" class="form-input">
+                <option value="members" {% if series.visibility=='members' %}selected{% endif %}>Logged-in members</option>
+                <option value="public" {% if series.visibility=='public' %}selected{% endif %}>Anyone with the link (login)</option>
+                <option value="pastoral" {% if series.visibility=='pastoral' %}selected{% endif %}>Pastoral only</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-tags" class="control-label">Tags <span class="help-optional">(comma-separated)</span></label>
+            <input type="text" id="edit-tags" name="tags" class="form-input" value="{{ series.tags or '' }}"
+                   placeholder="discipleship, baptism, core">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-minutes" class="control-label">Estimated total minutes</label>
+            <input type="number" id="edit-minutes" name="estimated_minutes" class="form-input"
+                   value="{{ series.estimated_minutes or '' }}" min="1" max="9999" placeholder="45">
+          </div>
+
+          <div class="form-actions curr-series-actions">
+            <button type="submit" class="btn-primary">Save details</button>
+            {% if series.status != 'published' %}
+            <button type="submit" name="action" value="publish" class="btn-primary"
+                    style="background:linear-gradient(135deg,#16a34a,#22c55e); border:none;">
+              Publish course
+            </button>
+            {% else %}
+            <button type="submit" name="action" value="unpublish" class="btn-secondary">Unpublish</button>
+            {% endif %}
+            <button type="submit" name="action" value="duplicate" class="btn-secondary">Duplicate</button>
+            <button type="submit" name="action" value="delete" class="btn-secondary"
+                    onclick="return confirm('Delete this entire course and all lessons?');"
+                    style="color:#fca5a5;">Delete</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <aside class="curr-layout-side glass-panel curr-edit-panel">
+      <h2 class="section-subtitle" style="margin:0 0 0.5rem; font-size:1.05rem;">Lessons</h2>
+      <p class="help-text" style="margin:0 0 0.85rem;">
+        Short lessons work best. Mix teaching with one or two questions so people stay engaged.
+      </p>
+
+      {% if lessons %}
+      <ul class="curr-lesson-list">
+        {% for les in lessons %}
+        <li class="curr-lesson-item">
+          <span class="num">{{ loop.index }}</span>
+          <a href="{{ url_for('pastoral.curriculum_studio.lesson_edit', lesson_id=les.id) }}">
+            {{ les.title }}
+            <span style="display:block; font-weight:400; font-size:0.82rem; opacity:0.7; margin-top:0.2rem;">
+              {{ les.block_count or 0 }} blocks · {{ les.question_count or 0 }} questions · {{ les.status }}
+            </span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="help-text">No lessons yet — add one below.</p>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('pastoral.curriculum_studio.lesson_new', series_id=series.id) }}"
+            class="styled-form curr-styled-form" style="margin-top:1.15rem;">
+        {% include 'partials/csrf_field.html' %}
+        <div class="form-group">
+          <label for="new-lesson-title" class="control-label">New lesson title</label>
+          <input type="text" id="new-lesson-title" name="title" class="form-input" placeholder="e.g. Lesson 2 — Prayer">
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;">Add lesson</button>
+      </form>
+    </aside>
+  </div>
+</section>
+{% endblock %}

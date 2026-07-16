@@ -1,0 +1,67 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}Chart of Accounts{% endblock %}
+
+{% block acct_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+  <div>
+    <h1 class="page-title" style="margin:0;">Chart of Accounts</h1>
+    <p class="page-description" style="margin:0.35rem 0 0; opacity:0.78;">Codes, types, and balances for the ledger.</p>
+  </div>
+</div>
+
+<div class="table-wrapper glass" style="margin-bottom:1.35rem;">
+  <table class="data-table">
+    <thead>
+      <tr><th>Code</th><th>Name</th><th>Type</th><th class="acct-money">Balance</th></tr>
+    </thead>
+    <tbody>
+      {% for a in accounts %}
+      <tr style="{% if not a.is_active %}opacity:0.5;{% endif %}">
+        <td><code>{{ a.code }}</code></td>
+        <td>{{ a.name }}{% if a.is_system %} <span style="opacity:0.5;font-size:0.75rem;">system</span>{% endif %}</td>
+        <td><span class="acct-type">{{ a.account_type }}</span></td>
+        <td class="acct-money">${{ '%.2f'|format(a.bal.balance) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="glass-panel acct-form-panel">
+  <h2>Add account</h2>
+  <p class="acct-form-lead">Custom accounts for expenses, assets, or liability tracking.</p>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
+    <div class="form-row">
+      <label>Code *
+        <input type="text" name="code" class="form-input" required placeholder="5900" maxlength="20">
+      </label>
+      <label>Name *
+        <input type="text" name="name" class="form-input" required placeholder="e.g. Guest speakers">
+      </label>
+    </div>
+
+    <label>Type
+      <select name="account_type" class="form-input">
+        {% for k, lab in account_types %}
+        <option value="{{ k }}">{{ lab }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Description
+      <input type="text" name="description" class="form-input" placeholder="Optional note">
+    </label>
+
+    <label>Sort order
+      <input type="number" name="sort_order" class="form-input" value="500">
+    </label>
+    <p class="help-text">Lower numbers appear first in lists.</p>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Add account</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -137,6 +137,34 @@
 
 <section class="content-section">
     <div class="settings-card">
+        <h3 class="section-subtitle">Default display theme</h3>
+        <p class="help-text">
+            Church-wide look for the whole site — including the public welcome page and visitors who are not logged in.
+            Members who have not picked their own theme will see this. Anyone can still open <strong>Display</strong>
+            (palette icon) and choose a different theme for themselves.
+        </p>
+        <form method="POST" class="styled-form">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="update_display_default">
+            <div class="form-group" style="max-width:22rem;">
+                <label for="default_ui_theme">Default theme</label>
+                <select id="default_ui_theme" name="default_ui_theme" class="form-input">
+                    {% for key in theme_choices %}
+                    <option value="{{ key }}" {% if church_default_theme == key %}selected{% endif %}>
+                        {{ theme_labels.get(key, key) }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-actions" style="margin-top:0.75rem;">
+                <button type="submit" class="btn-primary">Save default theme</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="content-section">
+    <div class="settings-card">
         <h3 class="section-subtitle">Public Comments</h3>
         <p class="help-text">
             Disable all public-facing comment forms site-wide (events, sermons, prayers, etc.).

@@ -1,0 +1,57 @@
+{% extends "volunteers/base_vol.html" %}
+{% block title %}{% if team %}Edit Team{% else %}New Team{% endif %}{% endblock %}
+
+{% block vol_content %}
+<section class="content-section vol-form-page">
+  <p class="vol-back-row">
+    <a href="{{ url_for('volunteers.teams_list') }}" class="btn-secondary">← Teams</a>
+  </p>
+
+  <div class="glass-panel vol-panel">
+    <h1 class="vol-page-title">{% if team %}Edit team{% else %}New volunteer team{% endif %}</h1>
+    <p class="vol-page-desc">
+      Teams group people who serve together (greeters, tech, kids, hospitality, and more).
+      Required fields marked with <span class="required">*</span>.
+    </p>
+
+    <form method="post" class="styled-form vol-styled-form">
+      {% include 'partials/csrf_field.html' %}
+
+      <div class="form-group">
+        <label for="team-name" class="control-label">Team name <span class="required">*</span></label>
+        <input type="text" id="team-name" name="name" class="form-input" required
+               value="{{ team.name if team else '' }}" placeholder="e.g. Greeters" autofocus>
+        <p class="help-text">A short name everyone will recognize on the schedule.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="team-desc" class="control-label">Description <span class="vol-help-optional">(optional)</span></label>
+        <textarea id="team-desc" name="description" class="form-input" rows="3"
+                  placeholder="What this team does on a typical Sunday">{{ team.description if team else '' }}</textarea>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="team-color" class="control-label">Color</label>
+          <div style="display:flex; align-items:center; gap:0.65rem;">
+            <input type="color" id="team-color" name="color" value="{{ team.color if team else '#22d3ee' }}"
+                   style="width:3.25rem; height:2.75rem; padding:0.2rem; border-radius:8px; cursor:pointer; border:1px solid var(--primary-border);">
+            <span class="help-text" style="margin:0;">Shown on the schedule and team cards.</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="team-sort" class="control-label">Sort order</label>
+          <input type="number" id="team-sort" name="sort_order" class="form-input"
+                 value="{{ team.sort_order if team else 0 }}">
+          <p class="help-text">Lower numbers appear first in lists.</p>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">{% if team %}Save team{% else %}Create team{% endif %}</button>
+        <a href="{{ url_for('volunteers.teams_list') }}" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

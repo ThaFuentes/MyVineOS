@@ -1,0 +1,170 @@
+{# Shared study blocks for pastoral preview + member lesson #}
+{% set by_block = (progress.by_block if progress else {}) or {} %}
+{% set media_endpoint = 'pastoral.curriculum_studio.media_file' if is_preview else 'curriculum.media_file' %}
+{% set answer_action = none if is_preview else url_for('curriculum.lesson', lesson_id=lesson.id) %}
+
+{% for b in blocks %}
+<div class="study-block" id="block-{{ b.id }}">
+  {% if b.block_type == 'divider' %}
+    <hr style="border:none; border-top:1px solid rgba(255,255,255,0.12); margin:0.25rem 0;">
+    {% if b.title %}<p style="text-align:center; opacity:0.65; font-size:0.85rem; margin:0.4rem 0 0;">{{ b.title }}</p>{% endif %}
+
+  {% elif b.block_type == 'text' %}
+    {% if b.title %}<h3>{{ b.title }}</h3>{% endif %}
+    <div class="body-text">{{ b.body or '' }}</div>
+
+  {% elif b.block_type == 'scripture' %}
+    {% if b.title %}<h3>{{ b.title }}</h3>{% endif %}
+    <div class="study-scripture">{{ b.body or '' }}</div>
+
+  {% elif b.block_type == 'image' %}
+    {% if b.title %}<h3>{{ b.title }}</h3>{% endif %}
+    <div class="study-media">
+      {% if b.media_path %}
+      <img src="{{ url_for(media_endpoint, filename=b.media_path) }}" alt="{{ b.media_alt or b.title or '' }}">
+      {% elif b.media_url %}
+      <img src="{{ b.media_url }}" alt="{{ b.media_alt or b.title or '' }}">
+      {% endif %}
+    </div>
+    {% if b.body %}<p class="body-text" style="margin-top:0.5rem; opacity:0.85;">{{ b.body }}</p>{% endif %}
+
+  {% elif b.block_type == 'video' %}
+    {% if b.title %}<h3>{{ b.title }}</h3>{% endif %}
+    <div class="study-media">
+      {% if b.media_path %}
+      <video controls src="{{ url_for(media_endpoint, filename=b.media_path) }}"></video>
+      {% elif b.media_url %}
+        {% set embed = youtube_embed_url(b.media_url) if youtube_embed_url is defined else b.media_url %}
+        {% if 'youtube.com/embed' in embed or 'vimeo.com' in embed %}
+        <iframe src="{{ embed }}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+        {% else %}
+        <video controls src="{{ embed }}"></video>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% if b.body %}<p class="body-text" style="margin-top:0.5rem; opacity:0.85;">{{ b.body }}</p>{% endif %}
+
+  {% elif b.block_type in ('multiple_choice', 'true_false', 'fill_blank') %}
+    <div class="study-q">
+      <h3>{% if b.block_type == 'fill_blank' %}Fill in the blank{% elif b.block_type == 'true_false' %}True or False{% else %}Check your understanding{% endif %}</h3>
+      {% if b.block_type != 'fill_blank' %}
+      <p style="margin:0 0 0.5rem; font-weight:600;">{{ b.question_prompt or '' }}</p>
+      {% endif %}
+
+      {% set prev = by_block.get(b.id) %}
+      {% if is_preview %}
+      {# Interactive client-side check for preview without saving #}
+      <form class="study-answer-form" action="#" onsubmit="return false;" data-preview="1">
+        {% include 'partials/csrf_field.html' %}
+        {% if b.block_type in ('multiple_choice', 'true_false') %}
+        <div class="study-options">
+          {% for c in b.choices %}
+          <label class="study-option">
+            <input type="radio" name="answer" value="{{ c.id }}" data-correct="{{ 1 if c.is_correct else 0 }}">
+            <span>{{ c.label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="study-fill">
+          {% for part in fill_blank_parts(b.question_prompt or '') %}
+            {% if part.type == 'blank' %}
+            <input type="text" name="answer" autocomplete="off" aria-label="Blank">
+            {% else %}
+            <span>{{ part.value }}</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+        <input type="hidden" name="accepted" value="{{ (b.correct_answers or [])|join('|') }}">
+        {% endif %}
+        <button type="button" class="btn btn-primary preview-check" style="margin-top:0.5rem;">Check answer</button>
+        <div class="study-result" data-explanation="{{ b.explanation or '' }}"></div>
+      </form>
+      {% else %}
+      <form method="post" action="{{ answer_action }}" class="study-answer-form" data-show-answers="0">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="block_id" value="{{ b.id }}">
+        {% if b.block_type in ('multiple_choice', 'true_false') %}
+        <div class="study-options">
+          {% for c in b.choices %}
+          <label class="study-option">
+            <input type="radio" name="answer" value="{{ c.id }}" required
+                   {% if prev and prev.is_correct %}disabled{% endif %}>
+            <span>{{ c.label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="study-fill">
+          {% for part in fill_blank_parts(b.question_prompt or '') %}
+            {% if part.type == 'blank' %}
+            <input type="text" name="answer" autocomplete="off" aria-label="Blank" required
+                   {% if prev and prev.is_correct %}disabled{% endif %}>
+            {% else %}
+            <span>{{ part.value }}</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if prev and prev.is_correct %}
+          <div class="study-result is-correct is-done" style="display:block;">
+            <strong>✓ You got it!</strong> {{ b.explanation or '' }}
+          </div>
+        {% else %}
+          {% if prev and prev.is_correct is not none and not prev.is_correct %}
+          <div class="study-result is-wrong is-done" style="display:block; margin-bottom:0.5rem;">
+            <strong>Previous try was incorrect.</strong> Review the material — you can try again.
+          </div>
+          {% endif %}
+          <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">
+            {% if prev and not prev.is_correct %}Try again{% else %}Check answer{% endif %}
+          </button>
+          <div class="study-result"></div>
+        {% endif %}
+      </form>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="glass-panel curr-empty">
+  <p>This lesson has no content yet.</p>
+</div>
+{% endfor %}
+
+<script>
+/* Preview-mode local checking (no server) */
+document.querySelectorAll('form.study-answer-form[data-preview="1"]').forEach(function (form) {
+  var btn = form.querySelector('.preview-check');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var result = form.querySelector('.study-result');
+    var explanation = (result && result.dataset.explanation) || '';
+    var ok = false;
+    var radio = form.querySelector('input[type=radio]:checked');
+    if (radio) {
+      ok = radio.getAttribute('data-correct') === '1';
+    } else {
+      var inputs = form.querySelectorAll('input[name=answer][type=text]');
+      var accepted = (form.querySelector('input[name=accepted]') || {}).value || '';
+      var norms = accepted.split('|').map(function (s) {
+        return s.trim().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+      }).filter(Boolean);
+      var answers = Array.prototype.map.call(inputs, function (el) {
+        return (el.value || '').trim().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+      });
+      if (answers.length === 1) ok = norms.indexOf(answers[0]) !== -1;
+      else ok = answers.every(function (a, i) { return a && (a === norms[i] || norms.indexOf(a) !== -1); });
+    }
+    if (!result) return;
+    result.classList.remove('is-correct', 'is-wrong');
+    if (ok) {
+      result.classList.add('is-correct');
+      result.innerHTML = '<strong>✓ Correct</strong> ' + explanation;
+    } else {
+      result.classList.add('is-wrong');
+      result.innerHTML = '<strong>Not quite.</strong> ' + (explanation || 'Try again.');
+    }
+  });
+});
+</script>

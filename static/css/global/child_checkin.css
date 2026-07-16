@@ -1,0 +1,407 @@
+/* Child Check-In — station, board, labels */
+
+.cci-hero {
+  text-align: center;
+  padding: 1.2rem 1rem;
+  margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.cci-hero::before {
+  content: "";
+  position: absolute;
+  inset: -50% -30% auto;
+  height: 160%;
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--primary) 26%, transparent), transparent 65%);
+  pointer-events: none;
+}
+.cci-hero h1 {
+  margin: 0 0 0.3rem;
+  font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+  color: var(--primary);
+  position: relative;
+}
+.cci-hero p {
+  margin: 0 auto;
+  max-width: 34rem;
+  opacity: 0.78;
+  font-size: 0.92rem;
+  position: relative;
+}
+.cci-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+  margin-top: 0.9rem;
+  position: relative;
+}
+
+.cci-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+.cci-stat {
+  text-align: center;
+  padding: 0.85rem 0.5rem;
+}
+.cci-stat strong {
+  display: block;
+  font-size: 1.6rem;
+  color: var(--primary);
+  line-height: 1.1;
+}
+.cci-stat span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.cci-room-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  text-decoration: none;
+  color: inherit;
+}
+.cci-room-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Kiosk */
+.cci-kiosk {
+  max-width: 920px;
+  margin: 0 auto;
+}
+.cci-search-wrap {
+  position: relative;
+  margin-bottom: 1rem;
+}
+.cci-search-wrap input {
+  width: 100%;
+  font-size: 1.25rem !important;
+  min-height: 56px !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 14px !important;
+  letter-spacing: 0.02em;
+}
+.cci-search-hint {
+  font-size: 0.82rem;
+  opacity: 0.65;
+  margin: 0.4rem 0 0;
+  text-align: center;
+}
+.cci-pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+  max-width: 280px;
+  margin: 0.75rem auto 0;
+}
+.cci-pin-pad button {
+  min-height: 52px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.cci-pin-pad button:active {
+  background: color-mix(in srgb, var(--primary) 25%, transparent);
+}
+.cci-pin-pad .wide {
+  grid-column: span 2;
+}
+
+.cci-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.cci-kid-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cci-kid-card:hover,
+.cci-kid-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+.cci-kid-card.is-in {
+  opacity: 0.85;
+  border-style: dashed;
+}
+.cci-kid-check {
+  width: 1.35rem;
+  height: 1.35rem;
+  accent-color: var(--primary);
+}
+.cci-kid-meta {
+  flex: 1;
+  min-width: 140px;
+}
+.cci-kid-meta strong {
+  display: block;
+  font-size: 1.05rem;
+}
+.cci-kid-meta span {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+.cci-allergy {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, #ef4444 25%, transparent);
+  color: #fecaca;
+  margin-top: 0.2rem;
+}
+.cci-room-select {
+  min-width: 140px;
+  min-height: 40px;
+}
+
+.cci-checkout-bar {
+  position: sticky;
+  bottom: 0.5rem;
+  z-index: 8;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: space-between;
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--bg-card, #1a1a1a) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+.cci-checkout-bar .btn {
+  min-height: 48px;
+  font-size: 1rem;
+}
+
+/* Success / codes */
+.cci-success-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.cci-code-card {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 2px solid var(--primary);
+}
+.cci-code-card .code {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+.cci-code-card .name {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+/* Board */
+.cci-board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.65rem;
+}
+.cci-board-card {
+  padding: 0.85rem;
+  border-radius: 12px;
+  border-left: 4px solid var(--primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+.cci-board-card.has-allergy {
+  border-left-color: #ef4444;
+}
+
+/* Pickup */
+.cci-pickup-input {
+  font-size: 2rem !important;
+  text-align: center;
+  letter-spacing: 0.35em;
+  min-height: 64px !important;
+  font-weight: 700;
+}
+
+/* Labels — screen + print */
+.cci-label-sheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.5rem;
+}
+.cci-label {
+  width: 3.5in;
+  min-height: 2.1in;
+  border: 2px solid #111;
+  border-radius: 8px;
+  padding: 0.35in 0.3in;
+  background: #fff;
+  color: #111;
+  font-family: system-ui, -apple-system, sans-serif;
+  box-sizing: border-box;
+  page-break-inside: avoid;
+  position: relative;
+}
+.cci-label .church {
+  font-size: 9pt;
+  font-weight: 600;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cci-label .child-name {
+  font-size: 18pt;
+  font-weight: 800;
+  margin: 0.08in 0 0.04in;
+  line-height: 1.15;
+}
+.cci-label .room {
+  font-size: 12pt;
+  font-weight: 700;
+  padding: 0.06in 0.12in;
+  border-radius: 4px;
+  display: inline-block;
+  background: #e0f2fe;
+  margin-bottom: 0.08in;
+}
+.cci-label .code-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15in;
+  margin-top: 0.08in;
+}
+.cci-label .code-big {
+  font-size: 28pt;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.cci-label .code-label {
+  font-size: 8pt;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+.cci-label .allergy {
+  margin-top: 0.08in;
+  font-size: 9pt;
+  font-weight: 700;
+  color: #b91c1c;
+  border: 1.5px solid #b91c1c;
+  border-radius: 4px;
+  padding: 0.04in 0.08in;
+  display: inline-block;
+}
+.cci-label .footer {
+  margin-top: 0.1in;
+  font-size: 8pt;
+  opacity: 0.65;
+}
+.cci-label .sec-code {
+  position: absolute;
+  top: 0.25in;
+  right: 0.25in;
+  font-size: 10pt;
+  font-weight: 700;
+  opacity: 0.55;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .cci-print-root,
+  .cci-print-root * {
+    visibility: visible;
+  }
+  .cci-print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .cci-label {
+    box-shadow: none;
+  }
+}
+
+.cci-nav-pills {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  background: var(--bg-card, #252525);
+  border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.15));
+  border-radius: 12px;
+  padding: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+.cci-nav-pills a {
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+.cci-nav-pills a.is-active {
+  background: var(--primary);
+  color: var(--text-on-primary, #0a0a0a);
+}
+
+[data-theme="soft-light"] .cci-kid-card,
+[data-theme="soft-light"] .cci-board-card {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 720px) {
+  .cci-detail-grid,
+  .child-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .cci-kiosk label.glass-panel {
+    /* form rows under search */
+  }
+  div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}

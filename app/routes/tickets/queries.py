@@ -80,6 +80,40 @@ def get_all_tickets():
     return cur.fetchall()
 
 
+def get_tickets_assigned_to(user_id, open_only=True):
+    """Tickets assigned to a staff member (for My Serving)."""
+    if not user_id:
+        return []
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    sql = """
+        SELECT t.*, c.name AS category_name,
+               u.username AS creator_name, a.username AS assignee_name
+        FROM tickets t
+        JOIN ticket_categories c ON t.category_id = c.id
+        LEFT JOIN users u ON t.created_by = u.id
+        LEFT JOIN users a ON t.assigned_to = a.id
+        WHERE t.assigned_to = %s
+    """
+    params = [user_id]
+    if open_only:
+        sql += " AND t.status NOT IN ('resolved', 'closed')"
+    sql += """
+        ORDER BY
+            CASE t.priority
+                WHEN 'urgent' THEN 1
+                WHEN 'high' THEN 2
+                WHEN 'medium' THEN 3
+                WHEN 'low' THEN 4
+                ELSE 5
+            END ASC,
+            t.updated_at DESC
+        LIMIT 40
+    """
+    cur.execute(sql, params)
+    return cur.fetchall()
+
+
 def get_open_ticket_count():
     """Count ALL open tickets (for manager dashboard)."""
     db = get_db()
@@ -222,7 +256,7 @@ def add_to_ticket_managers(user_id):
     """Add user to ticket_managers (IGNORE if already present)."""
     db = get_db()
     cur = db.cursor()
-    cur.execute("INSERT OR IGNORE INTO ticket_managers (user_id) VALUES (%s)", (user_id,))
+    cur.execute("INSERT IGNORE INTO ticket_managers (user_id) VALUES (%s)", (user_id,))
     db.commit()
 
 

@@ -82,6 +82,8 @@ def ui_preferences():
         normalize_theme,
         normalize_font_scale,
         normalize_bible_scale,
+        get_church_default_theme,
+        CHURCH_DEFAULT_TOKEN,
     )
 
     payload = request.get_json(silent=True) or {}
@@ -104,23 +106,37 @@ def ui_preferences():
         or session.get('bible_font_scale')
     )
 
-    theme = normalize_theme(theme)
+    raw_theme = (theme or '').strip().lower()
+    follow_church = raw_theme in ('', CHURCH_DEFAULT_TOKEN, 'default', 'church-default')
     font_scale = normalize_font_scale(font_scale)
     bible_scale = normalize_bible_scale(bible_scale)
+    church = get_church_default_theme()
+
+    if follow_church:
+        effective = church
+        session['guest_display_prefs'] = False
+        session['ui_use_personal_theme'] = 0
+    else:
+        effective = normalize_theme(theme)
+        session['guest_display_prefs'] = True
+        session['ui_use_personal_theme'] = 1
 
     apply_ui_prefs_to_session(
         session,
-        theme=theme,
+        theme=CHURCH_DEFAULT_TOKEN if follow_church else effective,
         font_scale=font_scale,
         bible_scale=bible_scale,
+        use_personal=not follow_church,
+        church_default=church,
     )
-    session['guest_display_prefs'] = True
     session.modified = True
 
     saved = {
-        'theme': theme,
+        'theme': effective,
         'font_scale': font_scale,
         'bible_scale': bible_scale,
+        'use_personal': not follow_church,
+        'church_default': church,
     }
     user_id = session.get('user_id')
     if user_id:
@@ -128,13 +144,15 @@ def ui_preferences():
             saved = save_user_ui_prefs(user_id, theme, font_scale, bible_scale)
             apply_ui_prefs_to_session(
                 session,
-                theme=saved['theme'],
+                theme=saved['theme'] if saved.get('use_personal') else CHURCH_DEFAULT_TOKEN,
                 font_scale=saved['font_scale'],
                 bible_scale=saved['bible_scale'],
+                use_personal=bool(saved.get('use_personal')),
+                church_default=saved.get('church_default'),
             )
+            session['ui_use_personal_theme'] = 1 if saved.get('use_personal') else 0
         except Exception as exc:
             print(f"public.ui_preferences account save: {exc}")
-            # Session already updated — still OK for this visit
             return jsonify({'ok': True, **saved, 'persisted': 'session'})
 
     return jsonify({

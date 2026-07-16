@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Accounting{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/accounting.css') }}?v=20260715forms2">
+{% endblock %}
+
+{% block content %}
+{% set ep = request.endpoint or '' %}
+<div class="acct-nav">
+  <a href="{{ url_for('accounting.dashboard') }}" class="{{ 'is-active' if ep == 'accounting.dashboard' else '' }}">Dashboard</a>
+  <a href="{{ url_for('accounting.accounts') }}" class="{{ 'is-active' if ep == 'accounting.accounts' else '' }}">Chart of Accounts</a>
+  <a href="{{ url_for('accounting.ledger') }}" class="{{ 'is-active' if 'ledger' in ep or 'journal' in ep else '' }}">Ledger</a>
+  <a href="{{ url_for('accounting.expenses') }}" class="{{ 'is-active' if 'expense' in ep else '' }}">Expenses</a>
+  <a href="{{ url_for('accounting.vendors') }}" class="{{ 'is-active' if ep == 'accounting.vendors' else '' }}">Vendors</a>
+  <a href="{{ url_for('accounting.budgets') }}" class="{{ 'is-active' if 'budget' in ep else '' }}">Budgets</a>
+  <a href="{{ url_for('accounting.payroll') }}" class="{{ 'is-active' if 'payroll' in ep or 'pay_run' in ep or 'employee' in ep else '' }}">Payroll</a>
+  <a href="{{ url_for('accounting.reports') }}" class="{{ 'is-active' if ep == 'accounting.reports' else '' }}">Reports</a>
+  <a href="{{ url_for('bills.bills') }}">Bills</a>
+  <a href="{{ url_for('donations.donations_dashboard') }}">Donations</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-messages">
+    {% for category, message in messages %}
+    <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+{% block acct_content %}{% endblock %}
+{% endblock %}

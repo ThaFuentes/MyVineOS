@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}AI Insights{% endblock %}
+
+{% block content %}
+<div class="glass-panel ai-page-hero">
+  <h1 class="page-title" style="margin:0 0 0.45rem;">
+    <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> AI Insights
+  </h1>
+  <p class="page-description" style="margin:0; max-width:42rem;">
+    Leadership reports powered by your configured AI provider.
+    Only <strong>aggregate</strong> stats are sent (no donor names, emails, or raw security IPs).
+    Configure Gemini, Grok, OpenAI, or local Ollama under Settings.
+  </p>
+</div>
+
+<div class="glass-panel ai-status-panel" style="border-left:4px solid {% if status.configured %}#4dffc8{% else %}#ffc85a{% endif %};">
+  <div class="ai-status-label">Provider status</div>
+  {% if status.configured %}
+    <p class="ai-status-main">
+      Ready — default <code>{{ status.default_provider }}</code>
+      {% if status.default_model %}· model <code>{{ status.default_model }}</code>{% endif %}
+      {% if status.default_provider != 'ollama' and not status.has_key %}
+        <span style="color:#ffc85a;"> (enabled but key missing)</span>
+      {% endif %}
+    </p>
+  {% else %}
+    <p class="ai-status-main">
+      Not ready — enable a provider and add an API key
+      {% if can_configure %}
+        (<a href="{{ url_for('settings.ai') }}">Settings → AI Providers</a>).
+      {% else %}
+        (ask an Admin/Owner).
+      {% endif %}
+    </p>
+  {% endif %}
+  <p class="ai-status-meta">
+    {{ status.enabled_count }} provider(s) enabled.
+    {% if can_configure %}
+    <a href="{{ url_for('settings.ai') }}">Manage providers</a>
+    {% endif %}
+  </p>
+</div>
+
+<h2 class="section-subtitle" style="margin:0 0 0.85rem;">Choose a report</h2>
+<div class="ai-report-grid">
+  {% for r in reports %}
+  <a href="{% if r.allowed %}{{ url_for('ai_insights.report', report_type=r.id) }}{% else %}#{% endif %}"
+     class="glass-panel ai-report-card {% if not r.allowed %}is-disabled{% endif %}"
+     {% if not r.allowed %}aria-disabled="true" tabindex="-1"{% endif %}>
+    <div class="ai-report-card-top">
+      <span class="ai-report-icon"><i class="fa-solid {{ r.icon }}" aria-hidden="true"></i></span>
+      <span class="ai-report-title">{{ r.title }}</span>
+    </div>
+    <p class="ai-report-desc">
+      {{ r.desc }}
+      {% if not r.allowed %}<br><em>No permission for this report</em>{% endif %}
+    </p>
+  </a>
+  {% endfor %}
+</div>
+
+<div class="glass-panel ai-security-notes">
+  <h2 class="section-subtitle" style="margin:0 0 0.75rem;">Security model</h2>
+  <ul>
+    <li>API keys stay encrypted at rest; never shown again after save.</li>
+    <li>Report payloads are aggregates only (privacy-first for giving &amp; security).</li>
+    <li>Prompts and outputs pass censored-word checks; usage is rate-limited and audit-logged.</li>
+    <li>Pastoral sermon AI uses the same shared client under Pastoral → Sermon tools.</li>
+  </ul>
+</div>
+
+<style>
+  .ai-page-hero {
+    padding: 1.35rem 1.4rem;
+    margin-bottom: 1.15rem;
+  }
+  .ai-status-panel {
+    padding: 1.15rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .ai-status-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .ai-status-main {
+    margin: 0 0 0.55rem;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  .ai-status-meta {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.78;
+    line-height: 1.45;
+  }
+  .ai-report-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .ai-report-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+  }
+  @media (min-width: 1000px) {
+    .ai-report-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  .ai-report-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 1.15rem 1.2rem 1.25rem;
+    text-decoration: none;
+    color: inherit;
+    min-height: 8.5rem;
+    border-left: 3px solid color-mix(in srgb, var(--primary) 55%, transparent);
+    transition: transform 0.12s ease, box-shadow 0.15s ease;
+  }
+  .ai-report-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  }
+  .ai-report-card.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .ai-report-card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .ai-report-icon {
+    font-size: 1.4rem;
+    color: var(--primary);
+    flex-shrink: 0;
+    width: 2rem;
+    text-align: center;
+  }
+  .ai-report-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-primary, #eef2f7);
+    line-height: 1.3;
+  }
+  .ai-report-desc {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    opacity: 0.78;
+  }
+  .ai-security-notes {
+    padding: 1.2rem 1.3rem 1.35rem;
+  }
+  .ai-security-notes ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    line-height: 1.7;
+    font-size: 0.92rem;
+    opacity: 0.9;
+  }
+  .ai-security-notes li + li {
+    margin-top: 0.35rem;
+  }
+</style>
+{% endblock %}

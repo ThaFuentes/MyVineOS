@@ -1,0 +1,94 @@
+{% extends "pastoral/base_pastoral.html" %}
+{% block title %}Curriculum Studio{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260716form">
+{% endblock %}
+
+{% block pastoral_content %}
+<section class="content-section">
+  <div class="glass-panel curr-hero">
+    <h1><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Curriculum Studio</h1>
+    <p>
+      Build discipleship courses with study material, media, quizzes, and fill-in-the-blank —
+      clear enough for a busy Tuesday, strong enough for a full semester path.
+    </p>
+    <div class="curr-hero-actions">
+      <a href="{{ url_for('pastoral.curriculum_studio.series_new') }}" class="btn-primary">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i> New course
+      </a>
+      <a href="{{ url_for('curriculum.catalog') }}" class="btn-secondary" target="_blank" rel="noopener">
+        <i class="fa-solid fa-eye" aria-hidden="true"></i> Member catalog
+      </a>
+    </div>
+    <p class="curr-encourage">
+      Start with <strong>one lesson people finish</strong> — then grow the series.
+    </p>
+  </div>
+
+  <form method="get" class="curr-filters glass-panel styled-form">
+    <div class="form-group">
+      <label for="curr-filter-q" class="control-label">Search</label>
+      <input type="search" id="curr-filter-q" name="q" class="form-input" value="{{ search_q }}"
+             placeholder="Title, tags…">
+    </div>
+    <div class="form-group">
+      <label for="curr-filter-status" class="control-label">Status</label>
+      <select id="curr-filter-status" name="status" class="form-input">
+        <option value="">All</option>
+        <option value="draft" {% if filter_status=='draft' %}selected{% endif %}>Draft</option>
+        <option value="published" {% if filter_status=='published' %}selected{% endif %}>Published</option>
+        <option value="archived" {% if filter_status=='archived' %}selected{% endif %}>Archived</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="curr-filter-audience" class="control-label">Audience</label>
+      <select id="curr-filter-audience" name="audience" class="form-input">
+        <option value="">All</option>
+        {% for key, label in audiences %}
+        <option value="{{ key }}" {% if filter_audience==key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="display:flex; align-items:flex-end;">
+      <button type="submit" class="btn-secondary" style="width:100%; min-height:2.75rem;">Filter</button>
+    </div>
+  </form>
+
+  {% if series_list %}
+  <div class="curr-grid">
+    {% for s in series_list %}
+    {% set st = stats_map.get(s.id) or {} %}
+    <a class="glass-panel curr-card" href="{{ url_for('pastoral.curriculum_studio.series_edit', series_id=s.id) }}">
+      <div class="curr-card-cover">
+        {% if s.cover_image %}
+        <img src="{{ s.cover_image }}" alt="">
+        {% else %}
+        <i class="fa-solid fa-book-open-reader" aria-hidden="true"></i>
+        {% endif %}
+      </div>
+      <div class="curr-card-body">
+        <h2 class="curr-card-title">{{ s.title }}</h2>
+        {% if s.subtitle %}<p class="curr-card-sub">{{ s.subtitle }}</p>{% endif %}
+        <div class="curr-meta">
+          <span class="curr-pill curr-pill--{{ s.status }}">{{ s.status }}</span>
+          <span class="curr-pill">{{ s.lesson_count or 0 }} lessons</span>
+          <span class="curr-pill">{{ s.audience }}</span>
+          {% if st.enrolled %}<span class="curr-pill">{{ st.enrolled }} learners</span>{% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="glass-panel curr-empty">
+    <div style="font-size:2.5rem; opacity:0.5;"><i class="fa-solid fa-seedling" aria-hidden="true"></i></div>
+    <h2>Your first course starts here</h2>
+    <p>
+      Create a short series — even a 3-lesson foundations path — with a video, a couple of questions,
+      and a fill-in-the-blank. Members will thank you for something they can complete.
+    </p>
+    <a href="{{ url_for('pastoral.curriculum_studio.series_new') }}" class="btn-primary">Create your first course</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

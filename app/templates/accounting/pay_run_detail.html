@@ -1,0 +1,86 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}Pay Run #{{ run.id }}{% endblock %}
+
+{% block acct_content %}
+<p style="margin:0 0 0.75rem;"><a href="{{ url_for('accounting.payroll') }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">← Payroll</a></p>
+
+<div class="glass-panel" style="padding:1.1rem; margin-bottom:1rem;">
+  <h1 style="margin:0 0 0.35rem; color:var(--primary); font-size:1.3rem;">Pay run #{{ run.id }}</h1>
+  <p style="margin:0; opacity:0.85;">
+    Period {{ run.period_start }} – {{ run.period_end }} · Pay date {{ run.pay_date }}
+    · <span class="acct-pill acct-pill--{{ 'posted' if run.status=='posted' else 'draft' }}">{{ run.status }}</span>
+  </p>
+  <p style="margin:0.5rem 0 0;">
+    Gross <strong>${{ '%.2f'|format(total_gross) }}</strong> ·
+    Net <strong>${{ '%.2f'|format(total_net) }}</strong>
+  </p>
+  {% if run.status == 'draft' %}
+  <form method="post" style="margin-top:0.75rem;">
+    {% include 'partials/csrf_field.html' %}
+    <button type="submit" name="action" value="post" class="btn btn-primary"
+            onclick="return confirm('Post this pay run to the ledger?');">
+      Post to ledger
+    </button>
+  </form>
+  {% elif run.journal_entry_id %}
+  <p style="margin:0.5rem 0 0;"><a href="{{ url_for('accounting.journal_detail', entry_id=run.journal_entry_id) }}">View journal entry #{{ run.journal_entry_id }}</a></p>
+  {% endif %}
+</div>
+
+<div class="table-wrapper glass" style="margin-bottom:1rem;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Description</th>
+        <th class="acct-money">Gross</th>
+        <th class="acct-money">Deductions</th>
+        <th class="acct-money">Net</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in items %}
+      <tr>
+        <td>{{ i.last_name }}, {{ i.first_name }}</td>
+        <td style="font-size:0.85rem;">{{ i.description or i.title or '—' }}</td>
+        <td class="acct-money">${{ '%.2f'|format(i.gross_pay|float) }}</td>
+        <td class="acct-money">${{ '%.2f'|format(i.deductions|float) }}</td>
+        <td class="acct-money">${{ '%.2f'|format(i.net_pay|float) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if run.status == 'draft' %}
+<div class="glass-panel acct-form-panel">
+  <h2>Add pay item</h2>
+  <p class="acct-form-lead">Add someone to this draft run with gross pay and optional deductions.</p>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="add_item">
+    <label>Employee *
+      <select name="employee_id" class="form-input" required>
+        {% for e in employees %}
+        <option value="{{ e.id }}">{{ e.last_name }}, {{ e.first_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="form-row">
+      <label>Gross *
+        <input type="number" step="0.01" name="gross_pay" class="form-input" required placeholder="0.00">
+      </label>
+      <label>Deductions
+        <input type="number" step="0.01" name="deductions" class="form-input" value="0" placeholder="0.00">
+      </label>
+    </div>
+    <label>Description
+      <input type="text" name="description" class="form-input" placeholder="Optional note">
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Add item</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

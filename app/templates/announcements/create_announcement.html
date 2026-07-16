@@ -17,6 +17,8 @@ Create a new announcement. Required fields marked with <span class="required">*<
     <h2 class="section-title">New Announcement</h2>
 
     <form method="POST" action="{{ url_for('announcements.create_announcement') }}" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
         <div class="form-group">
             <label for="title" class="control-label">Title <span class="required">*</span></label>
             <input type="text" id="title" name="title" required placeholder="e.g., Sunday Service Reminder">

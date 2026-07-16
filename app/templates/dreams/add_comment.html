@@ -1,10 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!-- app/templates/dreams/add_comment.html -->
+<!-- Full-page comment form for a dream/vision (legacy path; inline form also on view page). -->
 
-</body>
-</html>
+{% extends "dreams/base_dreams.html" %}
+
+{% block page_title %}Add Comment{% endblock %}
+
+{% block page_description %}
+{% if dream %}
+Comment on: {{ dream.title|title|censor }}
+{% else %}
+Dream not found
+{% endif %}
+{% endblock %}
+
+{% block dreams_content %}
+
+<section class="content-section">
+    {% if not dream %}
+    <div class="card glass">
+        <p>That dream or vision could not be found.</p>
+        <a href="{{ url_for('dreams.dreams') }}" class="btn-secondary">Back to Dreams &amp; Visions</a>
+    </div>
+    {% else %}
+    <h2 class="section-title">Add Comment</h2>
+    <p class="help-text" style="margin-bottom:1rem;">
+        You are commenting on
+        <a href="{{ url_for('dreams.view_dream', dream_id=dream.id) }}">{{ dream.title|title|censor }}</a>.
+    </p>
+
+    <form method="POST" action="{{ url_for('dreams.add_comment', dream_id=dream.id) }}" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+
+        <div class="form-group">
+            <label for="comment" class="control-label">Your Comment <span class="required">*</span></label>
+            <textarea id="comment" name="comment" rows="8" class="form-input" required
+                      placeholder="Share your thoughts, encouragement, or insight..."
+                      autofocus>{{ request.form.get('comment', '') }}</textarea>
+            <p class="help-text">Line breaks are preserved. Be respectful and constructive.</p>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Post Comment</button>
+            <a href="{{ url_for('dreams.view_dream', dream_id=dream.id) }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+    {% endif %}
+</section>
+
+{% endblock %}

@@ -215,11 +215,31 @@ def dashboard():
         events = cur.fetchall()
         for e in events:
             e['title'] = censor_text(e['title'])
-            e['formatted_date'] = e['event_date'].strftime('%A, %B %d, %Y')
-            if e['event_time']:
-                time_obj = datetime.strptime(e['event_time'], '%H:%M:%S').time()
-                e['formatted_time'] = time_obj.strftime('%I:%M %p')
-                e['formatted_full'] = f"{e['formatted_date']} at {e['formatted_time']}"
+            raw_d = e.get('event_date')
+            try:
+                if hasattr(raw_d, 'strftime') and not isinstance(raw_d, str):
+                    date_obj = raw_d.date() if hasattr(raw_d, 'hour') else raw_d
+                    e['formatted_date'] = date_obj.strftime('%A, %B %d, %Y')
+                else:
+                    date_obj = datetime.strptime(str(raw_d)[:10], '%Y-%m-%d')
+                    e['formatted_date'] = date_obj.strftime('%A, %B %d, %Y')
+            except Exception:
+                e['formatted_date'] = str(raw_d or 'No date')
+            raw_t = e.get('event_time')
+            if raw_t:
+                try:
+                    if hasattr(raw_t, 'strftime') and not isinstance(raw_t, str):
+                        e['formatted_time'] = raw_t.strftime('%I:%M %p')
+                    else:
+                        ts = str(raw_t)
+                        if len(ts) == 5:
+                            ts = ts + ':00'
+                        time_obj = datetime.strptime(ts[:8], '%H:%M:%S').time()
+                        e['formatted_time'] = time_obj.strftime('%I:%M %p')
+                    e['formatted_full'] = f"{e['formatted_date']} at {e['formatted_time']}"
+                except Exception:
+                    e['formatted_time'] = str(raw_t)
+                    e['formatted_full'] = e['formatted_date']
             else:
                 e['formatted_time'] = 'All Day'
                 e['formatted_full'] = e['formatted_date']

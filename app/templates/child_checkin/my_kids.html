@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}My Kids{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/child_checkin.css') }}?v=20260714a">
+{% endblock %}
+
+{% block content %}
+<div class="glass-panel cci-hero">
+  <h1><i class="fa-solid fa-child-reaching" aria-hidden="true"></i> My Kids</h1>
+  <p>See who’s checked in today and your pickup codes. Staff can also link children to your account here.</p>
+  {% if can_manage %}
+  <div class="cci-actions">
+    <a href="{{ url_for('child_checkin.dashboard') }}" class="btn btn-secondary">Staff Check-In Console</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if today_status %}
+<div class="cci-board-grid">
+  {% for row in today_status %}
+  {% set k = row.child %}
+  {% set ci = row.checkin %}
+  <div class="glass-panel cci-board-card {% if k.allergies %}has-allergy{% endif %}">
+    <strong style="font-size:1.1rem;">{{ k.display_name }}</strong>
+    <div style="font-size:0.85rem; opacity:0.75; margin-top:0.2rem;">
+      {{ k.default_classroom_name or 'No default room' }}
+      {% if k.age_label %} · {{ k.age_label }}{% endif %}
+    </div>
+    {% if ci %}
+    <div style="margin-top:0.55rem; padding:0.55rem; border-radius:10px; background:color-mix(in srgb, #22c55e 15%, transparent);">
+      <div style="font-size:0.8rem; opacity:0.85;">Checked in · {{ ci.classroom_name or 'Room' }}</div>
+      <div style="font-size:1.75rem; font-weight:800; letter-spacing:0.15em; color:var(--primary);">{{ ci.pickup_code }}</div>
+      <div style="font-size:0.75rem; opacity:0.7;">Show this code at pickup</div>
+    </div>
+    {% else %}
+    <div style="margin-top:0.55rem; font-size:0.88rem; opacity:0.65;">Not checked in today</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel" style="padding:1.5rem; text-align:center;">
+  <p style="margin:0 0 0.5rem;">No children linked to your account yet.</p>
+  <p style="margin:0; opacity:0.7; font-size:0.9rem;">Ask a staff member to add you as a guardian on your child’s profile — or if you’re staff, link below.</p>
+</div>
+{% endif %}
+
+{% if can_manage and all_children %}
+<div class="glass-panel" style="padding:1.1rem; margin-top:1.25rem; max-width:520px;">
+  <h2 style="margin:0 0 0.5rem; font-size:1rem;">Staff: link a child to me</h2>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="link_self">
+    <label>Child
+      <select name="child_id" class="form-input" required>
+        <option value="">—</option>
+        {% for c in all_children %}
+        <option value="{{ c.id }}">{{ c.display_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Family PIN (optional) <input type="text" name="family_pin" class="form-input" inputmode="numeric"></label>
+    <button type="submit" class="btn btn-primary">Link to my account</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

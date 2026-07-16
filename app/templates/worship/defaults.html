@@ -8,6 +8,8 @@
 <p style="margin:0 0 1rem; opacity:0.75; font-size:0.9rem;">These auto-fill when you create a new setlist.</p>
 
 <form method="post" class="glass-panel" style="padding:1rem;">
+    {% include 'partials/csrf_field.html' %}
+
   {{ assignment_rows(defaults, members, default_roles) }}
   <button type="submit" class="btn btn-primary" style="margin-top:1rem;">Save Defaults</button>
 </form>

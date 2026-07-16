@@ -4,7 +4,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713f">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260713f">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260716bible4">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -35,19 +35,27 @@
             </select>
         </div>
         <div class="bible-sermon-actions">
-            <button type="button" id="bible-new-sermon-btn" class="btn btn-outline-cyan btn-sm">
-                <i class="fas fa-plus me-1"></i>New sermon
+            <button type="button" id="bible-new-sermon-btn" class="btn btn-outline-cyan btn-sm" title="Create a draft sermon and select it">
+                <i class="fas fa-plus me-1"></i>New
             </button>
-            <a href="#" id="bible-open-sermon-btn" class="btn btn-cyan btn-sm disabled" target="_blank" rel="noopener">
-                <i class="fas fa-pen me-1"></i>Open editor
+            <a href="#" id="bible-open-sermon-btn" class="btn btn-cyan btn-sm disabled"
+               title="Open the active sermon in this tab">
+                <i class="fas fa-pen me-1"></i>Open sermon
+            </a>
+            <a href="#" id="bible-open-sermon-tab-btn" class="btn btn-outline-cyan btn-sm disabled"
+               target="_blank" rel="noopener"
+               title="Open the active sermon in a new browser tab">
+                <i class="fas fa-up-right-from-square me-1"></i>New tab
             </a>
         </div>
     </div>
-    <p id="bible-sermon-hint" class="small text-muted mb-0 mt-2">
+    <p id="bible-sermon-hint" class="small text-muted mb-0 mt-2 bible-sermon-hint">
         {% if sermon_id and sermon %}
-        Linked to <strong>{{ sermon.title }}</strong>.
+        Active sermon: <strong>{{ sermon.title }}</strong>. Use <strong>+ Sermon</strong> on a verse to append it into that sermon’s
+        <em>Bible Study inserts</em> section. Use <strong>Open sermon</strong> (this tab) or <strong>New tab</strong> to review.
         {% else %}
-        Pick or create a sermon to insert verses from the main reading area.
+        Pick a sermon, then <strong>+ Sermon</strong> inserts verses into it. <strong>Note</strong> = personal Study notes below
+        (not illustrations). <strong>+ Library</strong> = Illustration Library only.
         {% endif %}
     </p>
 </div>
@@ -80,19 +88,27 @@
     <div id="bible-selection-bar" class="bible-selection-bar glass-card" style="display:none;">
         <span id="bible-selection-label" class="small">Verse selected</span>
         <div class="bible-selection-actions">
-            <label class="small me-1">Color</label>
+            <label class="small me-1" for="bible-hl-color">Color</label>
             <select id="bible-hl-color" class="form-select form-select-sm form-control-dark" style="width:auto;display:inline-block;">
                 {% for c in highlight_colors %}
                 <option value="{{ c }}">{{ c|capitalize }}</option>
                 {% endfor %}
             </select>
-            <button type="button" id="bible-hl-btn" class="btn btn-sm btn-warning">Highlight</button>
-            <button type="button" id="bible-hl-clear-btn" class="btn btn-sm btn-outline-secondary">Clear</button>
-            <button type="button" id="bible-note-btn" class="btn btn-sm btn-cyan">Add note</button>
-            <button type="button" id="bible-to-illustration-btn" class="btn btn-sm btn-outline-cyan" title="Save scripture to Illustration Library for sermons">
-                <i class="fas fa-bookmark me-1"></i>To illustrations
+            <button type="button" id="bible-hl-btn" class="btn btn-sm btn-warning" title="Highlight selected verses">Highlight</button>
+            <button type="button" id="bible-hl-clear-btn" class="btn btn-sm btn-outline-secondary" title="Clear highlight on selection">Clear HL</button>
+            <button type="button" id="bible-copy-sel-btn" class="btn btn-sm btn-outline-secondary" title="Copy selected verses to clipboard">Copy selection</button>
+            <button type="button" id="bible-copy-chapter-btn" class="btn btn-sm btn-outline-secondary" title="Copy this whole chapter to clipboard">Copy chapter</button>
+            <button type="button" id="bible-note-btn" class="btn btn-sm btn-cyan" title="Open a study note with selected verses filled in">Add note</button>
+            <button type="button" id="bible-sel-sermon-btn" class="btn btn-sm btn-cyan" title="Insert selected verses into the active sermon">+ Sermon</button>
+            <button type="button" id="bible-to-illustration-btn" class="btn btn-sm btn-outline-cyan" title="Save selection to Illustration Library (reusable snippets — not a sermon)">
+                <i class="fas fa-bookmark me-1"></i>+ Library
             </button>
+            <button type="button" id="bible-chapter-note-btn" class="btn btn-sm btn-outline-cyan" title="Start a note with the full chapter text">Note: whole chapter</button>
         </div>
+        <p class="small text-muted mb-0 mt-1" style="width:100%;">
+            Tip: click verses to select (Shift = range, Ctrl/Cmd = multi). <strong>Note</strong> = personal study notes.
+            <strong>+ Sermon</strong> = insert into the sermon chosen above. <strong>+ Library</strong> = Illustration Library for reuse.
+        </p>
     </div>
 
     <div id="bible-reader-content" class="bible-stage-main glass-card">
@@ -229,14 +245,17 @@
         <label class="form-label small" for="bible-note-tags">Tags (optional)</label>
         <input type="text" id="bible-note-tags" class="form-control form-control-dark mb-3" placeholder="grace, gospel, illustration">
         <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" id="bible-note-also-illustration" checked>
+            <input class="form-check-input" type="checkbox" id="bible-note-also-illustration">
             <label class="form-check-label small" for="bible-note-also-illustration">
-                Also save to Illustration Library (reuse in sermons)
+                Also copy to Illustration Library (optional — notes still go to Study notes first)
             </label>
         </div>
+        <p class="small text-muted mb-2">
+            Saving puts this in the <strong>Study notes</strong> panel under the reader (not the Illustration Library).
+        </p>
         <div class="d-flex flex-wrap gap-2 justify-content-end">
             <button type="button" id="bible-note-cancel" class="btn btn-sm btn-outline-secondary">Cancel</button>
-            <button type="button" id="bible-note-save" class="btn btn-sm btn-cyan">Save note</button>
+            <button type="button" id="bible-note-save" class="btn btn-sm btn-cyan">Save to Study notes</button>
         </div>
     </div>
 </div>
@@ -275,5 +294,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260713h"></script>
+<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260716bible4"></script>
 {% endblock %}

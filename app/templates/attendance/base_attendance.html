@@ -1,42 +1,40 @@
-<!-- app/templates/attendance/base_attendance.html -->
-<!-- Full path: myvinechurchonline/app/templates/attendance/base_attendance.html -->
-<!-- File name: base_attendance.html -->
-<!-- Brief, detailed purpose: Common base template for ALL Attendance admin module pages.
-   Mirrors base_donations.html, base_settings.html, base_events.html exactly:
-     - Same glass wrapper (inherited from base.html)
-     - Same internal horizontal .menu with pill styling
-     - Menu items: Dashboard (overview), Open Kiosk
-     - Active class applied correctly
-     - Flash messages at top
-     - Extends base.html for global navigation consistency
-   NO module-specific CSS - uses only global classes. -->
-
 {% extends "base.html" %}
 
+{% block extra_css %}
+{% endblock %}
+
 {% block content %}
-<!-- Overhauled -->
-<h1 class="page-title">Attendance</h1>
-<p class="page-description">Manage and view attendance records - Staff, Admin & Owner access only.</p>
+<div class="att-mod">
+  <h1 class="page-title">Attendance</h1>
+  <p class="page-description">
+    Check-ins, kiosk sessions, and full historical reporting — day through multi-year.
+  </p>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-        <div class="flash-messages">
-            {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-            {% endfor %}
-        </div>
+      <div class="flash-messages">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
     {% endif %}
-{% endwith %}
+  {% endwith %}
 
-<!-- Internal menu, mobile friendly -->
-<div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+  <nav class="settings-nav att-subnav" aria-label="Attendance sections">
     <a href="{{ url_for('attendance.attendance_dashboard') }}"
-       {% if request.endpoint == 'attendance.attendance_dashboard' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Dashboard</a>
+       class="settings-nav-link {{ 'active' if request.endpoint == 'attendance.attendance_dashboard' else '' }}">Dashboard</a>
+    <a href="{{ url_for('attendance.attendance_reports') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint in ['attendance.attendance_reports', 'attendance.attendance_export_csv'] or (request.endpoint == 'attendance.day_detail') else '' }}">
+      <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Reports
+    </a>
     <a href="{{ url_for('attendance.open_kiosk') }}"
-       {% if request.endpoint == 'attendance.open_kiosk' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Open Kiosk</a>
-</div>
+       class="settings-nav-link {{ 'active' if request.endpoint == 'attendance.open_kiosk' else '' }}">Open kiosk</a>
+    {% if 'attendance.kiosk_sessions' in (request.endpoint or '') or true %}
+    <a href="{{ url_for('attendance.kiosk_sessions') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'attendance.kiosk_sessions' else '' }}">Sessions</a>
+    {% endif %}
+  </nav>
 
-{% block attendance_content %}{% endblock %}
+  {% block attendance_content %}{% endblock %}
+</div>
 {% endblock %}

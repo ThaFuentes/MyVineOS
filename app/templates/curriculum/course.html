@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ series.title }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260714a">
+{% endblock %}
+
+{% block content %}
+<div class="study-shell">
+  <p style="margin:0 0 0.75rem;">
+    <a href="{{ url_for('curriculum.catalog') }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.7rem;">← All courses</a>
+  </p>
+
+  <div class="glass-panel" style="padding:1.25rem; margin-bottom:1rem;">
+    <h1 style="margin:0 0 0.35rem; color:var(--primary); font-size:1.5rem;">{{ series.title }}</h1>
+    {% if series.subtitle %}<p style="margin:0 0 0.5rem; font-size:1.05rem; opacity:0.85;">{{ series.subtitle }}</p>{% endif %}
+    {% if series.description %}<p style="margin:0; opacity:0.8; line-height:1.5;">{{ series.description }}</p>{% endif %}
+    <div class="curr-meta" style="margin-top:0.85rem;">
+      <span class="curr-pill">{{ series.audience }}</span>
+      {% if series.estimated_minutes %}<span class="curr-pill">~{{ series.estimated_minutes }} min</span>{% endif %}
+      <span class="curr-pill">{{ lessons|length }} lessons</span>
+    </div>
+    {% set en = progress.enrollment or {} %}
+    {% if en.progress_pct is defined and en.progress_pct is not none %}
+    <div class="study-progress-bar" style="margin-top:1rem;" title="Your progress">
+      <span style="width:{{ en.progress_pct }}%;"></span>
+    </div>
+    <p class="curr-encourage" style="text-align:left;">You’re <strong>{{ '%.0f'|format(en.progress_pct|float) }}%</strong> through — keep going.</p>
+    {% endif %}
+  </div>
+
+  {% if lessons %}
+  <ul class="curr-lesson-list">
+    {% for les in lessons %}
+    <li class="curr-lesson-item glass-panel" style="padding:0.85rem 1rem;">
+      <span class="num">{{ loop.index }}</span>
+      <a href="{{ url_for('curriculum.lesson', lesson_id=les.id) }}">
+        {{ les.title }}
+        {% if les.summary %}
+        <span style="display:block; font-weight:400; font-size:0.82rem; opacity:0.7; margin-top:0.15rem;">{{ les.summary }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('curriculum.lesson', lesson_id=les.id) }}" class="btn btn-primary" style="min-height:auto; padding:0.4rem 0.75rem; font-size:0.85rem;">
+        {% if en.last_lesson_id == les.id %}Continue{% else %}Open{% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="glass-panel curr-empty"><p>Lessons will appear here when published.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}My Serving Schedule{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/volunteers.css') }}?v=20260714a">
+{% endblock %}
+
+{% block content %}
+<div class="glass-panel vol-hero">
+  <h1><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> My Serving</h1>
+  <p>Volunteer schedule and tickets assigned to you — accept serving requests, answer tickets, update status.</p>
+  <div class="vol-actions" style="display:flex; flex-wrap:wrap; gap:0.45rem;">
+    <a href="{{ url_for('support_tickets.submit_ticket') }}" class="btn btn-primary">Open a ticket</a>
+    <a href="{{ url_for('support_tickets.dashboard') }}" class="btn btn-secondary">My Tickets</a>
+    {% if can_manage %}
+    <a href="{{ url_for('volunteers.dashboard') }}" class="btn btn-secondary">Staff scheduling</a>
+    {% endif %}
+    {% if can_manage_tickets is defined and can_manage_tickets() %}
+    <a href="{{ url_for('tickets.manager_dashboard') }}" class="btn btn-secondary">Ticket Manager</a>
+    {% endif %}
+  </div>
+</div>
+
+<h2 style="font-size:1.05rem; margin:0.85rem 0 0.65rem;">Tickets assigned to me</h2>
+{% if assigned_tickets %}
+  {% for t in assigned_tickets %}
+  <div class="glass-panel vol-card" style="border-left-color:var(--primary);">
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-start; justify-content:space-between;">
+      <div style="flex:1; min-width:12rem;">
+        <strong>#{{ t.id }} — {{ t.title }}</strong>
+        <div style="font-size:0.88rem; opacity:0.8; margin-top:0.2rem;">
+          {{ t.category_name or 'General' }}
+          · {{ (t.priority or 'medium')|capitalize }}
+          · {{ (t.status or 'open')|replace('_',' ')|title }}
+          {% if t.creator_name %} · from {{ t.creator_name }}{% endif %}
+        </div>
+      </div>
+      <a href="{{ url_for('tickets.view_ticket', ticket_id=t.id) }}" class="btn btn-primary" style="min-height:auto;padding:0.4rem 0.85rem;">Answer / update</a>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="glass-panel" style="padding:1rem; opacity:0.75; margin-bottom:1rem;">
+  No open tickets assigned to you. Managers assign work from Ticket Manager; you’ll see it here.
+</div>
+{% endif %}
+
+<h2 style="font-size:1.05rem; margin:1.25rem 0 0.65rem;">Volunteer schedule</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-messages">
+    {% for category, message in messages %}
+    <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<h2 style="font-size:1.05rem; margin:0 0 0.65rem;">Upcoming</h2>
+{% if upcoming %}
+  {% for a in upcoming %}
+  <div class="glass-panel vol-card" style="border-left-color:{{ a.team_color or 'var(--primary)' }};">
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-start;">
+      <div style="flex:1;">
+        <strong>{{ a.event_title }}</strong>
+        <div style="font-size:0.88rem; opacity:0.8; margin-top:0.2rem;">
+          {{ a.event_date }}{% if a.start_time %} · {{ a.start_time }}{% endif %}
+          · <strong>{{ a.role_name }}</strong>
+          {% if a.team_name %} · {{ a.team_name }}{% endif %}
+          {% if a.event_location %} · {{ a.event_location }}{% endif %}
+        </div>
+        <span class="vol-pill vol-pill--{{ a.status }}" style="margin-top:0.35rem;">{{ a.status }}</span>
+      </div>
+      {% if a.status == 'pending' %}
+      <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+        <form method="post" action="{{ url_for('volunteers.my_respond', assignment_id=a.id) }}">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="decision" value="accept">
+          <button type="submit" class="btn btn-primary" style="min-height:auto;padding:0.4rem 0.85rem;">Accept</button>
+        </form>
+        <form method="post" action="{{ url_for('volunteers.my_respond', assignment_id=a.id) }}">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="decision" value="decline">
+          <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.4rem 0.85rem;">Decline</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="glass-panel" style="padding:1.25rem; opacity:0.75; margin-bottom:1rem;">
+  Nothing scheduled for you yet. When a leader assigns you, it shows up here and you’ll get an email.
+</div>
+{% endif %}
+
+{% if past %}
+<h2 style="font-size:1.05rem; margin:1.25rem 0 0.65rem;">Recent past</h2>
+{% for a in past %}
+<div class="glass-panel" style="padding:0.75rem 1rem; margin-bottom:0.4rem; font-size:0.9rem; opacity:0.85;">
+  {{ a.event_date }} · {{ a.event_title }} · {{ a.role_name }}
+  <span class="vol-pill vol-pill--{{ a.status }}">{{ a.status }}</span>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

@@ -24,6 +24,8 @@
 
     <div class="card-body">
         <form method="POST" id="illustration-form">
+    {% include 'partials/csrf_field.html' %}
+
             <!-- Hidden ID for edit mode -->
             {% if illustration %}
                 <input type="hidden" name="illustration_id" value="{{ illustration.id }}">

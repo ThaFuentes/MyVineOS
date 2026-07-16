@@ -104,7 +104,12 @@ def create_tables(cursor):
         'image_path':             "VARCHAR(255) NULL",
         'notes':                  "TEXT NULL",
         'created_at':             "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-        'created_by':             "INT UNSIGNED NULL"
+        'created_by':             "INT UNSIGNED NULL",
+        'sku':                    "VARCHAR(64) NULL",
+        'is_active':              "TINYINT(1) NOT NULL DEFAULT 1",
+        'is_kit':                 "TINYINT(1) NOT NULL DEFAULT 0",
+        'description':            "TEXT NULL",
+        'updated_at':             "TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP",
     }
 
     for col_name, col_def in columns_to_add_items.items():
@@ -114,13 +119,42 @@ def create_tables(cursor):
 
     # Indexes for items
     try:
-        cursor.execute("CREATE UNIQUE INDEX idx_items_barcode ON items(barcode_upc_ean) WHERE barcode_upc_ean IS NOT NULL")
+        cursor.execute("CREATE UNIQUE INDEX idx_items_barcode ON items(barcode_upc_ean)")
     except: pass
     try:
         cursor.execute("CREATE INDEX idx_items_category ON items(category_id)")
     except: pass
     try:
         cursor.execute("CREATE INDEX idx_items_vendor ON items(preferred_vendor_id)")
+    except: pass
+    try:
+        cursor.execute("CREATE INDEX idx_items_sku ON items(sku)")
+    except: pass
+    try:
+        cursor.execute("CREATE INDEX idx_items_active ON items(is_active)")
+    except: pass
+
+    # ----- ITEM KITS / SETS (bill of materials) -----
+    # A kit is a catalog item (is_kit=1) made of component items with quantities.
+    # Deploying a kit consumes components via FIFO (does not stock the kit itself).
+    cursor.execute(textwrap.dedent("""
+        CREATE TABLE IF NOT EXISTS item_kit_components (
+            id                 INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+            kit_item_id        INT UNSIGNED NOT NULL,
+            component_item_id  INT UNSIGNED NOT NULL,
+            quantity           INT UNSIGNED NOT NULL DEFAULT 1,
+            notes              VARCHAR(255) NULL,
+            sort_order         INT NOT NULL DEFAULT 0,
+            UNIQUE KEY uq_kit_component (kit_item_id, component_item_id),
+            FOREIGN KEY (kit_item_id)       REFERENCES items(id) ON DELETE CASCADE,
+            FOREIGN KEY (component_item_id) REFERENCES items(id) ON DELETE RESTRICT
+        ) ENGINE=InnoDB;
+    """).strip())
+    try:
+        cursor.execute("CREATE INDEX idx_kit_components_kit ON item_kit_components(kit_item_id)")
+    except: pass
+    try:
+        cursor.execute("CREATE INDEX idx_kit_components_comp ON item_kit_components(component_item_id)")
     except: pass
 
     # ----- INVENTORY_BATCHES TABLE -----
@@ -204,4 +238,51 @@ def create_tables(cursor):
         cursor.execute("CREATE INDEX idx_scans_item ON barcode_scans(resolved_item_id)")
     except: pass
 
-    print("Inventory tables synchronization complete (MariaDB). Ready for barcode scanning, batch tracking, expiration alerts, and full audit trail.")
+    # Seed starter categories / locations so churches can start immediately
+    cursor.execute("SELECT COUNT(*) AS c FROM categories")
+    cat_count = cursor.fetchone()
+    cat_n = cat_count[0] if isinstance(cat_count, (list, tuple)) else (cat_count or {}).get('c', 0)
+    if not cat_n:
+        defaults = [
+            'Office supplies',
+            'Cleaning & facilities',
+            'Kitchen & hospitality',
+            'Communion / worship',
+            'Children & nursery',
+            'Youth ministry',
+            'AV / tech',
+            'First aid & safety',
+            'Events & outreach',
+            'Curriculum & print',
+            'Maintenance / tools',
+            'Kits & sets',
+        ]
+        for name in defaults:
+            try:
+                cursor.execute("INSERT INTO categories (name) VALUES (%s)", (name,))
+            except Exception:
+                pass
+        print("Seeded default inventory categories.")
+
+    cursor.execute("SELECT COUNT(*) AS c FROM locations")
+    loc_count = cursor.fetchone()
+    loc_n = loc_count[0] if isinstance(loc_count, (list, tuple)) else (loc_count or {}).get('c', 0)
+    if not loc_n:
+        for name, area in [
+            ('Main storage', 'Building'),
+            ('Kitchen pantry', 'Kitchen'),
+            ('Nursery closet', 'Children'),
+            ('AV booth', 'Sanctuary'),
+            ('Office supply closet', 'Office'),
+            ('Janitor closet', 'Facilities'),
+        ]:
+            try:
+                cursor.execute(
+                    "INSERT INTO locations (name, building_area) VALUES (%s, %s)",
+                    (name, area),
+                )
+            except Exception:
+                pass
+        print("Seeded default inventory locations.")
+
+    print("Inventory tables synchronization complete (MariaDB). Ready for barcode scanning, batch tracking, kits/sets, expiration alerts, and full audit trail.")

@@ -79,6 +79,8 @@
                     <!-- Reply form -->
                     <div id="reply-form-{{ comment.id }}" style="display:none; margin-top:1rem; padding:1rem; background:rgba(255,255,255,0.05); border-radius:8px;">
                         <form action="{{ url_for('public.public_dreams.public_dream_detail', dream_id=dream.id) }}" method="POST">
+    {% include 'partials/csrf_field.html' %}
+
                             <input type="hidden" name="action" value="reply">
                             <input type="hidden" name="parent_id" value="{{ comment.id }}">
                             <div style="margin-bottom:0.8rem;">
@@ -117,6 +119,8 @@
 
         <!-- Main Guest Comment Form -->
         <form action="{{ url_for('public.public_dreams.public_dream_detail', dream_id=dream.id) }}" method="POST" style="margin-top: 2rem;">
+    {% include 'partials/csrf_field.html' %}
+
             <input type="hidden" name="action" value="comment">
             <div style="margin-bottom: 1rem;">
               <label style="display: block; color: var(--primary); margin-bottom: 0.4rem;">Your Name <span style="color: #ff4444;">*</span></label>

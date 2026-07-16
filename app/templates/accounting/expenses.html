@@ -1,0 +1,54 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}Expenses{% endblock %}
+
+{% block acct_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; margin-bottom:0.85rem;">
+  <h1 class="page-title" style="margin:0;">Expenses</h1>
+  <a href="{{ url_for('accounting.expense_new') }}" class="btn btn-primary">Record expense</a>
+</div>
+
+<form method="get" class="glass-panel" style="padding:0.75rem; margin-bottom:0.85rem; display:flex; flex-wrap:wrap; gap:0.5rem; align-items:end;">
+  <label style="font-size:0.82rem;">From <input type="date" name="start" class="form-input" value="{{ start }}"></label>
+  <label style="font-size:0.82rem;">To <input type="date" name="end" class="form-input" value="{{ end }}"></label>
+  <button type="submit" class="btn btn-secondary">Filter</button>
+</form>
+
+{% if expenses %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Vendor</th>
+        <th>Account</th>
+        <th>Description</th>
+        <th>Source</th>
+        <th class="acct-money">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for x in expenses %}
+      <tr>
+        <td style="white-space:nowrap;">{{ x.expense_date }}</td>
+        <td>{{ x.vendor_display or x.vendor_name or '—' }}</td>
+        <td style="font-size:0.85rem;">{{ x.expense_code }} · {{ x.expense_account_name }}</td>
+        <td style="font-size:0.85rem; opacity:0.85;">{{ x.description or x.reference or '—' }}</td>
+        <td style="font-size:0.82rem;">
+          {% if x.bill_id %}
+          <a href="{{ url_for('bills.view_bill', bill_id=x.bill_id) }}">Bill #{{ x.bill_id }}</a>
+          {% elif x.reference and x.reference.startswith('BILL-') %}
+          Bill pay
+          {% else %}
+          Manual
+          {% endif %}
+        </td>
+        <td class="acct-money">${{ '%.2f'|format(x.amount|float) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="glass-panel" style="padding:1.5rem; opacity:0.75;">No expenses in this range.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,380 @@
+{% extends "settings/base_settings.html" %}
+{% block settings_content %}
+
+<section class="content-section">
+  <h2 class="section-title">Campuses / Branches</h2>
+  <p class="help-text">
+    Multi-campus support for one organization with several locations.
+    Staff can switch campus scope in the top bar; records can be tagged to a campus.
+  </p>
+</section>
+
+{# ---- Enable multi-campus ---- #}
+<div class="settings-card">
+  <div class="settings-card-header">
+    <h3 class="section-subtitle" style="margin:0;">Multi-campus mode</h3>
+  </div>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save_flags">
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label class="checkbox-label" style="display:flex; align-items:flex-start; gap:0.55rem; font-weight:500; color:var(--text-primary);">
+          <input type="checkbox" name="multi_campus_enabled" value="1" {% if multi_enabled %}checked{% endif %}
+                 style="width:auto; min-height:auto; margin-top:0.2rem;">
+          <span>
+            Enable multi-campus mode
+            <span class="help-text small" style="display:block; margin:0.25rem 0 0; font-weight:400;">
+              Shows the campus switcher and filters records by campus.
+            </span>
+          </span>
+        </label>
+      </div>
+      <div class="form-group full-width">
+        <label for="default_campus_id">Default campus (fallback)</label>
+        <select name="default_campus_id" id="default_campus_id" class="form-input">
+          <option value="">— primary campus —</option>
+          {% for c in campuses if c.is_active %}
+          <option value="{{ c.id }}" {% if settings.default_campus_id == c.id %}selected{% endif %}>
+            {{ c.name }} ({{ c.code }})
+          </option>
+          {% endfor %}
+        </select>
+        <p class="help-text small">Used when a user has no home campus set.</p>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:0.75rem;">
+      <button type="submit" class="btn-primary">Save multi-campus settings</button>
+    </div>
+  </form>
+</div>
+
+{# ---- Campus cards ---- #}
+<section class="content-section">
+  <h3 class="section-subtitle">Your campuses</h3>
+  {% if campuses %}
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:0.85rem;">
+    {% for c in campuses %}
+    <div class="settings-card" style="margin:0; border-left:4px solid {{ c.color or '#22d3ee' }}; opacity:{% if c.is_active %}1{% else %}0.55{% endif %};">
+      <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.4rem; flex-wrap:wrap;">
+        <strong style="flex:1; font-size:1.05rem;">{{ c.name }}</strong>
+        <code style="font-size:0.75rem; opacity:0.85;">{{ c.code }}</code>
+        {% if c.is_primary %}<span class="member-scope-badge" style="background:rgba(0,255,255,0.18);">PRIMARY</span>{% endif %}
+        {% if not c.is_active %}<span class="help-text small" style="margin:0;">Inactive</span>{% endif %}
+      </div>
+      <div class="help-text small" style="margin:0; line-height:1.45;">
+        {% if c.city or c.state %}{{ c.city }}{% if c.city and c.state %}, {% endif %}{{ c.state }}{% endif %}
+        {% if c.phone %}<br>{{ c.phone }}{% endif %}
+        {% if c.pastor_name %}<br>Pastor: {{ c.pastor_name }}{% endif %}
+        <br>{{ (members_by_campus.get(c.id) or [])|length }} member{{ 's' if (members_by_campus.get(c.id) or [])|length != 1 else '' }} linked
+      </div>
+      {% if c.is_active %}
+      <form method="post" style="margin-top:0.75rem;" onsubmit="return confirm('Deactivate this campus? Existing records keep their campus tag.');">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="deactivate">
+        <input type="hidden" name="campus_id" value="{{ c.id }}">
+        <button type="submit" class="btn-secondary" style="font-size:0.85rem; color:#fca5a5;">Deactivate</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="help-text">No campuses yet. Add your first location below.</p>
+  {% endif %}
+</section>
+
+{# ---- Add / update campus (polished form) ---- #}
+<div class="settings-card">
+  <div class="settings-card-header">
+    <div>
+      <h3 class="section-subtitle" style="margin:0;" id="campus-form-title">Add new campus</h3>
+      <p class="help-text small" style="margin:0.35rem 0 0;">
+        Fill in the details below. Fields marked with <span class="required">*</span> are required.
+      </p>
+    </div>
+  </div>
+
+  <form method="post" class="styled-form" id="campus-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save_campus">
+
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label for="campus-pick">Edit existing campus</label>
+        <select name="campus_id" class="form-input" id="campus-pick">
+          <option value="">— Create a new campus —</option>
+          {% for c in campuses %}
+          <option value="{{ c.id }}"
+            data-code="{{ c.code }}"
+            data-name="{{ c.name }}"
+            data-short="{{ c.short_name or '' }}"
+            data-address="{{ c.address or '' }}"
+            data-city="{{ c.city or '' }}"
+            data-state="{{ c.state or '' }}"
+            data-zip="{{ c.postal_code or '' }}"
+            data-phone="{{ c.phone or '' }}"
+            data-email="{{ c.email or '' }}"
+            data-pastor="{{ c.pastor_name or '' }}"
+            data-tz="{{ c.timezone or '' }}"
+            data-color="{{ c.color or '#22d3ee' }}"
+            data-primary="{{ 1 if c.is_primary else 0 }}"
+            data-active="{{ 1 if c.is_active else 0 }}"
+            data-sort="{{ c.sort_order or 0 }}"
+            data-notes="{{ (c.notes or '')|e }}">{{ c.name }} ({{ c.code }}){% if not c.is_active %} — inactive{% endif %}</option>
+          {% endfor %}
+        </select>
+        <p class="help-text small">Leave on “Create a new campus” to add one, or pick an existing campus to update it.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="c-code">Campus code <span class="required">*</span></label>
+        <input type="text" name="code" id="c-code" class="form-input" required
+               placeholder="NORTH" autocomplete="off" maxlength="32">
+        <p class="help-text small">Short unique code (letters/numbers). Used in filters and reports.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="c-name">Campus name <span class="required">*</span></label>
+        <input type="text" name="name" id="c-name" class="form-input" required
+               placeholder="North Campus" maxlength="160">
+      </div>
+
+      <div class="form-group">
+        <label for="c-short">Short name</label>
+        <input type="text" name="short_name" id="c-short" class="form-input"
+               placeholder="North" maxlength="80">
+        <p class="help-text small">Optional nickname for the switcher and tight spaces.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="c-pastor">Campus pastor</label>
+        <input type="text" name="pastor_name" id="c-pastor" class="form-input"
+               placeholder="Pastor name" maxlength="160">
+      </div>
+
+      <div class="form-group full-width">
+        <label for="c-address">Street address</label>
+        <textarea name="address" id="c-address" class="form-input" rows="2"
+                  placeholder="123 Main Street"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="c-city">City</label>
+        <input type="text" name="city" id="c-city" class="form-input" maxlength="120">
+      </div>
+
+      <div class="form-group">
+        <label for="c-state">State / province</label>
+        <input type="text" name="state" id="c-state" class="form-input" maxlength="80">
+      </div>
+
+      <div class="form-group">
+        <label for="c-zip">ZIP / postal code</label>
+        <input type="text" name="postal_code" id="c-zip" class="form-input" maxlength="24">
+      </div>
+
+      <div class="form-group">
+        <label for="c-phone">Phone</label>
+        <input type="tel" name="phone" id="c-phone" class="form-input" maxlength="40"
+               placeholder="(555) 123-4567">
+      </div>
+
+      <div class="form-group">
+        <label for="c-email">Email</label>
+        <input type="email" name="email" id="c-email" class="form-input" maxlength="255"
+               placeholder="north@church.org">
+      </div>
+
+      <div class="form-group">
+        <label for="c-tz">Timezone</label>
+        <input type="text" name="timezone" id="c-tz" class="form-input"
+               placeholder="America/New_York" maxlength="64">
+        <p class="help-text small">IANA name (e.g. America/Chicago). Optional.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="c-color">Accent color</label>
+        <div style="display:flex; align-items:center; gap:0.65rem;">
+          <input type="color" name="color" id="c-color" value="#22d3ee"
+                 style="width:3.25rem; height:2.75rem; padding:0.2rem; border-radius:8px; cursor:pointer;">
+          <span class="help-text small" style="margin:0;">Shown on campus cards and the switcher.</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="c-sort">Sort order</label>
+        <input type="number" name="sort_order" id="c-sort" class="form-input" value="0" step="1">
+        <p class="help-text small">Lower numbers appear first in lists.</p>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="c-notes">Notes</label>
+        <textarea name="notes" id="c-notes" class="form-input" rows="3"
+                  placeholder="Internal notes about this location (not shown to guests)"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label" style="display:flex; align-items:center; gap:0.5rem; font-weight:500; color:var(--text-primary);">
+          <input type="checkbox" name="is_primary" id="c-primary" value="1"
+                 style="width:auto; min-height:auto;">
+          Primary campus
+        </label>
+        <p class="help-text small">Only one campus should be primary.</p>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label" style="display:flex; align-items:center; gap:0.5rem; font-weight:500; color:var(--text-primary);">
+          <input type="checkbox" name="is_active" id="c-active" value="1" checked
+                 style="width:auto; min-height:auto;">
+          Active
+        </label>
+        <p class="help-text small">Inactive campuses stay in history but drop out of pickers.</p>
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin-top:1.1rem; display:flex; flex-wrap:wrap; gap:0.65rem;">
+      <button type="submit" class="btn-primary" id="campus-submit-btn">Save campus</button>
+      <button type="button" class="btn-secondary" id="campus-reset-btn">Clear form</button>
+    </div>
+  </form>
+</div>
+
+{# ---- Link members ---- #}
+<div class="settings-card">
+  <div class="settings-card-header">
+    <div>
+      <h3 class="section-subtitle" style="margin:0;">Link members to a campus</h3>
+      <p class="help-text small" style="margin:0.35rem 0 0;">
+        Assign people so attendance, serving, and reports can scope to the right location.
+      </p>
+    </div>
+  </div>
+
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="assign_member">
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="assign-campus">Campus <span class="required">*</span></label>
+        <select name="campus_id" id="assign-campus" class="form-input" required>
+          <option value="">— Select campus —</option>
+          {% for c in campuses if c.is_active %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="assign-user">Member <span class="required">*</span></label>
+        <select name="user_id" id="assign-user" class="form-input" required>
+          <option value="">— Select member —</option>
+          {% for p in people %}
+          <option value="{{ p.id }}">{{ p.last_name }}, {{ p.first_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group full-width">
+        <label class="checkbox-label" style="display:flex; align-items:center; gap:0.5rem; font-weight:500; color:var(--text-primary);">
+          <input type="checkbox" name="is_home" value="1" style="width:auto; min-height:auto;">
+          Set as their home campus
+        </label>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:0.75rem;">
+      <button type="submit" class="btn-primary">Link member</button>
+    </div>
+  </form>
+
+  {% for c in campuses if c.is_active %}
+  {% set mems = members_by_campus.get(c.id) or [] %}
+  {% if mems %}
+  <h4 class="section-subtitle" style="font-size:1rem; margin:1.25rem 0 0.5rem;">{{ c.name }}</h4>
+  <ul class="help-text" style="margin:0; padding-left:1.15rem; list-style:disc;">
+    {% for m in mems[:40] %}
+    <li style="margin-bottom:0.35rem;">
+      {{ m.first_name }} {{ m.last_name }}{% if m.is_home %} · <em>home</em>{% endif %}
+      <form method="post" style="display:inline; margin-left:0.35rem;">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="remove_member">
+        <input type="hidden" name="campus_id" value="{{ c.id }}">
+        <input type="hidden" name="user_id" value="{{ m.user_id }}">
+        <button type="submit" class="btn-secondary" style="padding:0.15rem 0.45rem; font-size:0.78rem; min-height:auto; color:#fca5a5;">Remove</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<script>
+(function () {
+  var pick = document.getElementById('campus-pick');
+  var title = document.getElementById('campus-form-title');
+  var submitBtn = document.getElementById('campus-submit-btn');
+  var resetBtn = document.getElementById('campus-reset-btn');
+  if (!pick) return;
+
+  function setVal(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.value = val == null ? '' : val;
+  }
+  function setCheck(id, on) {
+    var el = document.getElementById(id);
+    if (el) el.checked = !!on;
+  }
+
+  function clearForm() {
+    pick.value = '';
+    setVal('c-code', '');
+    setVal('c-name', '');
+    setVal('c-short', '');
+    setVal('c-address', '');
+    setVal('c-city', '');
+    setVal('c-state', '');
+    setVal('c-zip', '');
+    setVal('c-phone', '');
+    setVal('c-email', '');
+    setVal('c-pastor', '');
+    setVal('c-tz', '');
+    setVal('c-color', '#22d3ee');
+    setVal('c-sort', '0');
+    setVal('c-notes', '');
+    setCheck('c-primary', false);
+    setCheck('c-active', true);
+    if (title) title.textContent = 'Add new campus';
+    if (submitBtn) submitBtn.textContent = 'Save campus';
+  }
+
+  function fillFromOption(o) {
+    if (!o || !o.value) {
+      clearForm();
+      return;
+    }
+    setVal('c-code', o.dataset.code || '');
+    setVal('c-name', o.dataset.name || '');
+    setVal('c-short', o.dataset.short || '');
+    setVal('c-address', o.dataset.address || '');
+    setVal('c-city', o.dataset.city || '');
+    setVal('c-state', o.dataset.state || '');
+    setVal('c-zip', o.dataset.zip || '');
+    setVal('c-phone', o.dataset.phone || '');
+    setVal('c-email', o.dataset.email || '');
+    setVal('c-pastor', o.dataset.pastor || '');
+    setVal('c-tz', o.dataset.tz || '');
+    setVal('c-color', o.dataset.color || '#22d3ee');
+    setVal('c-sort', o.dataset.sort || '0');
+    setVal('c-notes', o.dataset.notes || '');
+    setCheck('c-primary', o.dataset.primary === '1');
+    setCheck('c-active', o.dataset.active === '1');
+    if (title) title.textContent = 'Update campus';
+    if (submitBtn) submitBtn.textContent = 'Update campus';
+  }
+
+  pick.addEventListener('change', function () {
+    fillFromOption(this.selectedOptions[0]);
+  });
+  resetBtn && resetBtn.addEventListener('click', clearForm);
+})();
+</script>
+{% endblock %}

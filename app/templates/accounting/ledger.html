@@ -1,0 +1,44 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}General Ledger{% endblock %}
+
+{% block acct_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+  <h1 class="page-title" style="margin:0;">General Ledger</h1>
+  <a href="{{ url_for('accounting.journal_new') }}" class="btn btn-primary">New journal entry</a>
+</div>
+
+<form method="get" class="glass-panel" style="padding:0.75rem; margin-bottom:0.85rem; display:flex; flex-wrap:wrap; gap:0.5rem; align-items:end;">
+  <label style="font-size:0.82rem;">From <input type="date" name="start" class="form-input" value="{{ start }}"></label>
+  <label style="font-size:0.82rem;">To <input type="date" name="end" class="form-input" value="{{ end }}"></label>
+  <button type="submit" class="btn btn-secondary">Filter</button>
+</form>
+
+{% if entries %}
+{% for e in entries %}
+<div class="glass-panel" style="padding:0.9rem 1rem; margin-bottom:0.65rem;">
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin-bottom:0.45rem;">
+    <a href="{{ url_for('accounting.journal_detail', entry_id=e.id) }}"><strong>#{{ e.id }}</strong></a>
+    <span>{{ e.entry_date }}</span>
+    <span class="acct-pill acct-pill--{{ e.status }}">{{ e.status }}</span>
+    <span style="opacity:0.65; font-size:0.85rem;">{{ e.source }}{% if e.reference %} · {{ e.reference }}{% endif %}</span>
+    <span class="acct-money" style="margin-left:auto;">${{ '%.2f'|format(e.total or 0) }}</span>
+  </div>
+  {% if e.memo %}<div style="font-size:0.88rem; opacity:0.8; margin-bottom:0.35rem;">{{ e.memo }}</div>{% endif %}
+  <table class="data-table" style="font-size:0.85rem;">
+    <thead><tr><th>Account</th><th class="acct-money">Debit</th><th class="acct-money">Credit</th></tr></thead>
+    <tbody>
+      {% for l in e.lines %}
+      <tr>
+        <td>{{ l.account_code }} · {{ l.account_name }}</td>
+        <td class="acct-money">{% if l.debit and l.debit|float > 0 %}${{ '%.2f'|format(l.debit|float) }}{% else %}—{% endif %}</td>
+        <td class="acct-money">{% if l.credit and l.credit|float > 0 %}${{ '%.2f'|format(l.credit|float) }}{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+{% else %}
+<p class="glass-panel" style="padding:1.5rem; opacity:0.75;">No journal entries in this range.</p>
+{% endif %}
+{% endblock %}

@@ -1,24 +1,12 @@
-<!-- app/templates/dashboard/dashboard.html -->
-<!-- Full path: myvinechurchonline/app/templates/dashboard/dashboard.html -->
-<!-- File name: dashboard.html -->
-<!-- Brief, detailed purpose: Renders the private dashboard for authenticated users.
-   Displays uniform glassmorphism cards for today's birthdays, recent prayers, dreams & visions,
-   prophecies, sermons, announcements, and upcoming events.
-   All inline styles removed - fully uses global glass card classes (.summary-cards + .card.glass).
-   Optional fields (poster_username, visibility) handled safely.
-   "No data" messages preserved. Responsive grid adapts to screen size.
-   Clean, premium look matching the rebuilt site-wide glassmorphism theme. -->
-
 {% extends "base.html" %}
 
-{% block title %}Private Dashboard{% endblock %}
+{% block title %}Home{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/dashboard_tiles.css') }}?v=20260710">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/dashboard_tiles.css') }}?v=20260716tiles3">
 {% endblock %}
 
 {% block content %}
-<!-- App-style home screen header -->
 <div style="margin-bottom:0.35rem;">
   <div style="font-size:0.8rem; opacity:0.6; letter-spacing:0.5px;">WELCOME BACK</div>
   <h1 style="margin:0.1rem 0 0.6rem; font-size:1.55rem; color:#e8edf4;">{{ session.username|default('Member') }}</h1>
@@ -31,208 +19,301 @@
 </div>
 {% endif %}
 
-{% if session.get('user_role') in ['Admin', 'Owner'] %}
-<div class="glass-panel" style="margin-bottom:0.85rem; padding:0.65rem 1rem; font-size:0.88rem;">
-  <a href="{{ url_for('settings.notifications') }}" style="color:#8b9bb5;">Settings -> Notifications</a>
-  - registration, verification, receipts, bill reminders
-</div>
-{% endif %}
-
-<!-- Quick app tiles — each module a distinct professional accent (not monochrome cyan) -->
+{# Tiles follow Modules & Apps toggles + permissions. Same layout as before. #}
 <div class="dash-tile-grid">
   <a href="{{ url_for('events.events') }}" class="glass-panel dash-tile dash-tile-community">
-    <span class="dash-tile-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
-    <span class="dash-tile-label">Community</span>
+    <span class="dash-tile-icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Events</span>
   </a>
+  <a href="{{ url_for('prayers.prayers') }}" class="glass-panel dash-tile dash-tile-community">
+    <span class="dash-tile-icon"><i class="fa-solid fa-hands-praying" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Prayers</span>
+  </a>
+  <a href="{{ url_for('sermons.sermons') }}" class="glass-panel dash-tile dash-tile-community">
+    <span class="dash-tile-icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Sermons</span>
+  </a>
+  <a href="{{ url_for('announcements.announcements') }}" class="glass-panel dash-tile dash-tile-community">
+    <span class="dash-tile-icon"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Announcements</span>
+  </a>
+  {% if module_on('dreams') %}
+  <a href="{{ url_for('dreams.dreams') }}" class="glass-panel dash-tile dash-tile-community">
+    <span class="dash-tile-icon"><i class="fa-solid fa-cloud-moon" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Dreams</span>
+  </a>
+  {% endif %}
+  {% if module_on('prophecies') %}
+  <a href="{{ url_for('prophecies.list_prophecies') }}" class="glass-panel dash-tile dash-tile-community">
+    <span class="dash-tile-icon"><i class="fa-solid fa-scroll" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Prophecies</span>
+  </a>
+  {% endif %}
+  {% if module_on('bible_study') %}
   <a href="{{ url_for('bible.member_study') }}" class="glass-panel dash-tile dash-tile-bible">
     <span class="dash-tile-icon"><i class="fa-solid fa-book-bible" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Bible</span>
   </a>
-  <a href="{{ url_for('legal.legal_index') }}" class="glass-panel dash-tile dash-tile-legal">
-    <span class="dash-tile-icon"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i></span>
-    <span class="dash-tile-label">Legal</span>
+  {% endif %}
+  {% if module_on('curriculum') and endpoint_exists('curriculum.catalog') %}
+  <a href="{{ url_for('curriculum.catalog') }}" class="glass-panel dash-tile dash-tile-bible">
+    <span class="dash-tile-icon"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Study Courses</span>
   </a>
+  {% endif %}
+
   {% if can_view_members() %}
   <a href="{{ url_for('members.members_directory') }}" class="glass-panel dash-tile dash-tile-members">
     <span class="dash-tile-icon"><i class="fa-solid fa-address-book" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Members</span>
   </a>
   {% endif %}
-  {% if can_view_donations() %}
+  {% if module_on('donations') and can_view_donations() %}
   <a href="{{ url_for('donations.donations_dashboard') }}" class="glass-panel dash-tile dash-tile-donations">
     <span class="dash-tile-icon"><i class="fa-solid fa-hand-holding-dollar" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Donations</span>
   </a>
   {% endif %}
+  {% if module_on('bills') %}
   <a href="{{ url_for('bills.bills') }}" class="glass-panel dash-tile dash-tile-bills">
     <span class="dash-tile-icon"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Bills</span>
   </a>
-  {% if can_manage_inventory() %}
+  {% endif %}
+  {% if module_on('accounting') and endpoint_exists('accounting.dashboard') %}
+  <a href="{{ url_for('accounting.dashboard') }}" class="glass-panel dash-tile dash-tile-bills">
+    <span class="dash-tile-icon"><i class="fa-solid fa-calculator" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Accounting</span>
+  </a>
+  {% endif %}
+  {% if module_on('inventory') and can_manage_inventory() %}
   <a href="{{ url_for('inventory.inventory_dashboard') }}" class="glass-panel dash-tile dash-tile-inventory">
     <span class="dash-tile-icon"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Inventory</span>
   </a>
   {% endif %}
-  <a href="{{ url_for('support_tickets.dashboard') }}" class="glass-panel dash-tile dash-tile-tickets">
-    <span class="dash-tile-icon"><i class="fa-solid fa-ticket" aria-hidden="true"></i></span>
-    <span class="dash-tile-label">Tickets</span>
-  </a>
-  <a href="{{ url_for('profile.profile') }}" class="glass-panel dash-tile dash-tile-profile">
-    <span class="dash-tile-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
-    <span class="dash-tile-label">My Stuff</span>
-  </a>
-  <a href="{{ url_for('help.help_index') }}" class="glass-panel dash-tile dash-tile-help">
-    <span class="dash-tile-icon"><i class="fa-solid fa-circle-question" aria-hidden="true"></i></span>
-    <span class="dash-tile-label">Help</span>
-  </a>
-  {% if can_access_gathering_place %}
-  <a href="{{ url_for('the_gathering.index') }}" class="glass-panel dash-tile dash-tile-gathering">
-    <span class="dash-tile-icon"><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
-    <span class="dash-tile-label">Gathering Place</span>
+  {% if module_on('attendance') and can_manage_attendance() %}
+  <a href="{{ url_for('attendance.attendance_dashboard') }}" class="glass-panel dash-tile dash-tile-members">
+    <span class="dash-tile-icon"><i class="fa-solid fa-clipboard-user" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Attendance</span>
   </a>
   {% endif %}
-  {% if can_access_worship %}
+  {% if module_on('child_checkin') and endpoint_exists('child_checkin.dashboard') and can_manage_attendance() %}
+  <a href="{{ url_for('child_checkin.dashboard') }}" class="glass-panel dash-tile dash-tile-members">
+    <span class="dash-tile-icon"><i class="fa-solid fa-children" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Child Check-In</span>
+  </a>
+  {% endif %}
+  {% if module_on('volunteers') and endpoint_exists('volunteers.dashboard') %}
+  <a href="{{ url_for('volunteers.dashboard') }}" class="glass-panel dash-tile dash-tile-members">
+    <span class="dash-tile-icon"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Volunteers</span>
+  </a>
+  {% endif %}
+  {% if module_on('communications') and endpoint_exists('communications.dashboard') %}
+  <a href="{{ url_for('communications.dashboard') }}" class="glass-panel dash-tile dash-tile-settings">
+    <span class="dash-tile-icon"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Communications</span>
+  </a>
+  {% endif %}
+  <a href="{{ url_for('groups.list_groups') }}" class="glass-panel dash-tile dash-tile-members">
+    <span class="dash-tile-icon"><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Groups</span>
+  </a>
+  {% if in_pastoral_group or session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+  <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="glass-panel dash-tile dash-tile-gathering">
+    <span class="dash-tile-icon"><i class="fa-solid fa-cross" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Pastoral</span>
+  </a>
+  {% endif %}
+  {% if module_on('worship') and can_access_worship %}
   <a href="{{ url_for('worship.dashboard') }}" class="glass-panel dash-tile dash-tile-worship">
     <span class="dash-tile-icon"><i class="fa-solid fa-music" aria-hidden="true"></i></span>
-    <span class="dash-tile-label">Worship Team</span>
+    <span class="dash-tile-label">Worship</span>
   </a>
   {% endif %}
-  {% for cm in dashboard_custom_modules or [] %}
-  <a href="{{ url_for('custom_modules.module_list', slug=cm.slug) }}"
-     class="glass-panel dash-tile cm-dash-tile cm-theme-{{ cm.theme|default('ocean') }}"
-     style="border-left-color: {{ cm.theme_config.accent|default('#8b9bb5') }};">
-    <span class="dash-tile-icon" style="color: {{ cm.theme_config.accent|default('#8b9bb5') }};">{{ cm.type_icon|default('<i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>')|safe }}</span>
-    <span class="dash-tile-label">{{ cm.name }}</span>
+  {% if module_on('gathering_manager') and can_access_gathering_place %}
+  <a href="{{ url_for('the_gathering.index') }}" class="glass-panel dash-tile dash-tile-gathering">
+    <span class="dash-tile-icon"><i class="fa-solid fa-people-roof" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Gathering</span>
   </a>
-  {% endfor %}
+  {% endif %}
+  {% if module_on('ai_insights') and endpoint_exists('ai_insights.index') and session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+  <a href="{{ url_for('ai_insights.index') }}" class="glass-panel dash-tile dash-tile-settings">
+    <span class="dash-tile-icon"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">AI Insights</span>
+  </a>
+  {% endif %}
+  {% if module_on('self_checkin') %}
+  <a href="{{ url_for('attendance.self_checkin') }}" class="glass-panel dash-tile dash-tile-profile">
+    <span class="dash-tile-icon"><i class="fa-solid fa-check-to-slot" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Check In</span>
+  </a>
+  {% endif %}
+  {% if module_on('my_kids') and endpoint_exists('child_checkin.my_kids') %}
+  <a href="{{ url_for('child_checkin.my_kids') }}" class="glass-panel dash-tile dash-tile-profile">
+    <span class="dash-tile-icon"><i class="fa-solid fa-children" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">My Kids</span>
+  </a>
+  {% endif %}
+  {% if module_on('my_serving') and endpoint_exists('volunteers.my_schedule') %}
+  <a href="{{ url_for('volunteers.my_schedule') }}" class="glass-panel dash-tile dash-tile-profile">
+    <span class="dash-tile-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">My Serving</span>
+  </a>
+  {% endif %}
+  {% if module_on('support_tickets') %}
+  <a href="{{ url_for('support_tickets.dashboard') }}" class="glass-panel dash-tile dash-tile-profile">
+    <span class="dash-tile-icon"><i class="fa-solid fa-ticket" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">My Tickets</span>
+  </a>
+  {% endif %}
+  <a href="{{ url_for('profile.profile') }}" class="glass-panel dash-tile dash-tile-profile">
+    <span class="dash-tile-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Profile</span>
+  </a>
   <a href="{{ url_for('settings.general') }}" class="glass-panel dash-tile dash-tile-settings">
     <span class="dash-tile-icon"><i class="fa-solid fa-gear" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Settings</span>
   </a>
+  {% if session.get('user_role') in ['Owner', 'Admin'] %}
+  <a href="{{ url_for('settings.modules') }}" class="glass-panel dash-tile dash-tile-settings">
+    <span class="dash-tile-icon"><i class="fa-solid fa-toggle-on" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Modules</span>
+  </a>
+  {% endif %}
+  <a href="{{ url_for('help.help_index') }}" class="glass-panel dash-tile dash-tile-help">
+    <span class="dash-tile-icon"><i class="fa-solid fa-circle-question" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Help</span>
+  </a>
+  {% for cm in dashboard_custom_modules or [] %}
+  <a href="{{ url_for('custom_modules.module_list', slug=cm.slug) }}" class="glass-panel dash-tile dash-tile-settings">
+    <span class="dash-tile-icon"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">{{ cm.name }}</span>
+  </a>
+  {% endfor %}
 </div>
 
-<!-- Overhauled dashboard: responsive grid of cards, good spacing for phone, uses overhaul patterns -->
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.85rem;">
-    <!-- Today's Birthdays -->
-    <div class="glass-panel dash-feed-card dash-feed-birthdays">
-        <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Today's Birthdays</h3>
-        {% if birthdays %}
-            <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-                {% for bd in birthdays %}
-                    <li>{{ bd.first_name }} {{ bd.last_name }}</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="margin:0; font-size:0.9rem; opacity:0.7;">No birthdays today.</p>
-        {% endif %}
-    </div>
+{# Content feed — same cards as before #}
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.85rem; margin-top:0.85rem;">
 
-    <!-- Recent Prayers -->
-    <div class="glass-panel dash-feed-card dash-feed-prayers">
-        <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Prayers</h3>
-        {% if prayers %}
-            <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-                {% for prayer in prayers %}
-                    <li>
-                        {{ prayer.title }}
-                        {% if prayer.poster_username %} (by {{ prayer.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ prayer.datetime }}{% if prayer.visibility %} - {{ prayer.visibility }}{% endif %}</small>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent prayers.</p>
-        {% endif %}
-    </div>
+  <div class="glass-panel dash-feed-card dash-feed-birthdays">
+    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Today's Birthdays</h3>
+    {% if birthdays %}
+    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
+      {% for bd in birthdays %}
+      <li>{{ bd.first_name }} {{ bd.last_name }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No birthdays today.</p>
+    {% endif %}
+  </div>
 
-    <!-- Recent Dreams & Visions -->
-    <div class="glass-panel dash-feed-card dash-feed-dreams">
-        <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Dreams &amp; Visions</h3>
-        {% if dreams %}
-            <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-                {% for dream in dreams %}
-                    <li>
-                        {{ dream.title }}
-                        {% if dream.poster_username %} (by {{ dream.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ dream.datetime }}{% if dream.visibility %} - {{ dream.visibility }}{% endif %}</small>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent dreams &amp; visions.</p>
-        {% endif %}
-    </div>
+  <div class="glass-panel dash-feed-card dash-feed-prayers">
+    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Prayers</h3>
+    {% if prayers %}
+    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
+      {% for prayer in prayers %}
+      <li>
+        {{ prayer.title }}
+        {% if prayer.poster_username %} (by {{ prayer.poster_username }}){% endif %}
+        <br><small style="opacity:0.7;">{{ prayer.datetime }}{% if prayer.visibility %} · {{ prayer.visibility }}{% endif %}</small>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent prayers.</p>
+    {% endif %}
+  </div>
 
-    <!-- Recent Prophecies -->
-    <div class="glass-panel dash-feed-card dash-feed-prophecies">
-        <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Prophecies</h3>
-        {% if prophecies %}
-            <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-                {% for prophecy in prophecies %}
-                    <li>
-                        {{ prophecy.title }}
-                        {% if prophecy.poster_username %} (by {{ prophecy.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ prophecy.datetime }}{% if prophecy.visibility %} - {{ prophecy.visibility }}{% endif %}</small>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent prophecies.</p>
-        {% endif %}
-    </div>
+  {% if module_on('dreams') %}
+  <div class="glass-panel dash-feed-card dash-feed-dreams">
+    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Dreams &amp; Visions</h3>
+    {% if dreams %}
+    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
+      {% for dream in dreams %}
+      <li>
+        {{ dream.title }}
+        {% if dream.poster_username %} (by {{ dream.poster_username }}){% endif %}
+        <br><small style="opacity:0.7;">{{ dream.datetime }}{% if dream.visibility %} · {{ dream.visibility }}{% endif %}</small>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent dreams.</p>
+    {% endif %}
+  </div>
+  {% endif %}
 
-    <!-- Recent Sermons -->
-    <div class="glass-panel dash-feed-card dash-feed-sermons">
-        <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Sermons</h3>
-        {% if sermons %}
-            <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-                {% for sermon in sermons %}
-                    <li>
-                        {{ sermon.title }}
-                        {% if sermon.poster_username %} (by {{ sermon.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ sermon.datetime }}{% if sermon.visibility %} - {{ sermon.visibility }}{% endif %}</small>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent sermons.</p>
-        {% endif %}
-    </div>
+  {% if module_on('prophecies') %}
+  <div class="glass-panel dash-feed-card dash-feed-prophecies">
+    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Prophecies</h3>
+    {% if prophecies %}
+    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
+      {% for prophecy in prophecies %}
+      <li>
+        {{ prophecy.title }}
+        {% if prophecy.poster_username %} (by {{ prophecy.poster_username }}){% endif %}
+        <br><small style="opacity:0.7;">{{ prophecy.datetime }}{% if prophecy.visibility %} · {{ prophecy.visibility }}{% endif %}</small>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent prophecies.</p>
+    {% endif %}
+  </div>
+  {% endif %}
 
-    <!-- Recent Announcements -->
-    <div class="glass-panel dash-feed-card dash-feed-announcements">
-        <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Announcements</h3>
-        {% if announcements %}
-            <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-                {% for ann in announcements %}
-                    <li>
-                        {{ ann.title }}
-                        {% if ann.poster_username %} (by {{ ann.poster_username }}) {% endif %}
-                        <br><small style="opacity:0.7;">{{ ann.datetime }}{% if ann.visibility %} - {{ ann.visibility }}{% endif %}</small>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent announcements.</p>
-        {% endif %}
-    </div>
+  <div class="glass-panel dash-feed-card dash-feed-sermons">
+    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Sermons</h3>
+    {% if sermons %}
+    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
+      {% for sermon in sermons %}
+      <li>
+        {{ sermon.title }}
+        {% if sermon.poster_username %} (by {{ sermon.poster_username }}){% endif %}
+        <br><small style="opacity:0.7;">{{ sermon.datetime }}{% if sermon.visibility %} · {{ sermon.visibility }}{% endif %}</small>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent sermons.</p>
+    {% endif %}
+  </div>
 
-    <!-- Upcoming Events -->
-    <div class="glass-panel dash-feed-card dash-feed-events">
-        <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Upcoming Events</h3>
-        {% if events %}
-            <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-                {% for event in events %}
-                    <li>
-                        {{ event.title }}
-                        <br><small style="opacity:0.7;">{{ event.formatted_full }}{% if event.visibility %} - {{ event.visibility }}{% endif %}</small>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="margin:0; font-size:0.9rem; opacity:0.7;">No upcoming events.</p>
-        {% endif %}
-    </div>
+  <div class="glass-panel dash-feed-card dash-feed-announcements">
+    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Announcements</h3>
+    {% if announcements %}
+    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
+      {% for ann in announcements %}
+      <li>
+        {{ ann.title }}
+        {% if ann.poster_username %} (by {{ ann.poster_username }}){% endif %}
+        <br><small style="opacity:0.7;">{{ ann.datetime }}{% if ann.visibility %} · {{ ann.visibility }}{% endif %}</small>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent announcements.</p>
+    {% endif %}
+  </div>
+
+  <div class="glass-panel dash-feed-card dash-feed-events">
+    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Upcoming Events</h3>
+    {% if events %}
+    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
+      {% for event in events %}
+      <li>
+        {{ event.title }}
+        <br><small style="opacity:0.7;">{% if event.event_date %}{{ event.event_date }}{% endif %}{% if event.visibility %} · {{ event.visibility }}{% endif %}</small>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No upcoming events.</p>
+    {% endif %}
+  </div>
+
 </div>
 {% endblock %}

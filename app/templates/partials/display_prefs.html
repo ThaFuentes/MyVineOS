@@ -1,6 +1,8 @@
 {# Shared Display control — theme + page/Bible font sizes.
-   Works for visitors (session cookie) and members (session + account DB). #}
-{% set _theme = user_theme if user_theme is defined else (session.get('user_theme') or 'cyan-glow') %}
+   Church default applies until the person picks their own (members save to account). #}
+{% set _church = session.get('church_default_theme') or (g.settings.get('default_ui_theme') if g is defined and g.settings else none) or 'cyan-glow' %}
+{% set _theme = user_theme if user_theme is defined else (session.get('user_theme') or _church) %}
+{% set _personal = session.get('ui_use_personal_theme') if session.get('user_id') else session.get('guest_display_prefs') %}
 {% set _logged_in = session.get('user_id') is not none %}
 <div class="display-prefs" id="display-prefs">
   <button type="button"
@@ -8,9 +10,10 @@
           id="display-prefs-toggle"
           aria-expanded="false"
           aria-controls="display-prefs-panel"
-          title="Display settings">
+          title="Display settings — theme and text size"
+          aria-label="Display settings">
     <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
-    <span class="desktop-only">Display</span>
+    <span class="display-prefs-label">Display</span>
   </button>
   <div class="display-prefs-panel"
        id="display-prefs-panel"
@@ -18,10 +21,11 @@
        aria-label="Display settings"
        data-save-url="{% if _logged_in %}{{ url_for('profile.ui_preferences') }}{% else %}{{ url_for('public.ui_preferences') }}{% endif %}"
        data-csrf="{{ csrf_token() if csrf_token else '' }}"
-       data-guest="{% if _logged_in %}0{% else %}1{% endif %}">
+       data-guest="{% if _logged_in %}0{% else %}1{% endif %}"
+       data-church-theme="{{ _church }}">
     <h3><i class="fa-solid fa-palette" aria-hidden="true"></i> Display</h3>
     {% if _logged_in %}
-    <p class="pref-hint">Saved to your account. Same theme site-wide, including Pastoral.</p>
+    <p class="pref-hint">Your choice is saved to your account. Use “Church default” to follow the site theme again.</p>
     {% else %}
     <p class="pref-hint">Saved on this device for your visit. Sign in to keep preferences on your account.</p>
     {% endif %}
@@ -29,23 +33,26 @@
     <div class="pref-section">
       <span class="pref-label">Theme</span>
       <select id="pref-theme-select" class="pref-select" data-pref="theme" aria-label="Color theme">
-        <option value="cyan-glow"{% if _theme == 'cyan-glow' %} selected{% endif %}>Classic (default)</option>
-        <option value="soft-light"{% if _theme == 'soft-light' %} selected{% endif %}>Soft light</option>
-        <option value="tropical"{% if _theme == 'tropical' %} selected{% endif %}>Tropical</option>
-        <option value="purple-grace"{% if _theme == 'purple-grace' %} selected{% endif %}>Purple grace</option>
-        <option value="amber-hope"{% if _theme == 'amber-hope' %} selected{% endif %}>Amber hope</option>
-        <option value="forest"{% if _theme == 'forest' %} selected{% endif %}>Forest</option>
-        <option value="rose-dawn"{% if _theme == 'rose-dawn' %} selected{% endif %}>Rose dawn</option>
+        <option value="church"{% if not _personal %} selected{% endif %}>Church default</option>
+        <option value="cyan-glow"{% if _personal and _theme == 'cyan-glow' %} selected{% endif %}>Classic</option>
+        <option value="soft-light"{% if _personal and _theme == 'soft-light' %} selected{% endif %}>Soft light</option>
+        <option value="tropical"{% if _personal and _theme == 'tropical' %} selected{% endif %}>Tropical</option>
+        <option value="purple-grace"{% if _personal and _theme == 'purple-grace' %} selected{% endif %}>Purple grace</option>
+        <option value="amber-hope"{% if _personal and _theme == 'amber-hope' %} selected{% endif %}>Amber hope</option>
+        <option value="forest"{% if _personal and _theme == 'forest' %} selected{% endif %}>Forest</option>
+        <option value="rose-dawn"{% if _personal and _theme == 'rose-dawn' %} selected{% endif %}>Rose dawn</option>
       </select>
     </div>
 
     <div class="pref-section">
       <span class="pref-label">Page text size</span>
+      <p class="pref-hint" style="margin:0 0 0.4rem;">Larger sizes help older eyes — cards grow so text stays inside.</p>
       <div class="pref-options">
-        <button type="button" class="pref-option" data-pref="font_scale" data-value="sm">S</button>
-        <button type="button" class="pref-option" data-pref="font_scale" data-value="md">M</button>
-        <button type="button" class="pref-option" data-pref="font_scale" data-value="lg">L</button>
-        <button type="button" class="pref-option" data-pref="font_scale" data-value="xl">XL</button>
+        <button type="button" class="pref-option" data-pref="font_scale" data-value="sm" title="Small">S</button>
+        <button type="button" class="pref-option" data-pref="font_scale" data-value="md" title="Medium">M</button>
+        <button type="button" class="pref-option" data-pref="font_scale" data-value="lg" title="Large">L</button>
+        <button type="button" class="pref-option" data-pref="font_scale" data-value="xl" title="Extra large">XL</button>
+        <button type="button" class="pref-option" data-pref="font_scale" data-value="xxl" title="Huge — easiest to read">Huge</button>
       </div>
     </div>
 

@@ -125,6 +125,8 @@ Browse and search all prophetic words.<br>
                                 {% endif %}
                                 {% if can_delete %}
                                 <form action="{{ url_for('prophecies.delete_prophecy', prophecy_id=p.id) }}" method="post" style="display:inline;">
+    {% include 'partials/csrf_field.html' %}
+
                                     <button type="submit" class="btn-danger btn-small"
                                             onclick="return confirm('Delete this prophecy?');">
                                         Delete

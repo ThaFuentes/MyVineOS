@@ -119,6 +119,8 @@ Public requests are visible to all; private requests require login.
                                 {% endif %}
                                 {% if current_user.role in ['Admin', 'Owner'] %}
                                     <form action="{{ url_for('prayers.delete_prayer', prayer_id=p.id) }}" method="post" class="inline-form">
+    {% include 'partials/csrf_field.html' %}
+
                                         <button type="submit" class="btn-danger btn-small"
                                                 onclick="return confirm('Permanently delete this prayer request?');">
                                             Delete
@@ -163,6 +165,8 @@ Public requests are visible to all; private requests require login.
 
                                         <!-- Add Response Form -->
                                         <form action="{{ url_for('prayers.add_prayer_to_request', prayer_request_id=p.id) }}" method="POST" class="styled-form potluck-add-form">
+    {% include 'partials/csrf_field.html' %}
+
                                             {% if not is_logged_in %}
                                             <div class="form-group">
                                                 <label>Your Name (optional - leave blank for Anonymous)</label>

@@ -15,6 +15,8 @@
 {{ public_links(public_token, 'template') }}
 
 <form method="post" class="glass-panel" style="padding:1rem; margin-bottom:1rem; display:grid; gap:0.85rem;">
+    {% include 'partials/csrf_field.html' %}
+
   <input type="hidden" name="action" value="save">
   <label>Title *
     <input type="text" name="title" value="{{ template.title }}" required style="width:100%; margin-top:0.25rem;">
@@ -46,6 +48,8 @@
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
     <h3 style="margin:0; font-size:1rem;">Default songs</h3>
     <form method="post" style="display:flex; gap:0.5rem; align-items:center;">
+    {% include 'partials/csrf_field.html' %}
+
       <input type="hidden" name="action" value="add_song">
       <select name="song_id" required>
         <option value="">Add song...</option>
@@ -62,6 +66,8 @@
     <li style="margin-bottom:0.5rem; display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
       <span><strong>{{ item.title }}</strong>{% if item.artist %} - {{ item.artist }}{% endif %}</span>
       <form method="post" style="margin:0;">
+    {% include 'partials/csrf_field.html' %}
+
         <input type="hidden" name="action" value="remove_song">
         <input type="hidden" name="item_id" value="{{ item.id }}">
         <button type="submit" class="btn btn-secondary" style="font-size:0.75rem; padding:0.2rem 0.5rem;">Remove</button>

@@ -275,16 +275,20 @@ def ui_preferences():
         saved = save_user_ui_prefs(user_id, theme, font_scale, bible_scale)
         apply_ui_prefs_to_session(
             session,
-            theme=saved['theme'],
+            theme=saved['theme'] if saved.get('use_personal') else 'church',
             font_scale=saved['font_scale'],
             bible_scale=saved['bible_scale'],
+            use_personal=bool(saved.get('use_personal')),
+            church_default=saved.get('church_default'),
         )
+        session['ui_use_personal_theme'] = 1 if saved.get('use_personal') else 0
         session.modified = True
         log_change(
             user_id,
             'update',
             change_details=(
-                f"Display prefs: theme={saved['theme']}, "
+                f"Display prefs: theme={saved['theme']}"
+                f"{' (personal)' if saved.get('use_personal') else ' (church default)'}, "
                 f"font={saved['font_scale']}, bible={saved['bible_scale']}"
             ),
         )

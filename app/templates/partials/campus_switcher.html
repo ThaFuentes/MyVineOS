@@ -1,0 +1,20 @@
+{# Campus scope switcher — shown when multi-campus is enabled #}
+{% if multi_campus_enabled and campuses and session.get('user_id') %}
+<div class="campus-switcher" style="display:inline-flex; align-items:center; gap:0.35rem;">
+  <form method="post" action="{{ url_for('campus_switch.switch') }}" style="margin:0; display:inline-flex; align-items:center; gap:0.3rem;">
+    {% include 'partials/csrf_field.html' %}
+    <label for="campus-switch-select" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Campus</label>
+    <select name="campus_id" id="campus-switch-select" class="form-input"
+            style="min-height:34px; padding:0.25rem 0.5rem; font-size:0.8rem; max-width:11rem;"
+            onchange="this.form.submit()"
+            title="Campus scope">
+      <option value="all" {% if viewing_all_campuses %}selected{% endif %}>All campuses</option>
+      {% for c in campuses %}
+      <option value="{{ c.id }}" {% if active_campus_id == c.id and not viewing_all_campuses %}selected{% endif %}>
+        {{ c.short_name or c.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+{% endif %}

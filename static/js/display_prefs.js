@@ -1,7 +1,8 @@
 /**
  * Site-wide display preferences: theme, page font scale, Bible reader scale.
- * Instantly applies to <html> attributes and persists via /profile/ui-preferences.
- * Uses form-encoded POST + CSRF field (most reliable with security pipeline).
+ * Instantly applies to <html> attributes and persists via profile/public UI prefs.
+ * On mobile the panel is portaled to <body> so it is not trapped by the top-bar
+ * backdrop-filter (which breaks position:fixed descendants).
  */
 (function () {
   const root = document.documentElement;
@@ -13,6 +14,31 @@
   const saveUrl = panel.dataset.saveUrl;
   const csrf = panel.dataset.csrf || '';
   const themeSelect = document.getElementById('pref-theme-select');
+  const prefsRoot = document.getElementById('display-prefs') || toggle.parentElement;
+  const churchTheme = panel.dataset.churchTheme || 'cyan-glow';
+
+  function resolveThemeValue(val) {
+    if (!val || val === 'church' || val === 'default' || val === 'church-default') {
+      return churchTheme;
+    }
+    return val;
+  }
+
+  // Backdrop for mobile sheet (created once)
+  let backdrop = document.getElementById('display-prefs-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'display-prefs-backdrop';
+    backdrop.className = 'display-prefs-backdrop';
+    backdrop.hidden = true;
+    backdrop.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(backdrop);
+  }
+
+  // Remember original home so we can put the panel back on desktop if needed
+  const panelHome = prefsRoot;
+  let panelOnBody = false;
+  let ignoreDocCloseUntil = 0;
 
   const THEME_META = {
     'cyan-glow': '#0a0a0a',
@@ -24,6 +50,10 @@
     'rose-dawn': '#1a0e16',
   };
 
+  function isMobile() {
+    return window.matchMedia('(max-width: 767px)').matches;
+  }
+
   function current() {
     return {
       theme: root.getAttribute('data-theme') || 'cyan-glow',
@@ -34,8 +64,14 @@
 
   function setActiveButtons() {
     const c = current();
-    if (themeSelect && [...themeSelect.options].some((o) => o.value === c.theme)) {
-      themeSelect.value = c.theme;
+    if (themeSelect) {
+      // Keep "church" selected when effective theme matches church default and user chose it
+      const selected = themeSelect.value;
+      if (selected !== 'church') {
+        if ([...themeSelect.options].some((o) => o.value === c.theme)) {
+          themeSelect.value = c.theme;
+        }
+      }
     }
     panel.querySelectorAll('button[data-pref]').forEach((btn) => {
       const key = btn.getAttribute('data-pref');
@@ -49,13 +85,15 @@
   }
 
   function applyLocal(partial) {
-    if (partial.theme) root.setAttribute('data-theme', partial.theme);
+    if (partial.theme) {
+      root.setAttribute('data-theme', resolveThemeValue(partial.theme));
+    }
     if (partial.font_scale) root.setAttribute('data-font-scale', partial.font_scale);
     if (partial.bible_scale) root.setAttribute('data-bible-scale', partial.bible_scale);
 
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      const t = partial.theme || current().theme;
+      const t = resolveThemeValue(partial.theme || current().theme);
       meta.setAttribute('content', THEME_META[t] || '#0a0a0a');
     }
     setActiveButtons();
@@ -77,17 +115,21 @@
   async function persist() {
     if (!saveUrl) return;
     const body = current();
+    // Prefer the select value so "church" is sent as church (not resolved classic name)
+    const themeToSave = themeSelect ? themeSelect.value : body.theme;
 
-    // form-urlencoded so CSRF middleware always sees csrf_token in form body
     const params = new URLSearchParams();
-    params.set('theme', body.theme);
+    params.set('theme', themeToSave);
     params.set('font_scale', body.font_scale);
     params.set('bible_scale', body.bible_scale);
     if (csrf) params.set('csrf_token', csrf);
 
-    // Cancel previous in-flight save to avoid out-of-order overwrites
     if (inflight && typeof inflight.abort === 'function') {
-      try { inflight.abort(); } catch (e) { /* ignore */ }
+      try {
+        inflight.abort();
+      } catch (e) {
+        /* ignore */
+      }
     }
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     inflight = controller;
@@ -111,7 +153,6 @@
       try {
         data = text ? JSON.parse(text) : {};
       } catch (e) {
-        // Server redirected HTML (old 403 handler) — treat as failure
         if (statusEl) {
           statusEl.textContent = res.ok
             ? 'Saved (reload if theme looks wrong).'
@@ -125,7 +166,6 @@
         return;
       }
 
-      // Authoritative values from server/DB
       applyLocal({
         theme: data.theme || body.theme,
         font_scale: data.font_scale || body.font_scale,
@@ -149,7 +189,6 @@
     }
   }
 
-  // Flush pending save if user navigates away quickly
   window.addEventListener('pagehide', () => {
     clearTimeout(saveTimer);
   });
@@ -160,40 +199,98 @@
     }
   });
 
+  function placePanelForViewport() {
+    if (isMobile()) {
+      if (!panelOnBody) {
+        document.body.appendChild(panel);
+        panelOnBody = true;
+      }
+      panel.classList.add('display-prefs-panel--sheet');
+    } else {
+      panel.classList.remove('display-prefs-panel--sheet');
+      if (panelOnBody && panelHome) {
+        panelHome.appendChild(panel);
+        panelOnBody = false;
+      }
+    }
+  }
+
   function openPanel() {
+    placePanelForViewport();
     panel.classList.add('is-open');
     toggle.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('display-prefs-open');
+    if (isMobile()) {
+      backdrop.hidden = false;
+      backdrop.removeAttribute('hidden');
+      backdrop.setAttribute('aria-hidden', 'false');
+      backdrop.classList.add('is-open');
+    }
     setActiveButtons();
+    // Avoid the same touch/click that opened the panel also closing it
+    ignoreDocCloseUntil = Date.now() + 350;
   }
 
   function closePanel() {
     panel.classList.remove('is-open');
     toggle.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('display-prefs-open');
+    backdrop.classList.remove('is-open');
+    backdrop.hidden = true;
+    backdrop.setAttribute('hidden', '');
+    backdrop.setAttribute('aria-hidden', 'true');
   }
 
-  toggle.addEventListener('click', (e) => {
+  function onToggle(e) {
+    e.preventDefault();
     e.stopPropagation();
     if (panel.classList.contains('is-open')) closePanel();
     else openPanel();
-  });
+  }
+
+  // click + pointerup for better mobile response
+  toggle.addEventListener('click', onToggle);
+  toggle.addEventListener(
+    'pointerup',
+    (e) => {
+      // Only handle primary touch/pen if click is flaky (iOS sometimes)
+      if (e.pointerType === 'touch') {
+        // click still fires after; prevent double-toggle via ignore window
+      }
+    },
+    { passive: true }
+  );
 
   panel.addEventListener('click', (e) => e.stopPropagation());
+  panel.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
 
-  document.addEventListener('click', () => {
-    if (panel.classList.contains('is-open')) closePanel();
+  backdrop.addEventListener('click', (e) => {
+    e.preventDefault();
+    closePanel();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (Date.now() < ignoreDocCloseUntil) return;
+    if (!panel.classList.contains('is-open')) return;
+    // Keep open when interacting with toggle, panel, or backdrop (backdrop has own handler)
+    const t = e.target;
+    if (toggle.contains(t) || panel.contains(t) || backdrop.contains(t)) return;
+    closePanel();
   });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closePanel();
   });
 
-  // Theme dropdown — save immediately so it never races a navigation
+  window.addEventListener('resize', () => {
+    if (panel.classList.contains('is-open')) placePanelForViewport();
+  });
+
   themeSelect?.addEventListener('change', () => {
     applyLocal({ theme: themeSelect.value });
     scheduleSave(true);
   });
 
-  // Font size pills
   panel.querySelectorAll('button[data-pref]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const key = btn.getAttribute('data-pref');
@@ -206,7 +303,6 @@
     });
   });
 
-  // Bible toolbar A+/A-
   function bibleStep(delta) {
     const order = ['sm', 'md', 'lg', 'xl', 'xxl'];
     const cur = current().bible_scale;

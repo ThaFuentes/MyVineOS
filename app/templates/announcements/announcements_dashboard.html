@@ -106,6 +106,8 @@ Overview of all church announcements.<br>
                         <div class="actions-buttons" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:nowrap;">
                             <a href="{{ url_for('announcements.edit_announcement', ann_id=ann['id']) }}" class="btn-primary btn-small">Edit</a>
                             <form action="{{ url_for('announcements.delete_announcement', ann_id=ann['id']) }}" method="post" class="inline-form" style="display:inline;">
+    {% include 'partials/csrf_field.html' %}
+
                                 <button type="submit" class="btn-danger btn-small"
                                         onclick="return confirm('Permanently delete this announcement?');">
                                     Delete
@@ -137,6 +139,8 @@ Overview of all church announcements.<br>
                             {% if is_logged_in and ann['comments_enabled'] %}
                             <div class="add-comment">
                                 <form method="POST" action="{{ url_for('announcements.add_comment', ann_id=ann['id']) }}">
+    {% include 'partials/csrf_field.html' %}
+
                                     <textarea name="comment" rows="4" placeholder="Add a comment..." required class="styled-textarea"></textarea>
                                     <button type="submit" class="btn-primary">Post Comment</button>
                                 </form>
@@ -162,6 +166,8 @@ Overview of all church announcements.<br>
         <span class="close" onclick="closeEmailModal()">×</span>
         <h2>Email Announcement</h2>
         <form method="POST" id="emailForm">
+    {% include 'partials/csrf_field.html' %}
+
             <input type="hidden" name="ann_id" id="modalAnnId">
             <div class="form-group">
                 <label for="subject">Subject</label>

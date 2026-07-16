@@ -14,7 +14,8 @@ html {
 html[data-font-scale="sm"] { font-size: 14px; }
 html[data-font-scale="md"] { font-size: 16px; }
 html[data-font-scale="lg"] { font-size: 18px; }
-html[data-font-scale="xl"] { font-size: 20px; }
+html[data-font-scale="xl"] { font-size: 21px; }
+html[data-font-scale="xxl"] { font-size: 24px; }
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -227,10 +228,177 @@ img, video {
 
 /* Desktop: hide bottom, show top-nav */
 @media (min-width: 768px) {
-  .bottom-nav {
-    display: none;
+  .bottom-nav,
+  .bottom-nav--sheets,
+  .nav-sheet,
+  .nav-sheet-backdrop {
+    display: none !important;
   }
 }
+
+
+.bottom-nav button.bottom-nav-item,
+.bottom-nav .bottom-nav-item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 0.1rem;
+  padding: 0.35rem 0.2rem;
+  min-height: 48px;
+  text-decoration: none;
+}
+.bottom-nav button.bottom-nav-item .icon,
+.bottom-nav .bottom-nav-item .icon { font-size: 1.15rem; line-height: 1; }
+.bottom-nav button.bottom-nav-item .label,
+.bottom-nav .bottom-nav-item .label { font-size: 0.68rem; }
+.bottom-nav button.bottom-nav-item.active,
+.bottom-nav button.bottom-nav-item.is-open,
+.bottom-nav .bottom-nav-item.active,
+.bottom-nav .bottom-nav-item.is-open {
+  color: var(--primary);
+}
+
+/* Mobile nav sheets — full link lists for each bottom-nav section */
+.nav-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+.nav-sheet-backdrop[hidden] {
+  display: none !important;
+}
+
+.nav-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1100;
+  max-height: min(78vh, 640px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-header, rgba(22, 24, 28, 0.98));
+  border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.25));
+  border-bottom: none;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 4.25rem);
+  transform: translateY(110%);
+  transition: transform 0.22s ease;
+  overflow: hidden;
+}
+.nav-sheet.is-open {
+  transform: translateY(0);
+}
+.nav-sheet[hidden] {
+  display: none !important;
+}
+.nav-sheet.is-open[hidden] {
+  display: flex !important;
+}
+
+.nav-sheet-handle {
+  width: 2.5rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  margin: 0.55rem auto 0.15rem;
+  flex-shrink: 0;
+}
+
+.nav-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 1rem 0.45rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+.nav-sheet-title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--primary, #0ff);
+  font-weight: 700;
+}
+.nav-sheet-close {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary, #eee);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-sheet-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.45rem 0.65rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.nav-sheet-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text-primary, #e8edf4);
+  font-size: 1rem;
+  font-weight: 500;
+  min-height: 48px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+}
+.nav-sheet-link i {
+  width: 1.25rem;
+  text-align: center;
+  color: var(--primary, #0ff);
+  opacity: 0.9;
+}
+.nav-sheet-link:active,
+.nav-sheet-link:hover {
+  background: rgba(var(--primary-rgb, 0, 255, 255), 0.12);
+  border-color: rgba(var(--primary-rgb, 0, 255, 255), 0.2);
+}
+.nav-sheet-link.active {
+  background: rgba(var(--primary-rgb, 0, 255, 255), 0.18);
+  border-color: rgba(var(--primary-rgb, 0, 255, 255), 0.35);
+  color: var(--primary, #0ff);
+  font-weight: 600;
+}
+
+body.nav-sheet-open {
+  overflow: hidden;
+}
+
+/* Desktop: hide bottom, show top-nav */
+@media (min-width: 768px) {
+  .bottom-nav,
+  .nav-sheet,
+  .nav-sheet-backdrop {
+    display: none !important;
+  }
+}
+
 
 /* Top nav for desktop/wide */
 .top-nav {

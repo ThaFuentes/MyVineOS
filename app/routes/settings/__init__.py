@@ -138,3 +138,5 @@ from . import ticket_managers
 from . import timezone
 from . import notifications
 from . import custom_modules
+from . import modules
+from . import campuses

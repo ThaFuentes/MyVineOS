@@ -1,55 +1,73 @@
-<!-- app/templates/attendance/day_detail.html -->
-<!-- Full path: WebChurchMan/app/templates/attendance/day_detail.html -->
-<!-- File name: day_detail.html -->
-<!-- Brief, detailed purpose: Detailed attendance list for a selected date (Staff/Admin/Owner only).
-   Extends base_attendance.html for full module consistency (internal menu, flash handling).
-   Shows nice date header, total count card, glass table of attendees.
-   Uses ONLY global classes - no attendance-specific CSS.
-   Clean, premium look matching the rebuilt site-wide glassmorphism theme. -->
-
 {% extends "attendance/base_attendance.html" %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/attendance_reports.css') }}?v=20260715rep1">
+{% endblock %}
+
 {% block attendance_content %}
-<section class="content-section">
-    <h2 class="section-title">Attendance - {{ nice_date }}</h2>
+<div class="att-rep">
+  <p style="margin:0 0 0.85rem;">
+    <a href="{{ url_for('attendance.attendance_reports', range='custom', start=date, end=date, grain='day') }}"
+       class="btn btn-secondary" style="min-height:auto;padding:0.4rem 0.8rem;">← Reports</a>
+    <a href="{{ url_for('attendance.attendance_dashboard') }}"
+       class="btn btn-secondary" style="min-height:auto;padding:0.4rem 0.8rem;">Dashboard</a>
+  </p>
 
-    <!-- Total Count Card -->
-    <div class="summary-cards" style="margin-bottom: 3rem;">
-        <div class="card glass">
-            <h3>Members Checked In</h3>
-            <p class="large-amount">{{ count }}</p>
-        </div>
+  <div class="glass-panel att-rep-hero">
+    <h1 style="margin:0 0 0.35rem; font-size:1.35rem;">{{ nice_date }}</h1>
+    <p style="margin:0; opacity:0.78;">Day roster and surrounding week / month context.</p>
+  </div>
+
+  <div class="att-dash-kpis">
+    <div class="glass-panel att-dash-kpi">
+      <strong>{{ count }}</strong>
+      <span>Checked in today</span>
     </div>
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='custom', start=week_start, end=week_end, grain='day') }}">
+        <strong>{{ week_summary.total_checkins }}</strong>
+        <span>This week</span>
+      </a>
+    </div>
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='custom', start=month_start, end=month_end, grain='day') }}">
+        <strong>{{ month_summary.total_checkins }}</strong>
+        <span>This month</span>
+      </a>
+    </div>
+    <div class="glass-panel att-dash-kpi">
+      <strong>{{ week_summary.unique_people }}</strong>
+      <span>Unique this week</span>
+    </div>
+  </div>
 
+  <div class="glass-panel att-panel">
+    <h2>Roster</h2>
+    <p class="panel-lead">{{ count }} member{{ 's' if count != 1 else '' }} checked in on this date.</p>
     {% if attendees %}
-    <div class="table-wrapper glass">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Username</th>
-                    <th>Check-In Time</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for att in attendees %}
-                <tr>
-                    <td>{{ att.first_name }} {{ att.last_name }}</td>
-                    <td>{{ att.username or '-' }}</td>
-                    <td>{{ att.check_in_time }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="att-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Username</th>
+            <th>Check-in time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for att in attendees %}
+          <tr>
+            <td>{{ att.first_name }} {{ att.last_name }}</td>
+            <td>{{ att.username or '—' }}</td>
+            <td>{{ att.check_in_time }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
     {% else %}
-    <p class="no-data">No check-ins recorded for this date.</p>
+    <p class="no-data" style="margin:0;">No check-ins recorded for this date.</p>
     {% endif %}
-
-    <p style="margin-top: 3rem;">
-        <a href="{{ url_for('attendance.attendance_dashboard') }}" class="btn-secondary">
-            <- Back to Attendance Dashboard
-        </a>
-    </p>
-</section>
+  </div>
+</div>
 {% endblock %}

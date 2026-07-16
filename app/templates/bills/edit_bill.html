@@ -58,6 +58,55 @@
             </div>
         </details>
 
+        <!-- Accounting defaults -->
+        <details open id="section-accounting" class="collapsible-section glass">
+            <summary class="collapsible-summary section-subtitle">Accounting (when you pay)</summary>
+            <div class="collapsible-content">
+                <p class="help-text">
+                    When you record a payment on this bill, it can post into the Accounting expenses ledger
+                    and cash journal. Set defaults here so every payment is categorized correctly.
+                </p>
+                {% if expense_accounts %}
+                <div class="form-group">
+                    <label for="expense_account_id" class="control-label">Default expense account</label>
+                    <select id="expense_account_id" name="expense_account_id" class="form-input">
+                        <option value="">— Auto (Utilities / Other) —</option>
+                        {% for a in expense_accounts %}
+                        <option value="{{ a.id }}"
+                            {% if bill and bill.expense_account_id == a.id %}selected{% endif %}>
+                            {{ a.code }} — {{ a.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                {% if payment_accounts %}
+                <div class="form-group">
+                    <label for="payment_account_id" class="control-label">Default paid-from account</label>
+                    <select id="payment_account_id" name="payment_account_id" class="form-input">
+                        <option value="">— Auto (Cash - Operating) —</option>
+                        {% for a in payment_accounts %}
+                        <option value="{{ a.id }}"
+                            {% if bill and bill.payment_account_id == a.id %}selected{% endif %}>
+                            {{ a.code }} — {{ a.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="form-group">
+                    <label class="control-label" style="display:flex; gap:0.5rem; align-items:center;">
+                        <input type="checkbox" name="post_to_accounting" value="1"
+                               {% if not bill or bill.post_to_accounting is not defined or bill.post_to_accounting %}checked{% endif %}>
+                        Post payments to Accounting by default
+                    </label>
+                </div>
+                {% if not expense_accounts %}
+                <p class="help-text small">Open <a href="{{ url_for('accounting.dashboard') }}">Accounting</a> once so the chart of accounts is ready, then edit this bill again.</p>
+                {% endif %}
+            </div>
+        </details>
+
         <!-- Payment Schedule -->
         <details open id="section-schedule" class="collapsible-section glass">
             <summary class="collapsible-summary section-subtitle">Payment Schedule</summary>

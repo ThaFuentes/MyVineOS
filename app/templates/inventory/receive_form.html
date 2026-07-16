@@ -1,44 +1,70 @@
-<!-- app/templates/inventory/receive_form.html -->
-<!-- Full path: WebChurchMan/app/templates/inventory/receive_form.html -->
-<!-- File name: receive_form.html -->
-<!-- Brief, detailed purpose: Form to receive/restock items into a location (new batch). -->
-
 {% extends "inventory/base_inventory.html" %}
 
 {% block inventory_content %}
-<section class="content-section">
-    <h2 class="section-title">Receive Stock</h2>
+<div class="glass-panel inv-panel" style="max-width:36rem;">
+  <h2>Receive stock</h2>
+  <p class="lead">
+    Add inventory into a location as a new batch. Use this for purchases, donations, or restocks.
+  </p>
 
-    <form method="POST" class="styled-form">
-        <div class="form-group">
-            <label>Item <span class="required">*</span></label>
-            <select name="item_id" required class="form-input">
-                {% for item in items %}
-                    <option value="{{ item.id }}">{{ item.name }} (Current: {{ item.total_stock|default(0) }})</option>
-                {% endfor %}
-            </select>
-        </div>
+  <form method="POST" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
 
-        <div class="form-group">
-            <label>Location <span class="required">*</span></label>
-            <select name="location_id" required class="form-input">
-                {% for loc in locations %}
-                    <option value="{{ loc.id }}">{{ loc.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+    <label>Item *
+      <select name="item_id" class="form-input" required>
+        <option value="">— Select item —</option>
+        {% for it in items if not it.is_kit %}
+        <option value="{{ it.id }}"
+          {% if preselect and preselect|string == it.id|string %}selected{% endif %}>
+          {{ it.name }}{% if it.sku %} ({{ it.sku }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <p class="help-text">Kits don’t hold stock — receive their components instead.</p>
 
-        <div class="form-group">
-            <label>Quantity Received <span class="required">*</span></label>
-            <input type="number" name="quantity" min="1" required class="form-input">
-        </div>
+    <label>Location *
+      <select name="location_id" class="form-input" required>
+        <option value="">— Select location —</option>
+        {% for loc in locations %}
+        <option value="{{ loc.id }}">{{ loc.name }}{% if loc.building_area %} · {{ loc.building_area }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
 
-        <!-- Add optional fields: purchase_date, expiration_date, cost_per_unit, notes -->
+    <div class="form-row">
+      <label>Quantity *
+        <input type="number" name="quantity" class="form-input" min="1" required placeholder="1">
+      </label>
+      <label>Cost per unit
+        <input type="number" name="cost_per_unit" class="form-input" step="0.01" min="0" placeholder="Optional">
+      </label>
+    </div>
 
-        <div class="form-actions">
-            <button type="submit" class="btn-primary">Record Receipt</button>
-            <a href="{{ url_for('inventory.inventory_dashboard') }}" class="btn-secondary">Cancel</a>
-        </div>
-    </form>
-</section>
+    <div class="form-row">
+      <label>Purchase / received date
+        <input type="date" name="purchase_date" class="form-input">
+      </label>
+      <label>Expiration date
+        <input type="date" name="expiration_date" class="form-input">
+      </label>
+    </div>
+
+    <label>Notes
+      <textarea name="notes" class="form-input" rows="2" placeholder="PO number, donor, invoice…"></textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Receive stock</button>
+      <a href="{{ url_for('inventory.items_list') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+
+  {% if not locations %}
+  <p class="help-text" style="margin-top:1rem;">
+    Add a storage location first under
+    <a href="{{ url_for('inventory.cat_location') }}">Categories &amp; locations</a>.
+  </p>
+  {% endif %}
+</div>
 {% endblock %}

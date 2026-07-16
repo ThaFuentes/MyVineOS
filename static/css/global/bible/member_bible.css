@@ -247,6 +247,96 @@
   color: #ffe0a0;
 }
 
+/* Linked-verse popup (cross-references) */
+.bible-xref-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.62);
+  padding: 1rem;
+  backdrop-filter: blur(3px);
+}
+.bible-xref-popup.is-open { display: flex; }
+.bible-xref-popup-card {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: min(88vh, 640px);
+  overflow: auto;
+  padding: 1.15rem 1.25rem 1.2rem;
+  border-radius: 16px;
+  background: var(--bg-panel, rgba(22, 28, 34, 0.96));
+  border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.22));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  color: var(--text-primary, #e8e8e8);
+}
+.bible-xref-popup-close {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.55rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #aaa);
+  font-size: 1.55rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.45rem;
+  border-radius: 8px;
+}
+.bible-xref-popup-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+.bible-xref-popup-kicker {
+  display: inline-block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary, #00ffff);
+  opacity: 0.9;
+  margin-bottom: 0.25rem;
+}
+.bible-xref-popup-title {
+  margin: 0 0 0.45rem;
+  font-size: 1.25rem;
+  color: var(--primary, #00ffff);
+  font-weight: 700;
+  padding-right: 1.5rem;
+}
+.bible-xref-popup-bcv {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+  font-size: 0.92rem;
+  color: var(--text-primary, #e0e0e0);
+  margin-bottom: 0.55rem;
+}
+.bible-xref-popup-bcv strong { color: #fff; }
+.bible-xref-popup-dot { opacity: 0.45; }
+.bible-xref-popup-label { margin: 0 0 0.5rem; font-style: italic; }
+.bible-xref-popup-text {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--primary, #00ffff);
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 0 10px 10px 0;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.bible-xref-popup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.bible-xref-popup-actions .btn,
+.bible-xref-popup-actions button {
+  min-height: 2.35rem;
+}
+
 .member-notes-panel { padding: 0.75rem 1rem; border-radius: 12px; }
 .member-note-item {
   padding: 0.55rem 0.25rem;

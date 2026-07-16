@@ -235,7 +235,11 @@ def delete_comment(dream_id, comment_id):
 @dreams_bp.route('/<int:dream_id>/add_comment_page')
 @login_required
 def add_comment_page(dream_id):
-    """Legacy full-page add comment (makes dreams/add_comment.html used)."""
-    # In practice, comments added inline; this revives the template
-    dream = get_dream(dream_id)  # assume helper exists in queries
+    """Legacy full-page add comment (inline form also lives on the dream view)."""
+    dream = get_dream_by_id(dream_id)
+    if not dream:
+        flash('Dream or vision not found.', 'error')
+        return redirect(url_for('dreams.dreams'))
+    if dream.get('title'):
+        dream['title'] = censor_text(dream['title'])
     return render_template('dreams/add_comment.html', dream=dream)

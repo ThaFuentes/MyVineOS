@@ -333,11 +333,13 @@ html[data-theme="rose-dawn"] {
 }
 
 /* ==================== Site-wide font scale (root rem) ==================== */
+/* XL/Huge bump further for elderly / low-vision; accessible_text.css keeps cards wrapping */
 html[data-font-scale="sm"] { font-size: 14px; }
 html[data-font-scale="md"],
 html:not([data-font-scale]) { font-size: 16px; }
 html[data-font-scale="lg"] { font-size: 18px; }
-html[data-font-scale="xl"] { font-size: 20px; }
+html[data-font-scale="xl"] { font-size: 21px; }
+html[data-font-scale="xxl"] { font-size: 24px; }
 
 /* ==================== Bible reader scale (independent, multiplies with rem) ==================== */
 html[data-bible-scale="sm"] {

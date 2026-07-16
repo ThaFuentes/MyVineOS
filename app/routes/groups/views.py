@@ -53,6 +53,7 @@ from .gathering_place import (
 # List Groups
 # ----------------------------------------------------------------------
 @groups_bp.route('/')
+@login_required
 def list_groups():
     is_logged_in = 'user_id' in session
     role = session.get('user_role', 'Member') if is_logged_in else 'Guest'
@@ -72,6 +73,7 @@ def list_groups():
 # AJAX Search / Filter
 # ----------------------------------------------------------------------
 @groups_bp.route('/search')
+@login_required
 def search_groups_route():
     query = request.args.get('q', '').strip()
     visibility_filter = request.args.get('visibility', 'all')

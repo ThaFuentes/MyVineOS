@@ -1,0 +1,55 @@
+{% extends "attendance/base_attendance.html" %}
+
+{% block attendance_content %}
+<section class="content-section">
+    <h2 class="section-title">Kiosk Sessions</h2>
+    <p class="help-text">Active and recent kiosk tokens. Close any live session when the tablet is done.</p>
+
+    {% if sessions %}
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Opened</th>
+                    <th>Expires</th>
+                    <th>Opened by</th>
+                    <th>Token</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td>
+                        {% if s.is_live %}
+                        <span class="badge" style="color:var(--primary);">Live</span>
+                        {% elif s.active %}
+                        <span class="badge">Expired</span>
+                        {% else %}
+                        <span class="badge">Closed</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ s.formatted_created or '—' }}</td>
+                    <td>{{ s.formatted_expires or '—' }}</td>
+                    <td>{{ s.created_by_name or '—' }}</td>
+                    <td><code>{{ s.token[:12] }}…</code></td>
+                    <td>
+                        {% if s.active %}
+                        <form method="POST" action="{{ url_for('attendance.close_kiosk', token=s.token) }}" style="display:inline;">
+                            {% include 'partials/csrf_field.html' %}
+                            <input type="hidden" name="next" value="{{ url_for('attendance.kiosk_sessions') }}">
+                            <button type="submit" class="btn-secondary btn-sm">Close</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="help-text">No kiosk sessions yet. Open a kiosk to create one.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "pastoral/base_pastoral.html" %}
+{% block title %}{% if series %}Edit Course{% else %}New Course{% endif %}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260716form">
+{% endblock %}
+
+{% block pastoral_content %}
+<section class="content-section curr-form-page">
+  <p class="curr-back-row">
+    <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn-secondary">← Curriculum Studio</a>
+  </p>
+
+  <h1 class="page-title">{% if series %}Edit course{% else %}Create a new course{% endif %}</h1>
+  <p class="page-description">
+    {% if series %}
+    Update the course details below. Required fields marked with <span class="required">*</span>.
+    {% else %}
+    Name it clearly so learners know what to expect. Required fields marked with <span class="required">*</span>.
+    You can add lessons, media, and quizzes after you create it.
+    {% endif %}
+  </p>
+
+  <div class="form-actions curr-form-top-actions">
+    <button type="submit" form="curriculum-series-form" class="btn-primary">
+      {% if series %}Save course{% else %}Create course &amp; open builder{% endif %}
+    </button>
+    <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn-secondary">Cancel</a>
+  </div>
+
+  <form id="curriculum-series-form" method="post" class="styled-form curr-styled-form">
+    {% include 'partials/csrf_field.html' %}
+    {% if series %}
+    <input type="hidden" name="action" value="save">
+    {% endif %}
+
+    {# ---- Basics (open) ---- #}
+    <details open id="curr-section-basic" class="collapsible-section glass curr-form-section">
+      <summary class="collapsible-summary section-subtitle">Basic information (required)</summary>
+      <div class="collapsible-content">
+
+        <div class="form-group">
+          <label for="curr-title" class="control-label">Course title <span class="required">*</span></label>
+          <input type="text" id="curr-title" name="title" class="form-input" required maxlength="255"
+                 value="{{ series.title if series else request.form.get('title', '') }}"
+                 placeholder="e.g. Foundations of Faith" autofocus>
+          <p class="help-text">A clear title people will recognize in the study catalog.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="curr-subtitle" class="control-label">Subtitle <span class="help-optional">(optional)</span></label>
+          <input type="text" id="curr-subtitle" name="subtitle" class="form-input" maxlength="500"
+                 value="{{ series.subtitle if series else request.form.get('subtitle', '') }}"
+                 placeholder="e.g. A 4-week path for new believers">
+          <p class="help-text">Short line under the title — audience or length works well.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="curr-description" class="control-label">Description <span class="help-optional">(optional)</span></label>
+          <textarea id="curr-description" name="description" class="form-input" rows="5"
+                    placeholder="What will learners gain? Who is it for?">{{ series.description if series else request.form.get('description', '') }}</textarea>
+          <p class="help-text">Shown on the course page. Keep it friendly and scannable.</p>
+        </div>
+
+      </div>
+    </details>
+
+    {# ---- Audience & access ---- #}
+    <details open id="curr-section-access" class="collapsible-section glass curr-form-section">
+      <summary class="collapsible-summary section-subtitle">Audience &amp; who can study</summary>
+      <div class="collapsible-content">
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="curr-audience" class="control-label">Audience</label>
+            <select id="curr-audience" name="audience" class="form-input">
+              {% set sel_aud = (series.audience if series else request.form.get('audience', 'everyone')) %}
+              {% for key, label in audiences %}
+              <option value="{{ key }}" {% if sel_aud == key %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <p class="help-text">Helps members filter the catalog.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="curr-visibility" class="control-label">Who can study it</label>
+            {% set sel_vis = (series.visibility if series else request.form.get('visibility', 'members')) %}
+            <select id="curr-visibility" name="visibility" class="form-input">
+              <option value="members" {% if sel_vis == 'members' %}selected{% endif %}>Logged-in members</option>
+              <option value="public" {% if sel_vis == 'public' %}selected{% endif %}>Anyone with the link (still needs login)</option>
+              <option value="pastoral" {% if sel_vis == 'pastoral' %}selected{% endif %}>Pastoral team only (hidden from catalog)</option>
+            </select>
+            <p class="help-text">Pastoral-only courses stay out of the member catalog.</p>
+          </div>
+        </div>
+
+      </div>
+    </details>
+
+    {# ---- Extra ---- #}
+    <details id="curr-section-extra" class="collapsible-section glass curr-form-section">
+      <summary class="collapsible-summary section-subtitle">Tags &amp; length (optional)</summary>
+      <div class="collapsible-content">
+
+        <div class="form-group">
+          <label for="curr-tags" class="control-label">Tags</label>
+          <input type="text" id="curr-tags" name="tags" class="form-input"
+                 value="{{ series.tags if series else request.form.get('tags', '') }}"
+                 placeholder="discipleship, baptism, core">
+          <p class="help-text">Comma-separated. Useful for search and grouping.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="curr-minutes" class="control-label">Estimated total minutes</label>
+          <input type="number" id="curr-minutes" name="estimated_minutes" class="form-input"
+                 min="1" max="9999"
+                 value="{{ series.estimated_minutes if series and series.estimated_minutes else request.form.get('estimated_minutes', '') }}"
+                 placeholder="45">
+          <p class="help-text">Rough total time for the whole course (not per lesson).</p>
+        </div>
+
+      </div>
+    </details>
+
+    <div class="form-actions curr-form-bottom-actions">
+      <button type="submit" class="btn-primary">
+        {% if series %}Save course{% else %}Create course &amp; open builder{% endif %}
+      </button>
+      <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn-secondary">Cancel</a>
+    </div>
+  </form>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  ['basic', 'access', 'extra'].forEach(function (key) {
+    var el = document.getElementById('curr-section-' + key);
+    if (!el) return;
+    var storageKey = 'curr-form-section-' + key;
+    var saved = localStorage.getItem(storageKey);
+    if (saved === 'closed') el.removeAttribute('open');
+    else if (saved === 'open') el.setAttribute('open', '');
+    el.addEventListener('toggle', function () {
+      localStorage.setItem(storageKey, el.open ? 'open' : 'closed');
+    });
+  });
+});
+</script>
+{% endblock %}

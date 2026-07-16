@@ -1,0 +1,185 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}Payroll{% endblock %}
+
+{% block acct_content %}
+<div class="glass-panel acct-hero" style="text-align:left;">
+  <h1 style="text-align:left;">Payroll</h1>
+  <p style="margin:0; text-align:left; max-width:40rem;">
+    Track people you pay — staff, contractors, guest speakers, and more.
+    They <strong>do not need a login</strong>. Optionally link a system user if they have one.
+    Operational tracking only — not tax filing.
+  </p>
+</div>
+
+<div class="acct-two-col">
+  <div class="glass-panel">
+    <h2>People on payroll</h2>
+    {% if employees %}
+    <ul style="list-style:none; margin:0 0 1.25rem; padding:0;">
+      {% for e in employees %}
+      <li style="padding:0.75rem 0; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex; gap:0.75rem; align-items:flex-start; justify-content:space-between;">
+          <div style="flex:1; min-width:0;">
+            <strong style="font-size:1rem;">{{ e.last_name }}, {{ e.first_name }}</strong>
+            {% if not e.active %}<span style="opacity:0.55;"> (inactive)</span>{% endif %}
+            {% if e.user_id %}<span style="font-size:0.75rem; opacity:0.65;"> · linked user</span>{% endif %}
+            <div style="opacity:0.78; font-size:0.88rem; margin-top:0.2rem; line-height:1.4;">
+              {{ e.title or e.pay_type }} · ${{ '%.2f'|format(e.pay_rate|float) }} / {{ e.pay_frequency }}
+            </div>
+            {% if e.email or e.phone %}
+            <div style="opacity:0.65; font-size:0.84rem; margin-top:0.15rem;">
+              {% if e.phone %}{{ e.phone }}{% endif %}
+              {% if e.email %}{% if e.phone %} · {% endif %}{{ e.email }}{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          <a href="{{ url_for('accounting.payroll', edit=e.id) }}"
+             class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.65rem;font-size:0.82rem;">Edit</a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="opacity:0.78; margin:0 0 1.1rem; line-height:1.45;">No people yet — add anyone you pay below (member or not).</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('accounting.employee_save') }}" class="styled-form" id="employee-form">
+      {% include 'partials/csrf_field.html' %}
+      {% if edit_employee %}
+      <input type="hidden" name="employee_id" value="{{ edit_employee.id }}">
+      {% endif %}
+      <h3>{% if edit_employee %}Edit person{% else %}Add person{% endif %}</h3>
+      <p class="help-text" style="margin-top:-0.35rem;">No system account required.</p>
+
+      <div class="form-row">
+        <label>First name *
+          <input type="text" name="first_name" class="form-input" required
+                 value="{{ edit_employee.first_name if edit_employee else '' }}">
+        </label>
+        <label>Last name *
+          <input type="text" name="last_name" class="form-input" required
+                 value="{{ edit_employee.last_name if edit_employee else '' }}">
+        </label>
+      </div>
+
+      <label>Title / role
+        <input type="text" name="title" class="form-input" placeholder="Pastor, contractor, nursery helper…"
+               value="{{ edit_employee.title if edit_employee else '' }}">
+      </label>
+
+      <div class="form-row">
+        <label>Email
+          <input type="email" name="email" class="form-input" value="{{ edit_employee.email if edit_employee else '' }}">
+        </label>
+        <label>Phone
+          <input type="tel" name="phone" class="form-input" value="{{ edit_employee.phone if edit_employee else '' }}">
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label>Pay type
+          <select name="pay_type" class="form-input">
+            {% set pt = edit_employee.pay_type if edit_employee else 'salary' %}
+            <option value="salary" {% if pt=='salary' %}selected{% endif %}>Salary</option>
+            <option value="hourly" {% if pt=='hourly' %}selected{% endif %}>Hourly</option>
+            <option value="stipend" {% if pt=='stipend' %}selected{% endif %}>Stipend</option>
+            <option value="contractor" {% if pt=='contractor' %}selected{% endif %}>Contractor</option>
+          </select>
+        </label>
+        <label>Rate / amount
+          <input type="number" step="0.01" name="pay_rate" class="form-input"
+                 value="{{ edit_employee.pay_rate if edit_employee else '0' }}">
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label>Pay frequency
+          <select name="pay_frequency" class="form-input">
+            {% set pf = edit_employee.pay_frequency if edit_employee else 'biweekly' %}
+            <option value="weekly" {% if pf=='weekly' %}selected{% endif %}>Weekly</option>
+            <option value="biweekly" {% if pf=='biweekly' %}selected{% endif %}>Biweekly</option>
+            <option value="semimonthly" {% if pf=='semimonthly' %}selected{% endif %}>Semi-monthly</option>
+            <option value="monthly" {% if pf=='monthly' %}selected{% endif %}>Monthly</option>
+            <option value="as_needed" {% if pf=='as_needed' %}selected{% endif %}>As needed</option>
+          </select>
+        </label>
+        <label>Hire date
+          <input type="date" name="hire_date" class="form-input" value="{{ edit_employee.hire_date if edit_employee else '' }}">
+        </label>
+      </div>
+
+      <label>Optional: link system user
+        <select name="user_id" class="form-input">
+          <option value="">— Not a system user (typical) —</option>
+          {% for u in system_users or [] %}
+          <option value="{{ u.id }}" {% if edit_employee and edit_employee.user_id == u.id %}selected{% endif %}>
+            {{ u.last_name }}, {{ u.first_name }} ({{ u.username }})
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+      <p class="help-text">Leave blank for people who are not in the church app.</p>
+
+      <label>Notes
+        <textarea name="notes" class="form-input" rows="2">{{ edit_employee.notes if edit_employee else '' }}</textarea>
+      </label>
+
+      {% if edit_employee %}
+      <label>
+        <input type="checkbox" name="active" value="1" {% if edit_employee.active %}checked{% endif %}>
+        Active on payroll
+      </label>
+      {% else %}
+      <input type="hidden" name="active" value="1">
+      {% endif %}
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% if edit_employee %}Update person{% else %}Add person{% endif %}</button>
+        {% if edit_employee %}
+        <a href="{{ url_for('accounting.payroll') }}" class="btn btn-secondary">Cancel</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <div class="glass-panel">
+    <h2>Pay runs</h2>
+    {% if pay_runs %}
+    <ul style="list-style:none; margin:0 0 1.25rem; padding:0;">
+      {% for pr in pay_runs %}
+      <li style="padding:0.65rem 0; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; gap:0.65rem; align-items:center; flex-wrap:wrap;">
+        <a href="{{ url_for('accounting.pay_run_detail', pay_run_id=pr.id) }}" style="flex:1; min-width:10rem;">
+          {{ pr.pay_date }} · {{ pr.period_start }}–{{ pr.period_end }}
+        </a>
+        <span class="acct-pill acct-pill--{{ 'posted' if pr.status=='posted' else 'draft' }}">{{ pr.status }}</span>
+        <span class="acct-money">${{ '%.2f'|format((pr.total_net or 0)|float) }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="opacity:0.75; margin:0 0 1.1rem;">No pay runs yet.</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('accounting.pay_run_new') }}" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <h3>New pay run</h3>
+      <label>Period start
+        <input type="date" name="period_start" class="form-input" required>
+      </label>
+      <label>Period end
+        <input type="date" name="period_end" class="form-input" required>
+      </label>
+      <label>Pay date
+        <input type="date" name="pay_date" class="form-input" required>
+      </label>
+      <label>
+        <input type="checkbox" name="fill_active" value="1" checked>
+        Pre-fill active people at their pay rate
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Create draft run</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,100 +1,122 @@
-<!-- app/templates/inventory/dashboard.html -->
-<!-- Full path: WebChurchMan/app/templates/inventory/dashboard.html -->
-<!-- File name: dashboard.html -->
-<!-- Brief, detailed purpose: Inventory dashboard - modern, standardized overview with low stock alerts,
-   expiring items, and recent transactions. Uses glass cards/tables, consistent global classes,
-   formatted dates, and subtle color accents for better readability and visual appeal. -->
-
 {% extends "inventory/base_inventory.html" %}
 
 {% block inventory_content %}
-<section class="content-section">
-    <h2 class="section-title">Inventory Overview</h2>
+<div class="glass-panel inv-hero">
+  <h1>Overview</h1>
+  <p>
+    Low-stock alerts, expiring batches, and recent activity.
+    Build a lasting catalog of supplies, equipment, and kits (sets of components).
+  </p>
+</div>
 
-    <!-- Low Stock Alerts -->
-    {% if low_stock %}
-        <h3 class="section-subtitle">Low Stock Alerts</h3>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.55rem;">
-            {% for item in low_stock %}
-                <div class="glass-panel" style="text-align:center; border-color: {% if item.total_stock == 0 %}#ff4444{% elif item.total_stock < item.min_stock_level / 2 %}#ff8800{% else %}var(--primary-border){% endif %};">
-                    <div style="font-size:0.85rem; opacity:0.7;">{{ item.name }}</div>
-                    <div style="font-size:1.6rem; font-weight:700; color: {% if item.total_stock == 0 %}#ff4444{% elif item.total_stock < item.min_stock_level / 2 %}#ff8800{% else %}var(--primary){% endif %};">
-                        {{ item.total_stock }}
-                    </div>
-                    <div style="font-size:0.7rem; opacity:0.6;">Min: {{ item.min_stock_level }}</div>
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p class="success-text">All items are at or above minimum stock levels.</p>
-    {% endif %}
+<div class="inv-kpi-grid">
+  <div class="glass-panel inv-kpi">
+    <a href="{{ url_for('inventory.items_list') }}">
+      <strong>{{ stats.active_items if stats else '—' }}</strong>
+      <span>Active items</span>
+    </a>
+  </div>
+  <div class="glass-panel inv-kpi">
+    <a href="{{ url_for('inventory.items_list', show='kits') }}">
+      <strong>{{ stats.kit_items if stats else '—' }}</strong>
+      <span>Kits / sets</span>
+    </a>
+  </div>
+  <div class="glass-panel inv-kpi">
+    <strong>{{ stats.total_units if stats else '—' }}</strong>
+    <span>Units on hand</span>
+  </div>
+  <div class="glass-panel inv-kpi">
+    <a href="{{ url_for('inventory.items_list', show='low') }}">
+      <strong>{{ stats.low_stock_count if stats else (low_stock|length) }}</strong>
+      <span>Low stock</span>
+    </a>
+  </div>
+</div>
 
-    <!-- Expiring Soon -->
+<div class="inv-actions">
+  <a href="{{ url_for('inventory.item_manage') }}" class="btn btn-primary">
+    <i class="fa-solid fa-plus" aria-hidden="true"></i> Add item
+  </a>
+  <a href="{{ url_for('inventory.receive_stock') }}" class="btn btn-secondary">Receive stock</a>
+  <a href="{{ url_for('inventory.stock_move') }}" class="btn btn-secondary">Use / transfer</a>
+  <a href="{{ url_for('inventory.items_list', show='kits') }}" class="btn btn-secondary">Kits &amp; sets</a>
+  <a href="{{ url_for('inventory.audit_report') }}" class="btn btn-secondary">Audit report</a>
+</div>
+
+<div class="glass-panel inv-panel">
+  <h2>Low stock</h2>
+  <p class="lead">Items below their minimum level — set mins when you add catalog items.</p>
+  {% if low_stock %}
+  <div class="inv-alert-grid">
+    {% for item in low_stock %}
+    <a href="{{ url_for('inventory.item_detail', item_id=item.id) }}"
+       class="glass-panel inv-alert-card {{ 'is-critical' if item.total_stock == 0 else '' }}"
+       style="text-decoration:none; color:inherit;">
+      <div style="font-size:0.85rem; opacity:0.8; margin-bottom:0.25rem;">{{ item.name }}</div>
+      <div class="qty {{ 'inv-stock-out' if item.total_stock == 0 else 'inv-stock-low' }}">{{ item.total_stock }}</div>
+      <div style="font-size:0.75rem; opacity:0.65;">Min {{ item.min_stock_level }}</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="margin:0; opacity:0.8;">All tracked items are at or above minimum stock.</p>
+  {% endif %}
+</div>
+
+<div class="inv-two-col">
+  <div class="glass-panel inv-panel" style="margin-bottom:0;">
+    <h2>Expiring soon</h2>
+    <p class="lead">Batches with expiration in the next 30 days.</p>
     {% if expiring %}
-        <h3 class="section-subtitle">Expiring Soon (next 30 days)</h3>
-        <div class="glass-panel" style="padding:0; overflow:auto;">
-            <table class="data-table" style="width:100%;">
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Location</th>
-                        <th>Expires</th>
-                        <th>Quantity</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in expiring %}
-                        <tr {% if item.quantity_on_hand == 0 %}class="faded"{% endif %}>
-                            <td>{{ item.name }}</td>
-                            <td>{{ item.location_name }}</td>
-                            <td>{{ item.formatted_expiration }}</td>
-                            <td>{{ item.quantity_on_hand }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="inv-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Item</th><th>Location</th><th>Expires</th><th>Qty</th></tr>
+        </thead>
+        <tbody>
+          {% for item in expiring %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.location_name }}</td>
+            <td>{{ item.formatted_expiration }}</td>
+            <td>{{ item.quantity_on_hand }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
-        <p>No items expiring in the next 30 days.</p>
+    <p style="margin:0; opacity:0.75;">Nothing expiring in the next 30 days.</p>
     {% endif %}
+  </div>
 
-    <!-- Recent Transactions -->
-    <h3 class="section-subtitle">Recent Transactions</h3>
+  <div class="glass-panel inv-panel" style="margin-bottom:0;">
+    <h2>Recent activity</h2>
+    <p class="lead">Receives, uses, discards, adjusts, and transfers.</p>
     {% if recent_transactions %}
-        <div class="glass-panel" style="padding:0; overflow:auto;">
-            <table class="data-table" style="width:100%;">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>User</th>
-                        <th>Item</th>
-                        <th>Type</th>
-                        <th>Change</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in recent_transactions %}
-                        <tr>
-                            <td>{{ t.formatted_date }}</td>
-                            <td>{{ t.user_name or 'System' }}</td>
-                            <td>{{ t.item_name }}</td>
-                            <td>
-                                <span class="tag {{ t.transaction_type }}">
-                                    {{ t.transaction_type|capitalize }}
-                                </span>
-                            </td>
-                            <td style="color: {% if t.quantity_change > 0 %}#00ff88{% else %}#ff4444{% endif %};">
-                                {% if t.quantity_change > 0 %}+{% endif %}{{ t.quantity_change }}
-                            </td>
-                            <td>{{ t.notes or '-' }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="inv-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>When</th><th>Item</th><th>Type</th><th>Qty</th></tr>
+        </thead>
+        <tbody>
+          {% for t in recent_transactions %}
+          <tr>
+            <td style="font-size:0.85rem;">{{ t.formatted_date }}</td>
+            <td>{{ t.item_name }}</td>
+            <td><span class="inv-badge inv-badge--ok">{{ t.transaction_type }}</span></td>
+            <td class="{{ 'inv-stock-ok' if t.quantity_change > 0 else 'inv-stock-out' }}">
+              {% if t.quantity_change > 0 %}+{% endif %}{{ t.quantity_change }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
-        <p>No recent transactions.</p>
+    <p style="margin:0; opacity:0.75;">No transactions yet — receive stock to get started.</p>
     {% endif %}
-</section>
+  </div>
+</div>
 {% endblock %}

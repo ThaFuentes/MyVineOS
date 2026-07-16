@@ -1,4 +1,4 @@
-# Scheduled / background email jobs (bill reminders, etc.)
+# Scheduled / background email jobs (bill reminders, communications, etc.)
 
 from datetime import datetime, timedelta
 import pymysql
@@ -79,12 +79,81 @@ def run_bill_reminder_scheduler() -> int:
     return sent
 
 
-def maybe_run_scheduled_emails():
-    """Called periodically (e.g. dashboard load). Runs at most ~once per 20 hours."""
+def run_communications_jobs() -> dict:
+    """Mass campaigns, drip steps, and full automation auto-enroll suite."""
+    result = {
+        'campaigns': 0,
+        'drip_messages': 0,
+        'new_member_enrolls': 0,
+        'auto_enrolls': {},
+    }
     try:
-        if not _should_run_scheduler():
-            return
-        run_bill_reminder_scheduler()
-        _mark_scheduler_run()
+        from app.models import communications as comm
+        result['campaigns'] = comm.process_due_campaigns()
+        result['drip_messages'] = comm.process_due_enrollments(limit=100)
+        enrolls = comm.run_all_auto_enrolls()
+        result['auto_enrolls'] = enrolls
+        result['new_member_enrolls'] = int(enrolls.get('new_member') or 0)
+        result['total_auto_enrolls'] = sum(int(v or 0) for v in enrolls.values())
+    except Exception as e:
+        print(f"Communications scheduler error: {e}")
+    return result
+
+
+def run_volunteer_reminders() -> int:
+    """Email volunteer assignment reminders based on vol_reminder_days_before."""
+    try:
+        from app.models import volunteers as vol
+        return vol.send_pending_reminders()
+    except Exception as e:
+        print(f"Volunteer reminders error: {e}")
+        return 0
+
+
+def _should_run_automation() -> bool:
+    """Drips/automation should tick often (every ~20 minutes), not once a day."""
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    try:
+        cur.execute("SELECT automation_last_run FROM settings WHERE id = 1")
+        row = cur.fetchone() or {}
+    except Exception:
+        return True
+    last = row.get('automation_last_run')
+    if not last:
+        return True
+    if isinstance(last, datetime):
+        now = utc_now()
+        if last.tzinfo is None:
+            from datetime import timezone
+            last = last.replace(tzinfo=timezone.utc)
+        return (now - last) > timedelta(minutes=20)
+    return True
+
+
+def _mark_automation_run():
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute("UPDATE settings SET automation_last_run = %s WHERE id = 1", (utc_now(),))
+        db.commit()
+    except Exception:
+        pass
+
+
+def maybe_run_scheduled_emails():
+    """
+    Called periodically (e.g. dashboard load).
+    - Automation/drips: ~every 20 minutes
+    - Bill reminders + volunteer assignment reminders: ~every 20 hours
+    """
+    try:
+        if _should_run_automation():
+            run_communications_jobs()
+            _mark_automation_run()
+        if _should_run_scheduler():
+            run_bill_reminder_scheduler()
+            run_volunteer_reminders()
+            _mark_scheduler_run()
     except Exception as e:
         print(f"Scheduled email run error: {e}")

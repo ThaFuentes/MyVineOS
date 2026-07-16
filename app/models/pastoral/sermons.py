@@ -301,6 +301,112 @@ def save_sermon_sections(sermon_id, sections_list):
     db.commit()
 
 
+def append_scripture_to_sermon(sermon_id, reference: str, text: str, translation: str | None = None) -> dict:
+    """
+    Append a scripture block into the sermon WITHOUT full section replace.
+    Full-replace was racing when users clicked + Sermon repeatedly (later clicks
+    could wipe earlier inserts). This UPDATE/INSERT path is safe for multi-insert.
+    """
+    reference = (reference or '').strip()
+    text = (text or '').strip()
+    if not reference or not text:
+        raise ValueError('Reference and text are required')
+
+    # Escape for HTML body (basic)
+    def esc(s):
+        return (
+            str(s)
+            .replace('&', '&amp;')
+            .replace('<', '&lt;')
+            .replace('>', '&gt;')
+            .replace('"', '&quot;')
+        )
+
+    html = (
+        f'<div class="inserted-scripture" data-reference="{esc(reference)}">'
+        f'<p><strong>{esc(reference)}</strong></p>'
+        f'<blockquote>{esc(text)}</blockquote></div>'
+    )
+    plain_line = f"{reference} — {text}"
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    section_title = 'Bible Study inserts'
+
+    cur.execute(
+        """
+        SELECT id, content FROM sermon_sections
+        WHERE sermon_id = %s AND title = %s
+        ORDER BY sort_order ASC, id ASC
+        LIMIT 1
+        """,
+        (sermon_id, section_title),
+    )
+    row = cur.fetchone()
+    if row:
+        new_content = (row.get('content') or '') + html
+        cur.execute(
+            """
+            UPDATE sermon_sections
+            SET content = %s,
+                scripture_reference = COALESCE(NULLIF(scripture_reference, ''), %s),
+                source = COALESCE(NULLIF(source, ''), %s)
+            WHERE id = %s
+            """,
+            (new_content, reference, (translation or '')[:120], row['id']),
+        )
+        section_id = row['id']
+    else:
+        cur.execute(
+            "SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM sermon_sections WHERE sermon_id = %s",
+            (sermon_id,),
+        )
+        sort_order = int((cur.fetchone() or {}).get('n') or 1)
+        cur.execute(
+            """
+            INSERT INTO sermon_sections (
+                sermon_id, sort_order, section_type, title, content,
+                scripture_reference, source, notes
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                sermon_id,
+                sort_order,
+                'scripture',
+                section_title,
+                html,
+                reference,
+                (translation or '')[:120],
+                '',
+            ),
+        )
+        section_id = cur.lastrowid
+
+    # Also append a plain-text line to sermon.notes so it is easy to spot
+    try:
+        cur.execute(
+            """
+            UPDATE pastoral_sermons
+            SET notes = TRIM(CONCAT(COALESCE(notes, ''),
+                CASE WHEN notes IS NULL OR notes = '' THEN '' ELSE '\n' END,
+                %s)),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            """,
+            (f'[Bible Study] {plain_line[:500]}', sermon_id),
+        )
+    except Exception:
+        pass
+
+    db.commit()
+    return {
+        'section_id': section_id,
+        'reference': reference,
+        'html': html,
+        'section_title': section_title,
+    }
+
+
 # ----------------------------------------------------------------------
 # Sermon Collaborators
 # ----------------------------------------------------------------------

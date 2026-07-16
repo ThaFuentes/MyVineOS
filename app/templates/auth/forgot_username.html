@@ -40,6 +40,8 @@
 
       <!-- Form -->
       <form method="POST" action="{{ url_for('auth.forgot_username') }}" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
         <div class="form-group">
           <label for="email" style="color:var(--primary); font-weight:600; margin-bottom:0.4rem; display:block;">
             Email Address <span class="required">*</span>

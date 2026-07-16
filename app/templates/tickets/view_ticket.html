@@ -40,9 +40,9 @@ Category: {{ ticket.category_name }} - Priority: {{ ticket.priority|capitalize }
             </p>
         </div>
 
-        {% if can_manage %}
+        {% if can_manage or is_assignee %}
         <div class="event-actions">
-            <!-- Inline quick controls (Ticket Manager only) -->
+            <!-- Status: managers + assignee; assign/priority: managers only -->
             <form method="POST" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                 <input type="hidden" name="action" value="status">
@@ -54,6 +54,7 @@ Category: {{ ticket.category_name }} - Priority: {{ ticket.priority|capitalize }
                 </select>
             </form>
 
+            {% if can_manage %}
             <form method="POST" style="display:inline; margin-left:1rem;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                 <input type="hidden" name="action" value="priority">
@@ -75,6 +76,7 @@ Category: {{ ticket.category_name }} - Priority: {{ ticket.priority|capitalize }
                     {% endfor %}
                 </select>
             </form>
+            {% endif %}
         </div>
         {% endif %}
     </div>

@@ -1,0 +1,298 @@
+{% extends "pastoral/base_pastoral.html" %}
+{% block title %}{{ lesson.title }} · Builder{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260716form">
+{% endblock %}
+
+{% block pastoral_content %}
+<p class="curr-back-row" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin:0 0 0.85rem;">
+  <a href="{{ url_for('pastoral.curriculum_studio.series_edit', series_id=series.id) }}" class="btn-secondary">← {{ series.title }}</a>
+  <a href="{{ url_for('pastoral.curriculum_studio.lesson_preview', lesson_id=lesson.id) }}" class="btn-secondary" target="_blank" rel="noopener">
+    <i class="fa-solid fa-play" aria-hidden="true"></i> Preview
+  </a>
+</p>
+
+<div class="glass-panel curr-edit-panel curr-lesson-meta" style="margin-bottom:1rem;">
+  <h1 class="section-subtitle" style="margin:0 0 0.85rem;">Lesson settings</h1>
+  <form method="post" class="styled-form curr-styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save_meta">
+    <div class="form-group">
+      <label for="lesson-title" class="control-label">Lesson title <span class="required">*</span></label>
+      <input type="text" id="lesson-title" name="title" class="form-input" value="{{ lesson.title }}" required>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="lesson-minutes" class="control-label">Minutes <span class="help-optional">(optional)</span></label>
+        <input type="number" id="lesson-minutes" name="estimated_minutes" class="form-input"
+               value="{{ lesson.estimated_minutes or '' }}" min="1" max="999" placeholder="15">
+      </div>
+      <div class="form-group">
+        <label for="lesson-status" class="control-label">Status</label>
+        <select id="lesson-status" name="status" class="form-input">
+          <option value="draft" {% if lesson.status=='draft' %}selected{% endif %}>Draft</option>
+          <option value="published" {% if lesson.status=='published' %}selected{% endif %}>Published</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="lesson-summary" class="control-label">Summary <span class="help-optional">(optional)</span></label>
+      <textarea id="lesson-summary" name="summary" class="form-input" rows="2"
+                placeholder="One-line learner-facing blurb">{{ lesson.summary or '' }}</textarea>
+    </div>
+    <div class="form-actions" style="display:flex; flex-wrap:wrap; gap:0.55rem; margin-top:0.5rem;">
+      <button type="submit" class="btn-primary">Save lesson</button>
+      <button type="submit" name="action" value="delete" class="btn-secondary"
+              onclick="return confirm('Delete this lesson and all blocks?');" style="color:#fca5a5;">Delete lesson</button>
+    </div>
+  </form>
+</div>
+
+{# Add-block toolbar #}
+<div class="curr-toolbar" role="toolbar" aria-label="Add content">
+  <span style="font-size:0.78rem; opacity:0.7; align-self:center; margin-right:0.25rem;">Add:</span>
+  <button type="button" data-curr-open="panel-text"><i class="fa-solid fa-align-left"></i> Material</button>
+  <button type="button" data-curr-open="panel-scripture"><i class="fa-solid fa-book-bible"></i> Scripture</button>
+  <button type="button" data-curr-open="panel-image"><i class="fa-solid fa-image"></i> Image</button>
+  <button type="button" data-curr-open="panel-video"><i class="fa-solid fa-video"></i> Video</button>
+  <button type="button" data-curr-open="panel-mc"><i class="fa-solid fa-list-check"></i> Multiple choice</button>
+  <button type="button" data-curr-open="panel-tf"><i class="fa-solid fa-toggle-on"></i> True / False</button>
+  <button type="button" data-curr-open="panel-blank"><i class="fa-solid fa-i-cursor"></i> Fill blank</button>
+  <button type="button" data-curr-open="panel-divider"><i class="fa-solid fa-minus"></i> Divider</button>
+</div>
+
+{% macro add_panel(id, btype, title) %}
+<div class="glass-panel curr-add-panel curr-block" id="{{ id }}" hidden style="border-color:color-mix(in srgb, var(--primary) 40%, transparent);">
+  <div class="curr-block-head">
+    <span class="curr-block-type">New · {{ title }}</span>
+    <button type="button" class="btn btn-secondary" style="min-height:auto;padding:0.25rem 0.55rem;" data-curr-close>Close</button>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="styled-form curr-styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="add_block">
+    <input type="hidden" name="block_type" value="{{ btype }}">
+    {{ caller() }}
+    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Add to lesson</button>
+  </form>
+</div>
+{% endmacro %}
+
+{% call add_panel('panel-text', 'text', 'Study material') %}
+  <div class="form-group">
+    <label class="control-label" for="add-text-heading">Heading <span class="help-optional">(optional)</span></label>
+    <input type="text" id="add-text-heading" name="title" class="form-input" placeholder="Optional heading">
+  </div>
+  <div class="form-group">
+    <label class="control-label" for="add-text-body">Content <span class="required">*</span></label>
+    <textarea id="add-text-body" name="body" class="form-input" rows="6" required
+              placeholder="Teaching notes, discussion prompts, stories…"></textarea>
+  </div>
+{% endcall %}
+
+{% call add_panel('panel-scripture', 'scripture', 'Scripture') %}
+  <div class="form-group">
+    <label class="control-label" for="add-scripture-ref">Reference</label>
+    <input type="text" id="add-scripture-ref" name="title" class="form-input" placeholder="John 3:16">
+  </div>
+  <div class="form-group">
+    <label class="control-label" for="add-scripture-body">Passage text <span class="required">*</span></label>
+    <textarea id="add-scripture-body" name="body" class="form-input" rows="4" required></textarea>
+  </div>
+{% endcall %}
+
+{% call add_panel('panel-image', 'image', 'Image') %}
+  <div class="form-group"><label class="control-label">Caption</label><input type="text" name="title" class="form-input"></div>
+  <div class="form-group"><label class="control-label">Upload image</label><input type="file" name="media_file" accept="image/*" class="form-input"></div>
+  <div class="form-group"><label class="control-label">Or image URL</label><input type="url" name="media_url" class="form-input" placeholder="https://…"></div>
+  <div class="form-group"><label class="control-label">Alt text</label><input type="text" name="media_alt" class="form-input"></div>
+  <div class="form-group"><label class="control-label">Notes</label><textarea name="body" class="form-input" rows="2"></textarea></div>
+{% endcall %}
+
+{% call add_panel('panel-video', 'video', 'Video') %}
+  <div class="form-group"><label class="control-label">Title</label><input type="text" name="title" class="form-input"></div>
+  <div class="form-group"><label class="control-label">YouTube / Vimeo URL</label><input type="url" name="media_url" class="form-input" placeholder="https://youtube.com/watch?v=…"></div>
+  <div class="form-group"><label class="control-label">Or upload video</label><input type="file" name="media_file" accept="video/*" class="form-input"></div>
+  <div class="form-group"><label class="control-label">Description</label><textarea name="body" class="form-input" rows="2"></textarea></div>
+{% endcall %}
+
+{% call add_panel('panel-mc', 'multiple_choice', 'Multiple choice') %}
+  <div class="form-group">
+    <label class="control-label">Question <span class="required">*</span></label>
+    <textarea name="question_prompt" class="form-input" rows="2" required placeholder="What does the passage emphasize?"></textarea>
+  </div>
+  <div class="form-group">
+    <span class="control-label">Choices</span>
+    <div id="mc-choices-new" style="margin-top:0.4rem;">
+      {% for i in range(4) %}
+      <div class="curr-choice-row">
+        <input type="text" name="choice_label" class="form-input" placeholder="Choice {{ i+1 }}" {% if i < 2 %}required{% endif %}>
+        <label class="checkbox-label" style="display:flex; align-items:center; gap:0.35rem; font-weight:500; color:var(--text-primary);">
+          <input type="checkbox" name="choice_correct" value="{{ i }}"> Correct
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;margin:0.4rem 0 0;" data-add-choice="#mc-choices-new">+ Choice</button>
+  </div>
+  <div class="form-group">
+    <label class="control-label">Explanation <span class="help-optional">(shown after answer)</span></label>
+    <textarea name="explanation" class="form-input" rows="2" placeholder="Encourage and teach — even on wrong answers."></textarea>
+  </div>
+  <div class="form-group">
+    <label class="control-label">Points</label>
+    <input type="number" name="points" class="form-input" value="1" min="0" max="100">
+  </div>
+{% endcall %}
+
+{% call add_panel('panel-tf', 'true_false', 'True / False') %}
+  <div class="form-group">
+    <label class="control-label">Statement <span class="required">*</span></label>
+    <textarea name="question_prompt" class="form-input" rows="2" required></textarea>
+  </div>
+  <div class="form-group">
+    <label class="control-label">Correct answer</label>
+    <select name="tf_correct" class="form-input">
+      <option value="true">True</option>
+      <option value="false">False</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="control-label">Explanation</label>
+    <textarea name="explanation" class="form-input" rows="2"></textarea>
+  </div>
+  <div class="form-group">
+    <label class="control-label">Points</label>
+    <input type="number" name="points" class="form-input" value="1" min="0">
+  </div>
+{% endcall %}
+
+{% call add_panel('panel-blank', 'fill_blank', 'Fill in the blank') %}
+  <div class="form-group">
+    <label class="control-label">Prompt <span class="required">*</span></label>
+    <p class="help-text">Use <code>___</code> or <code>{{ '{{blank}}' }}</code> where blanks go.</p>
+    <textarea name="question_prompt" class="form-input" rows="3" required
+              placeholder="Faith without works is ___."></textarea>
+  </div>
+  <div class="form-group">
+    <label class="control-label">Accepted answers <span class="required">*</span></label>
+    <p class="help-text">One per line, or alternatives with | on the same line.</p>
+    <textarea name="correct_answers" class="form-input" rows="3" required
+              placeholder="dead&#10;lifeless"></textarea>
+  </div>
+  <div class="form-group">
+    <label class="control-label">Explanation</label>
+    <textarea name="explanation" class="form-input" rows="2"></textarea>
+  </div>
+  <div class="form-group">
+    <label class="control-label">Points</label>
+    <input type="number" name="points" class="form-input" value="1" min="0">
+  </div>
+{% endcall %}
+
+{% call add_panel('panel-divider', 'divider', 'Divider') %}
+  <div class="form-group">
+    <label class="control-label">Optional label</label>
+    <input type="text" name="title" class="form-input" placeholder="Part 2">
+  </div>
+{% endcall %}
+
+{# Existing blocks #}
+{% if blocks %}
+  {% for b in blocks %}
+  <div class="glass-panel curr-block" id="block-{{ b.id }}">
+    <div class="curr-block-head">
+      <span class="curr-block-type">{{ b.block_type|replace('_',' ') }} · #{{ b.id }}</span>
+      <form method="post" style="margin:0;" onsubmit="return confirm('Remove this block?');">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="delete_block">
+        <input type="hidden" name="block_id" value="{{ b.id }}">
+        <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.25rem 0.55rem;color:#fca5a5;">Remove</button>
+      </form>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="action" value="update_block">
+      <input type="hidden" name="block_id" value="{{ b.id }}">
+      <input type="hidden" name="block_type" value="{{ b.block_type }}">
+
+      {% if b.block_type in ('text', 'scripture', 'divider') %}
+        <label>Title <input type="text" name="title" class="form-input" value="{{ b.title or '' }}"></label>
+        {% if b.block_type != 'divider' %}
+        <label>Content <textarea name="body" class="form-input" rows="5">{{ b.body or '' }}</textarea></label>
+        {% endif %}
+      {% elif b.block_type in ('image', 'video') %}
+        <label>Title <input type="text" name="title" class="form-input" value="{{ b.title or '' }}"></label>
+        <label>URL <input type="url" name="media_url" class="form-input" value="{{ b.media_url or '' }}"></label>
+        {% if b.media_path %}
+        <p class="help-text" style="margin:0 0 0.4rem;">Uploaded: <code>{{ b.media_path }}</code></p>
+        {% endif %}
+        <label>Replace file <input type="file" name="media_file" class="form-input" accept="{% if b.block_type=='image' %}image/*{% else %}video/*{% endif %}"></label>
+        <label>Alt / caption <input type="text" name="media_alt" class="form-input" value="{{ b.media_alt or '' }}"></label>
+        <label>Notes <textarea name="body" class="form-input" rows="2">{{ b.body or '' }}</textarea></label>
+      {% elif b.block_type == 'multiple_choice' %}
+        <label>Question <textarea name="question_prompt" class="form-input" rows="2">{{ b.question_prompt or '' }}</textarea></label>
+        <div id="mc-choices-{{ b.id }}">
+          {% for c in b.choices %}
+          <div class="curr-choice-row">
+            <input type="text" name="choice_label" class="form-input" value="{{ c.label }}">
+            <label><input type="checkbox" name="choice_correct" value="{{ loop.index0 }}" {% if c.is_correct %}checked{% endif %}> Correct</label>
+            <button type="button" class="btn btn-secondary" style="min-height:auto;padding:0.3rem 0.5rem;" data-remove-choice>×</button>
+          </div>
+          {% else %}
+          <div class="curr-choice-row">
+            <input type="text" name="choice_label" class="form-input" placeholder="Choice">
+            <label><input type="checkbox" name="choice_correct" value="0"> Correct</label>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-secondary" style="min-height:auto;padding:0.3rem 0.6rem;" data-add-choice="#mc-choices-{{ b.id }}">+ Choice</button>
+        <label>Explanation <textarea name="explanation" class="form-input" rows="2">{{ b.explanation or '' }}</textarea></label>
+        <label>Points <input type="number" name="points" class="form-input" value="{{ b.points or 1 }}"></label>
+      {% elif b.block_type == 'true_false' %}
+        <label>Statement <textarea name="question_prompt" class="form-input" rows="2">{{ b.question_prompt or '' }}</textarea></label>
+        {% set ns = namespace(tf='true') %}
+        {% for c in b.choices %}
+          {% if c.is_correct and (c.label|lower) == 'false' %}{% set ns.tf = 'false' %}{% endif %}
+        {% endfor %}
+        <label>Correct answer
+          <select name="tf_correct" class="form-input">
+            <option value="true" {% if ns.tf == 'true' %}selected{% endif %}>True</option>
+            <option value="false" {% if ns.tf == 'false' %}selected{% endif %}>False</option>
+          </select>
+        </label>
+        <label>Explanation <textarea name="explanation" class="form-input" rows="2">{{ b.explanation or '' }}</textarea></label>
+        <label>Points <input type="number" name="points" class="form-input" value="{{ b.points or 1 }}"></label>
+      {% elif b.block_type == 'fill_blank' %}
+        <label>Prompt <textarea name="question_prompt" class="form-input" rows="3">{{ b.question_prompt or '' }}</textarea></label>
+        <label>Accepted answers
+          <textarea name="correct_answers" class="form-input" rows="3">{% for a in b.correct_answers %}{{ a }}
+{% endfor %}</textarea>
+        </label>
+        <label>Explanation <textarea name="explanation" class="form-input" rows="2">{{ b.explanation or '' }}</textarea></label>
+        <label>Points <input type="number" name="points" class="form-input" value="{{ b.points or 1 }}"></label>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Update block</button>
+    </form>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="glass-panel curr-empty">
+  <h2>Empty canvas — in a good way</h2>
+  <p>Use the toolbar to add teaching material, then a question or two. Learners stay with content that mixes inspiration and interaction.</p>
+</div>
+{% endif %}
+
+{% if siblings and siblings|length > 1 %}
+<div class="glass-panel" style="padding:0.85rem; margin-top:1rem; font-size:0.9rem;">
+  <strong>Other lessons:</strong>
+  {% for s in siblings %}
+    {% if s.id != lesson.id %}
+    <a href="{{ url_for('pastoral.curriculum_studio.lesson_edit', lesson_id=s.id) }}" style="margin-left:0.5rem;">{{ s.title }}</a>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/global/pastoral/curriculum.js') }}?v=20260714a"></script>
+{% endblock %}

@@ -92,6 +92,8 @@
                         <!-- Delete Dream -->
                         <form method="POST" action="{{ url_for('the_gathering.dreams.delete_dream', dream_id=d.id) }}" style="display:inline;"
                               onsubmit="return confirm('Delete this dream and ALL its comments?')">
+    {% include 'partials/csrf_field.html' %}
+
                             <button type="submit" class="btn btn-secondary" style="padding:0.2rem 0.45rem; font-size:0.85rem; background:#c33; color:#fff;" title="Delete"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
                         </form>
 

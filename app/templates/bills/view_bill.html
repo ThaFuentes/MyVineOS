@@ -126,15 +126,69 @@ Billing record and secure credential vault for {{ bill.bill_name }} - payment sc
     <!-- Record Payment -->
     <section class="content-section">
         <h3 class="section-title">Record a Payment</h3>
+        <p class="help-text" style="margin-top:0;">
+            Records payment history, advances the next due date, and can post the same payment into
+            <strong>Accounting</strong> (expense + cash journal) so it shows on the books.
+        </p>
         <form method="POST" action="{{ url_for('bills.record_payment', bill_id=bill.id) }}" class="styled-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             <div class="form-group">
                 <label for="amount" class="control-label">Amount Paid <span class="required">*</span></label>
-                <input type="number" step="0.01" id="amount" name="amount" class="form-input" required placeholder="0.00">
+                <input type="number" step="0.01" id="amount" name="amount" class="form-input" required
+                       placeholder="0.00" value="{{ bill.typical_amount or '' }}">
             </div>
             <div class="form-group">
                 <label for="payment_date" class="control-label">Payment Date</label>
                 <input type="date" id="payment_date" name="payment_date" class="form-input" value="{{ today_str }}">
+            </div>
+            <div class="form-group">
+                <label for="payment_method" class="control-label">Payment method</label>
+                <select id="payment_method" name="payment_method" class="form-input">
+                    <option value="ach">ACH / bank draft</option>
+                    <option value="check">Check</option>
+                    <option value="card">Card</option>
+                    <option value="cash">Cash</option>
+                    <option value="online">Online bill pay</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            {% if expense_accounts %}
+            <div class="form-group">
+                <label for="expense_account_id" class="control-label">Expense account (Accounting)</label>
+                <select id="expense_account_id" name="expense_account_id" class="form-input">
+                    {% for a in expense_accounts %}
+                    <option value="{{ a.id }}"
+                        {% if bill.expense_account_id and a.id == bill.expense_account_id %}selected
+                        {% elif not bill.expense_account_id and a.code == '5200' %}selected{% endif %}>
+                        {{ a.code }} — {{ a.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if payment_accounts %}
+            <div class="form-group">
+                <label for="payment_account_id" class="control-label">Paid from (cash / bank)</label>
+                <select id="payment_account_id" name="payment_account_id" class="form-input">
+                    {% for a in payment_accounts %}
+                    <option value="{{ a.id }}"
+                        {% if bill.payment_account_id and a.id == bill.payment_account_id %}selected
+                        {% elif not bill.payment_account_id and a.code == '1000' %}selected{% endif %}>
+                        {{ a.code }} — {{ a.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="form-group">
+                <label class="control-label" style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="checkbox" name="post_to_accounting" value="1"
+                           {% if bill.post_to_accounting is not defined or bill.post_to_accounting %}checked{% endif %}>
+                    Post this payment to Accounting (expense + ledger)
+                </label>
+                {% if not expense_accounts %}
+                <p class="help-text small">Accounting chart not loaded — open Accounting once so default accounts seed, then reload this page.</p>
+                {% endif %}
             </div>
             <div class="form-group">
                 <label for="notes" class="control-label">Notes (optional)</label>
@@ -142,6 +196,9 @@ Billing record and secure credential vault for {{ bill.bill_name }} - payment sc
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn-primary">Record Payment</button>
+                {% if expense_accounts and (user_has_permission('manage_accounting') or session.get('user_role') in ['Staff','Admin','Owner']) %}
+                <a href="{{ url_for('accounting.expenses') }}" class="btn-secondary">View expenses ledger</a>
+                {% endif %}
             </div>
         </form>
     </section>
@@ -157,6 +214,7 @@ Billing record and secure credential vault for {{ bill.bill_name }} - payment sc
                         <th>Date</th>
                         <th>Amount</th>
                         <th>Paid By</th>
+                        <th>Accounting</th>
                         <th>Notes</th>
                     </tr>
                 </thead>
@@ -166,7 +224,19 @@ Billing record and secure credential vault for {{ bill.bill_name }} - payment sc
                         <td>{{ h.payment_date }}</td>
                         <td>${{ "%.2f"|format(h.amount) }}</td>
                         <td>{{ h.paid_by_name or 'Unknown' }}</td>
-                        <td>{{ h.notes | censor or '-' }}</td>
+                        <td>
+                            {% if h.expense_id %}
+                            <a href="{{ url_for('accounting.expenses') }}">Expense #{{ h.expense_id }}</a>
+                            {% if h.journal_entry_id %}
+                            <span class="help-text small"> · JE #{{ h.journal_entry_id }}</span>
+                            {% endif %}
+                            {% elif h.posted_to_accounting %}
+                            Posted
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+                        <td>{{ h.notes | censor if h.notes else '-' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

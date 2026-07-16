@@ -79,16 +79,175 @@ def create_app():
         g.settings = get_settings()
 
     @app.before_request
+    def enforce_module_toggles():
+        """Soft-block optional modules the church turned off (nav already hides them)."""
+        if request.path.startswith('/static/') or request.method == 'OPTIONS':
+            return
+        if session.get('user_role') in ('Owner', 'Admin'):
+            return
+        ep = request.endpoint or ''
+        if not ep or ep.startswith('settings.') or ep.startswith('auth.'):
+            return
+        try:
+            from app.models.module_toggles import (
+                get_module_toggles,
+                is_module_enabled,
+                module_for_endpoint,
+            )
+            key = module_for_endpoint(ep)
+            if not key:
+                return
+            toggles = get_module_toggles(getattr(g, 'settings', None))
+            if is_module_enabled(key, toggles):
+                return
+            flash('That area is not enabled for this church right now.', 'info')
+            return redirect(url_for('dashboard.dashboard'))
+        except Exception:
+            return
+
+    @app.before_request
     def load_viewer_moderation_context():
         from app.utils.account_moderation import refresh_viewer_context
         refresh_viewer_context()
 
     @app.before_request
-    def sync_display_preferences():
-        """Keep theme/font prefs in session from DB so they do not silently revert."""
+    def enforce_private_area_login():
+        """
+        Defense-in-depth: private app areas always require a session.
+        Public surface stays under /public/, /legal/, and auth entry routes.
+        """
+        if request.method == 'OPTIONS':
+            return
+        path = request.path or ''
+        if path.startswith('/static/'):
+            return
+        if session.get('user_id'):
+            return
+
+        # Explicitly public / auth / legal / tokens
+        public_prefixes = (
+            '/public/', '/legal/', '/login', '/register', '/logout',
+            '/request-reset-password', '/forgot-username', '/resend-verification',
+            '/verify-email', '/reset-password', '/check-email',
+            '/sw.js',
+        )
+        if path == '/' or any(path == p or path.startswith(p) for p in public_prefixes):
+            return
+        # Volunteer email token respond (one-time link)
+        if path.startswith('/volunteers/respond/'):
+            return
+        # Worship public display tokens
+        if path.startswith('/worship/screen/') or path.startswith('/worship/prompter/'):
+            return
+        # Attendance kiosk with token is handled in-route; block bare kiosk POST via login
+        if path.startswith('/attendance/kiosk') and request.method == 'GET':
+            # kiosk GET may use token query; leave to view
+            return
+
+        # Private operational prefixes — must be logged in
+        private_prefixes = (
+            '/dashboard', '/settings', '/profile', '/members', '/donations',
+            '/bills', '/accounting', '/inventory', '/attendance', '/child-checkin',
+            '/volunteers', '/tickets', '/support-tickets', '/groups', '/pastoral',
+            '/worship', '/security', '/ai-insights', '/communications', '/study',
+            '/modules', '/log', '/the_gathering', '/campus', '/help/manage',
+            '/events', '/prayers', '/dreams', '/sermons', '/announcements',
+            '/prophecies', '/bible', '/help',
+        )
+        # Guest-safe: dual-mode community list pages can stay readable without login
+        # but POST mutations still require CSRF + should not create private content.
+        # Guest-safe reads: public community lists + open Bible text APIs only.
+        # Operational Help, groups, dashboard, finance, pastoral, etc. require login.
+        pr = path.rstrip('/')
+        guest_read_ok = (
+            pr in (
+                '/prayers', '/dreams', '/sermons', '/announcements', '/prophecies',
+            )
+            or path.startswith('/bible/chapter/')
+            or path.startswith('/bible/verse/')
+            or path.startswith('/bible/search')
+            or path.startswith('/bible/strongs/')
+            or path.startswith('/bible/online/')
+            or (
+                path.startswith('/prayers/')
+                and request.method == 'GET'
+            )
+            or (
+                path.startswith('/dreams/')
+                and request.method == 'GET'
+                and '/submit' not in path
+                and '/edit' not in path
+                and '/delete' not in path
+                and '/comment' not in path
+            )
+            or (
+                path.startswith('/sermons/')
+                and request.method == 'GET'
+                and '/edit' not in path
+                and '/delete' not in path
+            )
+            or (
+                path.startswith('/announcements/')
+                and request.method == 'GET'
+                and '/edit' not in path
+                and '/delete' not in path
+                and '/create' not in path
+            )
+            or (
+                path.startswith('/prophecies/')
+                and request.method == 'GET'
+                and '/edit' not in path
+                and '/delete' not in path
+            )
+        )
+        # Mutations never guest-open except moderated guest prayer at /prayers/add (CSRF required)
+        if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
+            if pr == '/prayers/add':
+                return
+            if any(path == p or path.startswith(p + '/') or path.startswith(p) for p in private_prefixes):
+                flash('Please log in to continue.', 'error')
+                return redirect(url_for('auth.login', next=request.url))
+            return
+
+        if guest_read_ok:
+            return
+
+        if any(path == p or path.startswith(p + '/') or path.startswith(p) for p in private_prefixes):
+            flash('Please log in to access this area.', 'error')
+            return redirect(url_for('auth.login', next=request.url))
+
+    @app.before_request
+    def enforce_session_integrity():
+        """Reject stale/banned sessions so forms cannot run as a dead account."""
         if request.path.startswith('/static/'):
             return
-        if not session.get('user_id'):
+        uid = session.get('user_id')
+        if not uid:
+            return
+        try:
+            from app.models.users import get_user_by_id
+            user = get_user_by_id(uid)
+            if not user:
+                session.clear()
+                flash('Your session is no longer valid. Please log in again.', 'error')
+                return redirect(url_for('auth.login'))
+            # Soft ban / hard ban flags if present
+            if user.get('is_banned') or user.get('banned'):
+                session.clear()
+                flash('This account is not allowed to sign in.', 'error')
+                return redirect(url_for('auth.login'))
+            # Keep role in session aligned with DB
+            role = user.get('role')
+            if role and session.get('user_role') != role:
+                session['user_role'] = role
+        except Exception:
+            # Never break the site if users model hiccups
+            return
+
+    @app.before_request
+    def sync_display_preferences():
+        """Church default theme for guests + personal overrides for members."""
+        if request.path.startswith('/static/'):
             return
         try:
             from app.utils.ui_prefs import sync_ui_prefs_from_db
@@ -97,6 +256,19 @@ def create_app():
             # Never block page loads if prefs columns missing
             if os.getenv('DEBUG_MODE', '').lower() == 'true':
                 print(f'sync_display_preferences: {pref_err}')
+
+    @app.before_request
+    def sync_campus_session():
+        """Default multi-campus scope for logged-in users."""
+        if request.path.startswith('/static/'):
+            return
+        if not session.get('user_id'):
+            return
+        try:
+            from app.models.campuses import ensure_session_campus_default
+            ensure_session_campus_default()
+        except Exception:
+            pass
 
     # GLOBAL WATCHMAN DEBUG (only in debug mode to avoid leaking info in prod)
     if os.getenv("DEBUG_MODE", "False").lower() == "true":
@@ -176,6 +348,46 @@ def create_app():
     def inject_pastoral_access():
         from flask import session as flask_session
         return dict(in_pastoral_group=is_in_pastoral_group(flask_session.get('user_id')))
+
+    @app.context_processor
+    def inject_campus_context():
+        try:
+            from app.models.campuses import inject_campus_context as _campus_ctx
+            return _campus_ctx()
+        except Exception:
+            return dict(
+                multi_campus_enabled=False,
+                campuses=[],
+                active_campus=None,
+                active_campus_id=None,
+                viewing_all_campuses=True,
+            )
+
+    @app.context_processor
+    def inject_module_toggles():
+        """Optional modules Owner/Admin can enable or disable (nav + dashboard tiles)."""
+        try:
+            from app.models.module_toggles import get_module_toggles, is_module_enabled
+            from flask import g as flask_g
+            toggles = get_module_toggles(getattr(flask_g, 'settings', None) or None)
+
+            def module_on(key: str) -> bool:
+                return is_module_enabled(key, toggles)
+
+            return dict(module_toggles=toggles, module_on=module_on)
+        except Exception:
+            def module_on(_key: str) -> bool:
+                return True
+            return dict(module_toggles={}, module_on=module_on)
+
+    @app.context_processor
+    def inject_endpoint_exists():
+        def endpoint_exists(name: str) -> bool:
+            try:
+                return name in app.view_functions
+            except Exception:
+                return False
+        return dict(endpoint_exists=endpoint_exists)
 
     @app.context_processor
     def inject_gathering_place_access():
@@ -329,6 +541,12 @@ def create_app():
         'custom_modules',
         'help',
         'security',
+        'ai_insights',
+        'curriculum',
+        'child_checkin',
+        'communications',
+        'volunteers',
+        'accounting',
     ]
     for name in private_blueprints:
         try:
@@ -349,6 +567,12 @@ def create_app():
         print("Explicitly registered the_gathering blueprint (nested dashboard active)")
     except Exception as e:
         print(f"FAILED to register the_gathering blueprint: {e}")
+    try:
+        from app.routes.campus_switch import campus_switch_bp
+        app.register_blueprint(campus_switch_bp)
+        print("Registered campus_switch blueprint")
+    except Exception as e:
+        print(f"Skipped campus_switch blueprint: {e}")
     # 
     # PUBLIC PARENT BLUEPRINT - LAST
     # 

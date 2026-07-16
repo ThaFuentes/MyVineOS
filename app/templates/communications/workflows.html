@@ -1,0 +1,65 @@
+{% extends "communications/base_comm.html" %}
+{% block title %}Automation Workflows{% endblock %}
+
+{% block comm_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; align-items:flex-start; margin-bottom:0.85rem;">
+  <div style="flex:1; min-width:220px;">
+    <h1 class="page-title" style="margin:0;">Automation engine</h1>
+    <p class="page-description" style="margin:0.25rem 0 0;">
+      Follow-ups, visitor welcome, prayer, volunteer onboarding, and giving reminders —
+      delayed email/SMS steps plus pastoral care tasks. Activate a workflow so triggers can enroll people.
+    </p>
+  </div>
+  <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+    <form method="post" action="{{ url_for('communications.workflows_seed_defaults') }}" style="margin:0;">
+      {% include 'partials/csrf_field.html' %}
+      <button type="submit" class="btn btn-secondary">Install starter templates</button>
+    </form>
+    <a href="{{ url_for('communications.workflow_new') }}" class="btn btn-primary">New workflow</a>
+  </div>
+</div>
+
+<div class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.88rem; opacity:0.9;">
+  <strong style="color:var(--primary);">Triggers</strong>
+  <ul style="margin:0.4rem 0 0; padding-left:1.1rem; columns:2; gap:1.5rem;">
+    <li><strong>New visitor</strong> — pending registration</li>
+    <li><strong>New member</strong> — approved account</li>
+    <li><strong>Prayer request</strong> — when someone submits prayer</li>
+    <li><strong>Volunteer onboarding</strong> — joins a team</li>
+    <li><strong>Giving reminder</strong> — no gift in N days</li>
+    <li><strong>Follow-up</strong> — open pastoral care</li>
+    <li><strong>Manual</strong> — enroll audiences yourself</li>
+  </ul>
+</div>
+
+{% if workflows %}
+<div class="cci-board-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:0.75rem;">
+  {% for w in workflows %}
+  <a href="{{ url_for('communications.workflow_detail', workflow_id=w.id) }}" class="glass-panel" style="padding:1rem; text-decoration:none; color:inherit;">
+    <div style="display:flex; gap:0.35rem; align-items:center; margin-bottom:0.35rem;">
+      <strong style="flex:1;">{{ w.name }}</strong>
+      <span class="comm-pill comm-pill--{{ w.status }}">{{ w.status }}</span>
+    </div>
+    <div style="font-size:0.85rem; opacity:0.75;">
+      {{ trigger_labels.get(w.trigger_type, w.trigger_type) }}
+      · {{ w.step_count or 0 }} steps · {{ w.active_enrollments or 0 }} active
+    </div>
+    {% if w.description %}<p style="margin:0.4rem 0 0; font-size:0.85rem; opacity:0.7;">{{ w.description[:120] }}</p>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel" style="padding:2rem; text-align:center;">
+  <h2 style="color:var(--primary);">No workflows yet</h2>
+  <p style="opacity:0.75; max-width:32rem; margin:0.5rem auto 1rem;">
+    Install starter templates for visitor welcome, prayer follow-up, volunteer onboarding,
+    giving reminders, and pastoral care — then edit and activate.
+  </p>
+  <form method="post" action="{{ url_for('communications.workflows_seed_defaults') }}" style="display:inline;">
+    {% include 'partials/csrf_field.html' %}
+    <button type="submit" class="btn btn-primary">Install starter templates</button>
+  </form>
+  <a href="{{ url_for('communications.workflow_new') }}" class="btn btn-secondary" style="margin-left:0.35rem;">Build from scratch</a>
+</div>
+{% endif %}
+{% endblock %}

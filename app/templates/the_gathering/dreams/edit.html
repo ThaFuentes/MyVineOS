@@ -38,6 +38,8 @@
             <!-- Delete -->
             <form method="POST" action="{{ url_for('the_gathering.dreams.delete_dream', dream_id=dream.id) }}" style="display:inline;"
                   onsubmit="return confirm('PERMANENTLY DELETE this dream and ALL its comments?')">
+    {% include 'partials/csrf_field.html' %}
+
                 <button type="submit" class="btn btn-secondary" style="padding:0.4rem 0.8rem; font-size:0.85rem; background:#c33; color:#fff;"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
             </form>
             {% endif %}
@@ -45,6 +47,8 @@
     </div>
 
     <form method="POST" action="{{ url_for('the_gathering.dreams.edit_dream', dream_id=dream.id if dream else None) }}" class="glass-panel" style="padding:1rem;">
+    {% include 'partials/csrf_field.html' %}
+
         {% if dream %}
         <input type="hidden" name="dream_id" value="{{ dream.id }}">
         {% endif %}

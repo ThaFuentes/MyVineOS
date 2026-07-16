@@ -33,14 +33,18 @@ body {
     color: var(--text-primary);
 }
 
-/* Glass Card Base */
+/* Glass Card Base — overflow visible so large text (elderly scale) is not clipped */
 .glass-card {
     background: var(--card-bg);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    overflow: hidden;
+    overflow: visible;
+    height: auto;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 /* Cyan Buttons */

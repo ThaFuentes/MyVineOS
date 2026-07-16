@@ -10,11 +10,12 @@
   - Desktop falls back to clean top nav
   Only the nav active logic + Gathering link updated from very old original. -->
 
-{% set s = g.settings %}
-{% set user_theme = session.get('user_theme') or 'cyan-glow' %}
+{% set s = g.settings if g is defined else {} %}
+{% set church_theme = session.get('church_default_theme') or (s.get('default_ui_theme') if s else none) or 'cyan-glow' %}
+{% set user_theme = session.get('user_theme') or church_theme or 'cyan-glow' %}
 {% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
 {% set bible_font_scale = session.get('bible_font_scale') or 'md' %}
-{% set personal_theme_wins = session.get('user_id') is not none %}
+{% set personal_theme_wins = session.get('ui_use_personal_theme') or session.get('user_id') is not none %}
 <!DOCTYPE html>
 <html lang="en"
       data-theme="{{ user_theme }}"
@@ -36,10 +37,13 @@
   <title>{% block title %}{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
 
   <!-- THEME (data-theme vars + font scales) -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
 
   <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260716nav2">
+  <!-- Large text / elderly-friendly: cards grow & wrap (Display page text size) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/dashboard_tiles.css') }}?v=20260716a11y">
   <!-- Template UI icons only (never used in server log print statements) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
@@ -91,6 +95,7 @@
 
     <div class="user-info">
       {% if session.get('user_id') %}
+        {% include 'partials/campus_switcher.html' %}
         {% include 'partials/display_prefs.html' %}
         <div class="user-chip">
           <i class="fa-solid fa-user" aria-hidden="true"></i> {{ session.username|default('Member') }}
@@ -114,28 +119,11 @@
     {% endif %}
   </nav>
 
-  <!-- Bottom nav: member app chrome when signed in; public chrome (same as homepage) for guests -->
+  {# Mobile bottom nav: tabs open sheets (Community / Office / My Stuff / More). Desktop uses top-nav only. #}
   {% if session.get('user_id') %}
-  <nav class="bottom-nav" aria-label="Primary mobile navigation">
-    <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard.dashboard' else '' }}">
-      <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
-      <span class="label">Home</span>
-    </a>
-    <a href="{{ url_for('events.events') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('events','prayers','sermons','dreams','prophecies','announcements','bible'))) else '' }}">
-      <span class="icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
-      <span class="label">Community</span>
-    </a>
-    <a href="{{ url_for('profile.profile') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith(('profile','help','settings','attendance','groups','log','support_tickets'))) else '' }}">
-      <span class="icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
-      <span class="label">My Stuff</span>
-    </a>
-    <a href="{{ url_for('the_gathering.index') }}" class="{{ 'active' if (request.endpoint and request.endpoint.startswith('the_gathering')) else '' }}">
-      <span class="icon"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i></span>
-      <span class="label">Manager</span>
-    </a>
-  </nav>
+    {% include 'partials/nav_private_bottom.html' %}
   {% else %}
-  {% include 'partials/nav_public_bottom.html' %}
+    {% include 'partials/nav_public_bottom.html' %}
   {% endif %}
 
   <!-- NEW CLEAN CONTENT WRAPPER -->
@@ -161,8 +149,8 @@
   </footer>
 
   {% block scripts %}
-    <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260710g"></script>
+    <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=20260716nav2"></script>
+    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260715theme"></script>
     <script>
       function updateClock() {
         const now = new Date();

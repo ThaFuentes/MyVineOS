@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Study &amp; Grow{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260714a">
+{% endblock %}
+
+{% block content %}
+<div class="glass-panel curr-hero">
+  <h1><i class="fa-solid fa-seedling" aria-hidden="true"></i> Study &amp; Grow</h1>
+  <p>
+    Courses built by your pastoral team — clear lessons, scripture, media, and check-your-understanding moments.
+    Pick a path and take the next step.
+  </p>
+  {% if in_pastoral_group %}
+  <div class="curr-hero-actions">
+    <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn btn-secondary">
+      <i class="fa-solid fa-pen-ruler" aria-hidden="true"></i> Open Curriculum Studio
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<form method="get" class="curr-filters glass-panel" style="padding:0.85rem 1rem;">
+  <label>Search
+    <input type="search" name="q" class="form-input" value="{{ search_q }}" placeholder="Find a course…">
+  </label>
+  <label>Audience
+    <select name="audience" class="form-input">
+      <option value="">All</option>
+      {% for key, label in audiences %}
+      <option value="{{ key }}" {% if filter_audience==key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit" class="btn btn-secondary">Search</button>
+</form>
+
+{% if series_list %}
+<div class="curr-grid">
+  {% for s in series_list %}
+  {% set en = progress_map.get(s.id) or {} %}
+  <a class="glass-panel curr-card" href="{{ url_for('curriculum.course', series_id=s.id) }}">
+    <div class="curr-card-cover">
+      <i class="fa-solid fa-book-open-reader" aria-hidden="true"></i>
+    </div>
+    <div class="curr-card-body">
+      <h2 class="curr-card-title">{{ s.title }}</h2>
+      {% if s.subtitle %}<p class="curr-card-sub">{{ s.subtitle }}</p>
+      {% elif s.description %}<p class="curr-card-sub">{{ s.description[:140] }}{% if s.description|length > 140 %}…{% endif %}</p>
+      {% endif %}
+      <div class="curr-meta">
+        <span class="curr-pill">{{ s.lesson_count or 0 }} lessons</span>
+        <span class="curr-pill">{{ s.audience }}</span>
+        {% if en.progress_pct %}
+        <span class="curr-pill curr-pill--live">{{ '%.0f'|format(en.progress_pct|float) }}% done</span>
+        {% elif en.id %}
+        <span class="curr-pill">In progress</span>
+        {% else %}
+        <span class="curr-pill">Start fresh</span>
+        {% endif %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel curr-empty">
+  <div style="font-size:2.2rem; opacity:0.45;"><i class="fa-solid fa-compass" aria-hidden="true"></i></div>
+  <h2>Courses are on the way</h2>
+  <p>When your church publishes study paths, they’ll show up here. Check back soon — or ask a pastor about what’s coming.</p>
+  {% if in_pastoral_group %}
+  <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn btn-primary">Build the first course</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

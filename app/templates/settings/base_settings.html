@@ -21,8 +21,11 @@
 <nav class="settings-nav" aria-label="Settings sections">
     <a href="{{ url_for('settings.general') }}"
        class="settings-nav-link {{ 'active' if request.endpoint == 'settings.general' else '' }}">Church & General</a>
+    <a href="{{ url_for('settings.campuses') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.campuses' else '' }}">Campuses / Branches</a>
     <a href="{{ url_for('settings.timezone') }}"
        class="settings-nav-link {{ 'active' if request.endpoint == 'settings.timezone' else '' }}">Timezone</a>
+
     <a href="{{ url_for('settings.email') }}"
        class="settings-nav-link {{ 'active' if request.endpoint == 'settings.email' else '' }}">Email</a>
     <a href="{{ url_for('settings.notifications') }}"
@@ -34,6 +37,8 @@
     <a href="{{ url_for('settings.censored_words') }}"
        class="settings-nav-link {{ 'active' if request.endpoint == 'settings.censored_words' else '' }}">Censored Words</a>
     {% if session.get('user_role') in ['Owner', 'Admin'] %}
+    <a href="{{ url_for('settings.modules') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.modules' else '' }}">Modules &amp; Apps</a>
     <a href="{{ url_for('settings.custom_modules_list') }}"
        class="settings-nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('settings.custom_modules') else '' }}">Church Apps</a>
     {% endif %}

@@ -70,6 +70,30 @@ def general():
             flash('General settings contain a prohibited word or phrase.', 'error')
             return redirect(url_for('settings.general'))
 
+        if action == 'update_display_default':
+            from app.utils.ui_prefs import save_church_default_theme, THEME_LABELS
+            theme = request.form.get('default_ui_theme') or 'cyan-glow'
+            try:
+                saved = save_church_default_theme(theme)
+                # So this browser immediately reflects the new church default
+                session['church_default_theme'] = saved
+                if not session.get('user_id') or not session.get('ui_use_personal_theme'):
+                    session['user_theme'] = saved
+                session.modified = True
+                log_change(
+                    user_id, 'update', None, None,
+                    f"Church default display theme → {THEME_LABELS.get(saved, saved)}",
+                )
+                flash(
+                    f'Default church theme set to {THEME_LABELS.get(saved, saved)}. '
+                    'Visitors and members who follow church default will see this. '
+                    'Anyone can still change Display for themselves.',
+                    'success',
+                )
+            except Exception as e:
+                flash(str(e), 'error')
+            return redirect(url_for('settings.general'))
+
         updates = {
             'church_name': request.form.get('church_name', '').strip() or None,
             'tax_status': request.form.get('tax_status', '').strip() or None,
@@ -94,5 +118,12 @@ def general():
         flash('Church & general settings saved.', 'success')
         return redirect(url_for('settings.general'))
 
+    from app.utils.ui_prefs import ALLOWED_THEMES, THEME_LABELS, get_church_default_theme
     settings = load_settings()
-    return render_template('settings/general.html', settings=settings)
+    return render_template(
+        'settings/general.html',
+        settings=settings,
+        theme_choices=ALLOWED_THEMES,
+        theme_labels=THEME_LABELS,
+        church_default_theme=get_church_default_theme(settings),
+    )

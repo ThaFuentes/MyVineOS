@@ -14,10 +14,11 @@
    This base is now identical to base_public.html - use it for all public/auth pages to eliminate duplication. -->
 
 {% set s = g.settings|default({}) %}
-{% set user_theme = session.get('user_theme') or 'cyan-glow' %}
+{% set church_theme = session.get('church_default_theme') or s.get('default_ui_theme') or 'cyan-glow' %}
+{% set user_theme = session.get('user_theme') or church_theme or 'cyan-glow' %}
 {% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
 {% set bible_font_scale = session.get('bible_font_scale') or 'md' %}
-{% set personal_theme_wins = session.get('user_id') is not none %}
+{% set personal_theme_wins = session.get('ui_use_personal_theme') or session.get('user_id') is not none %}
 <!DOCTYPE html>
 <html lang="en"
       data-theme="{{ user_theme }}"
@@ -37,8 +38,9 @@
 
   <title>{% block title %}{% endblock %} | {{ s.get('church_name', 'MyVineChurch.Online') }}</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
 
   {% block extra_css %}{% endblock %}
 
@@ -137,7 +139,7 @@
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
     {% if session.get('user_id') %}
-    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260710g"></script>
+    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260715theme"></script>
     {% endif %}
     <script>
       function updateClock() {
