@@ -1,0 +1,44 @@
+{% extends "communications/base_comm.html" %}
+{% block title %}Campaigns{% endblock %}
+
+{% block comm_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+  <h1 class="page-title" style="margin:0;">Campaigns</h1>
+  <a href="{{ url_for('communications.campaign_new') }}" class="btn btn-primary">New campaign</a>
+</div>
+
+{% if campaigns %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Channel</th>
+        <th>Status</th>
+        <th>Recipients</th>
+        <th>Sent / Failed</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in campaigns %}
+      <tr>
+        <td><strong>{{ c.title }}</strong></td>
+        <td><span class="comm-pill comm-pill--{{ c.channel }}">{{ c.channel }}</span></td>
+        <td><span class="comm-pill comm-pill--{{ c.status }}">{{ c.status }}</span></td>
+        <td>{{ c.total_recipients or '—' }}</td>
+        <td>{{ c.sent_count or 0 }} / {{ c.failed_count or 0 }}</td>
+        <td><a href="{{ url_for('communications.campaign_detail', campaign_id=c.id) }}" class="btn btn-secondary" style="min-height:auto;padding:0.3rem 0.6rem;font-size:0.85rem;">Open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="glass-panel" style="padding:2rem; text-align:center;">
+  <h2 style="color:var(--primary); margin:0 0 0.5rem;">No campaigns yet</h2>
+  <p style="opacity:0.75;">Send a church-wide email or SMS in minutes.</p>
+  <a href="{{ url_for('communications.campaign_new') }}" class="btn btn-primary">Create campaign</a>
+</div>
+{% endif %}
+{% endblock %}

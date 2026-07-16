@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ lesson.title }} · {{ series.title }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260714a">
+{% endblock %}
+
+{% block content %}
+<div class="study-shell">
+  <p style="margin:0 0 0.65rem; display:flex; flex-wrap:wrap; gap:0.4rem;">
+    <a href="{{ url_for('curriculum.course', series_id=series.id) }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.7rem;">← {{ series.title }}</a>
+  </p>
+
+  <div class="glass-panel" style="padding:1.1rem 1.2rem; margin-bottom:1rem;">
+    <p style="margin:0; font-size:0.8rem; opacity:0.65; text-transform:uppercase; letter-spacing:0.05em;">{{ series.title }}</p>
+    <h1 style="margin:0.25rem 0 0.35rem; font-size:1.4rem; color:var(--primary);">{{ lesson.title }}</h1>
+    {% if lesson.summary %}<p style="margin:0; opacity:0.8;">{{ lesson.summary }}</p>{% endif %}
+    {% set en = progress.enrollment or {} %}
+    {% if en.progress_pct is defined and en.progress_pct is not none %}
+    <div class="study-progress-bar">
+      <span style="width:{{ en.progress_pct }}%;"></span>
+    </div>
+    {% endif %}
+  </div>
+
+  {% include 'curriculum/_study_blocks.html' %}
+
+  {% if siblings %}
+  <div class="study-nav">
+    {% set ns = namespace(prev=none, next=none, found=false) %}
+    {% for s in siblings %}
+      {% if s.id == lesson.id %}
+        {% set ns.found = true %}
+      {% elif not ns.found %}
+        {% set ns.prev = s %}
+      {% elif ns.found and not ns.next %}
+        {% set ns.next = s %}
+      {% endif %}
+    {% endfor %}
+    <div>
+      {% if ns.prev %}
+      <a href="{{ url_for('curriculum.lesson', lesson_id=ns.prev.id) }}" class="btn btn-secondary">← {{ ns.prev.title }}</a>
+      {% endif %}
+    </div>
+    <div>
+      {% if ns.next %}
+      <a href="{{ url_for('curriculum.lesson', lesson_id=ns.next.id) }}" class="btn btn-primary">{{ ns.next.title }} →</a>
+      {% else %}
+      <a href="{{ url_for('curriculum.course', series_id=series.id) }}" class="btn btn-primary">Back to course</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <p class="curr-encourage" style="margin-top:1.25rem;">
+    Small steps add up. <strong>You’re doing the work of discipleship</strong> — keep going.
+  </p>
+</div>
+<script src="{{ url_for('static', filename='js/global/pastoral/curriculum.js') }}?v=20260714a"></script>
+{% endblock %}

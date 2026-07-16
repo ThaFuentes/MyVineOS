@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}{{ meta.title }} · AI Insights{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 1rem;">
+  <a href="{{ url_for('ai_insights.index') }}" class="btn btn-secondary" style="min-height:auto; padding:0.4rem 0.85rem;">
+    ← AI Insights
+  </a>
+</p>
+
+<div class="glass-panel ai-page-hero">
+  <h1 class="page-title" style="margin:0 0 0.45rem;">
+    <i class="fa-solid {{ meta.icon }}" aria-hidden="true"></i> {{ meta.title }}
+  </h1>
+  <p class="page-description" style="margin:0; max-width:40rem; line-height:1.5;">{{ meta.desc }}</p>
+</div>
+
+{% if error %}
+<div class="flash error" style="margin-bottom:1.15rem;">{{ error }}</div>
+{% endif %}
+
+<div class="glass-panel ai-generate-panel">
+  <h2 class="section-subtitle" style="margin:0 0 0.35rem;">Generate insight</h2>
+  <p class="help-text" style="margin:0 0 1.1rem; max-width:36rem;">
+    The model only receives aggregate numbers for this report — never donor names, emails, or raw IPs.
+  </p>
+
+  {% if not status.configured %}
+  <p style="margin:0 0 1rem; color:#ffc85a; line-height:1.5;">
+    AI provider not ready.
+    {% if session.get('user_role') in ['Owner', 'Admin'] %}
+    <a href="{{ url_for('settings.ai') }}">Configure providers</a> first.
+    {% else %}
+    Ask an Admin to configure Settings → AI Providers.
+    {% endif %}
+  </p>
+  {% endif %}
+
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <label for="extra_question">Optional focus question
+      <textarea id="extra_question" name="extra_question" class="form-input" rows="4"
+                placeholder="e.g. What should we watch for next quarter?">{{ extra_question or '' }}</textarea>
+    </label>
+    <p class="help-text">Leave blank for a general leadership summary of the data below.</p>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" {% if not status.configured %}disabled{% endif %}>
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+        Generate report
+      </button>
+    </div>
+  </form>
+</div>
+
+{% if insight %}
+<div class="glass-panel ai-insight-panel">
+  <h2 class="section-subtitle" style="margin:0 0 0.85rem; color:#4dffc8;">AI summary</h2>
+  <div class="ai-insight-body">{{ insight }}</div>
+</div>
+{% endif %}
+
+<details class="glass-panel ai-payload-panel">
+  <summary>Data sent to the model (aggregates only)</summary>
+  <p class="help-text" style="margin:0.75rem 0 0.85rem;">
+    Review this payload — it is what the model sees. No API keys are included.
+  </p>
+  <pre class="ai-payload-pre">{{ dataset | tojson(indent=2) }}</pre>
+</details>
+
+<style>
+  .ai-page-hero {
+    padding: 1.35rem 1.4rem;
+    margin-bottom: 1.15rem;
+  }
+  .ai-generate-panel {
+    padding: 1.25rem 1.35rem 1.4rem;
+    margin-bottom: 1.15rem;
+    max-width: 40rem;
+  }
+  .ai-insight-panel {
+    padding: 1.35rem 1.4rem 1.5rem;
+    margin-bottom: 1.15rem;
+    border-left: 4px solid #4dffc8;
+    max-width: 48rem;
+  }
+  .ai-insight-body {
+    white-space: pre-wrap;
+    line-height: 1.65;
+    font-size: 1rem;
+  }
+  .ai-payload-panel {
+    padding: 1.15rem 1.25rem 1.25rem;
+    margin-bottom: 1.5rem;
+    max-width: 48rem;
+  }
+  .ai-payload-panel summary {
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--primary);
+    list-style: none;
+  }
+  .ai-payload-panel summary::-webkit-details-marker { display: none; }
+  .ai-payload-panel summary::before { content: '▸ '; }
+  .ai-payload-panel[open] summary::before { content: '▾ '; }
+  .ai-payload-pre {
+    margin: 0;
+    max-height: 360px;
+    overflow: auto;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    padding: 0.9rem 1rem;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+</style>
+{% endblock %}

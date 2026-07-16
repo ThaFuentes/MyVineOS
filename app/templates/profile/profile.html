@@ -171,9 +171,13 @@
                                         <td>{{ req.relation_type|capitalize }}</td>
                                         <td class="actions-cell">
                                             <form action="{{ url_for('profile.approve_family', fr_id=req.id) }}" method="POST" class="inline-form">
+    {% include 'partials/csrf_field.html' %}
+
                                                 <button type="submit" class="btn-primary btn-small">Accept</button>
                                             </form>
                                             <form action="{{ url_for('profile.reject_family', fr_id=req.id) }}" method="POST" class="inline-form">
+    {% include 'partials/csrf_field.html' %}
+
                                                 <button type="submit" class="btn-danger btn-small">Decline</button>
                                             </form>
                                         </td>
@@ -207,6 +211,8 @@
                                         <td>{{ fm.relation_type|capitalize }}</td>
                                         <td class="actions-cell">
                                             <form action="{{ url_for('profile.remove_family', fr_id=fm.id) }}" method="POST" class="inline-form">
+    {% include 'partials/csrf_field.html' %}
+
                                                 <button type="submit" class="btn-danger btn-small">Remove</button>
                                             </form>
                                         </td>
@@ -248,6 +254,8 @@
                                         <td class="user-name">{{ u.first_name }} {{ u.last_name }}</td>
                                         <td>
                                             <form method="POST" action="{{ url_for('profile.request_family') }}" class="inline-form">
+    {% include 'partials/csrf_field.html' %}
+
                                                 <input type="hidden" name="relative_id" value="{{ u.id }}">
                                                 <input type="text" name="relation_type" class="form-input" placeholder="e.g., Sister" required>
                                         </td>

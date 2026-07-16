@@ -1,0 +1,253 @@
+{# Mobile only: bottom tabs open sheets (lists). Desktop uses top-nav dropdowns. #}
+{% set ep = request.endpoint or '' %}
+{% set s = g.settings|default({}) if g is defined else {} %}
+{% set community_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'bible.', 'curriculum.')) %}
+{% set office_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.', 'worship.', 'child_checkin.', 'custom_modules.', 'accounting.', 'volunteers.', 'communications.')) and ep not in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond') %}
+{% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond') %}
+{% set more_active = ep.startswith(('pastoral.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) %}
+{% set show_security = can_access_security_console|default(false) %}
+{% set show_pastoral = in_pastoral_group|default(false) or session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+{% set show_ticket_mgr = can_manage_tickets() if can_manage_tickets is defined else (session.get('user_role') in ['Admin', 'Owner']) %}
+
+<nav class="bottom-nav bottom-nav--sheets" aria-label="Primary mobile navigation" id="private-bottom-nav">
+  <a href="{{ url_for('dashboard.dashboard') }}"
+     class="bottom-nav-item {{ 'active' if ep == 'dashboard.dashboard' else '' }}"
+     data-nav-direct="1">
+    <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
+    <span class="label">Home</span>
+  </a>
+
+  <button type="button" class="bottom-nav-item {{ 'active' if community_active else '' }}"
+          data-nav-sheet="community" aria-expanded="false" aria-controls="nav-sheet-community">
+    <span class="icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
+    <span class="label">Community</span>
+  </button>
+
+  <button type="button" class="bottom-nav-item {{ 'active' if office_active else '' }}"
+          data-nav-sheet="office" aria-expanded="false" aria-controls="nav-sheet-office">
+    <span class="icon"><i class="fa-solid fa-building" aria-hidden="true"></i></span>
+    <span class="label">Office</span>
+  </button>
+
+  <button type="button" class="bottom-nav-item {{ 'active' if account_active else '' }}"
+          data-nav-sheet="mystuff" aria-expanded="false" aria-controls="nav-sheet-mystuff">
+    <span class="icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+    <span class="label">My Stuff</span>
+  </button>
+
+  <button type="button" class="bottom-nav-item {{ 'active' if more_active else '' }}"
+          data-nav-sheet="more" aria-expanded="false" aria-controls="nav-sheet-more">
+    <span class="icon"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></span>
+    <span class="label">More</span>
+  </button>
+</nav>
+
+<div class="nav-sheet-backdrop" id="nav-sheet-backdrop" hidden aria-hidden="true"></div>
+
+<div class="nav-sheet" id="nav-sheet-community" role="dialog" aria-modal="true" aria-label="Community" hidden>
+  <div class="nav-sheet-handle" aria-hidden="true"></div>
+  <header class="nav-sheet-header">
+    <h2 class="nav-sheet-title">Community</h2>
+    <button type="button" class="nav-sheet-close" data-nav-sheet-close aria-label="Close">×</button>
+  </header>
+  <div class="nav-sheet-body">
+    <a href="{{ url_for('events.events') }}" class="nav-sheet-link {{ 'active' if ep.startswith('events.') else '' }}">
+      <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Events
+    </a>
+    <a href="{{ url_for('prayers.prayers') }}" class="nav-sheet-link {{ 'active' if ep.startswith('prayers.') else '' }}">
+      <i class="fa-solid fa-hands-praying" aria-hidden="true"></i> Prayers
+    </a>
+    <a href="{{ url_for('sermons.sermons') }}" class="nav-sheet-link {{ 'active' if ep.startswith('sermons.') else '' }}">
+      <i class="fa-solid fa-book-open" aria-hidden="true"></i> Sermons
+    </a>
+    <a href="{{ url_for('announcements.announcements') }}" class="nav-sheet-link {{ 'active' if ep.startswith('announcements.') else '' }}">
+      <i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Announcements
+    </a>
+    {% if module_on('dreams') %}
+    <a href="{{ url_for('dreams.dreams') }}" class="nav-sheet-link {{ 'active' if ep.startswith('dreams.') else '' }}">
+      <i class="fa-solid fa-cloud-moon" aria-hidden="true"></i> Dreams
+    </a>
+    {% endif %}
+    {% if module_on('prophecies') %}
+    <a href="{{ url_for('prophecies.list_prophecies') }}" class="nav-sheet-link {{ 'active' if ep.startswith('prophecies.') else '' }}">
+      <i class="fa-solid fa-scroll" aria-hidden="true"></i> Prophecies
+    </a>
+    {% endif %}
+    {% if module_on('bible_study') %}
+    <a href="{{ url_for('bible.member_study') }}" class="nav-sheet-link {{ 'active' if ep.startswith('bible.') else '' }}">
+      <i class="fa-solid fa-book-bible" aria-hidden="true"></i> Bible
+    </a>
+    {% endif %}
+    {% if module_on('curriculum') and endpoint_exists('curriculum.catalog') %}
+    <a href="{{ url_for('curriculum.catalog') }}" class="nav-sheet-link {{ 'active' if ep.startswith('curriculum.') else '' }}">
+      <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Study Courses
+    </a>
+    {% endif %}
+    <a href="{{ url_for('legal.legal_index') }}" class="nav-sheet-link {{ 'active' if ep.startswith('legal.') else '' }}">
+      <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Legal
+    </a>
+  </div>
+</div>
+
+<div class="nav-sheet" id="nav-sheet-office" role="dialog" aria-modal="true" aria-label="Church Office" hidden>
+  <div class="nav-sheet-handle" aria-hidden="true"></div>
+  <header class="nav-sheet-header">
+    <h2 class="nav-sheet-title">Church Office</h2>
+    <button type="button" class="nav-sheet-close" data-nav-sheet-close aria-label="Close">×</button>
+  </header>
+  <div class="nav-sheet-body">
+    {% if can_view_members() %}
+    <a href="{{ url_for('members.members_directory') }}" class="nav-sheet-link {{ 'active' if ep.startswith('members.') else '' }}">
+      <i class="fa-solid fa-address-book" aria-hidden="true"></i> Members
+    </a>
+    {% endif %}
+    {% if module_on('donations') and can_view_donations() %}
+    <a href="{{ url_for('donations.donations_dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('donations.') else '' }}">
+      <i class="fa-solid fa-hand-holding-dollar" aria-hidden="true"></i> Donations
+    </a>
+    {% endif %}
+    {% if module_on('bills') %}
+    <a href="{{ url_for('bills.bills') }}" class="nav-sheet-link {{ 'active' if ep.startswith('bills.') else '' }}">
+      <i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> Bills
+    </a>
+    {% endif %}
+    {% if module_on('inventory') and can_manage_inventory() %}
+    <a href="{{ url_for('inventory.inventory_dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('inventory.') else '' }}">
+      <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Inventory
+    </a>
+    {% endif %}
+    {% if module_on('accounting') and endpoint_exists('accounting.dashboard') %}
+    <a href="{{ url_for('accounting.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('accounting.') else '' }}">
+      <i class="fa-solid fa-calculator" aria-hidden="true"></i> Accounting
+    </a>
+    {% endif %}
+    {% if module_on('attendance') and can_manage_attendance() %}
+    <a href="{{ url_for('attendance.attendance_dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('attendance.') and ep != 'attendance.self_checkin' else '' }}">
+      <i class="fa-solid fa-clipboard-user" aria-hidden="true"></i> Attendance
+    </a>
+    {% if endpoint_exists('attendance.attendance_reports') %}
+    <a href="{{ url_for('attendance.attendance_reports') }}" class="nav-sheet-link {{ 'active' if ep == 'attendance.attendance_reports' else '' }}">
+      <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Attendance Reports
+    </a>
+    {% endif %}
+    {% endif %}
+    {% if module_on('child_checkin') and endpoint_exists('child_checkin.dashboard') and can_manage_attendance() %}
+    <a href="{{ url_for('child_checkin.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('child_checkin.') and ep != 'child_checkin.my_kids' else '' }}">
+      <i class="fa-solid fa-children" aria-hidden="true"></i> Child Check-In
+    </a>
+    {% endif %}
+    {% if module_on('volunteers') and endpoint_exists('volunteers.dashboard') %}
+    <a href="{{ url_for('volunteers.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('volunteers.') and ep not in ('volunteers.my_schedule','volunteers.my_respond') else '' }}">
+      <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i> Volunteers
+    </a>
+    {% endif %}
+    {% if module_on('communications') and endpoint_exists('communications.dashboard') %}
+    <a href="{{ url_for('communications.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('communications.') else '' }}">
+      <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Communications
+    </a>
+    {% endif %}
+    <a href="{{ url_for('groups.list_groups') }}" class="nav-sheet-link {{ 'active' if ep.startswith('groups.') else '' }}">
+      <i class="fa-solid fa-people-group" aria-hidden="true"></i> Groups
+    </a>
+    {% if module_on('worship') and can_access_worship %}
+    <a href="{{ url_for('worship.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('worship.') else '' }}">
+      <i class="fa-solid fa-music" aria-hidden="true"></i> Worship Team
+    </a>
+    {% endif %}
+    {% for cm in dashboard_custom_modules or [] %}
+    <a href="{{ url_for('custom_modules.module_list', slug=cm.slug) }}" class="nav-sheet-link">
+      <i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i> {{ cm.name }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="nav-sheet" id="nav-sheet-mystuff" role="dialog" aria-modal="true" aria-label="My Stuff" hidden>
+  <div class="nav-sheet-handle" aria-hidden="true"></div>
+  <header class="nav-sheet-header">
+    <h2 class="nav-sheet-title">My Stuff</h2>
+    <button type="button" class="nav-sheet-close" data-nav-sheet-close aria-label="Close">×</button>
+  </header>
+  <div class="nav-sheet-body">
+    <a href="{{ url_for('profile.profile') }}" class="nav-sheet-link {{ 'active' if ep.startswith('profile.') else '' }}">
+      <i class="fa-solid fa-id-card" aria-hidden="true"></i> Profile
+    </a>
+    {% if module_on('self_checkin') %}
+    <a href="{{ url_for('attendance.self_checkin') }}" class="nav-sheet-link {{ 'active' if ep == 'attendance.self_checkin' else '' }}">
+      <i class="fa-solid fa-check-to-slot" aria-hidden="true"></i> Self Check-In
+    </a>
+    {% endif %}
+    {% if module_on('my_kids') and endpoint_exists('child_checkin.my_kids') %}
+    <a href="{{ url_for('child_checkin.my_kids') }}" class="nav-sheet-link {{ 'active' if ep == 'child_checkin.my_kids' else '' }}">
+      <i class="fa-solid fa-children" aria-hidden="true"></i> My Kids
+    </a>
+    {% endif %}
+    {% if module_on('my_serving') and endpoint_exists('volunteers.my_schedule') %}
+    <a href="{{ url_for('volunteers.my_schedule') }}" class="nav-sheet-link {{ 'active' if ep in ('volunteers.my_schedule','volunteers.my_respond') else '' }}">
+      <i class="fa-solid fa-calendar-check" aria-hidden="true"></i> My Serving
+    </a>
+    {% endif %}
+    {% if module_on('support_tickets') %}
+    <a href="{{ url_for('support_tickets.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('support_tickets.') else '' }}">
+      <i class="fa-solid fa-ticket" aria-hidden="true"></i> My Tickets
+    </a>
+    {% endif %}
+    <a href="{{ url_for('help.help_index') }}" class="nav-sheet-link {{ 'active' if ep.startswith('help.') else '' }}">
+      <i class="fa-solid fa-circle-question" aria-hidden="true"></i> Help
+    </a>
+    <a href="{{ url_for('settings.general') }}" class="nav-sheet-link {{ 'active' if ep.startswith('settings.') else '' }}">
+      <i class="fa-solid fa-gear" aria-hidden="true"></i> Settings
+    </a>
+    {% if session.get('user_role') in ['Owner', 'Admin'] and endpoint_exists('settings.modules') %}
+    <a href="{{ url_for('settings.modules') }}" class="nav-sheet-link {{ 'active' if ep == 'settings.modules' else '' }}">
+      <i class="fa-solid fa-toggle-on" aria-hidden="true"></i> Modules &amp; Apps
+    </a>
+    {% endif %}
+    <a href="{{ url_for('auth.logout') }}" class="nav-sheet-link">
+      <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Logout
+    </a>
+  </div>
+</div>
+
+<div class="nav-sheet" id="nav-sheet-more" role="dialog" aria-modal="true" aria-label="More" hidden>
+  <div class="nav-sheet-handle" aria-hidden="true"></div>
+  <header class="nav-sheet-header">
+    <h2 class="nav-sheet-title">More</h2>
+    <button type="button" class="nav-sheet-close" data-nav-sheet-close aria-label="Close">×</button>
+  </header>
+  <div class="nav-sheet-body">
+    {% if show_pastoral %}
+    <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="nav-sheet-link {{ 'active' if ep.startswith('pastoral.') else '' }}">
+      <i class="fa-solid fa-cross" aria-hidden="true"></i> Pastoral
+    </a>
+    {% endif %}
+    {% if module_on('gathering_manager') and can_access_gathering_place %}
+    <a href="{{ url_for('the_gathering.index') }}" class="nav-sheet-link {{ 'active' if ep.startswith('the_gathering.') else '' }}">
+      <i class="fa-solid fa-people-roof" aria-hidden="true"></i> Gathering Manager
+    </a>
+    {% endif %}
+    {% if module_on('ai_insights') and endpoint_exists('ai_insights.index') and session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+    <a href="{{ url_for('ai_insights.index') }}" class="nav-sheet-link {{ 'active' if ep.startswith('ai_insights.') else '' }}">
+      <i class="fa-solid fa-lightbulb" aria-hidden="true"></i> AI Insights
+    </a>
+    {% endif %}
+    {% if module_on('ticket_manager') and show_ticket_mgr %}
+    <a href="{{ url_for('tickets.manager_dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('tickets.') else '' }}">
+      <i class="fa-solid fa-headset" aria-hidden="true"></i> Ticket Manager
+    </a>
+    {% endif %}
+    {% if module_on('change_log') and session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+    <a href="{{ url_for('log.change_records') }}" class="nav-sheet-link {{ 'active' if ep.startswith('log.') else '' }}">
+      <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Change Log
+    </a>
+    {% endif %}
+    {% if show_security %}
+    <a href="{{ url_for('security.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('security.') else '' }}">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Security
+    </a>
+    {% endif %}
+    <a href="{{ url_for('legal.legal_index') }}" class="nav-sheet-link">
+      <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Legal
+    </a>
+  </div>
+</div>

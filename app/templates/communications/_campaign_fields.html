@@ -1,0 +1,90 @@
+{% set c = campaign or {} %}
+<label>Internal title *
+  <input type="text" name="title" class="form-input" required value="{{ c.title or '' }}" placeholder="Easter weekend invite">
+</label>
+<label>Channel
+  <select name="channel" class="form-input" id="comm-channel">
+    <option value="email" {% if c.channel != 'sms' %}selected{% endif %}>Email</option>
+    <option value="sms" {% if c.channel == 'sms' %}selected{% endif %}>SMS / Text</option>
+  </select>
+</label>
+<label id="subject-wrap">Subject (email)
+  <input type="text" name="subject" class="form-input" value="{{ c.subject or '' }}" placeholder="You're invited">
+</label>
+<label>Message body *
+  <textarea name="body" class="form-input" rows="10" required placeholder="Hi {{ '{{first_name}}' }}, …">{{ c.body or '' }}</textarea>
+</label>
+<p style="font-size:0.82rem; opacity:0.75; margin:0 0 0.65rem;">
+  Personalization tokens (click to copy idea):
+  <span class="comm-token">{{ '{{first_name}}' }}</span>
+  <span class="comm-token">{{ '{{last_name}}' }}</span>
+  <span class="comm-token">{{ '{{full_name}}' }}</span>
+  <span class="comm-token">{{ '{{church_name}}' }}</span>
+  <span class="comm-token">{{ '{{email}}' }}</span>
+</p>
+
+<label>Audience
+  <select name="audience_type" class="form-input" id="aud-type">
+    {% for key, label in audience_types %}
+    <option value="{{ key }}" {% if c.audience_type == key %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+</label>
+<label id="aud-role-wrap" style="display:none;">Role
+  <select name="audience_ref" class="form-input" id="aud-role">
+    {% for role in ['Member','Staff','Admin','Owner'] %}
+    <option value="{{ role }}" {% if c.audience_ref == role %}selected{% endif %}>{{ role }}</option>
+    {% endfor %}
+  </select>
+</label>
+<label id="aud-group-wrap" style="display:none;">Group
+  <select name="audience_ref" class="form-input" id="aud-group" disabled>
+    {% for g in groups %}
+    <option value="{{ g.id }}" {% if c.audience_ref|string == g.id|string %}selected{% endif %}>{{ g.name }}</option>
+    {% endfor %}
+  </select>
+</label>
+<div id="aud-selected-wrap" style="display:none;">
+  <p style="font-size:0.85rem; margin:0 0 0.35rem;">Select members</p>
+  <div class="comm-member-pick">
+    {% set selected_ids = c.audience_ids or [] %}
+    {% for m in members %}
+    <label>
+      <input type="checkbox" name="audience_ids" value="{{ m.id }}"
+             {% if m.id in selected_ids or (m.id|string) in selected_ids %}checked{% endif %}>
+      {{ m.last_name }}, {{ m.first_name }}
+      <span style="opacity:0.55; font-size:0.78rem;">{{ m.email or m.phone or '' }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</div>
+<label>Notes (staff only)
+  <input type="text" name="notes" class="form-input" value="{{ c.notes or '' }}">
+</label>
+
+<script>
+(function(){
+  function sync(){
+    var t = document.getElementById('aud-type').value;
+    var role = document.getElementById('aud-role-wrap');
+    var grp = document.getElementById('aud-group-wrap');
+    var sel = document.getElementById('aud-selected-wrap');
+    var roleSel = document.getElementById('aud-role');
+    var grpSel = document.getElementById('aud-group');
+    role.style.display = t==='role' ? '' : 'none';
+    grp.style.display = t==='group' ? '' : 'none';
+    sel.style.display = t==='selected' ? '' : 'none';
+    roleSel.disabled = t!=='role';
+    grpSel.disabled = t!=='group';
+    // only one audience_ref name active
+    if(t==='role'){ roleSel.name='audience_ref'; grpSel.name='audience_ref_unused'; }
+    else if(t==='group'){ grpSel.name='audience_ref'; roleSel.name='audience_ref_unused'; }
+    else { roleSel.name='audience_ref_unused'; grpSel.name='audience_ref_unused'; }
+    var ch = document.getElementById('comm-channel').value;
+    document.getElementById('subject-wrap').style.display = ch==='sms' ? 'none' : '';
+  }
+  document.getElementById('aud-type').addEventListener('change', sync);
+  document.getElementById('comm-channel').addEventListener('change', sync);
+  sync();
+})();
+</script>

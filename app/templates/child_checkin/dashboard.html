@@ -1,0 +1,60 @@
+{% extends "child_checkin/base_cci.html" %}
+{% block title %}Child Check-In Dashboard{% endblock %}
+
+{% block cci_content %}
+<div class="glass-panel cci-hero">
+  <h1><i class="fa-solid fa-children" aria-hidden="true"></i> Child Check-In</h1>
+  <p>
+    Fast family lookup, classroom assignment, secure pickup codes, printable labels,
+    live room boards, and parent notifications — built for Sunday mornings.
+  </p>
+  <div class="cci-actions">
+    <a href="{{ url_for('child_checkin.kiosk') }}" class="btn btn-primary">
+      <i class="fa-solid fa-tablet-screen-button" aria-hidden="true"></i> Open station
+    </a>
+    <a href="{{ url_for('child_checkin.pickup') }}" class="btn btn-secondary">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Secure pickup
+    </a>
+    <a href="{{ url_for('child_checkin.room_board') }}" class="btn btn-secondary">
+      <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i> Room board
+    </a>
+  </div>
+</div>
+
+<div class="cci-stat-grid">
+  <div class="glass-panel cci-stat"><strong>{{ stats.today_in }}</strong><span>In rooms now</span></div>
+  <div class="glass-panel cci-stat"><strong>{{ stats.today_out }}</strong><span>Checked out</span></div>
+  <div class="glass-panel cci-stat"><strong>{{ stats.today_total }}</strong><span>Today total</span></div>
+  <div class="glass-panel cci-stat"><strong>{{ stats.active_children }}</strong><span>Child profiles</span></div>
+  <div class="glass-panel cci-stat"><strong>{{ stats.classrooms }}</strong><span>Classrooms</span></div>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h2 style="margin:0 0 0.65rem; font-size:1rem;">Live by classroom · {{ stats.date }}</h2>
+  <div style="display:flex; flex-wrap:wrap; gap:0.45rem;">
+    {% for r in rooms %}
+    <a class="cci-room-chip" href="{{ url_for('child_checkin.room_board', room=r.id) }}">
+      <span class="cci-room-dot" style="background:{{ r.color or '#22d3ee' }};"></span>
+      {{ r.name }}
+      <strong>{{ r.live_count }}{% if r.capacity %}/{{ r.capacity }}{% endif %}</strong>
+    </a>
+    {% else %}
+    <p style="opacity:0.7; margin:0;">No classrooms yet — <a href="{{ url_for('child_checkin.rooms') }}">add rooms</a>.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="glass-panel" style="padding:1rem;">
+  <h2 style="margin:0 0 0.5rem; font-size:1rem;">How it works</h2>
+  <ol style="margin:0; padding-left:1.2rem; line-height:1.55; opacity:0.88; font-size:0.92rem;">
+    <li><strong>Register kids</strong> under Children — link parents, set a family PIN (4–6 digits), default room, allergies.</li>
+    <li><strong>Check-In Station</strong> — search by last name, PIN, or phone · select kids · assign rooms · print labels.</li>
+    <li><strong>Labels</strong> show name, room, and a large <em>pickup code</em> parents must present at release.</li>
+    <li><strong>Secure Pickup</strong> — staff enters the code · confirms the child · checks out. Parents can get email alerts.</li>
+    <li><strong>Room Board</strong> — teachers see who’s in their room in real time.</li>
+  </ol>
+  <p style="margin:0.85rem 0 0; font-size:0.88rem; opacity:0.75;">
+    Tip: give each family a memorable PIN (last 4 of phone works great). Kids can also have their own PIN for fast lookup.
+  </p>
+</div>
+{% endblock %}

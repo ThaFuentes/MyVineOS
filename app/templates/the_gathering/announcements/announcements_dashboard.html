@@ -106,6 +106,8 @@
                         <!-- Delete Announcement -->
                         <form method="POST" action="{{ url_for('the_gathering.announcements.delete_announcement', announcement_id=a.id) }}" style="display:inline;"
                               onsubmit="return confirm('Delete this announcement and ALL its comments?')">
+    {% include 'partials/csrf_field.html' %}
+
                             <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
                         </form>
 

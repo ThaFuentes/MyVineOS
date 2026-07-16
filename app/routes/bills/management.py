@@ -17,13 +17,31 @@ import pymysql
 import json
 from app.utils.time_utils import utc_now
 
+
+def _bill_acct_template_ctx() -> dict:
+    expense_accounts, payment_accounts = [], []
+    try:
+        from app.models import accounting as acct
+        expense_accounts = acct.list_accounts(active_only=True, account_type='expense')
+        payment_accounts = acct.list_accounts(active_only=True, account_type='asset')
+    except Exception as e:
+        print(f"bill acct template ctx: {e}")
+    return {
+        'expense_accounts': expense_accounts,
+        'payment_accounts': payment_accounts,
+    }
+
+
 def register_management_routes(bp):
     @bp.route('/add', methods=['GET', 'POST'])
     @login_required
     @permission_required('manage_bills')
     def add_bill():
         if request.method == 'GET':
-            return render_template('bills/edit_bill.html', bill=None, additional_links=[])
+            return render_template(
+                'bills/edit_bill.html', bill=None, additional_links=[],
+                **_bill_acct_template_ctx(),
+            )
 
         # POST
         bill_name = request.form.get('bill_name', '').strip()
@@ -54,7 +72,21 @@ def register_management_routes(bp):
         encrypted_username = encrypt_credential(username) if username else None
         encrypted_password = encrypt_credential(password) if password else None
 
-        values = (
+        exp_acct = request.form.get('expense_account_id') or None
+        pay_acct = request.form.get('payment_account_id') or None
+        post_acct = 1 if request.form.get('post_to_accounting') else 0
+        if 'post_to_accounting' not in request.form:
+            post_acct = 1
+        try:
+            exp_acct_i = int(exp_acct) if exp_acct else None
+        except (TypeError, ValueError):
+            exp_acct_i = None
+        try:
+            pay_acct_i = int(pay_acct) if pay_acct else None
+        except (TypeError, ValueError):
+            pay_acct_i = None
+
+        values_core = (
             bill_name,
             request.form.get('vendor_name'),
             request.form.get('description'),
@@ -77,23 +109,33 @@ def register_management_routes(bp):
             request.form.get('next_due_date'),
             request.form.get('current_status', 'pending'),
             request.form.get('notes'),
-            session['user_id'],  # created_by
-            session['user_id'],  # updated_by
-            utc_now()            # updated_at
         )
+        values_meta = (session['user_id'], session['user_id'], utc_now())
 
         try:
             db = get_db()
             cur = db.cursor()
-            cur.execute("""
-                INSERT INTO recurring_bills (
-                    bill_name, vendor_name, description, typical_amount, account_number, customer_number,
-                    phone1, phone2, address, payment_url, login_url, additional_links,
-                    encrypted_username, encrypted_password, frequency, due_day, due_month,
-                    reminder_days_before, reminder_email, next_due_date, current_status, notes,
-                    created_by, updated_by, updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, values)
+            try:
+                cur.execute("""
+                    INSERT INTO recurring_bills (
+                        bill_name, vendor_name, description, typical_amount, account_number, customer_number,
+                        phone1, phone2, address, payment_url, login_url, additional_links,
+                        encrypted_username, encrypted_password, frequency, due_day, due_month,
+                        reminder_days_before, reminder_email, next_due_date, current_status, notes,
+                        expense_account_id, payment_account_id, post_to_accounting,
+                        created_by, updated_by, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, values_core + (exp_acct_i, pay_acct_i, post_acct) + values_meta)
+            except Exception:
+                cur.execute("""
+                    INSERT INTO recurring_bills (
+                        bill_name, vendor_name, description, typical_amount, account_number, customer_number,
+                        phone1, phone2, address, payment_url, login_url, additional_links,
+                        encrypted_username, encrypted_password, frequency, due_day, due_month,
+                        reminder_days_before, reminder_email, next_due_date, current_status, notes,
+                        created_by, updated_by, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, values_core + values_meta)
             db.commit()
             bill_id = cur.lastrowid
             log_change(session['user_id'], 'create_bill', bill_id, bill_name, 'Created recurring bill')
@@ -103,7 +145,8 @@ def register_management_routes(bp):
             db.rollback()
             flash('Failed to add bill.', 'error')
             print(f"Add bill error: {exc}")
-            return render_template('bills/edit_bill.html', bill=None, additional_links=links)
+            return render_template('bills/edit_bill.html', bill=None, additional_links=links,
+                                   **_bill_acct_template_ctx())
 
     @bp.route('/edit/<int:bill_id>', methods=['GET', 'POST'])
     @login_required
@@ -144,33 +187,76 @@ def register_management_routes(bp):
             encrypted_password = encrypt_credential(password_input) if password_input else bill['encrypted_password']
 
             try:
-                cur.execute("""
-                    UPDATE recurring_bills SET
-                        bill_name = %s, vendor_name = %s, description = %s, typical_amount = %s,
-                        account_number = %s, customer_number = %s, phone1 = %s, phone2 = %s,
-                        address = %s, payment_url = %s, login_url = %s, additional_links = %s,
-                        encrypted_username = %s, encrypted_password = %s, frequency = %s,
-                        due_day = %s, due_month = %s, reminder_days_before = %s,
-                        reminder_email = %s, next_due_date = %s, current_status = %s, notes = %s,
-                        updated_by = %s, updated_at = %s
-                    WHERE id = %s
-                """, (
-                    bill_name, request.form.get('vendor_name'), request.form.get('description'),
-                    request.form.get('typical_amount') or None,
-                    request.form.get('account_number'), request.form.get('customer_number'),
-                    request.form.get('phone1'), request.form.get('phone2'),
-                    request.form.get('address'), request.form.get('payment_url'),
-                    request.form.get('login_url'), links_json,
-                    encrypted_username, encrypted_password,
-                    request.form.get('frequency', 'monthly'),
-                    request.form.get('due_day') or None,
-                    request.form.get('due_month') or None,
-                    request.form.get('reminder_days_before', 7),
-                    (request.form.get('reminder_email') or '').strip() or None,
-                    request.form.get('next_due_date'),
-                    request.form.get('current_status', 'pending'),
-                    request.form.get('notes'), session['user_id'], utc_now(), bill_id
-                ))
+                exp_acct = request.form.get('expense_account_id') or None
+                pay_acct = request.form.get('payment_account_id') or None
+                post_acct = 1 if request.form.get('post_to_accounting') else 0
+                try:
+                    exp_acct_i = int(exp_acct) if exp_acct else None
+                except (TypeError, ValueError):
+                    exp_acct_i = None
+                try:
+                    pay_acct_i = int(pay_acct) if pay_acct else None
+                except (TypeError, ValueError):
+                    pay_acct_i = None
+                try:
+                    cur.execute("""
+                        UPDATE recurring_bills SET
+                            bill_name = %s, vendor_name = %s, description = %s, typical_amount = %s,
+                            account_number = %s, customer_number = %s, phone1 = %s, phone2 = %s,
+                            address = %s, payment_url = %s, login_url = %s, additional_links = %s,
+                            encrypted_username = %s, encrypted_password = %s, frequency = %s,
+                            due_day = %s, due_month = %s, reminder_days_before = %s,
+                            reminder_email = %s, next_due_date = %s, current_status = %s, notes = %s,
+                            expense_account_id = %s, payment_account_id = %s, post_to_accounting = %s,
+                            updated_by = %s, updated_at = %s
+                        WHERE id = %s
+                    """, (
+                        bill_name, request.form.get('vendor_name'), request.form.get('description'),
+                        request.form.get('typical_amount') or None,
+                        request.form.get('account_number'), request.form.get('customer_number'),
+                        request.form.get('phone1'), request.form.get('phone2'),
+                        request.form.get('address'), request.form.get('payment_url'),
+                        request.form.get('login_url'), links_json,
+                        encrypted_username, encrypted_password,
+                        request.form.get('frequency', 'monthly'),
+                        request.form.get('due_day') or None,
+                        request.form.get('due_month') or None,
+                        request.form.get('reminder_days_before', 7),
+                        (request.form.get('reminder_email') or '').strip() or None,
+                        request.form.get('next_due_date'),
+                        request.form.get('current_status', 'pending'),
+                        request.form.get('notes'),
+                        exp_acct_i, pay_acct_i, post_acct,
+                        session['user_id'], utc_now(), bill_id
+                    ))
+                except Exception:
+                    cur.execute("""
+                        UPDATE recurring_bills SET
+                            bill_name = %s, vendor_name = %s, description = %s, typical_amount = %s,
+                            account_number = %s, customer_number = %s, phone1 = %s, phone2 = %s,
+                            address = %s, payment_url = %s, login_url = %s, additional_links = %s,
+                            encrypted_username = %s, encrypted_password = %s, frequency = %s,
+                            due_day = %s, due_month = %s, reminder_days_before = %s,
+                            reminder_email = %s, next_due_date = %s, current_status = %s, notes = %s,
+                            updated_by = %s, updated_at = %s
+                        WHERE id = %s
+                    """, (
+                        bill_name, request.form.get('vendor_name'), request.form.get('description'),
+                        request.form.get('typical_amount') or None,
+                        request.form.get('account_number'), request.form.get('customer_number'),
+                        request.form.get('phone1'), request.form.get('phone2'),
+                        request.form.get('address'), request.form.get('payment_url'),
+                        request.form.get('login_url'), links_json,
+                        encrypted_username, encrypted_password,
+                        request.form.get('frequency', 'monthly'),
+                        request.form.get('due_day') or None,
+                        request.form.get('due_month') or None,
+                        request.form.get('reminder_days_before', 7),
+                        (request.form.get('reminder_email') or '').strip() or None,
+                        request.form.get('next_due_date'),
+                        request.form.get('current_status', 'pending'),
+                        request.form.get('notes'), session['user_id'], utc_now(), bill_id
+                    ))
                 db.commit()
                 log_change(session['user_id'], 'update_bill', bill_id, bill_name, 'Updated recurring bill')
                 flash('Bill updated successfully.', 'success')
@@ -179,7 +265,10 @@ def register_management_routes(bp):
                 db.rollback()
                 flash('Failed to update bill.', 'error')
                 print(f"Edit bill error: {exc}")
-                return render_template('bills/edit_bill.html', bill=bill, additional_links=links)
+                return render_template(
+                    'bills/edit_bill.html', bill=bill, additional_links=links,
+                    **_bill_acct_template_ctx(),
+                )
 
         # GET - decrypt username safely (never show password)
         bill['username'] = decrypt_credential(bill.get('encrypted_username'))
@@ -187,4 +276,9 @@ def register_management_routes(bp):
 
         bill['links'] = json.loads(bill.get('additional_links') or '[]')
 
-        return render_template('bills/edit_bill.html', bill=bill, additional_links=bill['links'])
+        return render_template(
+            'bills/edit_bill.html',
+            bill=bill,
+            additional_links=bill['links'],
+            **_bill_acct_template_ctx(),
+        )

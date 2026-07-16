@@ -16,6 +16,8 @@ Update announcement details.
     <h2 class="section-title">Edit Announcement</h2>
 
     <form method="POST" action="{{ url_for('announcements.edit_announcement', ann_id=announcement.id) }}" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
         <div class="form-group">
             <label for="title" class="control-label">Title <span class="required">*</span></label>
             <input type="text" id="title" name="title" value="{{ announcement.title }}" required>

@@ -112,6 +112,8 @@ Staff and above can upload new sermons.
                         {% if session.user_role in ['Staff', 'Admin', 'Owner'] or session.user_id == s.uploaded_by %}
                         <a href="{{ url_for('sermons.edit_sermon', sermon_id=s.id) }}" class="btn-small btn-primary">Edit</a>
                         <form action="{{ url_for('sermons.delete_sermon', sermon_id=s.id) }}" method="post" style="display:inline;">
+    {% include 'partials/csrf_field.html' %}
+
                             <button type="submit" class="btn-small btn-danger"
                                     onclick="return confirm('Delete this sermon? This cannot be undone.');">
                                 Delete

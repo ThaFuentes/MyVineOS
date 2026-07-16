@@ -1,0 +1,25 @@
+{% extends "pastoral/base_pastoral.html" %}
+{% block title %}{% if is_preview %}Preview · {% endif %}{{ lesson.title }}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260714a">
+{% endblock %}
+
+{% block pastoral_content %}
+<div class="study-shell">
+  {% if is_preview %}
+  <div class="glass-panel" style="padding:0.65rem 1rem; margin-bottom:0.85rem; text-align:center; font-size:0.88rem;">
+    <strong>Preview mode</strong> — answers are not saved.
+    <a href="{{ url_for('pastoral.curriculum_studio.lesson_edit', lesson_id=lesson.id) }}" style="margin-left:0.5rem;">Back to editor</a>
+  </div>
+  {% endif %}
+
+  <div class="glass-panel" style="padding:1.1rem 1.2rem; margin-bottom:1rem;">
+    <p style="margin:0; font-size:0.8rem; opacity:0.65; text-transform:uppercase; letter-spacing:0.05em;">{{ series.title }}</p>
+    <h1 style="margin:0.25rem 0 0.35rem; font-size:1.45rem; color:var(--primary);">{{ lesson.title }}</h1>
+    {% if lesson.summary %}<p style="margin:0; opacity:0.8;">{{ lesson.summary }}</p>{% endif %}
+  </div>
+
+  {% include 'curriculum/_study_blocks.html' %}
+</div>
+<script src="{{ url_for('static', filename='js/global/pastoral/curriculum.js') }}?v=20260714a"></script>
+{% endblock %}

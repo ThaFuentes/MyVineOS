@@ -1,0 +1,68 @@
+{% extends "settings/base_settings.html" %}
+{% block title %}Modules &amp; Apps{% endblock %}
+
+{% block settings_content %}
+<div class="glass-panel" style="padding:1.15rem; margin-bottom:1rem;">
+  <h2 style="margin:0 0 0.35rem; color:var(--primary); font-size:1.2rem;">Modules &amp; Apps</h2>
+  <p style="margin:0; opacity:0.8; font-size:0.92rem; max-width:42rem; line-height:1.5;">
+    This is where you put apps back on the <strong>main dashboard</strong> and in the menus.
+    Check a module → <strong>Save</strong> → it shows again on Home and in Church / My Stuff nav.
+    Use <strong>Enable all</strong> to restore everything at once.
+  </p>
+  <p style="margin:0.65rem 0 0; font-size:0.88rem; opacity:0.75;">
+    Core tools always stay available: Home, Groups, Pastoral, Events, Prayers, Sermons, Announcements, Members, Profile, Settings.
+  </p>
+</div>
+
+<form method="post" class="styled-form">
+  {% include 'partials/csrf_field.html' %}
+
+  {% for category, items in categories %}
+  <div class="glass-panel" style="padding:1rem; margin-bottom:0.85rem;">
+    <h3 style="margin:0 0 0.65rem; font-size:1rem; color:var(--primary);">{{ category }}</h3>
+    <div style="display:grid; gap:0.55rem;">
+      {% for m in items %}
+      <label style="display:flex; gap:0.75rem; align-items:flex-start; padding:0.55rem 0.65rem; border-radius:10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); cursor:pointer;">
+        <input type="checkbox" name="modules" value="{{ m.key }}"
+               {% if toggles.get(m.key, m.default) %}checked{% endif %}
+               style="margin-top:0.25rem; width:1.15rem; height:1.15rem;">
+        <span style="flex:1; min-width:0;">
+          <strong style="display:block;">{{ m.label }}</strong>
+          <span style="display:block; font-size:0.85rem; opacity:0.75; margin-top:0.15rem;">{{ m.description }}</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="glass-panel" style="padding:1rem; margin-bottom:1rem; opacity:0.9;">
+    <h3 style="margin:0 0 0.45rem; font-size:0.95rem;">Always on (core)</h3>
+    <ul style="margin:0; padding-left:1.15rem; font-size:0.88rem; columns:2; gap:1rem;">
+      {% for key, label in core_always_on %}
+      <li>{{ label }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+    <button type="submit" class="btn btn-primary">Save module settings</button>
+    <button type="button" class="btn btn-secondary" id="mod-all-on">Enable all</button>
+    <button type="button" class="btn btn-secondary" id="mod-all-off">Disable optional</button>
+  </div>
+</form>
+
+<script>
+(function () {
+  function setAll(on) {
+    document.querySelectorAll('input[name="modules"]').forEach(function (el) {
+      el.checked = !!on;
+    });
+  }
+  var a = document.getElementById('mod-all-on');
+  var b = document.getElementById('mod-all-off');
+  if (a) a.addEventListener('click', function () { setAll(true); });
+  if (b) b.addEventListener('click', function () { setAll(false); });
+})();
+</script>
+{% endblock %}

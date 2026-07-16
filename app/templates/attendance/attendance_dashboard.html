@@ -1,55 +1,102 @@
-<!-- app/templates/attendance/attendance_dashboard.html -->
-<!-- Full path: myvinechurchonline/app/templates/attendance/attendance_dashboard.html -->
-<!-- File name: attendance_dashboard.html -->
-<!-- Brief, detailed purpose: Attendance Dashboard / Overview page.
-   Extends base_attendance.html for full consistency.
-   Shows today's check-in count prominently.
-   Recent days table with clickable dates -> future detailed view.
-   Clean glass cards/table layout using ONLY global classes.
-   Placeholder for future expansion (member history search, etc.). -->
-
 {% extends "attendance/base_attendance.html" %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/attendance_reports.css') }}?v=20260715rep1">
+{% endblock %}
+
 {% block attendance_content %}
+<div class="att-rep">
 
-<!-- App-style attendance overview -->
-<div style="margin-bottom:0.6rem;">
-  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.3rem;">ATTENDANCE OVERVIEW</div>
-
-  <!-- Today's big stat (phone friendly) -->
-  <div class="glass-panel" style="text-align:center; padding:1rem; margin-bottom:0.75rem;">
-    <div style="font-size:0.75rem; opacity:0.6;">TODAY ({{ today_date }})</div>
-    <div style="font-size:2.4rem; font-weight:700; color:var(--primary); line-height:1;">{{ today_count }}</div>
-    <div style="font-size:0.85rem; opacity:0.75;">members checked in</div>
+  <div class="glass-panel att-rep-hero">
+    <h1 style="margin:0 0 0.35rem; font-size:1.35rem; color:var(--primary);">Overview</h1>
+    <p style="margin:0; opacity:0.78; line-height:1.5;">
+      Live snapshot of check-ins. Open <a href="{{ url_for('attendance.attendance_reports') }}">Reports</a>
+      for week, month, year, 5-year, and custom analysis.
+    </p>
   </div>
 
-  <!-- Recent Days -->
-  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.35rem;">RECENT ATTENDANCE</div>
+  <div class="att-dash-kpis">
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='today') }}">
+        <strong>{{ stats.today.total_checkins if stats else today_count }}</strong>
+        <span>Today</span>
+      </a>
+    </div>
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='week') }}">
+        <strong>{{ stats.week.total_checkins if stats else '—' }}</strong>
+        <span>This week</span>
+      </a>
+    </div>
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='month') }}">
+        <strong>{{ stats.month.total_checkins if stats else '—' }}</strong>
+        <span>This month</span>
+      </a>
+    </div>
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='year') }}">
+        <strong>{{ stats.year.total_checkins if stats else '—' }}</strong>
+        <span>This year</span>
+      </a>
+    </div>
+    {% if stats %}
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='year') }}">
+        <strong>{{ stats.year.unique_people }}</strong>
+        <span>Unique YTD</span>
+      </a>
+    </div>
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='month') }}">
+        <strong>{{ stats.month.avg_per_active_day }}</strong>
+        <span>Avg / service (mo)</span>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.1rem;">
+    <a href="{{ url_for('attendance.attendance_reports', range='month') }}" class="btn btn-primary">Full reports</a>
+    <a href="{{ url_for('attendance.attendance_reports', range='5y', grain='month') }}" class="btn btn-secondary">5-year view</a>
+    <a href="{{ url_for('attendance.attendance_reports', range='week', grain='day') }}" class="btn btn-secondary">This week by day</a>
+    <a href="{{ url_for('attendance.open_kiosk') }}" class="btn btn-secondary">Open kiosk</a>
+  </div>
+
+  <div class="glass-panel att-panel">
+    <h2>Recent attendance</h2>
+    <p class="panel-lead">Latest days with check-ins — open a day for the full roster.</p>
     {% if recent_days %}
-    <div class="table-wrapper glass">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Check-Ins</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for day in recent_days %}
-                <tr>
-                    <td>{{ day.date }}</td>
-                    <td>{{ day.count }}</td>
-                    <td>
-                        <a href="{{ url_for('attendance.day_detail', date=day.date) }}" class="btn-small btn-primary-small">View Details</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="att-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Check-ins</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for day in recent_days %}
+          <tr>
+            <td>
+              <a href="{{ url_for('attendance.day_detail', date=day.date) }}">{{ day.date }}</a>
+            </td>
+            <td><strong>{{ day.count }}</strong></td>
+            <td>
+              <a href="{{ url_for('attendance.day_detail', date=day.date) }}"
+                 class="btn btn-secondary"
+                 style="min-height:auto;padding:0.3rem 0.65rem;font-size:0.82rem;">Details</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
     {% else %}
-    <p class="no-data">No attendance records yet.</p>
+    <p class="no-data" style="margin:0;">No attendance records yet. Open a kiosk or use self check-in to start.</p>
     {% endif %}
+  </div>
 
+</div>
 {% endblock %}

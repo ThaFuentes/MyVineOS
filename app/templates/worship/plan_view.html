@@ -11,6 +11,8 @@
   Using the <strong>{{ plan.weekday_name }} weekly default</strong>: "{{ plan.title }}".
   {% if can_manage %}
   <form method="post" style="margin-top:0.75rem;">
+    {% include 'partials/csrf_field.html' %}
+
     <input type="hidden" name="action" value="customize">
     <button type="submit" class="btn btn-primary">Customize this date only</button>
     <a href="{{ url_for('worship.template_edit', weekday=plan.weekday) }}" class="btn btn-secondary">Edit weekly default</a>

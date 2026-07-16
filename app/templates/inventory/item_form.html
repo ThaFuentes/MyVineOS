@@ -1,43 +1,136 @@
-<!-- app/templates/inventory/item_form.html -->
-<!-- Full path: WebChurchMan/app/templates/inventory/item_form.html -->
-<!-- File name: item_form.html -->
-<!-- Brief, detailed purpose: Add/Edit item form - includes single barcode scan button for convenience. -->
-
 {% extends "inventory/base_inventory.html" %}
 
 {% block inventory_content %}
-<section class="content-section">
-    <h2 class="section-title">{{ 'Edit' if item else 'Add New' }} Item</h2>
+<div class="glass-panel inv-panel" style="max-width:40rem;">
+  <h2>{{ 'Edit item' if item else 'Add catalog item' }}</h2>
+  <p class="lead">
+    Create lasting catalog entries — supplies, equipment, or kits (sets of components).
+    Stock is received separately so history stays clean over years.
+  </p>
 
-    <form method="POST" class="styled-form">
-        <div class="form-group">
-            <label>Name <span class="required">*</span></label>
-            <input type="text" name="name" value="{{ item.name if item }}" required class="form-input">
-        </div>
+  <form method="POST" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
 
-        <div class="form-group">
-            <label>Category <span class="required">*</span></label>
-            <select name="category_id" required class="form-input">
-                {% for cat in categories %}
-                    <option value="{{ cat.id }}" {% if item and item.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+    <label>Name <span class="required">*</span>
+      <input type="text" name="name" class="form-input" required
+             value="{{ item.name if item else '' }}"
+             placeholder="e.g. Communion cups, AA batteries, Welcome kit">
+    </label>
 
-        <div class="form-group">
-            <label>Barcode (UPC/EAN)</label>
-            <div class="inline-form">
-                <input type="text" name="barcode_upc_ean" value="{{ item.barcode_upc_ean if item }}" class="form-input" id="barcode-input">
-                <button type="button" id="scan-single-btn" class="btn-secondary">Scan Barcode</button>
-            </div>
-        </div>
+    <label>Description
+      <textarea name="description" class="form-input" rows="2"
+                placeholder="What it is, sizes, brand notes…">{{ item.description if item and item.description else '' }}</textarea>
+    </label>
 
-        <!-- Add other fields here as needed (pack_quantity, unit_of_measure, min_stock_level, etc.) -->
+    <div class="form-row">
+      <label>Category <span class="required">*</span>
+        <select name="category_id" class="form-input" required>
+          <option value="">— Select —</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if item and item.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Unit of measure
+        <input type="text" name="unit_of_measure" class="form-input"
+               value="{{ item.unit_of_measure if item else 'each' }}"
+               placeholder="each, box, case, roll…">
+      </label>
+    </div>
 
-        <div class="form-actions">
-            <button type="submit" class="btn-primary">Save Item</button>
-            <a href="{{ url_for('inventory.items_list') }}" class="btn-secondary">Cancel</a>
-        </div>
-    </form>
-</section>
+    <div class="form-row">
+      <label>SKU (internal code)
+        <input type="text" name="sku" class="form-input"
+               value="{{ item.sku if item and item.sku else '' }}"
+               placeholder="Optional, unique if you use codes">
+      </label>
+      <label>Barcode (UPC/EAN)
+        <input type="text" name="barcode_upc_ean" class="form-input" id="barcode-input"
+               value="{{ item.barcode_upc_ean if item else '' }}">
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>Pack quantity
+        <input type="number" name="pack_quantity" class="form-input" min="1"
+               value="{{ item.pack_quantity if item and item.pack_quantity else '' }}"
+               placeholder="Units per pack">
+      </label>
+      <label>Typical cost / unit
+        <input type="number" name="typical_cost_per_unit" class="form-input" step="0.01" min="0"
+               value="{{ item.typical_cost_per_unit if item and item.typical_cost_per_unit is not none else '' }}">
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>Minimum stock (reorder alert)
+        <input type="number" name="min_stock_level" class="form-input" min="0"
+               value="{{ item.min_stock_level if item and item.min_stock_level is not none else '' }}">
+      </label>
+      <label>Maximum stock (optional)
+        <input type="number" name="max_stock_level" class="form-input" min="0"
+               value="{{ item.max_stock_level if item and item.max_stock_level is not none else '' }}">
+      </label>
+    </div>
+
+    {% if vendors %}
+    <label>Preferred vendor
+      <select name="preferred_vendor_id" class="form-input">
+        <option value="">—</option>
+        {% for v in vendors %}
+        <option value="{{ v.id }}" {% if item and item.preferred_vendor_id == v.id %}selected{% endif %}>{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
+
+    <label class="form-check">
+      <input type="checkbox" name="is_kit" value="1"
+             {% if (item and item.is_kit) or request.args.get('kit') %}checked{% endif %}>
+      <span>
+        <strong>This is a kit / set</strong>
+        <span class="help-text" style="display:block; margin:0.15rem 0 0;">
+          Bill of materials — deploy pulls component stock (communion tray, VBS kit, AV bag, etc.).
+        </span>
+      </span>
+    </label>
+
+    <label class="form-check">
+      <input type="checkbox" name="is_perishable" value="1" {% if item and item.is_perishable %}checked{% endif %}>
+      <span>Perishable (track expiration on receive)</span>
+    </label>
+
+    <label>Shelf life (days)
+      <input type="number" name="shelf_life_days" class="form-input" min="0"
+             value="{{ item.shelf_life_days if item and item.shelf_life_days is not none else '' }}">
+    </label>
+
+    {% if item %}
+    <label class="form-check">
+      <input type="checkbox" name="is_active" value="1" {% if item.is_active %}checked{% endif %}>
+      <span>Active in catalog</span>
+    </label>
+    {% else %}
+    <input type="hidden" name="is_active" value="1">
+    {% endif %}
+
+    <label>Notes
+      <textarea name="notes" class="form-input" rows="3">{{ item.notes if item and item.notes else '' }}</textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save item</button>
+      <a href="{% if item %}{{ url_for('inventory.item_detail', item_id=item.id) }}{% else %}{{ url_for('inventory.items_list') }}{% endif %}"
+         class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+
+  {% if not categories %}
+  <p class="help-text" style="margin-top:1rem;">
+    No categories yet — add some under
+    <a href="{{ url_for('inventory.cat_location') }}">Categories &amp; locations</a>
+    (defaults seed on next DB build).
+  </p>
+  {% endif %}
+</div>
 {% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Volunteers{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/volunteers.css') }}?v=20260716form">
+{% endblock %}
+
+{% block content %}
+{% set ep = request.endpoint or '' %}
+<div class="vol-nav">
+  <a href="{{ url_for('volunteers.dashboard') }}" class="{{ 'is-active' if ep == 'volunteers.dashboard' else '' }}">Dashboard</a>
+  <a href="{{ url_for('volunteers.schedule') }}" class="{{ 'is-active' if 'event' in ep or ep == 'volunteers.schedule' else '' }}">Schedule</a>
+  <a href="{{ url_for('volunteers.teams_list') }}" class="{{ 'is-active' if 'team' in ep else '' }}">Teams</a>
+  <a href="{{ url_for('volunteers.rotations') }}" class="{{ 'is-active' if ep == 'volunteers.rotations' else '' }}">Rotations</a>
+  <a href="{{ url_for('volunteers.skills') }}" class="{{ 'is-active' if ep == 'volunteers.skills' else '' }}">Skills</a>
+  <a href="{{ url_for('volunteers.settings') }}" class="{{ 'is-active' if ep == 'volunteers.settings' else '' }}">Settings</a>
+  <a href="{{ url_for('volunteers.my_schedule') }}">My Schedule</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-messages">
+    {% for category, message in messages %}
+    <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+{% block vol_content %}{% endblock %}
+{% endblock %}

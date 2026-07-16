@@ -493,7 +493,8 @@ def parse_translation_ref(ref: str | None) -> tuple[str, str | None]:
 
 
 def list_online_translations(query: str | None = None, language: str = "eng", limit: int = 60) -> list[dict]:
-    data = helloao_fetch_json("available_translations.json", timeout=40)
+    # Keep this snappy: UI should not hang on a slow upstream Bible API.
+    data = helloao_fetch_json("available_translations.json", timeout=8)
     q = (query or "").strip().lower()
     lang = (language or "eng").strip().lower()
     out = []

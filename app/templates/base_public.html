@@ -1,9 +1,10 @@
 <!-- Public / visitor master layout — same theme + display system as private members app -->
 {% set s = g.settings|default({}) %}
-{% set user_theme = session.get('user_theme') or 'cyan-glow' %}
+{% set church_theme = session.get('church_default_theme') or s.get('default_ui_theme') or 'cyan-glow' %}
+{% set user_theme = session.get('user_theme') or church_theme or 'cyan-glow' %}
 {% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
 {% set bible_font_scale = session.get('bible_font_scale') or 'md' %}
-{# Match members: personal/display theme wins over church primary color overrides #}
+{# Guest Display override or member personal theme wins over brand color overrides #}
 {% set personal_theme_wins = true %}
 <!DOCTYPE html>
 <html lang="en"
@@ -24,8 +25,9 @@
 
   <title>{% block title %}My Vine Church{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/public/base_public.css') }}?v=20260711n">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
@@ -106,7 +108,7 @@
 
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260711n"></script>
+    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260715theme"></script>
   {% endblock %}
 </body>
 </html>

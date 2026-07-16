@@ -1,0 +1,137 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}Vendors{% endblock %}
+
+{% block acct_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+  <div style="flex:1; min-width:12rem;">
+    <h1 class="page-title" style="margin:0;">Vendors</h1>
+    <p class="page-description" style="margin:0.35rem 0 0; max-width:36rem;">
+      Payees for expenses and bills. Add anytime — no membership or login required.
+    </p>
+  </div>
+  <form method="get" class="form-inline" style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:end;">
+    <label style="min-width:10rem;">Search
+      <input type="search" name="q" class="form-input" value="{{ search_q }}" placeholder="Name, contact, email…">
+    </label>
+    <button type="submit" class="btn btn-secondary">Search</button>
+  </form>
+</div>
+
+<div class="acct-vendor-layout">
+  <div>
+    {% if vendors %}
+    <div class="table-wrapper glass">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in vendors %}
+          <tr style="{% if not v.is_active %}opacity:0.55;{% endif %}">
+            <td><strong>{{ v.name }}</strong></td>
+            <td>{{ v.contact_name or '—' }}</td>
+            <td>{{ v.phone or '—' }}</td>
+            <td style="font-size:0.88rem;">{{ v.email or '—' }}</td>
+            <td>{% if v.is_active %}Active{% else %}Inactive{% endif %}</td>
+            <td>
+              <a href="{{ url_for('accounting.vendors', edit=v.id, q=search_q) }}"
+                 class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.65rem;font-size:0.82rem;">Edit</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="glass-panel" style="padding:1.35rem; opacity:0.85; line-height:1.5;">
+      No vendors yet — add one on the right. You can also type a new name when recording an expense.
+    </p>
+    {% endif %}
+  </div>
+
+  <div class="glass-panel acct-form-panel" id="vendor-form-card" style="max-width:none;">
+    <h2>{% if edit_vendor %}Edit vendor{% else %}Add vendor{% endif %}</h2>
+    <p class="acct-form-lead" style="margin-bottom:1rem;">
+      {% if edit_vendor %}Update details below.{% else %}Creates a reusable payee for expenses and bills.{% endif %}
+    </p>
+    <form method="post" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      {% if edit_vendor %}
+      <input type="hidden" name="vendor_id" value="{{ edit_vendor.id }}">
+      {% endif %}
+
+      <label>Business / payee name *
+        <input type="text" name="name" class="form-input" required
+               value="{{ edit_vendor.name if edit_vendor else '' }}"
+               placeholder="City Power Co">
+      </label>
+
+      <label>Contact person
+        <input type="text" name="contact_name" class="form-input"
+               value="{{ edit_vendor.contact_name if edit_vendor else '' }}">
+      </label>
+
+      <div class="form-row">
+        <label>Email
+          <input type="email" name="email" class="form-input" value="{{ edit_vendor.email if edit_vendor else '' }}">
+        </label>
+        <label>Phone
+          <input type="tel" name="phone" class="form-input" value="{{ edit_vendor.phone if edit_vendor else '' }}">
+        </label>
+      </div>
+
+      <label>Website
+        <input type="url" name="website" class="form-input" value="{{ edit_vendor.website if edit_vendor else '' }}">
+      </label>
+
+      <label>Address
+        <textarea name="address" class="form-input" rows="2">{{ edit_vendor.address if edit_vendor else '' }}</textarea>
+      </label>
+
+      <label>Default expense account
+        <select name="default_expense_account_id" class="form-input">
+          <option value="">—</option>
+          {% for a in expense_accounts %}
+          <option value="{{ a.id }}"
+            {% if edit_vendor and edit_vendor.default_expense_account_id == a.id %}selected{% endif %}>
+            {{ a.code }} · {{ a.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Payment terms
+        <input type="text" name="payment_terms" class="form-input" placeholder="Net 30"
+               value="{{ edit_vendor.payment_terms if edit_vendor else '' }}">
+      </label>
+
+      <label>Notes
+        <textarea name="notes" class="form-input" rows="2">{{ edit_vendor.notes if edit_vendor else '' }}</textarea>
+      </label>
+
+      {% if edit_vendor %}
+      <label>
+        <input type="checkbox" name="is_active" value="1" {% if edit_vendor.is_active %}checked{% endif %}>
+        Active vendor
+      </label>
+      {% else %}
+      <input type="hidden" name="is_active" value="1">
+      {% endif %}
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% if edit_vendor %}Update vendor{% else %}Add vendor{% endif %}</button>
+        {% if edit_vendor %}
+        <a href="{{ url_for('accounting.vendors') }}" class="btn btn-secondary">Cancel</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Serving response</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/volunteers.css') }}?v=20260714a">
+  <style>
+    body { min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center;
+      background: var(--bg-page, #0a0a0a); color: var(--text-primary, #e0e0e0); font-family: system-ui, sans-serif; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="glass-panel vol-respond-box">
+    {% if error %}
+    <h1 style="color:#fca5a5; font-size:1.2rem;">{{ error }}</h1>
+    <p style="opacity:0.75;">If you need help, contact the church office.</p>
+    {% elif assignment %}
+    <p style="margin:0; opacity:0.7; text-transform:uppercase; letter-spacing:0.05em; font-size:0.8rem;">Serving request</p>
+    <h1 style="margin:0.35rem 0; font-size:1.35rem; color:var(--primary);">{{ assignment.event_title }}</h1>
+    <p style="margin:0; opacity:0.85;">
+      {{ assignment.event_date }}{% if assignment.start_time %} · {{ assignment.start_time }}{% endif %}<br>
+      Role: <strong>{{ assignment.role_name }}</strong>
+      {% if assignment.event_location %}<br>{{ assignment.event_location }}{% endif %}
+    </p>
+    <div class="status-big">
+      {% if assignment.status == 'accepted' %}
+      <span style="color:#86efac;">✓ You’re confirmed — thank you!</span>
+      {% elif assignment.status == 'declined' %}
+      <span style="color:#fcd34d;">Marked as declined</span>
+      {% else %}
+      Awaiting your response
+      <div style="display:flex; gap:0.5rem; justify-content:center; margin-top:1rem;">
+        <a class="btn btn-primary" href="{{ url_for('volunteers.respond', token=assignment.response_token, action='accept') }}">Accept</a>
+        <a class="btn btn-secondary" href="{{ url_for('volunteers.respond', token=assignment.response_token, action='decline') }}">Decline</a>
+      </div>
+      {% endif %}
+    </div>
+    <p style="margin:1rem 0 0; font-size:0.85rem; opacity:0.65;">
+      <a href="{{ url_for('volunteers.my_schedule') }}">View my full schedule</a>
+      (sign in if needed)
+    </p>
+    {% endif %}
+  </div>
+</body>
+</html>

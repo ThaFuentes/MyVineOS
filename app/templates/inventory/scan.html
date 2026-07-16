@@ -1,74 +1,59 @@
-<!-- app/templates/inventory/scan.html -->
-<!-- Full path: WebChurchMan/app/templates/inventory/scan.html -->
-<!-- File name: scan.html -->
-<!-- Brief, detailed purpose: Standalone full-screen rapid barcode scanner for Registry & Audit modes.
-   Continuous scanning with audio/haptics feedback, 2-second cooldown per code, modal for new item registration.
-   Local-first - no external API. -->
+{% extends "inventory/base_inventory.html" %}
 
-<!DOCTYPE html>
-<html lang="en" data-theme="cyan-glow">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapid Inventory Scan - {{ g.settings.church_name or 'MyVineChurch.Online' }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <style>
-        body { margin: 0; padding: 0; background: var(--bg-page, #111); color: var(--text-primary, #e0e0e0); }
-        h1 { color: var(--primary); }
-        #reader { width: 100%; height: 60vh; }
-        #status { font-size: 2rem; text-align: center; padding: 1rem; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; }
-        .modal-content { background: var(--bg-card, #222); padding: 2rem; border-radius: 1rem; width: 90%; max-width: 500px; border: 1px solid var(--primary-border); }
-    </style>
-</head>
-<body>
-    <h1 style="text-align:center; margin:1rem;">Rapid Scan - {{ mode|capitalize }} Mode</h1>
-    <div id="reader"></div>
-    <div id="status"></div>
+{% block inventory_content %}
+<section class="content-section">
+    <h2 class="section-title">Barcode Lookup</h2>
+    <p class="help-text">Enter a UPC/EAN to find a catalog item. Camera scanning can be added later.</p>
 
-    {% if mode == 'audit' %}
-        <h2 style="text-align:center;">Current Count</h2>
-        <ul id="count-list" class="glass" style="list-style:none; padding:1rem; margin:2rem auto; max-width:800px;"></ul>
-    {% endif %}
-
-    <div style="text-align:center; margin:2rem;">
-        <a href="{{ url_for('inventory.audit_report') }}" class="btn-primary" style="padding:1rem 2rem; font-size:1.5rem;">View Report</a>
-        <form action="{{ url_for('inventory.clear_audit') }}" method="POST" style="display:inline;">
-            <button type="submit" class="btn-secondary" style="padding:1rem 2rem; font-size:1.5rem;">Clear Counts</button>
-        </form>
-    </div>
-
-    <!-- New Item Modal -->
-    <div id="add-modal" class="modal">
-        <div class="modal-content">
-            <h2>Add New Item</h2>
-            <form id="add-form">
-                <input type="hidden" id="modal-code">
-                <div class="form-group">
-                    <label>Name <span class="required">*</span></label>
-                    <input type="text" id="modal-name" required class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Category <span class="required">*</span></label>
-                    <select id="modal-category" required class="form-input"></select>
-                </div>
-                <div class="form-group">
-                    <label>Pack Quantity (default 1)</label>
-                    <input type="number" id="modal-pack" value="1" min="1" class="form-input">
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Add Item</button>
-                    <button type="button" id="close-modal" class="btn-secondary">Cancel</button>
-                </div>
-            </form>
+    <div class="styled-form" style="max-width:480px;">
+        <div class="form-group">
+            <label for="scan-code">Barcode</label>
+            <input type="text" id="scan-code" class="form-input" placeholder="Scan or type barcode" autocomplete="off">
         </div>
+        <div class="form-actions">
+            <button type="button" id="scan-lookup-btn" class="btn-primary">Look up</button>
+            <a href="{{ url_for('inventory.item_manage') }}" class="btn-secondary">Add item</a>
+        </div>
+        <div id="scan-result" class="glass-panel" style="margin-top:1rem; display:none;"></div>
     </div>
+</section>
 
-    <script>
-        // JavaScript remains exactly as previously provided (beep, vibration, cooldown, modal handling, etc.)
-        // (omitted here for brevity - copy from previous version)
-    </script>
-</body>
-</html>
+<script>
+(function () {
+  const input = document.getElementById('scan-code');
+  const btn = document.getElementById('scan-lookup-btn');
+  const out = document.getElementById('scan-result');
+  const url = {{ url_for('inventory.barcode_lookup')|tojson }};
+
+  async function lookup() {
+    const code = (input.value || '').trim();
+    if (!code) return;
+    out.style.display = 'block';
+    out.textContent = 'Looking up…';
+    try {
+      const resp = await fetch(url + '?code=' + encodeURIComponent(code), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
+      });
+      const data = await resp.json();
+      if (data.source === 'local' && data.item) {
+        const it = data.item;
+        out.innerHTML = '<strong>Found (local):</strong> ' +
+          (it.name || 'Item') +
+          (it.id ? ' — <a href="/inventory/items/edit/' + it.id + '">Edit</a>' : '');
+      } else if (data.source && data.source !== 'none') {
+        out.textContent = 'External: ' + JSON.stringify(data);
+      } else {
+        out.textContent = 'Not found in catalog.';
+      }
+    } catch (e) {
+      out.textContent = 'Lookup failed.';
+    }
+  }
+
+  btn?.addEventListener('click', lookup);
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); lookup(); }
+  });
+})();
+</script>
+{% endblock %}

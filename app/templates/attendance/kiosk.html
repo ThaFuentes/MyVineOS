@@ -157,17 +157,28 @@
 
                             data.forEach(member => {
                                 const tr = document.createElement('tr');
-                                tr.innerHTML = `
-                                    <td>${member.name}</td>
-                                    <td>
-                                        <form method="POST">
-                                            <input type="hidden" name="token" value="${token}">
-                                            <input type="hidden" name="member_id" value="${member.id}">
-                                            <input type="password" name="pin" placeholder="PIN (if required)" class="pin-input">
-                                            <button type="submit" class="checkin-btn btn-primary">Check In</button>
-                                        </form>
-                                    </td>
-                                `;
+                                const nameTd = document.createElement('td');
+                                nameTd.textContent = member.name || 'Unknown';
+                                const actionTd = document.createElement('td');
+                                const form = document.createElement('form');
+                                form.method = 'POST';
+                                const tok = document.createElement('input');
+                                tok.type = 'hidden'; tok.name = 'token'; tok.value = token;
+                                const mid = document.createElement('input');
+                                mid.type = 'hidden'; mid.name = 'member_id'; mid.value = String(member.id);
+                                const pin = document.createElement('input');
+                                pin.type = 'password'; pin.name = 'pin';
+                                pin.placeholder = 'PIN (if required)'; pin.className = 'pin-input';
+                                const btn = document.createElement('button');
+                                btn.type = 'submit'; btn.className = 'checkin-btn btn-primary';
+                                btn.textContent = 'Check In';
+                                form.appendChild(tok);
+                                form.appendChild(mid);
+                                form.appendChild(pin);
+                                form.appendChild(btn);
+                                actionTd.appendChild(form);
+                                tr.appendChild(nameTd);
+                                tr.appendChild(actionTd);
                                 resultsBody.appendChild(tr);
                             });
 

@@ -1,5 +1,11 @@
+import json
+from datetime import datetime
+
 import pymysql
-from flask import render_template, request, redirect, url_for, flash, session, abort
+from flask import (
+    render_template, request, redirect, url_for, flash, session, abort,
+    Response,
+)
 
 from app.models.db import get_db
 from app.models.log import log_change
@@ -145,6 +151,58 @@ def manage_index():
         categories=categories,
         articles=articles,
     )
+
+
+@help_bp.route('/manage/export')
+@permission_required('manage_help')
+def manage_export():
+    """Download portable Help pack (slug-based JSON for git / other installs)."""
+    from app.models.help_pack import pack_to_json
+
+    body = pack_to_json()
+    stamp = datetime.utcnow().strftime('%Y%m%d')
+    log_change(session['user_id'], 'export', change_details='Exported portable help pack JSON')
+    return Response(
+        body,
+        mimetype='application/json; charset=utf-8',
+        headers={
+            'Content-Disposition': f'attachment; filename="myvine_help_pack_{stamp}.json"',
+        },
+    )
+
+
+@help_bp.route('/manage/import', methods=['POST'])
+@permission_required('manage_help')
+def manage_import():
+    """Re-upload a myvine_help_v1 JSON pack (merge by slug; does not delete local-only guides)."""
+    from app.models.help_pack import import_pack
+
+    f = request.files.get('file')
+    if not f or not f.filename:
+        flash('Choose a help pack .json file to upload.', 'error')
+        return redirect(url_for('help.manage_index'))
+    try:
+        raw = f.read()
+        stats = import_pack(raw, user_id=session.get('user_id') or 1, replace_bodies=True)
+    except Exception as e:
+        flash(f'Help import failed: {e}', 'error')
+        return redirect(url_for('help.manage_index'))
+
+    log_change(
+        session['user_id'], 'import',
+        change_details=(
+            f"Imported help pack: cats +{stats['categories_created']}/~{stats['categories_updated']}, "
+            f"articles +{stats['articles_created']}/~{stats['articles_updated']}"
+        ),
+    )
+    flash(
+        f"Help pack imported. Categories: {stats['categories_created']} new, "
+        f"{stats['categories_updated']} updated. Guides: {stats['articles_created']} new, "
+        f"{stats['articles_updated']} updated."
+        + (f" Skipped {stats['skipped']} invalid rows." if stats.get('skipped') else ''),
+        'success',
+    )
+    return redirect(url_for('help.manage_index'))
 
 
 @help_bp.route('/manage/categories/add', methods=['GET', 'POST'])

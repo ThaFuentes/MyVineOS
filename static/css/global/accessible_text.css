@@ -1,0 +1,366 @@
+/* ============================================================
+   Accessible / large text — keep content inside cards
+   When users raise Display → Page text size (elderly-friendly),
+   fixed heights, overflow:hidden, and nowrap labels used to clip
+   text off glass cards. These rules let containers grow & wrap.
+   ============================================================ */
+
+/* ---- Root scales (also set in theme.css / overhaul.css) ---- */
+html[data-font-scale="sm"]  { font-size: 14px; }
+html[data-font-scale="md"]  { font-size: 16px; }
+html[data-font-scale="lg"]  { font-size: 18px; }
+html[data-font-scale="xl"]  { font-size: 21px; }
+html[data-font-scale="xxl"] { font-size: 24px; }
+
+/* Comfortable line length for large text */
+html[data-font-scale="lg"],
+html[data-font-scale="xl"],
+html[data-font-scale="xxl"] {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html[data-font-scale="lg"] body,
+html[data-font-scale="xl"] body,
+html[data-font-scale="xxl"] body {
+  line-height: 1.6;
+}
+
+/* ---- Cards & panels must grow with content ---- */
+.glass-panel,
+.glass,
+.glass-card,
+.card,
+.item-card,
+.settings-card,
+.summary-card,
+.dash-feed-card,
+.acct-card,
+.content-section > .card,
+.section-card {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Inner card bodies that previously clipped long text */
+.glass-card > *,
+.glass-panel > *,
+.card > *,
+.settings-card > *,
+.dash-feed-card > * {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* Image/media areas may still clip; text wrappers should not */
+.card-body,
+.card-content,
+.panel-body,
+.settings-card-body,
+.collapsible-content,
+.event-title-info,
+.page-description,
+.help-text,
+.section-title,
+.page-title {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+/* ---- Dashboard tiles ---- */
+.dash-tile-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+}
+
+.dash-tile {
+  height: auto !important;
+  min-height: 3.4rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  overflow: visible !important;
+}
+
+.dash-tile-label {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.dash-tile-icon {
+  flex-shrink: 0;
+}
+
+/* ---- Pastoral hub tiles ---- */
+.pastoral-tile-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+}
+
+.pastoral-tile {
+  height: auto !important;
+  min-height: 7.5rem;
+  overflow: visible !important;
+  justify-content: flex-start;
+}
+
+.pastoral-tile-title,
+.pastoral-tile-sub {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Illustration / media cards (body text only) ---- */
+.illustration-card-body,
+.illustration-card-text,
+.illus-card-body {
+  overflow: visible !important;
+  max-height: none !important;
+  -webkit-line-clamp: unset !important;
+  display: block !important;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Forms ---- */
+.styled-form,
+.form-grid,
+.form-group {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea,
+.form-input,
+input.form-input,
+select.form-input,
+textarea.form-input,
+.form-control {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 1rem; /* follows root rem scale */
+  line-height: 1.45;
+  white-space: normal;
+}
+
+.form-group label,
+.control-label,
+label {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+/* Checkbox rows don't force overflow */
+.form-check,
+.checkbox-label {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+/* ---- Nav pills / chips: allow wrap at large sizes ---- */
+html[data-font-scale="lg"] .settings-nav-link,
+html[data-font-scale="xl"] .settings-nav-link,
+html[data-font-scale="xxl"] .settings-nav-link,
+html[data-font-scale="lg"] .pastoral-nav-pills .nav-link,
+html[data-font-scale="xl"] .pastoral-nav-pills .nav-link,
+html[data-font-scale="xxl"] .pastoral-nav-pills .nav-link {
+  white-space: normal;
+  line-height: 1.25;
+  height: auto;
+}
+
+.settings-nav,
+.pastoral-nav-pills {
+  flex-wrap: wrap;
+}
+
+/* ---- Tables: scroll sideways instead of spilling off cards ---- */
+.table-wrapper,
+.table-responsive,
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table,
+table.data-table,
+.table {
+  width: 100%;
+  max-width: none;
+}
+
+.data-table th,
+.data-table td,
+.table th,
+.table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: top;
+  line-height: 1.4;
+}
+
+/* Prefer wrapping cells over nowrap at large text */
+html[data-font-scale="lg"] .data-table th,
+html[data-font-scale="lg"] .data-table td,
+html[data-font-scale="xl"] .data-table th,
+html[data-font-scale="xl"] .data-table td,
+html[data-font-scale="xxl"] .data-table th,
+html[data-font-scale="xxl"] .data-table td {
+  white-space: normal !important;
+}
+
+/* ---- Buttons / actions ---- */
+.form-actions,
+.event-actions,
+.btn-row,
+.content-actions {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn,
+button.btn-primary,
+button.btn-secondary {
+  white-space: normal;
+  height: auto;
+  min-height: 2.5rem;
+  line-height: 1.3;
+  max-width: 100%;
+}
+
+/* ---- Top bar: don't clip church name too aggressively at XL ---- */
+html[data-font-scale="xl"] .top-bar .church-name,
+html[data-font-scale="xxl"] .top-bar .church-name {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  max-width: 60%;
+  line-height: 1.2;
+}
+
+html[data-font-scale="xl"] .top-bar,
+html[data-font-scale="xxl"] .top-bar {
+  min-height: auto;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* ---- Bottom nav: grow for multi-line labels ---- */
+html[data-font-scale="lg"] .bottom-nav a,
+html[data-font-scale="xl"] .bottom-nav a,
+html[data-font-scale="xxl"] .bottom-nav a,
+html[data-font-scale="lg"] .bottom-nav .bottom-nav-item,
+html[data-font-scale="xl"] .bottom-nav .bottom-nav-item,
+html[data-font-scale="xxl"] .bottom-nav .bottom-nav-item {
+  min-height: 3.75rem;
+  height: auto;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+html[data-font-scale="lg"] .bottom-nav .label,
+html[data-font-scale="xl"] .bottom-nav .label,
+html[data-font-scale="xxl"] .bottom-nav .label {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 0.72rem;
+}
+
+/* ---- Flex/grid children need min-width:0 to wrap ---- */
+.page-content,
+.content-section,
+.summary-grid,
+.acct-two-col,
+.event-header-flex,
+.form-grid {
+  min-width: 0;
+}
+
+.event-header-flex,
+.d-flex {
+  flex-wrap: wrap;
+}
+
+.event-header-flex > *,
+.summary-grid > *,
+.form-grid > .form-group {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ---- Lists inside cards ---- */
+.glass-panel li,
+.card li,
+.settings-card li {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ---- Extra breathing room at largest sizes ---- */
+html[data-font-scale="xl"] .glass-panel,
+html[data-font-scale="xl"] .glass,
+html[data-font-scale="xl"] .card,
+html[data-font-scale="xl"] .settings-card,
+html[data-font-scale="xxl"] .glass-panel,
+html[data-font-scale="xxl"] .glass,
+html[data-font-scale="xxl"] .card,
+html[data-font-scale="xxl"] .settings-card {
+  padding: 1.1rem 1.15rem;
+}
+
+html[data-font-scale="xxl"] .page-content {
+  padding-left: 0.85rem;
+  padding-right: 0.85rem;
+}
+
+/* Summary big numbers — scale down slightly so they fit cards */
+html[data-font-scale="xl"] .large-amount,
+html[data-font-scale="xxl"] .large-amount {
+  font-size: clamp(2.2rem, 8vw, 3.5rem) !important;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+/* Avoid fixed pixel minmax grids starving large text */
+html[data-font-scale="lg"] .summary-grid,
+html[data-font-scale="xl"] .summary-grid,
+html[data-font-scale="xxl"] .summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)) !important;
+}
+
+/* Inline code / badges wrap */
+code, .badge, .member-scope-badge {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+/* Pref panel options stay usable at large UI scale */
+.pref-options {
+  flex-wrap: wrap;
+}
+.pref-option {
+  white-space: nowrap;
+}

@@ -46,6 +46,8 @@
             {% endif %}
             {% if can_delete %}
             <form action="{{ url_for('dreams.delete_dream', dream_id=dream.id) }}" method="post" style="display:inline;">
+    {% include 'partials/csrf_field.html' %}
+
                 <button type="submit" class="btn-danger"
                         onclick="return confirm('Permanently delete this dream/vision and all comments? This cannot be undone.');">
                     Delete
@@ -102,6 +104,8 @@
                             <td>
                                 {% if is_logged_in and (c.user_id == current_user_id or is_admin_owner) %}
                                 <form action="{{ url_for('dreams.delete_comment', dream_id=dream.id, comment_id=c.id) }}" method="post" style="display:inline;">
+    {% include 'partials/csrf_field.html' %}
+
                                     <button type="submit" class="btn-danger btn-small"
                                             onclick="return confirm('Delete this comment?');">
                                         Delete
@@ -125,6 +129,8 @@
             <section class="content-section" style="margin-top:2rem;">
                 <h3 class="section-subtitle">Add Your Comment</h3>
                 <form action="{{ url_for('dreams.add_comment', dream_id=dream.id) }}" method="POST" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
                     <div class="form-group">
                         <label class="control-label">Your Comment <span class="required">*</span></label>
                         <textarea name="comment" rows="6" class="form-input" required

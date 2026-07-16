@@ -1,0 +1,15 @@
+{% extends "communications/base_comm.html" %}
+{% block title %}New Campaign{% endblock %}
+
+{% block comm_content %}
+<p style="margin:0 0 0.75rem;"><a href="{{ url_for('communications.campaigns_list') }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">← Campaigns</a></p>
+
+<div class="glass-panel" style="padding:1.15rem; max-width:720px;">
+  <h1 style="margin:0 0 0.75rem; font-size:1.3rem; color:var(--primary);">New mass campaign</h1>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    {% include 'communications/_campaign_fields.html' %}
+    <button type="submit" class="btn btn-primary" style="margin-top:0.75rem;">Save draft</button>
+  </form>
+</div>
+{% endblock %}

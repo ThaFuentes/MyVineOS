@@ -1,48 +1,129 @@
-<!-- app/templates/inventory/items_list.html -->
-<!-- Full path: WebChurchMan/app/templates/inventory/items_list.html -->
-<!-- File name: items_list.html -->
-<!-- Brief, detailed purpose: Searchable catalog of all items with current total stock. -->
-
 {% extends "inventory/base_inventory.html" %}
 
 {% block inventory_content %}
-<section class="content-section">
-    <h2 class="section-title">Items Catalog</h2>
+<div class="glass-panel inv-hero">
+  <h1>Items catalog</h1>
+  <p>
+    Every supply and kit lives here. Add items once, receive stock over time, and deploy kits
+    that pull component quantities automatically.
+  </p>
+</div>
 
-    <form method="GET" class="inline-form styled-form">
-        <div class="form-group search-group">
-            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or barcode..." class="search-input">
-            <button type="submit" class="btn-primary">Search</button>
-        </div>
-    </form>
+<div class="inv-actions">
+  <a href="{{ url_for('inventory.item_manage') }}" class="btn btn-primary">
+    <i class="fa-solid fa-plus" aria-hidden="true"></i> Add item
+  </a>
+  <a href="{{ url_for('inventory.item_manage') }}?kit=1" class="btn btn-secondary">New kit / set</a>
+  <a href="{{ url_for('inventory.receive_stock') }}" class="btn btn-secondary">Receive stock</a>
+</div>
 
-    <div class="table-wrapper glass">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Barcode</th>
-                    <th>Total Stock</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in items %}
-                    <tr>
-                        <td>{{ item.name }}</td>
-                        <td>{{ item.category_name }}</td>
-                        <td>{{ item.barcode_upc_ean or '-' }}</td>
-                        <td>{{ item.total_stock }}</td>
-                        <td class="actions-cell">
-                            <a href="{{ url_for('inventory.item_manage', item_id=item.id) }}" class="btn-small btn-primary">Edit</a>
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr><td colspan="5" class="no-data">No items found.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
+<form method="get" class="glass-panel inv-panel inv-filters" style="padding-bottom:1rem;">
+  <div class="field" style="flex:2 1 14rem;">
+    <label for="search">Search</label>
+    <input type="search" id="search" name="search" class="form-input" value="{{ search }}"
+           placeholder="Name, SKU, barcode, category…">
+  </div>
+  <div class="field" style="flex:1 1 10rem;">
+    <label for="category_id">Category</label>
+    <select id="category_id" name="category_id" class="form-input">
+      <option value="">All categories</option>
+      {% for c in categories %}
+      <option value="{{ c.id }}" {% if category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field" style="flex:1 1 9rem;">
+    <label for="show">Show</label>
+    <select id="show" name="show" class="form-input">
+      <option value="active" {% if show == 'active' %}selected{% endif %}>Active</option>
+      <option value="kits" {% if show == 'kits' %}selected{% endif %}>Kits / sets only</option>
+      <option value="low" {% if show == 'low' %}selected{% endif %}>Low stock</option>
+      <option value="all" {% if show == 'all' %}selected{% endif %}>All (incl. archived)</option>
+      <option value="inactive" {% if show == 'inactive' %}selected{% endif %}>Archived only</option>
+    </select>
+  </div>
+  <div class="field">
+    <button type="submit" class="btn btn-secondary">Filter</button>
+  </div>
+</form>
+
+<div class="glass-panel inv-panel">
+  <h2>{{ items|length }} item{{ 's' if items|length != 1 else '' }}</h2>
+  <div class="inv-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>SKU / barcode</th>
+          <th>Stock</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>
+            <a href="{{ url_for('inventory.item_detail', item_id=item.id) }}" style="font-weight:600; color:inherit;">
+              {{ item.name }}
+            </a>
+            {% if item.is_kit %}
+            <span class="inv-badge inv-badge--kit" style="margin-left:0.35rem;">Kit</span>
+            {% endif %}
+          </td>
+          <td>{{ item.category_name or '—' }}</td>
+          <td style="font-size:0.88rem;">
+            {% if item.sku %}<div>{{ item.sku }}</div>{% endif %}
+            <div style="opacity:0.7;">{{ item.barcode_upc_ean or '—' }}</div>
+          </td>
+          <td>
+            {% if item.is_kit %}
+            <span title="How many full kits can be assembled from stock">
+              ~{{ item.assemblable or 0 }} assemblable
+            </span>
+            {% else %}
+            {% set stock = item.total_stock|int %}
+            {% set min_s = item.min_stock_level %}
+            <span class="{% if min_s is not none and stock < min_s %}{% if stock == 0 %}inv-stock-out{% else %}inv-stock-low{% endif %}{% else %}inv-stock-ok{% endif %}">
+              {{ stock }}
+            </span>
+            <span style="opacity:0.65; font-size:0.85rem;">{{ item.unit_of_measure or 'each' }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not item.is_active %}
+            <span class="inv-badge inv-badge--archived">Archived</span>
+            {% elif item.is_kit %}
+            <span class="inv-badge inv-badge--kit">Set</span>
+            {% elif item.min_stock_level is not none and item.total_stock|int < item.min_stock_level %}
+            <span class="inv-badge inv-badge--low">Low</span>
+            {% else %}
+            <span class="inv-badge inv-badge--ok">OK</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+              <a href="{{ url_for('inventory.item_detail', item_id=item.id) }}"
+                 class="btn btn-secondary" style="min-height:auto;padding:0.3rem 0.6rem;font-size:0.8rem;">Open</a>
+              <a href="{{ url_for('inventory.item_manage', item_id=item.id) }}"
+                 class="btn btn-secondary" style="min-height:auto;padding:0.3rem 0.6rem;font-size:0.8rem;">Edit</a>
+              {% if not item.is_kit %}
+              <a href="{{ url_for('inventory.receive_stock', item_id=item.id) }}"
+                 class="btn btn-secondary" style="min-height:auto;padding:0.3rem 0.6rem;font-size:0.8rem;">Receive</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="no-data">
+            No items match. <a href="{{ url_for('inventory.item_manage') }}">Add your first catalog item</a>.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

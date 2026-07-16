@@ -1,0 +1,38 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}New Budget{% endblock %}
+
+{% block acct_content %}
+<div class="glass-panel acct-form-panel">
+  <h1>New budget</h1>
+  <p class="acct-form-lead">Set a fiscal year range, then add account line amounts on the next screen.</p>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
+    <label>Name *
+      <input type="text" name="name" class="form-input" value="{{ year }} Operating Budget" required>
+    </label>
+
+    <label>Fiscal year
+      <input type="number" name="fiscal_year" class="form-input" value="{{ year }}">
+    </label>
+
+    <div class="form-row">
+      <label>Start date
+        <input type="date" name="start_date" class="form-input" value="{{ year }}-01-01">
+      </label>
+      <label>End date
+        <input type="date" name="end_date" class="form-input" value="{{ year }}-12-31">
+      </label>
+    </div>
+
+    <label>Notes
+      <textarea name="notes" class="form-input" rows="3" placeholder="Optional planning notes"></textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Create budget</button>
+      <a href="{{ url_for('accounting.budgets') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

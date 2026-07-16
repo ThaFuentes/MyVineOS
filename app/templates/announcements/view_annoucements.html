@@ -104,6 +104,8 @@ Use the Email button on any announcement to send it to selected members (or all 
                                     {% if user_has_permission('moderate_announcements') or current_user.id == a.created_by %}
                                         <a href="{{ url_for('announcements.edit_announcement', ann_id=a.id) }}" class="btn-primary btn-small">Edit</a>
                                         <form action="{{ url_for('announcements.delete_announcement', ann_id=a.id) }}" method="post" class="inline-form">
+    {% include 'partials/csrf_field.html' %}
+
                                             <button type="submit" class="btn-danger btn-small"
                                                     onclick="return confirm('Delete this announcement? This cannot be undone.');">
                                                 Delete
@@ -141,6 +143,8 @@ Use the Email button on any announcement to send it to selected members (or all 
 
                                             {% if a.comments_enabled and is_logged_in %}
                                                 <form action="{{ url_for('announcements.add_comment', ann_id=a.id) }}" method="POST" class="styled-form potluck-add-form">
+    {% include 'partials/csrf_field.html' %}
+
                                                     <div class="form-group">
                                                         <label for="comment-{{ a.id }}">Add a comment</label>
                                                         <textarea name="comment" id="comment-{{ a.id }}" rows="4" placeholder="Write your comment..." required></textarea>
@@ -178,6 +182,8 @@ Use the Email button on any announcement to send it to selected members (or all 
         <h2>Email This Announcement</h2>
         <p>The announcement content will be automatically included in the email body.</p>
         <form id="emailForm" action="" method="POST">
+    {% include 'partials/csrf_field.html' %}
+
             <input type="hidden" name="ann_id" id="emailAnnId">
             <div class="form-group">
                 <label>

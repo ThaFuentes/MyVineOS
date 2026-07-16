@@ -1,0 +1,70 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}New Journal Entry{% endblock %}
+
+{% block acct_content %}
+<div class="glass-panel acct-form-panel" style="max-width:48rem;">
+  <h1>Manual journal entry</h1>
+  <p class="acct-form-lead">
+    Debits must equal credits. Typical pattern: debit an expense account, credit cash or bank.
+  </p>
+
+  <form method="post" class="styled-form styled-form--wide" id="je-form">
+    {% include 'partials/csrf_field.html' %}
+
+    <div class="form-row form-row--3">
+      <label>Date *
+        <input type="date" name="entry_date" class="form-input" value="{{ today }}" required>
+      </label>
+      <label>Reference
+        <input type="text" name="reference" class="form-input" placeholder="CHK-1042">
+      </label>
+      <label>Memo
+        <input type="text" name="memo" class="form-input" placeholder="What is this entry for?">
+      </label>
+    </div>
+
+    <div>
+      <h3 style="margin:0 0 0.55rem; font-size:0.98rem; color:var(--primary);">Lines</h3>
+      <p class="help-text" style="margin:0 0 0.75rem;">Enter amounts on the debit <em>or</em> credit side of each line — not both.</p>
+      <div id="lines">
+        {% for i in range(4) %}
+        <div class="acct-line-row">
+          <label>Account
+            <select name="account_id" class="form-input">
+              <option value="">— Select account —</option>
+              {% for a in accounts %}
+              <option value="{{ a.id }}">{{ a.code }} · {{ a.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Debit
+            <input type="number" step="0.01" min="0" name="debit" class="form-input" placeholder="0.00">
+          </label>
+          <label>Credit
+            <input type="number" step="0.01" min="0" name="credit" class="form-input" placeholder="0.00">
+          </label>
+          <label>Line note
+            <input type="text" name="line_desc" class="form-input" placeholder="Optional">
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn btn-secondary" style="margin-top:0.35rem;" id="add-line">+ Add line</button>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Post entry</button>
+      <a href="{{ url_for('accounting.ledger') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+<script>
+document.getElementById('add-line').addEventListener('click', function(){
+  var row = document.querySelector('.acct-line-row').cloneNode(true);
+  row.querySelectorAll('input').forEach(function(i){ i.value=''; });
+  var sel = row.querySelector('select');
+  if (sel) sel.selectedIndex = 0;
+  document.getElementById('lines').appendChild(row);
+});
+</script>
+{% endblock %}

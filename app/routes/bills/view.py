@@ -51,16 +51,31 @@ def register_view_routes(bp):
         """, (bill_id,))
         assignments = cur.fetchall()
 
-        # Fetch payment history
+        # Fetch payment history (+ optional accounting links + payer name)
         cur.execute("""
-            SELECT * FROM bill_payment_history
-            WHERE bill_id = %s
-            ORDER BY payment_date DESC
+            SELECT h.*,
+                   CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,'')) AS paid_by_name
+            FROM bill_payment_history h
+            LEFT JOIN users u ON u.id = h.paid_by
+            WHERE h.bill_id = %s
+            ORDER BY h.payment_date DESC, h.id DESC
         """, (bill_id,))
         history = cur.fetchall()
 
         # Today's date for Record Payment form
         today_str = date.today().isoformat()
+
+        # Accounting account choices for payment form
+        expense_accounts = []
+        payment_accounts = []
+        try:
+            from app.models import accounting as acct
+            expense_accounts = acct.list_accounts(active_only=True, account_type='expense')
+            # Cash / bank-style assets for payment side
+            assets = acct.list_accounts(active_only=True, account_type='asset')
+            payment_accounts = assets or []
+        except Exception as e:
+            print(f"view_bill accounting accounts: {e}")
 
         # === DECRYPT CREDENTIALS FOR VIEW PAGE ===
         bill['username'] = decrypt_credential(bill.get('encrypted_username'))
@@ -69,12 +84,16 @@ def register_view_routes(bp):
         log_change(user_id, 'view_bill', target_id=bill_id,
                    change_details=f"Viewed bill: {bill['bill_name']}")
 
-        return render_template('bills/view_bill.html',
-                               bill=bill,
-                               assignments=assignments,
-                               history=history,
-                               is_manager=is_manager,
-                               today_str=today_str)
+        return render_template(
+            'bills/view_bill.html',
+            bill=bill,
+            assignments=assignments,
+            history=history,
+            is_manager=is_manager,
+            today_str=today_str,
+            expense_accounts=expense_accounts,
+            payment_accounts=payment_accounts,
+        )
 
     # ----------------------------------------------------------------------
     # Secure Credential Reveal (re-auth required)

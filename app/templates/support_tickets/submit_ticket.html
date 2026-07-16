@@ -19,6 +19,8 @@
 
     <div class="card glass" style="max-width: 800px; margin: 0 auto;">
         <form method="POST" action="{{ url_for('support_tickets.submit_ticket') }}" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
 
             <div class="form-group">
                 <label class="control-label">Title <span class="required">*</span></label>

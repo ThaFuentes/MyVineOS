@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Communications{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/communications.css') }}?v=20260714a">
+{% endblock %}
+
+{% block content %}
+{% set ep = request.endpoint or '' %}
+<div class="comm-nav">
+  <a href="{{ url_for('communications.dashboard') }}" class="{{ 'is-active' if ep == 'communications.dashboard' else '' }}">Hub</a>
+  <a href="{{ url_for('communications.campaigns_list') }}" class="{{ 'is-active' if 'campaign' in ep else '' }}">Campaigns</a>
+  <a href="{{ url_for('communications.workflows_list') }}" class="{{ 'is-active' if 'workflow' in ep else '' }}">Automation</a>
+  <a href="{{ url_for('communications.sms_settings') }}" class="{{ 'is-active' if ep == 'communications.sms_settings' else '' }}">SMS setup</a>
+  <a href="{{ url_for('communications.message_log') }}" class="{{ 'is-active' if ep == 'communications.message_log' else '' }}">Log</a>
+  <a href="{{ url_for('members.email_roster') }}">Member roster emails</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-messages">
+    {% for category, message in messages %}
+    <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+{% block comm_content %}{% endblock %}
+{% endblock %}

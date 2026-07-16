@@ -1,0 +1,71 @@
+{% extends "volunteers/base_vol.html" %}
+{% block title %}New Serving Date{% endblock %}
+
+{% block vol_content %}
+<section class="content-section vol-form-page">
+  <p class="vol-back-row">
+    <a href="{{ url_for('volunteers.schedule') }}" class="btn-secondary">← Schedule</a>
+  </p>
+  <div class="glass-panel vol-panel">
+    <h1 class="vol-page-title">Schedule a serving date</h1>
+    <p class="vol-page-desc">
+      Create a date when volunteers are needed. Optionally auto-fill from rotations.
+      Required fields marked with <span class="required">*</span>.
+    </p>
+    <form method="post" class="styled-form vol-styled-form">
+      {% include 'partials/csrf_field.html' %}
+
+      <div class="form-group">
+        <label for="ev-title" class="control-label">Title <span class="required">*</span></label>
+        <input type="text" id="ev-title" name="title" class="form-input" required placeholder="Sunday Morning Serving">
+      </div>
+
+      <div class="form-group">
+        <label for="ev-date" class="control-label">Date <span class="required">*</span></label>
+        <input type="date" id="ev-date" name="event_date" class="form-input" value="{{ default_date }}" required>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="ev-start" class="control-label">Start time</label>
+          <input type="time" id="ev-start" name="start_time" class="form-input" value="09:00">
+        </div>
+        <div class="form-group">
+          <label for="ev-end" class="control-label">End time</label>
+          <input type="time" id="ev-end" name="end_time" class="form-input">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="ev-loc" class="control-label">Location <span class="vol-help-optional">(optional)</span></label>
+        <input type="text" id="ev-loc" name="location" class="form-input" placeholder="Main lobby">
+      </div>
+
+      <div class="form-group">
+        <label for="ev-team" class="control-label">Team <span class="vol-help-optional">(optional)</span></label>
+        <select id="ev-team" name="team_id" class="form-input">
+          <option value="">— none —</option>
+          {% for t in teams %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="ev-notes" class="control-label">Notes <span class="vol-help-optional">(optional)</span></label>
+        <textarea id="ev-notes" name="notes" class="form-input" rows="3"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" name="fill_rotations" value="1">
+          <span>Auto-fill from team rotations (round-robin)</span>
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Create serving date</button>
+        <a href="{{ url_for('volunteers.schedule') }}" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

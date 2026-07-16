@@ -429,6 +429,15 @@ def approve_registration(user_id):
                 send_registration_approved(user['email'], user['username'])
             except Exception:
                 pass
+        # Automation: approved visitor becomes new member workflow
+        try:
+            from app.models import communications as comm
+            comm.fire_trigger('new_member', int(user_id), context={
+                'source': 'registration_approved',
+                'username': (user or {}).get('username') or '',
+            })
+        except Exception as auto_err:
+            print(f"Automation approve hook: {auto_err}")
         flash(f"Approved {user['username'] if user else 'user'}.", 'success')
     except ValueError as e:
         flash(str(e), 'error')

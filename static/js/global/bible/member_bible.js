@@ -615,12 +615,14 @@
     content.querySelectorAll('.member-xref-link').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        currentBook = btn.dataset.book;
-        prepareBook(currentBook, {
+        e.preventDefault();
+        openXrefPopup({
+          book: btn.dataset.book,
           chapter: parseInt(btn.dataset.chapter, 10),
-          scrollToVerse: parseInt(btn.dataset.verse, 10) || 1,
+          verse: parseInt(btn.dataset.verse, 10) || 1,
+          reference: (btn.textContent || '').trim(),
+          label: btn.getAttribute('title') || '',
         });
-        closeFlyouts();
       });
     });
     content.querySelectorAll('[data-heart-verse]').forEach((btn) => {
@@ -1088,6 +1090,142 @@
     }
   }
 
+  /* ---- Linked-verse popup (cross-refs) ---- */
+  let xrefPopupState = null;
+
+  function ensureXrefPopup() {
+    let root = el('member-xref-popup');
+    if (root) return root;
+    root = document.createElement('div');
+    root.id = 'member-xref-popup';
+    root.className = 'bible-xref-popup';
+    root.setAttribute('aria-hidden', 'true');
+    root.innerHTML = `
+      <div class="bible-xref-popup-card" role="dialog" aria-modal="true" aria-labelledby="member-xref-popup-title">
+        <button type="button" class="bible-xref-popup-close" data-xref-close aria-label="Close">&times;</button>
+        <div class="bible-xref-popup-meta">
+          <span class="bible-xref-popup-kicker">Linked verse</span>
+          <h3 id="member-xref-popup-title" class="bible-xref-popup-title">—</h3>
+          <div class="bible-xref-popup-bcv">
+            <span data-xref-book></span>
+            <span class="bible-xref-popup-dot">·</span>
+            <span>Chapter <strong data-xref-chapter></strong></span>
+            <span class="bible-xref-popup-dot">·</span>
+            <span>Verse <strong data-xref-verse></strong></span>
+          </div>
+          <p class="bible-xref-popup-label small text-muted" data-xref-label style="display:none;"></p>
+        </div>
+        <blockquote class="bible-xref-popup-text" data-xref-text>Loading…</blockquote>
+        <div class="bible-xref-popup-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-xref-copy>Copy</button>
+          <button type="button" class="btn btn-warning btn-sm" data-xref-highlight>Highlight</button>
+          <button type="button" class="btn btn-primary btn-sm" data-xref-goto>Go to passage</button>
+        </div>
+      </div>`;
+    document.body.appendChild(root);
+    root.addEventListener('click', (e) => {
+      if (e.target === root || e.target.closest('[data-xref-close]')) closeXrefPopup();
+    });
+    root.querySelector('[data-xref-copy]')?.addEventListener('click', () => {
+      if (!xrefPopupState) return;
+      const blob = `${xrefPopupState.reference}\n${xrefPopupState.text || ''}`.trim();
+      const doCopy = () => toast('Copied');
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(blob).then(doCopy).catch(() => {
+          // fallback
+          const ta = document.createElement('textarea');
+          ta.value = blob;
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); doCopy(); } catch (err) { toast('Could not copy'); }
+          ta.remove();
+        });
+      } else {
+        toast('Copy not available');
+      }
+    });
+    root.querySelector('[data-xref-highlight]')?.addEventListener('click', async () => {
+      if (!xrefPopupState) return;
+      if (!requireLogin('highlights')) return;
+      const color = el('member-hl-color')?.value || 'yellow';
+      try {
+        if (!csrfToken()) throw new Error('Security token missing — refresh the page');
+        const data = await apiPost(urls.highlight || `${base}/highlight`, {
+          translation: annotationKey || translation(),
+          book: xrefPopupState.book,
+          chapter: xrefPopupState.chapter,
+          verse_start: xrefPopupState.verse,
+          verse_end: xrefPopupState.verse,
+          color,
+        });
+        if (!data.ok) throw new Error(data.error || 'Failed');
+        toast(`Highlighted ${xrefPopupState.reference}`);
+      } catch (err) {
+        toast(err.message || 'Could not highlight');
+      }
+    });
+    root.querySelector('[data-xref-goto]')?.addEventListener('click', () => {
+      if (!xrefPopupState) return;
+      const { book, chapter, verse } = xrefPopupState;
+      closeXrefPopup();
+      closeFlyouts();
+      currentBook = book;
+      prepareBook(book, { chapter, scrollToVerse: verse || 1 });
+    });
+    return root;
+  }
+
+  function closeXrefPopup() {
+    const root = el('member-xref-popup');
+    if (!root) return;
+    root.classList.remove('is-open');
+    root.setAttribute('aria-hidden', 'true');
+    xrefPopupState = null;
+  }
+
+  async function openXrefPopup(opts) {
+    const book = (opts.book || '').trim();
+    const chapter = parseInt(opts.chapter, 10);
+    const verse = parseInt(opts.verse, 10) || 1;
+    if (!book || !chapter) return;
+    const reference = opts.reference || `${book} ${chapter}:${verse}`;
+    xrefPopupState = { book, chapter, verse, reference, text: '', label: opts.label || '' };
+    const root = ensureXrefPopup();
+    root.querySelector('#member-xref-popup-title').textContent = reference;
+    root.querySelector('[data-xref-book]').textContent = book;
+    root.querySelector('[data-xref-chapter]').textContent = String(chapter);
+    root.querySelector('[data-xref-verse]').textContent = String(verse);
+    const labelEl = root.querySelector('[data-xref-label]');
+    if (opts.label && opts.label !== reference) {
+      labelEl.style.display = '';
+      labelEl.textContent = opts.label;
+    } else {
+      labelEl.style.display = 'none';
+      labelEl.textContent = '';
+    }
+    const textEl = root.querySelector('[data-xref-text]');
+    textEl.textContent = 'Loading verse…';
+    root.classList.add('is-open');
+    root.setAttribute('aria-hidden', 'false');
+
+    try {
+      const tr = translation();
+      let url = `${base}/verse/${encodeURIComponent(book)}/${chapter}/${verse}`;
+      if (tr) url += `?translation=${encodeURIComponent(tr)}`;
+      const resp = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      if (!resp.ok) throw new Error('not found');
+      const data = await resp.json();
+      const text = (data.text || '').trim();
+      xrefPopupState.text = text;
+      xrefPopupState.reference = data.reference || reference;
+      root.querySelector('#member-xref-popup-title').textContent = xrefPopupState.reference;
+      if (data.book) root.querySelector('[data-xref-book]').textContent = data.book;
+      textEl.textContent = text || 'Verse text unavailable in this version.';
+    } catch (err) {
+      textEl.textContent = 'Could not load this verse in the current version. You can still go to the passage.';
+    }
+  }
+
   async function searchBible() {
     const q = (el('member-bible-search-q')?.value || '').trim();
     if (!q) return;
@@ -1155,6 +1293,7 @@
     document.querySelectorAll('.bible-flyout-close').forEach((b) => b.addEventListener('click', closeFlyouts));
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        closeXrefPopup();
         closeFlyouts();
         closeNoteModal();
       }

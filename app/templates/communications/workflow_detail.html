@@ -1,0 +1,176 @@
+{% extends "communications/base_comm.html" %}
+{% block title %}{{ workflow.name }}{% endblock %}
+
+{% block comm_content %}
+<p style="margin:0 0 0.75rem;"><a href="{{ url_for('communications.workflows_list') }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">← Automation</a></p>
+
+<div class="glass-panel" style="padding:1.1rem; margin-bottom:1rem;">
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+    <h1 style="margin:0; font-size:1.3rem; color:var(--primary); flex:1;">{{ workflow.name }}</h1>
+    <span class="comm-pill comm-pill--{{ workflow.status }}">{{ workflow.status }}</span>
+  </div>
+  <form method="post" class="styled-form" style="margin-top:0.75rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save">
+    <label>Name <input type="text" name="name" class="form-input" value="{{ workflow.name }}"></label>
+    <label>Description <textarea name="description" class="form-input" rows="2">{{ workflow.description or '' }}</textarea></label>
+    <label>Trigger
+      <select name="trigger_type" class="form-input" id="trigger-type">
+        {% for key, label in trigger_types %}
+        <option value="{{ key }}" {% if workflow.trigger_type==key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label id="days-inactive-wrap" style="{% if workflow.trigger_type != 'giving_lapsed' %}display:none;{% endif %}">
+      Days without a gift
+      <input type="number" name="days_inactive" class="form-input"
+             value="{{ trigger_config.get('days_inactive', 60) }}" min="7" max="730">
+    </label>
+    <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem;">
+      <button type="submit" class="btn btn-primary">Save</button>
+      {% if workflow.status != 'active' %}
+      <button type="submit" name="action" value="activate" class="btn btn-primary" style="background:linear-gradient(135deg,#16a34a,#22c55e);">Activate</button>
+      {% else %}
+      <button type="submit" name="action" value="pause" class="btn btn-secondary">Pause</button>
+      {% endif %}
+      <button type="submit" name="action" value="run_due_now" class="btn btn-secondary">Run due steps now</button>
+      <button type="submit" name="action" value="scan_triggers_now" class="btn btn-secondary">Scan triggers now</button>
+    </div>
+  </form>
+  <p style="font-size:0.82rem; opacity:0.7; margin:0.65rem 0 0;">
+    Tokens: <code>{{first_name}}</code> <code>{{full_name}}</code> <code>{{church_name}}</code>
+    <code>{{prayer_title}}</code> <code>{{team_name}}</code> <code>{{title}}</code> <code>{{last_gift}}</code>
+  </p>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;">
+  <div>
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Steps (drip sequence)</h2>
+    {% for s in steps %}
+    <div class="comm-step glass-panel">
+      <form method="post" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="update_step">
+        <input type="hidden" name="step_id" value="{{ s.id }}">
+        <div style="font-size:0.78rem; opacity:0.65; margin-bottom:0.35rem;">Step {{ loop.index }} · #{{ s.id }}</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.4rem;">
+          <label>Order <input type="number" name="step_order" class="form-input" value="{{ s.step_order }}"></label>
+          <label>Delay days <input type="number" name="delay_days" class="form-input" value="{{ s.delay_days }}" min="0"></label>
+          <label>Action / channel
+            <select name="channel" class="form-input">
+              {% for key, label in step_channels %}
+              <option value="{{ key }}" {% if s.channel==key %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+        <label>Subject <input type="text" name="subject" class="form-input" value="{{ s.subject or '' }}"></label>
+        <label>Body <textarea name="body" class="form-input" rows="4">{{ s.body or '' }}</textarea></label>
+        <div style="display:flex; gap:0.35rem;">
+          <button type="submit" class="btn btn-primary" style="min-height:auto;padding:0.35rem 0.7rem;">Update</button>
+          <button type="submit" name="action" value="delete_step" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;color:#fca5a5;"
+                  onclick="return confirm('Delete step?');">Delete</button>
+        </div>
+      </form>
+    </div>
+    {% else %}
+    <p style="opacity:0.7;">No steps yet.</p>
+    {% endfor %}
+
+    <div class="glass-panel" style="padding:1rem; margin-top:0.75rem;">
+      <h3 style="margin:0 0 0.5rem; font-size:0.95rem;">Add step</h3>
+      <form method="post" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="add_step">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem;">
+          <label>Delay (days after previous)
+            <input type="number" name="delay_days" class="form-input" value="3" min="0">
+          </label>
+          <label>Action / channel
+            <select name="channel" class="form-input">
+              {% for key, label in step_channels %}
+              <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+        <label>Subject <input type="text" name="subject" class="form-input" placeholder="Getting connected"></label>
+        <label>Body <textarea name="body" class="form-input" rows="4" required placeholder="Hi {{ '{{first_name}}' }}, …"></textarea></label>
+        <button type="submit" class="btn btn-primary">Add step</button>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Enroll people (manual)</h2>
+    <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+      <form method="post" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="enroll">
+        <label>Audience
+          <select name="audience_type" class="form-input">
+            {% for key, label in audience_types %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Group (if needed)
+          <select name="audience_ref" class="form-input">
+            <option value="">—</option>
+            {% for g in groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
+          </select>
+        </label>
+        <button type="submit" class="btn btn-primary"
+                onclick="return confirm('Enroll matching members into this drip?');">
+          Enroll audience
+        </button>
+      </form>
+      <form method="post" class="styled-form" style="margin-top:0.85rem;">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="enroll_one">
+        <label>Single member
+          <select name="user_id" class="form-input" required>
+            <option value="">—</option>
+            {% for m in members %}
+            <option value="{{ m.id }}">{{ m.last_name }}, {{ m.first_name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit" class="btn btn-secondary">Enroll one</button>
+      </form>
+    </div>
+
+    <h2 style="margin:0 0 0.5rem; font-size:1.05rem;">Enrollments</h2>
+    {% if enrollments %}
+    <div class="table-wrapper glass">
+      <table class="data-table">
+        <thead><tr><th>Person</th><th>Status</th><th>Step</th><th>Next run</th></tr></thead>
+        <tbody>
+          {% for e in enrollments %}
+          <tr>
+            <td>{{ e.first_name }} {{ e.last_name }}</td>
+            <td><code>{{ e.status }}</code></td>
+            <td>{{ e.current_step }}</td>
+            <td style="font-size:0.82rem;">{{ e.next_run_at or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="opacity:0.7;">No enrollments yet. Activate this workflow, then wait for a trigger or enroll manually.</p>
+    {% endif %}
+  </div>
+</div>
+<script>
+(function () {
+  var sel = document.getElementById('trigger-type');
+  var wrap = document.getElementById('days-inactive-wrap');
+  function sync() {
+    if (!sel || !wrap) return;
+    wrap.style.display = sel.value === 'giving_lapsed' ? '' : 'none';
+  }
+  if (sel) sel.addEventListener('change', sync);
+})();
+</script>
+{% endblock %}

@@ -98,6 +98,8 @@
                                         {% endif %}
                                         {% if session.get('user_role') in ['Admin', 'Owner'] %}
                                             <form action="{{ url_for('groups.delete_group', group_id=group.id) }}" method="post" class="inline-form">
+    {% include 'partials/csrf_field.html' %}
+
                                                 <button type="submit" class="btn-danger btn-small"
                                                         onclick="return confirm('Permanently delete this permission group? This cannot be undone.');">
                                                     Delete
@@ -131,6 +133,8 @@
                                                                 {% if group.can_manage %}
                                                                     {% if group.can_change_roles %}
                                                                     <form action="{{ url_for('groups.update_role', group_id=group.id, user_id=m.user_id) }}" method="POST" class="inline-form" style="display:inline-flex; gap:0.35rem; align-items:center; flex-wrap:wrap;">
+    {% include 'partials/csrf_field.html' %}
+
                                                                         {% with selected_role=m.role_in_group|default('member'), show_manager_role=true, css_class='form-input small' %}
                                                                             {% include "groups/_group_role_select.html" %}
                                                                         {% endwith %}
@@ -138,6 +142,8 @@
                                                                     </form>
                                                                     {% endif %}
                                                                     <form action="{{ url_for('groups.remove_user', group_id=group.id, user_id=m.user_id) }}" method="POST" class="inline-form">
+    {% include 'partials/csrf_field.html' %}
+
                                                                         <button type="submit" class="btn-danger btn-small"
                                                                                 onclick="return confirm('Remove this user from the group?');">
                                                                             Remove
@@ -153,6 +159,8 @@
 
                                                 {% if group.can_manage %}
                                                     <form action="{{ url_for('groups.assign_user', group_id=group.id) }}" method="POST" class="styled-form potluck-add-form">
+    {% include 'partials/csrf_field.html' %}
+
                                                         <div class="form-group">
                                                             <label>Username or Email <span class="required">*</span></label>
                                                             <input type="text" name="username_or_email" required placeholder="Enter username or email">

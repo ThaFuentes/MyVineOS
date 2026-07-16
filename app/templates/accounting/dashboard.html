@@ -1,0 +1,60 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}Accounting Dashboard{% endblock %}
+
+{% block acct_content %}
+<div class="glass-panel acct-hero">
+  <h1><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Accounting</h1>
+  <p>
+    Chart of accounts, double-entry ledger, vendors, expenses, budgets, and payroll —
+    built for church finance, alongside Bills and Donations.
+  </p>
+  <div class="acct-actions">
+    <a href="{{ url_for('accounting.expense_new') }}" class="btn btn-primary">Record expense</a>
+    <a href="{{ url_for('accounting.journal_new') }}" class="btn btn-secondary">Journal entry</a>
+    <a href="{{ url_for('accounting.reports', report='pnl') }}" class="btn btn-secondary">P&amp;L report</a>
+  </div>
+</div>
+
+<div class="acct-stat-grid">
+  <div class="glass-panel acct-stat"><strong>${{ '%.2f'|format(stats.cash_balance) }}</strong><span>Cash (1000)</span></div>
+  <div class="glass-panel acct-stat"><strong class="acct-money--pos">${{ '%.2f'|format(stats.ytd_income) }}</strong><span>YTD income</span></div>
+  <div class="glass-panel acct-stat"><strong class="acct-money--neg">${{ '%.2f'|format(stats.ytd_expenses) }}</strong><span>YTD expenses</span></div>
+  <div class="glass-panel acct-stat"><strong>${{ '%.2f'|format(stats.ytd_net) }}</strong><span>YTD net</span></div>
+  <div class="glass-panel acct-stat"><strong>{{ stats.vendors }}</strong><span>Vendors</span></div>
+  <div class="glass-panel acct-stat"><strong>{{ stats.employees }}</strong><span>Employees</span></div>
+</div>
+
+<div class="acct-two-col" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+  <div class="glass-panel" style="padding:1rem;">
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Recent expenses</h2>
+    {% if recent_exp %}
+    <ul style="list-style:none; margin:0; padding:0; font-size:0.9rem;">
+      {% for x in recent_exp %}
+      <li style="padding:0.4rem 0; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; gap:0.5rem;">
+        <span style="flex:1;">{{ x.expense_date }} · {{ x.vendor_display or x.vendor_name or x.description or 'Expense' }}</span>
+        <span class="acct-money">${{ '%.2f'|format(x.amount|float) }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="opacity:0.7; margin:0;">No expenses this year yet.</p>
+    {% endif %}
+  </div>
+  <div class="glass-panel" style="padding:1rem;">
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Recent journal entries</h2>
+    {% if recent_je %}
+    <ul style="list-style:none; margin:0; padding:0; font-size:0.9rem;">
+      {% for e in recent_je %}
+      <li style="padding:0.4rem 0; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <a href="{{ url_for('accounting.journal_detail', entry_id=e.id) }}">#{{ e.id }} · {{ e.entry_date }}</a>
+        <span style="opacity:0.7;"> · {{ e.source }} · ${{ '%.2f'|format(e.total or 0) }}</span>
+        {% if e.memo %}<div style="opacity:0.6; font-size:0.82rem;">{{ e.memo[:80] }}</div>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="opacity:0.7; margin:0;">Ledger is empty — record an expense or post a journal entry.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

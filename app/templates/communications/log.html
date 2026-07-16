@@ -1,0 +1,41 @@
+{% extends "communications/base_comm.html" %}
+{% block title %}Message Log{% endblock %}
+
+{% block comm_content %}
+<h1 class="page-title">Delivery log</h1>
+<p class="page-description">Recent email and SMS deliveries from campaigns and workflows.</p>
+
+{% if rows %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>Channel</th>
+        <th>Source</th>
+        <th>To</th>
+        <th>Subject</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td style="white-space:nowrap; font-size:0.82rem;">{{ r.created_fmt or r.created_at }}</td>
+        <td>{{ r.channel }}</td>
+        <td>{{ r.source }}</td>
+        <td style="font-size:0.85rem;">{{ r.to_address }}</td>
+        <td style="font-size:0.85rem; max-width:200px;">{{ r.subject or '—' }}</td>
+        <td>
+          <code>{{ r.status }}</code>
+          {% if r.error_detail %}<div style="color:#fca5a5;font-size:0.75rem;">{{ r.error_detail[:100] }}</div>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="glass-panel" style="padding:1.25rem; opacity:0.75;">No messages logged yet.</p>
+{% endif %}
+{% endblock %}

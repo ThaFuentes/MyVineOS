@@ -15,9 +15,16 @@
 
 {% block page_description %}
 All support tickets in the church. You can assign, update status, change priority, and reply to any ticket.
+Assigned staff also see their work under <a href="{{ url_for('volunteers.my_schedule') }}">My Serving</a>.
 {% endblock %}
 
 {% block tickets_content %}
+
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+    <a href="{{ url_for('tickets.export_tickets') }}" class="btn btn-secondary">Download backup (JSON)</a>
+    <a href="{{ url_for('support_tickets.submit_ticket') }}" class="btn btn-primary">New ticket (as member)</a>
+    <a href="{{ url_for('volunteers.my_schedule') }}" class="btn btn-secondary">My Serving</a>
+</div>
 
 <!-- Summary Cards -->
 <section class="content-section">

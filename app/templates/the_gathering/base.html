@@ -8,7 +8,8 @@
 <!-- - Flash messages, responsive design, and logout link. -->
 <!-- - All manager pages extend this file. -->
 
-{% set user_theme = session.get('user_theme') or 'cyan-glow' %}
+{% set church_theme = session.get('church_default_theme') or ((g.settings.get('default_ui_theme') if g is defined and g.settings else none) or 'cyan-glow') %}
+{% set user_theme = session.get('user_theme') or church_theme or 'cyan-glow' %}
 {% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
 <!DOCTYPE html>
 <html lang="en" data-theme="{{ user_theme }}" data-font-scale="{{ ui_font_scale }}">
@@ -26,8 +27,9 @@
     <title>{% block title %}Gathering Place Manager{% endblock %} | MyVineChurch.online</title>
 
     <!-- Same theme stack as main app -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260710i">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <style>

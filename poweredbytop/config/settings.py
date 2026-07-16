@@ -13,31 +13,34 @@ logger = logging.getLogger("poweredbytop.config")
 
 # ====================== CORE SECURITY FLAGS ======================
 CLOUDFLARE_ENABLED = False
-DEBUG_MODE = False
-REQUIRE_HTTPS = os.getenv('REQUIRE_HTTPS', 'true').lower() in ('1', 'true', 'yes', 'TRUE')
+DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() in ('1', 'true', 'yes', 'TRUE')
+# HTTPS: default ON only in production. Local/http proxies stay usable for real members.
+# Set REQUIRE_HTTPS=true explicitly behind a TLS terminator in prod.
+_default_https = 'true' if os.getenv('FLASK_ENV', '').lower() == 'production' else 'false'
+REQUIRE_HTTPS = os.getenv('REQUIRE_HTTPS', _default_https).lower() in ('1', 'true', 'yes', 'TRUE')
 
 # ====================== FULL PIPELINE CONTROL ======================
 FULL_SECURITY_PIPELINE_ENABLED = True
 WRITE_PASS_FAIL_TO_DB = True
+# Hard 403 only for true blocks; soft paths should not "death spiral" church visitors.
 BLOCK_ON_ANY_FAILURE = True
 
 # ====================== RATE LIMITING & DDoS / REFRESH SPAM ======================
-# Real members often share carrier NATs (many phones → one public IP). Keep limits
-# high enough for normal browsing; hard abuse still trips jail/global limits.
-GLOBAL_RATE_LIMIT = 600
-PER_IP_RATE_LIMIT = 180
+# Churches share Wi‑Fi + mobile CGNAT. Prefer high ceilings; abuse still hits jail.
+GLOBAL_RATE_LIMIT = 800
+PER_IP_RATE_LIMIT = 240
 RATE_WINDOW_SECONDS = 60
 # Never sleep on every request — that made the whole site feel "broken" for humans.
-# Soft delay is applied only when near the rate limit (see rate_limit.apply_stagger).
 STAGGER_DELAY_MS = 0
-BURST_TOLERANCE = 40
-JAIL_THRESHOLD = 15
-JAIL_DURATION_SECONDS = 120
+BURST_TOLERANCE = 50
+JAIL_THRESHOLD = 20
+JAIL_DURATION_SECONDS = 90
 STAGGER_DELAY = 0.0
 
 # ====================== BRUTE FORCE PROTECTION ======================
-BRUTE_FORCE_MAX_ATTEMPTS = 8
-BRUTE_FORCE_JAIL_SECONDS = 180
+# Login lockouts: protect pastors from password spray without trapping whole family Wi‑Fi forever.
+BRUTE_FORCE_MAX_ATTEMPTS = 10
+BRUTE_FORCE_JAIL_SECONDS = 120
 
 # ====================== REPUTATION SYSTEM ======================
 # Score death-spirals were the main false-positive source for real users.
@@ -45,14 +48,14 @@ MAX_REPUTATION_SCORE = 100
 MIN_REPUTATION_SCORE = 0
 FAST_LANE_THRESHOLD = 70
 STRICT_MODE_THRESHOLD = 15
-INITIAL_REPUTATION = 80
-GOOD_BEHAVIOR_BONUS = 5
-BAD_BEHAVIOR_PENALTY = 3          # was 15 — one burst no longer floors an IP forever
-REPUTATION_DECAY_PER_HOUR = 15    # recover within hours, not weeks
-# Only hard-block anonymous traffic below this (was effectively 50).
-REPUTATION_BLOCK_THRESHOLD = 10
+INITIAL_REPUTATION = 85
+GOOD_BEHAVIOR_BONUS = 6
+BAD_BEHAVIOR_PENALTY = 2          # attack signals still count; recover quickly
+REPUTATION_DECAY_PER_HOUR = 20    # shared church/public Wi‑Fi recovers same day
+# Only hard-block anonymous *mutations* below this (GETs stay open for humans).
+REPUTATION_BLOCK_THRESHOLD = 8
 # Cap stored negatives so shared mobile IPs can recover
-MAX_NEGATIVE_POINTS = 40
+MAX_NEGATIVE_POINTS = 35
 
 # ====================== DB GUARD / N+1 / SQL INJECTION PROTECTION ======================
 DB_MAX_CONNECTIONS = 20

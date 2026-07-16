@@ -1,0 +1,49 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}{{ budget.name }}{% endblock %}
+
+{% block acct_content %}
+<p style="margin:0 0 0.75rem;"><a href="{{ url_for('accounting.budgets') }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">← Budgets</a></p>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h1 style="margin:0 0 0.25rem; color:var(--primary); font-size:1.3rem;">{{ budget.name }}</h1>
+  <p style="margin:0; opacity:0.8;">FY {{ budget.fiscal_year }} · {{ budget.start_date }} → {{ budget.end_date }} · Budget vs actual</p>
+</div>
+
+<form method="post">
+  {% include 'partials/csrf_field.html' %}
+  <div class="table-wrapper glass">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Account</th>
+          <th>Type</th>
+          <th class="acct-money">Budgeted</th>
+          <th class="acct-money">Actual</th>
+          <th class="acct-money">Variance</th>
+          <th class="acct-money">%</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ln in lines %}
+        <tr>
+          <td>{{ ln.code }} · {{ ln.account_name }}
+            <input type="hidden" name="account_id" value="{{ ln.account_id }}">
+          </td>
+          <td><span class="acct-type">{{ ln.account_type }}</span></td>
+          <td class="acct-money">
+            <input type="number" step="0.01" name="amount" class="form-input" value="{{ '%.2f'|format(ln.budgeted) }}" style="width:7rem; text-align:right;">
+          </td>
+          <td class="acct-money">${{ '%.2f'|format(ln.actual) }}</td>
+          <td class="acct-money {% if ln.variance < 0 %}acct-money--neg{% else %}acct-money--pos{% endif %}">
+            ${{ '%.2f'|format(ln.variance) }}
+          </td>
+          <td class="acct-money">{% if ln.pct is not none %}{{ ln.pct }}%{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <button type="submit" class="btn btn-primary" style="margin-top:0.75rem;">Save budget amounts</button>
+  <a href="{{ url_for('accounting.reports', report='budget', budget_id=budget.id) }}" class="btn btn-secondary">Printable report</a>
+</form>
+{% endblock %}

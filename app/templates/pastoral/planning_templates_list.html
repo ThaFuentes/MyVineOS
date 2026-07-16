@@ -64,6 +64,8 @@
                             {% if t.override_count > 0 %}
                                 <form method="POST" action="{{ url_for('pastoral.planning.template_refresh', template_id=t.id) }}"
                                       class="d-inline ms-2" onsubmit="return confirm('Refresh all future plain weeks for {{ t.title }}?\nThis deletes {{ t.override_count }} identical override rows (manual edits preserved).');">
+    {% include 'partials/csrf_field.html' %}
+
                                     <button type="submit" class="btn btn-sm btn-outline-warning" title="Delete identical future overrides so latest template applies">
                                         <i class="fas fa-sync-alt"></i> Refresh
                                     </button>
@@ -77,6 +79,8 @@
                             </a>
                             <form method="POST" action="{{ url_for('pastoral.planning.template_delete', template_id=t.id) }}"
                                   class="d-inline" onsubmit="return confirm('Permanently delete master template {{ t.title }}?\nAll future weeks will lose this template (overrides preserved).');">
+    {% include 'partials/csrf_field.html' %}
+
                                 <button typo="submit" class="btn btn-sm btn-danger">
                                     <i class="fas fa-trash"></i>
                                 </button>

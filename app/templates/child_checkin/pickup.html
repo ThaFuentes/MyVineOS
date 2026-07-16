@@ -1,0 +1,49 @@
+{% extends "child_checkin/base_cci.html" %}
+{% block title %}Secure Pickup{% endblock %}
+
+{% block cci_content %}
+<div class="glass-panel cci-hero">
+  <h1><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Secure Pickup</h1>
+  <p>Enter the 4-digit code from the child’s label. Confirm identity, then release.</p>
+</div>
+
+<div class="glass-panel" style="padding:1.25rem; max-width:420px; margin:0 auto 1rem;">
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <label style="text-align:center; display:block;">
+      <span style="display:block; margin-bottom:0.5rem; font-size:0.9rem; opacity:0.8;">Pickup code</span>
+      <input type="text" name="code" class="form-input cci-pickup-input" inputmode="numeric"
+             pattern="[0-9A-Za-z]+" maxlength="12" autocomplete="off" autofocus
+             placeholder="••••" required>
+    </label>
+    <button type="submit" class="btn btn-primary" style="width:100%; min-height:52px; margin-top:0.75rem; font-size:1.05rem;">
+      Look up child
+    </button>
+  </form>
+</div>
+
+{% if result %}
+<div class="glass-panel" style="padding:1.25rem; max-width:480px; margin:0 auto; border:2px solid var(--primary);">
+  <h2 style="margin:0 0 0.35rem; color:var(--primary);">{{ result.display_name }}</h2>
+  <p style="margin:0 0 0.5rem;">
+    Room: <strong>{{ result.classroom_name or '—' }}</strong>
+    {% if result.classroom_location %} · {{ result.classroom_location }}{% endif %}
+  </p>
+  {% if result.allergies %}
+  <p class="cci-allergy" style="display:inline-block;">⚠ {{ result.allergies }}</p>
+  {% endif %}
+  {% if result.guardian_name %}
+  <p style="margin:0.5rem 0 0; font-size:0.9rem; opacity:0.8;">Checked in by: {{ result.guardian_name }}</p>
+  {% endif %}
+  <form method="post" style="margin-top:1rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="confirm_id" value="{{ result.id }}">
+    <input type="hidden" name="code" value="{{ result.pickup_code }}">
+    <button type="submit" class="btn btn-primary" style="width:100%; min-height:52px; font-size:1.05rem;
+            background:linear-gradient(135deg,#16a34a,#22c55e);">
+      Confirm &amp; check out
+    </button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

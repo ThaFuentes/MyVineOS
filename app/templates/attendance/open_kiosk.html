@@ -20,11 +20,21 @@
     {% if kiosk_url %}
     <div class="card glass" style="max-width: 600px; margin: 2rem auto; padding: 2rem; text-align: center;">
         <p><strong>Kiosk URL:</strong></p>
-        <p><a href="{{ kiosk_url }}" target="_blank">{{ kiosk_url }}</a></p>
+        <p><a href="{{ kiosk_url }}" target="_blank" rel="noopener">{{ kiosk_url }}</a></p>
         <p>
-            <a href="{{ kiosk_url }}" target="_blank" class="btn-primary" style="font-size: 1.2rem; padding: 1rem 2rem;">
+            <a href="{{ kiosk_url }}" target="_blank" rel="noopener" class="btn-primary" style="font-size: 1.2rem; padding: 1rem 2rem;">
                 Launch Kiosk in New Tab
             </a>
+        </p>
+        {% if token %}
+        <form method="POST" action="{{ url_for('attendance.close_kiosk', token=token) }}" style="margin-top:1rem;">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="next" value="{{ url_for('attendance.kiosk_sessions') }}">
+            <button type="submit" class="btn-secondary">Close this kiosk session</button>
+        </form>
+        {% endif %}
+        <p class="help-text" style="margin-top:1rem;">
+            <a href="{{ url_for('attendance.kiosk_sessions') }}">Manage all sessions</a>
         </p>
     </div>
     {% else %}

@@ -69,6 +69,7 @@ def create_tables(cursor):
         'email_send_donation_receipts':            "INTEGER DEFAULT 1",
         'email_auto_bill_reminders':               "INTEGER DEFAULT 1",
         'email_last_scheduler_run':                "DATETIME",
+        'default_ui_theme':                        "VARCHAR(40) DEFAULT 'cyan-glow'",
     }
 
     for col_name, col_def in settings_columns_to_add.items():

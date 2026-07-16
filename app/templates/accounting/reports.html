@@ -1,0 +1,108 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}Financial Reports{% endblock %}
+
+{% block acct_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.85rem; align-items:center;">
+  <h1 class="page-title" style="margin:0; flex:1;">Reports</h1>
+  <a href="{{ url_for('accounting.reports', report='pnl', start=start, end=end) }}" class="btn btn-secondary {{ 'btn-primary' if report=='pnl' else '' }}" style="min-height:auto;padding:0.35rem 0.7rem;">P&amp;L</a>
+  <a href="{{ url_for('accounting.reports', report='trial', start=start, end=end) }}" class="btn btn-secondary {{ 'btn-primary' if report=='trial' else '' }}" style="min-height:auto;padding:0.35rem 0.7rem;">Trial balance</a>
+  <a href="{{ url_for('accounting.reports', report='budget', start=start, end=end) }}" class="btn btn-secondary {{ 'btn-primary' if report=='budget' else '' }}" style="min-height:auto;padding:0.35rem 0.7rem;">Budget vs actual</a>
+</div>
+
+<form method="get" class="glass-panel" style="padding:0.75rem; margin-bottom:0.85rem; display:flex; flex-wrap:wrap; gap:0.5rem; align-items:end;">
+  <input type="hidden" name="report" value="{{ report }}">
+  <label style="font-size:0.82rem;">From <input type="date" name="start" class="form-input" value="{{ start }}"></label>
+  <label style="font-size:0.82rem;">To <input type="date" name="end" class="form-input" value="{{ end }}"></label>
+  {% if report == 'budget' and data and data.budgets %}
+  <label style="font-size:0.82rem;">Budget
+    <select name="budget_id" class="form-input">
+      {% for b in data.budgets %}
+      <option value="{{ b.id }}" {% if data.budget_id == b.id %}selected{% endif %}>{{ b.name }} ({{ b.fiscal_year }})</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% endif %}
+  <button type="submit" class="btn btn-secondary">Run</button>
+</form>
+
+{% if report == 'pnl' and data %}
+<div class="glass-panel" style="padding:1.15rem;">
+  <h2 style="margin:0 0 0.25rem; color:var(--primary);">Statement of Activities (P&amp;L)</h2>
+  <p style="margin:0 0 1rem; opacity:0.75;">{{ data.start }} → {{ data.end }}</p>
+
+  <h3 style="font-size:0.95rem; margin:0 0 0.4rem;">Income</h3>
+  <table class="data-table" style="margin-bottom:1rem;">
+    <tbody>
+      {% for r in data.income %}
+      <tr><td>{{ r.code }} · {{ r.name }}</td><td class="acct-money acct-money--pos">${{ '%.2f'|format(r.amount) }}</td></tr>
+      {% else %}
+      <tr><td colspan="2" style="opacity:0.6;">No income posted</td></tr>
+      {% endfor %}
+      <tr><td><strong>Total income</strong></td><td class="acct-money"><strong>${{ '%.2f'|format(data.total_income) }}</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="font-size:0.95rem; margin:0 0 0.4rem;">Expenses</h3>
+  <table class="data-table" style="margin-bottom:1rem;">
+    <tbody>
+      {% for r in data.expenses %}
+      <tr><td>{{ r.code }} · {{ r.name }}</td><td class="acct-money acct-money--neg">${{ '%.2f'|format(r.amount) }}</td></tr>
+      {% else %}
+      <tr><td colspan="2" style="opacity:0.6;">No expenses posted</td></tr>
+      {% endfor %}
+      <tr><td><strong>Total expenses</strong></td><td class="acct-money"><strong>${{ '%.2f'|format(data.total_expenses) }}</strong></td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:1.15rem; margin:0;">
+    Net {% if data.net >= 0 %}<span class="acct-money--pos">surplus{% else %}<span class="acct-money--neg">deficit{% endif %}:
+    <strong>${{ '%.2f'|format(data.net) }}</strong></span>
+  </p>
+</div>
+
+{% elif report == 'trial' and data is not none %}
+<div class="glass-panel" style="padding:1.15rem;">
+  <h2 style="margin:0 0 0.75rem; color:var(--primary);">Trial balance as of {{ end }}</h2>
+  <table class="data-table">
+    <thead><tr><th>Code</th><th>Account</th><th>Type</th><th class="acct-money">Debits</th><th class="acct-money">Credits</th><th class="acct-money">Balance</th></tr></thead>
+    <tbody>
+      {% for r in data %}
+      <tr>
+        <td><code>{{ r.code }}</code></td>
+        <td>{{ r.name }}</td>
+        <td class="acct-type">{{ r.account_type }}</td>
+        <td class="acct-money">${{ '%.2f'|format(r.debit) }}</td>
+        <td class="acct-money">${{ '%.2f'|format(r.credit) }}</td>
+        <td class="acct-money">${{ '%.2f'|format(r.balance) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="opacity:0.6;">No activity</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% elif report == 'budget' and data %}
+<div class="glass-panel" style="padding:1.15rem;">
+  <h2 style="margin:0 0 0.75rem; color:var(--primary);">Budget vs actual</h2>
+  {% if data.lines %}
+  <table class="data-table">
+    <thead><tr><th>Account</th><th class="acct-money">Budget</th><th class="acct-money">Actual</th><th class="acct-money">Variance</th><th class="acct-money">%</th></tr></thead>
+    <tbody>
+      {% for ln in data.lines %}
+      <tr>
+        <td>{{ ln.code }} · {{ ln.account_name }}</td>
+        <td class="acct-money">${{ '%.2f'|format(ln.budgeted) }}</td>
+        <td class="acct-money">${{ '%.2f'|format(ln.actual) }}</td>
+        <td class="acct-money {% if ln.variance < 0 %}acct-money--neg{% else %}acct-money--pos{% endif %}">${{ '%.2f'|format(ln.variance) }}</td>
+        <td class="acct-money">{% if ln.pct is not none %}{{ ln.pct }}%{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="opacity:0.75;">Create a budget first under <a href="{{ url_for('accounting.budgets') }}">Budgets</a>.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

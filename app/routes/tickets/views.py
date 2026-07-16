@@ -8,7 +8,10 @@
 # - Manage Ticket Managers Group route and link have been completely removed (you confirmed you do not want it - use /groups/ instead).
 # - Everything else (dashboard, view ticket, status/priority/assign, comments.html, email notifications) is untouched and working.
 
-from flask import render_template, request, redirect, url_for, flash, session
+import json
+from datetime import datetime
+
+from flask import render_template, request, redirect, url_for, flash, session, Response
 from app.utils.decorators import login_required, role_required
 from app.models.log import log_change
 from app.utils.time_utils import format_church, utc_now
@@ -46,7 +49,7 @@ def manager_dashboard():
     user_id = session['user_id']
     if not can_manage_tickets(user_id):
         flash('You do not have permission to access ticket management.', 'error')
-        return redirect(url_for('tickets.manager_dashboard'))
+        return redirect(url_for('support_tickets.dashboard'))
 
     tickets_list = get_all_tickets()
 
@@ -84,9 +87,11 @@ def view_ticket(ticket_id):
         return redirect(url_for('tickets.manager_dashboard'))
 
     user_id = session['user_id']
-    if not can_manage_tickets(user_id):
+    is_manager = can_manage_tickets(user_id)
+    is_assignee = ticket.get('assigned_to') and int(ticket['assigned_to']) == int(user_id)
+    if not is_manager and not is_assignee:
         flash('Access denied.', 'error')
-        return redirect(url_for('tickets.manager_dashboard'))
+        return redirect(url_for('volunteers.my_schedule'))
 
     # Format ticket timestamps
     if ticket['created_at']:
@@ -135,6 +140,11 @@ def view_ticket(ticket_id):
                 flash('Comment added.', 'success')
 
         elif action in ['status', 'assign', 'priority']:
+            # Assignees can answer + change status; only managers re-assign/priority
+            if action in ('assign', 'priority') and not is_manager:
+                flash('Only ticket managers can re-assign or change priority.', 'error')
+                return redirect(url_for('tickets.view_ticket', ticket_id=ticket_id))
+
             updated = False
             message = ""
             update_time_utc = utc_now()
@@ -198,7 +208,50 @@ def view_ticket(ticket_id):
                            ticket=ticket,
                            comments=comments,
                            staff=staff,
-                           can_manage=True)
+                           can_manage=is_manager,
+                           is_assignee=is_assignee)
+
+
+# ----------------------------------------------------------------------
+# Export / re-upload style backup (JSON)
+# ----------------------------------------------------------------------
+@tickets_bp.route('/manage/export', endpoint='export_tickets')
+@login_required
+def export_tickets():
+    user_id = session['user_id']
+    if not can_manage_tickets(user_id):
+        flash('Permission denied.', 'error')
+        return redirect(url_for('support_tickets.dashboard'))
+
+    tickets_list = get_all_tickets()
+
+    def _ser(row):
+        out = {}
+        for k, v in (row or {}).items():
+            if isinstance(v, datetime):
+                out[k] = v.isoformat(sep=' ', timespec='seconds')
+            else:
+                out[k] = v
+        return out
+
+    payload = {
+        'format': 'myvine_tickets_v1',
+        'exported_at': datetime.utcnow().isoformat(sep=' ', timespec='seconds') + 'Z',
+        'tickets': [_ser(t) for t in tickets_list],
+    }
+    # Include comments for each ticket
+    for t in payload['tickets']:
+        try:
+            t['comments'] = [_ser(c) for c in get_ticket_comments(t['id'])]
+        except Exception:
+            t['comments'] = []
+
+    log_change(user_id, 'export', change_details=f"Exported {len(tickets_list)} tickets JSON")
+    return Response(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        mimetype='application/json',
+        headers={'Content-Disposition': 'attachment; filename="tickets_export.json"'},
+    )
 
 
 # ----------------------------------------------------------------------

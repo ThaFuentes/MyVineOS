@@ -44,6 +44,8 @@
             <!-- Delete Prayer -->
             <form method="POST" action="{{ url_for('the_gathering.prayers.delete_prayer', prayer_id=prayer.id) }}" style="display:inline;"
                   onsubmit="return confirm('PERMANENTLY DELETE this prayer and ALL its comments?')">
+    {% include 'partials/csrf_field.html' %}
+
                 <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
             </form>
         </div>

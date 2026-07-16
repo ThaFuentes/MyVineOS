@@ -1,0 +1,386 @@
+{
+  "format": "myvine_help_v1",
+  "pack_version": 1,
+  "exported_at": "2026-07-15 13:47:16 UTC",
+  "title": "MyVineChurch Help Pack",
+  "description": "Portable help categories and guides. Import via Help → Manage → Re-upload, or load from docs/help_packs/ on deploy.",
+  "categories": [
+    {
+      "slug": "getting-started",
+      "name": "Getting Started",
+      "description": "First login, navigation, themes, and Help packs.",
+      "sort_order": 5,
+      "is_published": 1
+    },
+    {
+      "slug": "home",
+      "name": "Home",
+      "description": "Dashboard and getting around the site.",
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "community",
+      "name": "Community",
+      "description": "Events, prayers, sermons, announcements, dreams, prophecies, Bible.",
+      "sort_order": 15,
+      "is_published": 1
+    },
+    {
+      "slug": "church-office",
+      "name": "Church Office",
+      "description": "Members, donations, inventory, groups, office tools.",
+      "sort_order": 25,
+      "is_published": 1
+    },
+    {
+      "slug": "attendance-kids",
+      "name": "Attendance & Kids",
+      "description": "Attendance sessions, reports, self check-in, child check-in.",
+      "sort_order": 35,
+      "is_published": 1
+    },
+    {
+      "slug": "my-stuff",
+      "name": "My Stuff",
+      "description": "Profile, security, and personal settings.",
+      "sort_order": 40,
+      "is_published": 0
+    },
+    {
+      "slug": "finance",
+      "name": "Finance & Accounting",
+      "description": "Bills, accounting, donations, bill reminders, and how they connect.",
+      "sort_order": 45,
+      "is_published": 1
+    },
+    {
+      "slug": "admin",
+      "name": "Admin",
+      "description": "Pastoral tools, moderation, and church administration.",
+      "sort_order": 50,
+      "is_published": 0
+    },
+    {
+      "slug": "volunteers-tickets",
+      "name": "Serving & Tickets",
+      "description": "Volunteer schedule, My Serving, support tickets, ticket manager.",
+      "sort_order": 55,
+      "is_published": 1
+    },
+    {
+      "slug": "worship",
+      "name": "Worship Team",
+      "description": "Songs, setlists, plans, band and display tools.",
+      "sort_order": 65,
+      "is_published": 1
+    },
+    {
+      "slug": "pastoral",
+      "name": "Pastoral Area",
+      "description": "Sermons, Bible study, illustrations, planning, vault, care.",
+      "sort_order": 75,
+      "is_published": 1
+    },
+    {
+      "slug": "study-courses",
+      "name": "Study Courses",
+      "description": "Curriculum Studio and member study paths with quizzes and media.",
+      "sort_order": 85,
+      "is_published": 1
+    },
+    {
+      "slug": "church-apps",
+      "name": "Church Apps",
+      "description": "Bus routes, youth group, equipment, ministry calendar, custom apps.",
+      "sort_order": 95,
+      "is_published": 1
+    },
+    {
+      "slug": "admin-settings",
+      "name": "Admin & Settings",
+      "description": "Modules, campuses/branches, security, communications, AI.",
+      "sort_order": 105,
+      "is_published": 1
+    },
+    {
+      "slug": "account-login",
+      "name": "Account & Login",
+      "description": "Register, login, password recovery, profile.",
+      "sort_order": 115,
+      "is_published": 1
+    }
+  ],
+  "articles": [
+    {
+      "slug": "account-login-profile",
+      "title": "Account, login, and profile",
+      "summary": "Register, sign in, recover access, and update profile.",
+      "body_md": "## Register / login\n\n1. Public site → **Login / Register**.\n2. Complete registration; some churches require email verification and/or admin approval.\n3. Sign in with username and password.\n\n## Profile\n\n**My Stuff → Profile** to update personal details and preferences.\n\n## Display preferences\n\nUse the **Display** control (palette) for theme and text size. Choose **Church default** to follow the site theme.\n\n## Password recovery\n\nUse forgot password / forgot username flows on the login screens. Ensure church email settings work so reset messages deliver.",
+      "category_slug": "account-login",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "modules-apps-toggles",
+      "title": "Modules & Apps toggles",
+      "summary": "Turn optional features on/off for the whole church.",
+      "body_md": "## Open\n\n**Settings → Modules & Apps** (Owner/Admin).\n\n## What toggles do\n\nOptional modules (attendance, inventory, accounting, worship, dreams, study courses, AI, etc.) can be:\n\n- **Enabled** — appear in nav and dashboard (subject to permissions)\n- **Disabled** — hidden and soft-blocked if someone hits an old URL\n\nCore tools (Home, Profile, Groups, Pastoral core, Events, Prayers, etc.) stay available.\n\n## After saving\n\n1. Hard-refresh browsers.\n2. Confirm tiles and menus for a normal member account, not only Owner.\n3. Pair with **Church Apps** for custom bus/youth modules.",
+      "category_slug": "admin-settings",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "multi-campus-branches",
+      "title": "Campuses and branches (multi-site)",
+      "summary": "Enable multi-campus, add locations, link members, switch scope.",
+      "body_md": "## Enable\n\n1. **Settings → Campuses / Branches**.\n2. Check **Enable multi-campus mode**.\n3. Choose a **default campus**.\n4. Save.\n\n## Add a campus\n\n1. Fill code (e.g. `NORTH`), name, short name, address, timezone.\n2. Optionally mark **Primary**.\n3. **Save campus**.\n\n## Link members\n\n1. Choose campus + member.\n2. Optionally set as **home campus**.\n3. Link.\n\n## Daily use\n\nWhen multi-campus is on, a **campus switcher** appears in the top bar:\n\n- Pick a campus to filter operational data\n- Or **All campuses** for org-wide view\n\n## Tips\n\n- Use short names that fit the switcher.\n- Train staff to check the switcher before running reports.\n- Not every historical table is campus-scoped; treat campus as a roll-out, not magic isolation for every legacy record.",
+      "category_slug": "admin-settings",
+      "permission_key": null,
+      "sort_order": 20,
+      "is_published": 1
+    },
+    {
+      "slug": "communications-automation",
+      "title": "Communications: campaigns, workflows, and automation",
+      "summary": "Mass email/SMS and drip-style workflows when the module is enabled.",
+      "body_md": "## Open\n\n**Communications** (module enabled; staff permissions).\n\n## Campaigns\n\n1. Create a campaign (email or SMS as configured).\n2. Write subject/body.\n3. Choose audience (opt-in lists, etc.).\n4. Schedule or send.\n5. Review logs.\n\n## Workflows / drips\n\n1. Define steps and timing.\n2. Enroll people manually or via triggers (e.g. new member approval hooks when configured).\n3. Monitor enrollments.\n\n## SMS\n\nRequires provider settings (Twilio-style) on the settings/communications configuration. Keep test mode on until verified.\n\n## Compliance\n\nOnly message people who opted in. Keep unsubscribe/opt-out behavior intact.",
+      "category_slug": "admin-settings",
+      "permission_key": null,
+      "sort_order": 30,
+      "is_published": 1
+    },
+    {
+      "slug": "ai-insights-guide",
+      "title": "AI Insights reports",
+      "summary": "Run staff AI insight reports when configured.",
+      "body_md": "## Open\n\n**AI Insights** (module on; Staff/Admin/Owner).\n\n## Setup\n\n1. **Settings → AI Insights** — provider, API key, base URL as required.\n2. Confirm the key works via status tools if shown.\n\n## Run a report\n\n1. Open AI Insights home.\n2. Choose a report type (overview, donations, attendance, etc. as listed).\n3. Optionally add a question.\n4. Generate and read the report page.\n\n## Guardrails\n\n- AI can be wrong — verify numbers against native reports.\n- Do not paste confidential pastoral care notes into prompts.\n- Limit access to leadership.",
+      "category_slug": "admin-settings",
+      "permission_key": null,
+      "sort_order": 40,
+      "is_published": 1
+    },
+    {
+      "slug": "attendance-full-guide",
+      "title": "Attendance: sessions, kiosk, self check-in, and reports",
+      "summary": "Full operator guide for attendance at every scale.",
+      "body_md": "## Where to go\n\n| Task | Path |\n|------|------|\n| Staff dashboard | **Church Office → Attendance** |\n| Full reports | **Attendance → Reports** (also linked from the dashboard) |\n| Member self check-in | **My Stuff → Self Check-In** or Home tile **Check In** |\n\n## Recording attendance\n\n1. Open the attendance dashboard.\n2. Choose or create the service/session date as your church defines it.\n3. Check people in (search, list, or kiosk flow).\n4. Use **Self Check-In** for members who mark themselves present.\n\n## Reports (enterprise scale)\n\nOpen **Reports** for:\n\n- Today / week / month / year / multi-year views\n- Day grain vs month grain\n- CSV export when offered\n- Drill into a single day for who was present\n\n> Reports use stable date formatting so monthly and yearly charts remain correct under MariaDB.\n\n## Kiosk mode\n\nKiosk routes are token-protected for lobby tablets. Do not share kiosk URLs publicly. Configure kiosk access according to your security policy.\n\n## Best practices\n\n- Standardize service names/dates so year-over-year reports line up.\n- Train greeters on one flow (dashboard vs kiosk) per campus.\n- Pair with **Child Check-In** for kids ministry, not the adult attendance list alone.",
+      "category_slug": "attendance-kids",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "child-checkin-guide",
+      "title": "Child Check-In: rooms, parents, and staff station",
+      "summary": "Secure kids check-in for staff and parent My Kids portal.",
+      "body_md": "## Two sides\n\n1. **Staff station** — Church Office → **Child Check-In** (rooms, live board, check-in/out).\n2. **Parents** — My Stuff → **My Kids** (manage children, see status).\n\n## Staff flow\n\n1. Set up **classrooms / rooms** with age labels and capacity.\n2. Add or load **child profiles** (allergies, notes, photo if used).\n3. Check children into a room; monitor the **live board**.\n4. Secure pickup with your configured code/policy.\n\n## Parent flow\n\n1. Open **My Kids**.\n2. Add children linked to the parent account.\n3. View check-in status during service.\n\n## Safety notes\n\n- Treat allergy and medical notes as sensitive.\n- Only trained workers should run the staff station.\n- Enable the module under **Settings → Modules & Apps** if links are missing.",
+      "category_slug": "attendance-kids",
+      "permission_key": null,
+      "sort_order": 20,
+      "is_published": 1
+    },
+    {
+      "slug": "church-apps-bus-youth-equipment",
+      "title": "Church Apps: Bus Routes, Youth Group, Equipment & Rooms, Ministry Calendar",
+      "summary": "Install, name, and run schema-driven church apps.",
+      "body_md": "## What Church Apps are\n\nConfigurable mini-apps (custom modules) with a type template:\n\n| Type | Typical use |\n|------|-------------|\n| **Bus Routes** | Stops, pickup times, drivers, notes |\n| **Youth Group** | Youth events, leaders, locations |\n| **Equipment & Rooms** | Shared resources list |\n| **Ministry Calendar** | Weekly meeting pattern (bulletin style) |\n\n## Install / manage\n\n1. **Settings → Church Apps** (Owner/Admin).\n2. Install a type, set **name** (use clear titles like **Bus Routes**, not `bus`).\n3. Choose theme, visibility, and which **group** can manage records.\n4. Enable **show on dashboard** if you want a tile.\n5. Members open the app from **Church Office** menu or dashboard.\n\n## Bus Routes — operating guide\n\n1. Open **Bus Routes**.\n2. Add a stop: stop name, pickup time, drop-off, driver, notes.\n3. Keep drivers’ phone notes current.\n4. Print or share the list with volunteers before Sunday.\n\n## Youth Group — operating guide\n\n1. Add events with date, time, location, leader.\n2. Use description for permission slips / what to bring.\n3. Archive past events by unpublishing or deleting per your process.\n\n## Equipment & Rooms\n\nTrack sound board, van, Room 3, etc. Assign a contact person so people know who to ask.\n\n## Ministry Calendar\n\nList recurring ministry meetings (day of week + time). This is not a chat and not full events RSVP — use **Events** for public calendar items.\n\n## Permissions\n\nManage-group users edit records; wider visibility can read. Review group membership when leaders change.",
+      "category_slug": "church-apps",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "members-directory",
+      "title": "Members directory and registrations",
+      "summary": "Find people, review pending signups, and manage directory access.",
+      "body_md": "## Open the directory\n\n**Church Office → Members** (permission-gated).\n\n## Everyday tasks\n\n1. Search by name, email, phone, or username.\n2. Open a profile to view contact details and admin tools (if allowed).\n3. Review **pending registrations** from the dashboard banner when people sign up.\n\n## Roles\n\n- **Owner / Admin** — full user management\n- Staff with **view/manage members** permissions — directory as granted\n- Members — usually cannot open the full directory\n\n## Multi-campus\n\nWhen multi-campus is on, the directory can filter by the campus selected in the top bar. Link members to campuses under **Settings → Campuses / Branches**.",
+      "category_slug": "church-office",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "inventory-kits-stock",
+      "title": "Inventory: catalog, kits/sets, and stock moves",
+      "summary": "Build lasting inventory with kits, receive stock, and audit.",
+      "body_md": "## Open Inventory\n\n**Church Office → Inventory** (manage inventory permission).\n\n## Catalog\n\n1. Create **items** (supplies, equipment).\n2. Optionally mark an item as a **kit / set**.\n3. On a kit, add **components** with quantity per kit.\n4. **Deploy kit** consumes component stock via FIFO.\n\n## Stock operations\n\n- **Receive** stock with optional batch/lot and expiration\n- **Transfer / move** between locations\n- **Audit** and barcode scan tools when enabled\n\n## Tips\n\n- Name items the way greeters and facilities staff say them.\n- Use locations (closet, kitchen, AV booth) consistently.\n- Kits are for “Sunday hospitality pack” style bundles, not accounting assets.",
+      "category_slug": "church-office",
+      "permission_key": null,
+      "sort_order": 20,
+      "is_published": 1
+    },
+    {
+      "slug": "community-overview",
+      "title": "Community content overview",
+      "summary": "Events, prayers, sermons, announcements, dreams, prophecies, and Bible study.",
+      "body_md": "## What Community covers\n\nShared church life content members and (when published publicly) visitors can use:\n\n| Area | Typical use |\n|------|-------------|\n| Events | Services, potlucks, calendar items |\n| Prayers | Prayer wall and responses |\n| Sermons | Public sermon library |\n| Announcements | Bulletin-style notices |\n| Dreams / Prophecies | Optional sharing modules |\n| Bible | In-app reader for members |\n\n## Visibility\n\nMost posts support visibility levels (public / members / private as configured). Public pages live under `/public/...` when enabled.\n\n## Good practice\n\n- Write clear titles and dates for events.\n- Use announcements for short, time-sensitive news.\n- Keep pastoral counseling content in **Pastoral** tools, not the public prayer wall.",
+      "category_slug": "community",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "accounting-full-guide",
+      "title": "Accounting: chart of accounts, ledger, expenses, budgets, payroll",
+      "summary": "End-to-end church accounting suite usage.",
+      "body_md": "## Open Accounting\n\n**Church Office → Accounting** (or Home tile when the module is on).\n\n## Building blocks\n\n### Chart of Accounts\n\n1. Open **Chart of Accounts**.\n2. Review system defaults (assets, liabilities, equity, income, expense).\n3. Add accounts with clear **codes** (example: `5200 Utilities`).\n4. Keep income vs expense types accurate — reports depend on them.\n\n### Ledger / journal entries\n\n1. Open **Ledger**.\n2. Create a journal entry with balanced debits and credits.\n3. Use memos and references so audits are readable later.\n4. Open an entry to review lines.\n\n### Expenses\n\n1. **Expenses → Record expense**.\n2. Pick vendor (or free-text), amount, **expense account**, payment account.\n3. Save — the system posts the related journal when configured.\n\n### Vendors\n\nMaintain vendor names, contacts, and default expense accounts for repeat bills.\n\n### Budgets\n\n1. Create a budget period.\n2. Assign lines to expense/income accounts.\n3. Compare budget vs actual on the budget detail and reports screens.\n\n### Payroll (if used)\n\n1. Maintain **employees** with pay type/rate.\n2. Create a **pay run**, review lines, post when ready.\n3. Posted runs link to journal entries.\n\n### Reports\n\nUse **Reports** for income/expense style summaries by account type and period.\n\n## Permissions & modules\n\nEnable **Accounting** under Modules & Apps. Restrict access to finance staff via roles/permissions.\n\n## Coherence with Bills\n\nSee the guide **Bills and Accounting together** so recurring bills post cleanly into the same chart of accounts.",
+      "category_slug": "finance",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "bills-and-accounting-together",
+      "title": "Bills and Accounting together (reminders + posting)",
+      "summary": "How recurring bills, email reminders, expense accounts, and the ledger stay coherent.",
+      "body_md": "## Goal\n\nOne coherent money trail:\n\n**Recurring bill → due date → reminder emails → payment → accounting journal / expense**\n\n## Setup checklist\n\n1. Enable **Bills** and **Accounting** modules.\n2. Open **Accounting** once so the chart of accounts seeds.\n3. Open **Bills** and create/edit a bill.\n4. In the bill's **Accounting** section:\n   - Choose **Default expense account** (example Utilities 5200)\n   - Choose **Payment account** (bank/cash asset) when paying\n   - Leave **Post to accounting** checked if you want payments to hit the ledger\n5. Set **reminder days before** on the bill and ensure email notifications allow bill reminders.\n\n## Paying a bill\n\n1. Open the bill detail.\n2. Enter payment amount and date.\n3. Confirm expense account + payment account.\n4. Submit payment — the bridge creates an accounting entry when posting is enabled.\n\n## Bill reminders\n\nBackground/email jobs send reminders based on:\n\n- Bill `next_due_date`\n- `reminder_days_before`\n- Site notification settings (auto bill reminders)\n\nReminders do **not** replace accounting; they only notify payers/managers.\n\n## Troubleshooting\n\n| Symptom | Fix |\n|---------|-----|\n| No expense account dropdown | Open Accounting once; seed COA; re-edit bill |\n| Payment did not post | Check Post to accounting; verify accounts selected; check logs |\n| No reminder emails | Confirm SMTP/email settings; notification toggles; due dates |\n| Wrong expense category | Edit bill default expense account; fix COA naming |\n\n## Best practice\n\n- Use the **same** expense accounts on vendor bills and manual expenses.\n- Reconcile monthly: Bills paid vs Accounting expenses report.\n- Keep one primary bank account in the COA for clear payment account selection.",
+      "category_slug": "finance",
+      "permission_key": null,
+      "sort_order": 20,
+      "is_published": 1
+    },
+    {
+      "slug": "donations-overview",
+      "title": "Donations entry and reports",
+      "summary": "Record gifts, import when available, and respect privacy.",
+      "body_md": "## Open Donations\n\n**Church Office → Donations** (view/manage donations permission).\n\n## Typical flow\n\n1. Add a donation with donor, amount, fund/category, date.\n2. Use receipts when email receipts are enabled in settings.\n3. Run reports for periods your board needs.\n\n## Online giving page\n\nIf **Online Giving** is enabled in Settings, the public Donate page shows links/embeds you configured. That page is for external processors; recorded gifts still need entry/import into Donations as your process defines.\n\n## Privacy\n\nTreat donor data as confidential. Limit manage permissions to finance staff.",
+      "category_slug": "finance",
+      "permission_key": null,
+      "sort_order": 30,
+      "is_published": 1
+    },
+    {
+      "slug": "welcome-enterprise-help",
+      "title": "Welcome — Enterprise Help Center",
+      "summary": "How Help is organized, how to search and pin guides, and how leaders share packs.",
+      "body_md": "## What this Help Center is\n\nThis is your church's **instruction library** for MyVineChurch / MyVineOS. Guides are written for real operators: greeters, treasurers, pastors, worship leaders, and admins.\n\n## How to find answers\n\n1. Open **My Stuff → Help** (or **Help** on the dashboard).\n2. Use **Browse** to open a category folder.\n3. Use **Search** with plain words: `bill`, `setlist`, `course`, `campus`, `kiosk`.\n4. **Pin** guides you use weekly so they stay under the **Pinned** tab.\n\n## Who can edit Help\n\nUsers with **manage help** permission (typically Owner/Admin) open **Manage Help Content** to:\n\n- Add **categories** (folders)\n- Write **guides** in Markdown (headings, lists, bold, code, callouts)\n- **Download backup (JSON)** and **Re-upload / import** packs\n- Optionally restrict a guide with a **permission key** (staff-only topics)\n\n## Sharing Help with other churches or git\n\nHelp packs use format **`myvine_help_v1`** and are **slug-based** (not hard-coded database IDs), so they work on any install:\n\n1. **Download** from Help → Manage → Download backup (JSON).\n2. Commit the file under `docs/help_packs/` in git, or email/Slack it.\n3. On another site: Help → Manage → choose file → **Re-upload / import**.\n4. Import **merges by slug** (updates existing guides, adds new ones). It does **not** delete local-only guides.\n\n> Tip: After major product updates, re-import the official enterprise pack so every church gets the new guides without rebuilding them by hand.",
+      "category_slug": "getting-started",
+      "permission_key": null,
+      "sort_order": 1,
+      "is_published": 1
+    },
+    {
+      "slug": "help-packs-download-upload-git",
+      "title": "Help packs: download, upload, and git workflow",
+      "summary": "Enterprise sharing of Help content between campuses, environments, and churches.",
+      "body_md": "## Portable pack format\n\nFile type: JSON  \nFormat field: `myvine_help_v1`\n\nEach category and guide has a stable **`slug`** (example: `pastoral-sermon-library`). Articles also include **`category_slug`** so categories re-link correctly on another database.\n\n## Download (export)\n\n1. Sign in as Owner/Admin (or user with manage help).\n2. **Help → Manage Help Content**.\n3. Click **Download backup (JSON)**.\n4. Save as e.g. `help_export_YYYY-MM-DD.json`.\n\n## Upload (import)\n\n1. **Help → Manage**.\n2. Choose a `.json` pack file.\n3. Click **Re-upload / import**.\n4. Review the success counts: categories/guides created vs updated.\n\n### What import does\n\n- Creates missing categories and articles by slug\n- Updates title, summary, body, sort order, publish flag, permission key\n- Re-maps articles to categories via `category_slug`\n- **Never** wipes the whole Help library\n\n### What import does not do\n\n- Does not delete guides that exist only on your site\n- Does not overwrite file uploads outside Help (images live in their own modules)\n\n## Git workflow (recommended)\n\n```\ndocs/help_packs/\n  myvine_enterprise_help_v1.json\n  README.md\n```\n\n1. Export or use the official pack in the repo.\n2. PR/review changes to guide wording like any docs change.\n3. Deploy code, then import the pack on each environment (staging, production).\n4. Or run the seed script on deploy if you automate content loads.\n\n## Quality checklist before sharing a pack\n\n- Every article has a unique slug and a real category_slug\n- Bodies use clear **numbered steps** and exact menu names\n- Staff-only guides set `permission_key` when needed\n- Spot-check import on a staging site first",
+      "category_slug": "getting-started",
+      "permission_key": null,
+      "sort_order": 2,
+      "is_published": 1
+    },
+    {
+      "slug": "navigation-dashboard-themes",
+      "title": "Navigation, dashboard tiles, and display themes",
+      "summary": "Desktop menus, mobile sheets, Modules toggles, and church-wide theme.",
+      "body_md": "## Desktop vs phone\n\n- **Desktop:** top nav groups — Community, Church Office, Ministry, My Stuff.\n- **Phone:** bottom bar — Home, Community, Office, My Stuff, More. Tap a tab to open a sheet of links.\n\n## Dashboard tiles\n\nHome shows **tiles** for modules you can use, based on:\n\n1. **Modules & Apps** toggles (Owner/Admin: Settings → Modules & Apps)\n2. Your **role / permissions** (example: inventory managers only)\n3. Whether the feature is installed\n\nTiles are shortcuts. Full lists stay in the menus.\n\n## Church default theme vs personal theme\n\n- **Settings → Church & General → Default display theme** sets the look for **visitors** and anyone following church default.\n- **Display** (palette icon) lets each person pick their own theme or **Church default**.\n- Logged-in personal themes save to the account; guests save for the browser session only.\n\n## If something is missing from menus\n\n1. Confirm **Settings → Modules & Apps** has the module enabled.\n2. Confirm your user has the right **group permission**.\n3. Hard-refresh the browser (Ctrl+Shift+R).",
+      "category_slug": "getting-started",
+      "permission_key": null,
+      "sort_order": 3,
+      "is_published": 1
+    },
+    {
+      "slug": "welcome-to-help",
+      "title": "Welcome to Help & How-To Guides",
+      "summary": "How to find answers, pin guides you use often, and (for editors) manage help content.",
+      "body_md": "## What this is for\n\nThe Help section is your church's own instruction library. Look up how to do everyday tasks — check in, submit a prayer, record a donation, and more.\n\n## Find a guide\n\n1. Open **My Stuff → Help** from the top menu.\n2. Use **Browse** to explore by category.\n3. Use **Search** and type a keyword (for example: `password`, `event`, `donation`).\n4. Open any guide to read the full steps.\n\n## Pin guides you use often\n\nOn any guide page, click **Pin to my list**. Pinned guides appear at the top under the **Pinned** tab so you can find them quickly next time.\n\n## For church leaders who edit help content\n\nIf you have the **manage help** permission, open **Manage Help Content** from the Help menu. There you can:\n\n1. Add or edit **categories** (the folders users browse).\n2. Add or edit **guides** with step-by-step instructions.\n3. Choose whether a guide is published or hidden.\n4. Optionally limit a guide to users with a specific permission (for staff-only topics).\n\nWrite instructions in plain language. Use numbered steps. Name the exact buttons and menu items people will see.",
+      "category_slug": "home",
+      "permission_key": null,
+      "sort_order": 0,
+      "is_published": 1
+    },
+    {
+      "slug": "pastoral-area-overview",
+      "title": "Pastoral Area overview",
+      "summary": "Map of sermon tools, Bible study, illustrations, planning, vault, and care.",
+      "body_md": "## Who can access\n\nPastoral Group members and Staff/Admin/Owner typically see **Ministry → Pastoral**.\n\n## Major tools\n\n| Tool | Purpose |\n|------|---------|\n| Pastoral dashboard | Launch pad for all pastoral tools |\n| Sermon Library | Draft/edit sermons and sections |\n| Sermon Export | DOCX / bulk ZIP export |\n| Bible Study | Read, notes, highlights, cross-links |\n| Illustrations Library | Stories and reusable illustrations |\n| Service Planning | Weekly plan and templates |\n| Podium / plans | Service delivery views |\n| Vault | Secure pastoral documents (as configured) |\n| Care | Pastoral care records (sensitive) |\n| Curriculum Studio | Build study courses (see Study Courses guides) |\n\n## Sensitivity\n\nPastoral care and vault content can be highly confidential. Use least-privilege groups. Do not copy care notes into public Community modules.",
+      "category_slug": "pastoral",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "pastoral-sermon-library-export",
+      "title": "Sermon Library and export",
+      "summary": "Create sermons, sections, and export DOCX or bulk packages.",
+      "body_md": "## Sermon Library\n\n1. Open **Pastoral → Sermon Library** (or Pastoral dashboard tile).\n2. Create a sermon with title, date, and header defaults as needed.\n3. Add **sections** (points, scripture, illustrations).\n4. Link illustrations or Bible study notes when helpful.\n5. Save often.\n\n## Export\n\n1. Open **Sermon Export** from Pastoral dashboard or sermon list actions.\n2. Export a **single** sermon (DOCX) or **bulk** ZIP as offered.\n3. Store exports in your church's document process (not only on a laptop).\n\n## Tips\n\n- Keep a consistent sermon header for printed copies.\n- Use sections so export layout stays readable.\n- For series, name sermons with series + part numbers.",
+      "category_slug": "pastoral",
+      "permission_key": null,
+      "sort_order": 20,
+      "is_published": 1
+    },
+    {
+      "slug": "pastoral-bible-illustrations-planning",
+      "title": "Pastoral Bible Study, Illustrations, and Service Planning",
+      "summary": "Study workflow, illustration library, and weekly planning templates.",
+      "body_md": "## Bible Study (pastoral)\n\n1. Open **Pastoral → Bible Study**.\n2. Choose translation (online or installed).\n3. Read chapters; save **notes** and **highlights**.\n4. Send selections to **illustrations** or quick sermon tools when available.\n5. Download notes when bulk export is offered.\n\n## Illustrations Library\n\n1. Store stories, analogies, and reusable content.\n2. Tag/search so sermon prep is fast.\n3. Link into sermon sections instead of pasting twice.\n\n## Service Planning\n\n1. Open planning list for upcoming dates.\n2. Edit a week’s plan or apply a **template**.\n3. Assign pieces (message, worship, announcements) as your church defines.\n4. Refresh templates carefully — they can overwrite defaults.\n\n## Vault & care\n\nUse vault for confidential documents and care tools for pastoral care cases. Follow your legal/privacy policies.",
+      "category_slug": "pastoral",
+      "permission_key": null,
+      "sort_order": 30,
+      "is_published": 1
+    },
+    {
+      "slug": "study-courses-member-guide",
+      "title": "Study Courses for members (catalog and lessons)",
+      "summary": "How learners find courses, complete lessons, and quizzes.",
+      "body_md": "## Open the catalog\n\n**Community / Home → Study Courses** (module **Study Courses** enabled) or go to `/study/`.\n\n## Taking a course\n\n1. Browse published courses (filter by audience if shown).\n2. Open a course to see lessons and your progress.\n3. Open a **lesson**.\n4. Read text blocks, view images/video when present.\n5. Answer **multiple choice**, **true/false**, or **fill in the blank** blocks.\n6. Continue until the course marks progress complete.\n\n## Tips for learners\n\n- Use a stable device for longer lessons.\n- Wrong quiz answers usually allow review and retry depending on the block settings.\n- Only **published** courses and lessons appear here — drafts stay in Curriculum Studio.",
+      "category_slug": "study-courses",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "curriculum-studio-build-course",
+      "title": "Curriculum Studio: build a course with text, images, and Q&A",
+      "summary": "Step-by-step: series, lessons, media, multiple choice, true/false, fill-blank — plus a mock course recipe.",
+      "body_md": "## Who builds courses\n\nPastoral / staff with access to **Pastoral → Curriculum Studio** (`/pastoral/curriculum/`).\n\nMembers **take** courses under **Study Courses** (`/study/`). Builders use the Studio.\n\n## Mental model\n\n```\nSeries (Course)\n  └── Lesson 1\n        ├── Text block\n        ├── Image / video block\n        ├── Multiple choice block\n        └── True/false or fill-blank block\n  └── Lesson 2\n        └── ...\n```\n\n## Build a mock course (full walkthrough)\n\n### 1) Create the series (course shell)\n\n1. Pastoral dashboard → **Curriculum Studio**.\n2. **New series** (or New course).\n3. Fill in:\n   - **Title**: e.g. `Foundations of Faith — Sample Course`\n   - **Subtitle / description**: who it is for\n   - **Audience**: everyone / youth / leaders (as offered)\n   - **Visibility**: `members` or `public` when ready for learners; keep `pastoral` while drafting\n   - **Status**: `draft` until content is ready\n4. Save.\n\n### 2) Add lessons\n\n1. Open the series editor.\n2. **Add lesson** — e.g. `Lesson 1: Who is God?`\n3. Set lesson status to **draft** while writing.\n4. Add Lesson 2, Lesson 3 the same way.\n5. Reorder lessons if the Studio provides reorder controls.\n\n### 3) Add teaching content (text)\n\n1. Open a lesson editor.\n2. Add a **text** block.\n3. Write short paragraphs or bullet points (keep mobile readable).\n4. Save.\n\n### 4) Add images or media\n\n1. Add an **image** or **video** block (labels may vary slightly).\n2. Upload or link media as the form allows.\n3. Add a caption in surrounding text blocks if there is no caption field.\n4. Prefer compressed images for phones.\n\n### 5) Add Q&A — multiple choice\n\n1. Add a **multiple choice** block.\n2. Enter the question.\n3. Add choices (A/B/C/D).\n4. Mark the correct answer.\n5. Optional feedback text for correct/incorrect.\n6. Save and preview.\n\n### 6) Add Q&A — true/false\n\n1. Add a **true/false** block.\n2. Enter the statement.\n3. Set whether True or False is correct.\n4. Optional feedback.\n\n### 7) Add Q&A — fill in the blank\n\n1. Add a **fill blank** block.\n2. Write the prompt (e.g. `Jesus is _______.`).\n3. Provide accepted answer(s) as the form allows.\n4. Save.\n\n### 8) Preview as a learner\n\n1. Use **Preview** on the lesson if available.\n2. Or publish a test lesson to **members** visibility and open `/study/` with a test account.\n\n### 9) Publish\n\n1. Set each lesson **status = published**.\n2. Set series **status = published**.\n3. Set **visibility** to `members` or `public`.\n4. Confirm the course appears under **Study Courses** for a normal member login.\n\n## Sample outline you can copy\n\n**Course:** Walking with Jesus (4 lessons)\n\n1. **Who is Jesus?** — text + image + 3 multiple choice  \n2. **Prayer basics** — text + true/false  \n3. **Scripture habit** — text + fill blank  \n4. **Living it out** — text + mixed quiz  \n\n## Quality bar (enterprise)\n\n- One idea per lesson (15–25 minutes)\n- Every lesson ends with at least one check-for-understanding question\n- No unpublished dangling lessons in a published series\n- Accessibility: readable contrast on images; avoid text-only-in-image\n- Review theology/content with pastoral leadership before public publish\n\n## Troubleshooting\n\n| Issue | Fix |\n|-------|-----|\n| Course missing on `/study/` | Publish series + lessons; visibility members/public |\n| Media broken | Re-upload; check file permissions/path |\n| Quiz not scoring | Ensure correct answer set on the block |\n| Members see pastoral-only | Change visibility off pastoral-only |",
+      "category_slug": "study-courses",
+      "permission_key": null,
+      "sort_order": 20,
+      "is_published": 1
+    },
+    {
+      "slug": "study-courses-help-and-ops",
+      "title": "Study Courses operations and Help integration",
+      "summary": "How courses relate to Help packs, permissions, and multi-campus teaching.",
+      "body_md": "## Courses vs Help articles\n\n| | **Help Center** | **Study Courses** |\n|--|-----------------|-------------------|\n| Purpose | How to use the software / church processes | Discipleship teaching paths |\n| Editor | Help Manage | Curriculum Studio |\n| Learner UI | Browse/search guides | Catalog → lessons → blocks |\n| Pack share | JSON help packs | Course content stays in curriculum tables (export separately if you add it later) |\n\nUse **Help** to teach staff *how to build courses*. Use **Curriculum Studio** for the actual spiritual formation content.\n\n## Permissions\n\n- Building: pastoral/staff access to Curriculum Studio\n- Taking: any logged-in member when module is enabled and course is published\n\n## Multi-campus\n\nIf campuses are enabled, decide whether a course is org-wide or campus-specific in your operational policy. Tag course titles with campus names when content differs by location.\n\n## Recommended SOP\n\n1. Draft in Studio (pastoral visibility).\n2. Peer review lesson content.\n3. Publish to members.\n4. Announce via Community announcement.\n5. Review completion informally after 30 days; revise lessons.",
+      "category_slug": "study-courses",
+      "permission_key": null,
+      "sort_order": 30,
+      "is_published": 1
+    },
+    {
+      "slug": "volunteers-and-my-serving",
+      "title": "Volunteers and My Serving",
+      "summary": "Teams, rotations, schedule, accept/decline, and tickets on My Serving.",
+      "body_md": "## Staff scheduling console\n\n**Volunteers** (module on) → dashboard:\n\n1. Create **teams** and **roles**.\n2. Track **skills** if you use skill-based placement.\n3. Build **events** (date, team, times).\n4. **Assign** people or fill from **rotations**.\n5. Notify volunteers; they respond by email link or **My Serving**.\n\n## My Serving (everyone)\n\n**My Stuff → My Serving** (or Home tile):\n\n### Volunteer schedule\n\n- See upcoming assignments\n- **Accept** or **Decline** pending requests\n- Past assignments listed for history\n\n### Tickets assigned to me\n\nWhen Ticket Manager assigns you a ticket, it appears here with **Answer / update**.\n\n## Tips\n\n- Name teams the way people talk (“Parking”, “Kids 1st hour”).\n- Use rotations for recurring Sunday roles.\n- Keep My Serving as the one place greeters and volunteers check each week.",
+      "category_slug": "volunteers-tickets",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    },
+    {
+      "slug": "tickets-full-workflow",
+      "title": "Support tickets: open, assign, answer, export",
+      "summary": "Member My Tickets plus staff Ticket Manager and My Serving.",
+      "body_md": "## Roles\n\n| Who | Where | What |\n|-----|-------|------|\n| Any member | **My Tickets** / **Submit ticket** | Open and follow their own tickets |\n| Ticket managers | **Ticket Manager** (`/tickets/manage`) | See all tickets, assign, priority, status |\n| Assignees | **My Serving** + ticket detail | Comment and update status |\n\n## Member flow\n\n1. My Stuff → **My Tickets** → submit.\n2. Choose category and priority.\n3. Watch for staff replies on the ticket thread.\n\n## Manager flow\n\n1. Open **Ticket Manager**.\n2. Click a ticket.\n3. **Assign** to a staff user.\n4. Set **priority** and **status** (open → in progress → resolved/closed).\n5. Add **comments** (optionally notify the creator).\n6. **Download backup (JSON)** for archive or transfer.\n\n## Assignee flow\n\n1. Open **My Serving**.\n2. Under **Tickets assigned to me**, click **Answer / update**.\n3. Reply in comments; set status when done.\n\n## Categories\n\nTicket categories are managed in the database seed (IT, Maintenance, Membership, General, etc.). Use clear titles so the right team can claim work.\n\n## Export\n\nTicket Manager → **Download backup (JSON)** exports tickets and comments for backup or offline review.",
+      "category_slug": "volunteers-tickets",
+      "permission_key": null,
+      "sort_order": 20,
+      "is_published": 1
+    },
+    {
+      "slug": "worship-team-full-guide",
+      "title": "Worship Team: songs, setlists, plans, and displays",
+      "summary": "Full guide for worship leaders and band tech.",
+      "body_md": "## Open Worship\n\n**Church Office → Worship Team** (worship access required).\n\n## Songs library\n\n1. Add songs with titles, keys, and lyrics as your team needs.\n2. Import tools may be available for bulk song entry.\n3. Keep one canonical song entry per arrangement when possible.\n\n## Setlists & weekly plans\n\n1. Create a setlist for a service date.\n2. Order songs for the service flow.\n3. Use templates/history if your install tracks play history.\n\n## Live / display tools\n\nDepending on configuration:\n\n- **Band sheet** links for tablets (often secret link, limited login)\n- **Auditorium / prompter** views for titles or lyrics\n- Share only with trusted devices\n\n## Best practices\n\n- Standardize keys and tempo notes in the song record.\n- Freeze the Sunday setlist before soundcheck.\n- Train volunteers on one display mode per room.",
+      "category_slug": "worship",
+      "permission_key": null,
+      "sort_order": 10,
+      "is_published": 1
+    }
+  ]
+}

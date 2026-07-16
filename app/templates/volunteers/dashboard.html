@@ -1,0 +1,72 @@
+{% extends "volunteers/base_vol.html" %}
+{% block title %}Volunteer Scheduling{% endblock %}
+
+{% block vol_content %}
+<div class="glass-panel vol-hero">
+  <h1><i class="fa-solid fa-hands-helping" aria-hidden="true"></i> Volunteer Scheduling</h1>
+  <p>
+    Teams beyond worship — greeters, ushers, parking, kids, tech — with rotations,
+    skill-based suggestions, accept/decline, and automated reminders.
+  </p>
+  <div class="vol-actions">
+    <a href="{{ url_for('volunteers.event_new') }}" class="btn btn-primary">
+      <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Schedule serving date
+    </a>
+    <a href="{{ url_for('volunteers.teams_list') }}" class="btn btn-secondary">Manage teams</a>
+    <a href="{{ url_for('volunteers.rotations') }}" class="btn btn-secondary">Rotations</a>
+  </div>
+</div>
+
+<div class="vol-stat-grid">
+  <div class="glass-panel vol-stat"><strong>{{ stats.teams }}</strong><span>Teams</span></div>
+  <div class="glass-panel vol-stat"><strong>{{ stats.upcoming_events }}</strong><span>Upcoming events</span></div>
+  <div class="glass-panel vol-stat"><strong>{{ stats.pending }}</strong><span>Pending responses</span></div>
+  <div class="glass-panel vol-stat"><strong>{{ stats.accepted_week }}</strong><span>Accepted (7 days)</span></div>
+  <div class="glass-panel vol-stat"><strong>{{ stats.rotations }}</strong><span>Active rotations</span></div>
+</div>
+
+<div class="vol-two-col" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+  <div class="glass-panel" style="padding:1rem;">
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Upcoming serving times</h2>
+    {% if upcoming %}
+      {% for e in upcoming %}
+      <a href="{{ url_for('volunteers.event_detail', event_id=e.id) }}" class="glass-panel vol-card" style="display:block; text-decoration:none; color:inherit; border-left-color:{{ e.team_color or 'var(--primary)' }};">
+        <strong>{{ e.title }}</strong>
+        <div style="font-size:0.85rem; opacity:0.75; margin-top:0.2rem;">
+          {{ e.event_date }}{% if e.start_time %} · {{ e.start_time }}{% endif %}
+          {% if e.team_name %} · {{ e.team_name }}{% endif %}
+        </div>
+        <div style="margin-top:0.35rem; font-size:0.8rem;">
+          <span class="vol-pill vol-pill--accepted">{{ e.accepted_count or 0 }} yes</span>
+          <span class="vol-pill vol-pill--pending">{{ e.pending_count or 0 }} pending</span>
+          {% if e.declined_count %}<span class="vol-pill vol-pill--declined">{{ e.declined_count }} no</span>{% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    {% else %}
+    <p style="opacity:0.7; margin:0;">No upcoming events — schedule a Sunday for greeters or ushers.</p>
+    {% endif %}
+  </div>
+
+  <div class="glass-panel" style="padding:1rem;">
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Teams</h2>
+    <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+      {% for t in teams %}
+      <a href="{{ url_for('volunteers.team_detail', team_id=t.id) }}" class="btn btn-secondary" style="min-height:auto; padding:0.4rem 0.75rem;">
+        <span class="vol-team-dot" style="background:{{ t.color }};"></span>
+        {{ t.name }}
+        <span style="opacity:0.65; font-size:0.8rem;">({{ t.member_count or 0 }})</span>
+      </a>
+      {% else %}
+      <p style="opacity:0.7;">Teams will appear after migration seeds defaults.</p>
+      {% endfor %}
+    </div>
+    <p style="margin:1rem 0 0; font-size:0.85rem; opacity:0.75;">
+      Reminders: {% if settings.reminders_enabled %}<strong>ON</strong> ({{ settings.reminder_days }} days before)
+      {% else %}off{% endif %} ·
+      Auto-email on assign: {% if settings.auto_notify %}<strong>ON</strong>{% else %}off{% endif %}
+      · <a href="{{ url_for('volunteers.settings') }}">Settings</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

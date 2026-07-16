@@ -13,11 +13,11 @@
     if (!nav) return;
 
     nav.addEventListener('click', function(e) {
-      const link = e.target.closest('a');
+      const link = e.target.closest('a.bottom-nav-item, a[data-nav-direct]');
       if (!link || !link.href) return;
 
       // Instant visual active state (feels native)
-      nav.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+      nav.querySelectorAll('a.bottom-nav-item, a[data-nav-direct]').forEach(a => a.classList.remove('active'));
       link.classList.add('active');
 
       // Small haptic-like scale (if supported)
@@ -27,18 +27,110 @@
         link.style.transform = '';
       }, 120);
     }, { passive: true });
+  }
 
-    // On page load, ensure the server-rendered active state is crisp
-    // (server already does class based on endpoint, this just reinforces)
-    // Also do a path-based fallback for pages where endpoint matching is imperfect (more native app tab feel)
-    const currentPath = window.location.pathname;
-    nav.querySelectorAll('a').forEach(a => {
-      const href = a.getAttribute('href') || '';
-      if (href && currentPath.startsWith(href) && href !== '/') {
-        a.classList.add('active');
-      } else if (href === '/' && currentPath === '/') {
-        a.classList.add('active');
+  /**
+   * Mobile bottom-nav sheets: Community / Office / My Stuff / More
+   * open a full list of links so nothing is desktop-only.
+   */
+  function enhanceNavSheets() {
+    const triggers = document.querySelectorAll('[data-nav-sheet]');
+    if (!triggers.length) return;
+
+    const backdrop = document.getElementById('nav-sheet-backdrop');
+    let openSheet = null;
+    let openTrigger = null;
+
+    function closeSheet() {
+      if (openSheet) {
+        openSheet.classList.remove('is-open');
+        // allow animation then hide
+        const sheet = openSheet;
+        setTimeout(() => {
+          if (!sheet.classList.contains('is-open')) {
+            sheet.hidden = true;
+            sheet.setAttribute('hidden', '');
+          }
+        }, 220);
       }
+      if (openTrigger) {
+        openTrigger.classList.remove('is-open');
+        openTrigger.setAttribute('aria-expanded', 'false');
+      }
+      if (backdrop) {
+        backdrop.hidden = true;
+        backdrop.setAttribute('hidden', '');
+        backdrop.setAttribute('aria-hidden', 'true');
+      }
+      document.body.classList.remove('nav-sheet-open');
+      openSheet = null;
+      openTrigger = null;
+    }
+
+    function openSheetFor(trigger) {
+      const id = trigger.getAttribute('data-nav-sheet');
+      if (!id) return;
+      const sheet = document.getElementById('nav-sheet-' + id);
+      if (!sheet) return;
+
+      // Close any other open sheet first
+      if (openSheet && openSheet !== sheet) {
+        openSheet.classList.remove('is-open');
+        openSheet.hidden = true;
+        openSheet.setAttribute('hidden', '');
+      }
+      if (openTrigger && openTrigger !== trigger) {
+        openTrigger.classList.remove('is-open');
+        openTrigger.setAttribute('aria-expanded', 'false');
+      }
+
+      sheet.hidden = false;
+      sheet.removeAttribute('hidden');
+      // force reflow for transition
+      void sheet.offsetWidth;
+      sheet.classList.add('is-open');
+      trigger.classList.add('is-open');
+      trigger.setAttribute('aria-expanded', 'true');
+      if (backdrop) {
+        backdrop.hidden = false;
+        backdrop.removeAttribute('hidden');
+        backdrop.setAttribute('aria-hidden', 'false');
+      }
+      document.body.classList.add('nav-sheet-open');
+      openSheet = sheet;
+      openTrigger = trigger;
+    }
+
+    triggers.forEach((trigger) => {
+      trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isOpen = trigger.classList.contains('is-open');
+        if (isOpen) closeSheet();
+        else openSheetFor(trigger);
+      });
+    });
+
+    document.querySelectorAll('[data-nav-sheet-close]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeSheet();
+      });
+    });
+
+    if (backdrop) {
+      backdrop.addEventListener('click', closeSheet);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeSheet();
+    });
+
+    // Close when navigating via a sheet link
+    document.querySelectorAll('.nav-sheet-link').forEach((link) => {
+      link.addEventListener('click', () => {
+        // leave open briefly for tap feedback, then navigate
+      });
     });
   }
 
@@ -177,6 +269,7 @@
   // Boot
   function init() {
     enhanceBottomNav();
+    enhanceNavSheets();
     enhanceTopNav();
     enhanceNavGroups();
     detectStandalone();

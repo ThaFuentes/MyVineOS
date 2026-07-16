@@ -1,0 +1,99 @@
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<div class="glass-panel inv-panel" style="max-width:36rem;">
+  <h2>Stock moves</h2>
+  <p class="lead">
+    Use (consume), discard (waste/spoilage), adjust counts, or transfer between locations.
+    Uses FIFO from batches.
+  </p>
+
+  <form method="POST" class="styled-form" id="stock-move-form">
+    {% include 'partials/csrf_field.html' %}
+
+    <label>Item *
+      <select name="item_id" class="form-input" required>
+        <option value="">— Select item —</option>
+        {% for it in items if not it.is_kit %}
+        <option value="{{ it.id }}"
+          {% if preselect and preselect|string == it.id|string %}selected{% endif %}>
+          {{ it.name }} ({{ it.total_stock|int }} on hand)
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Action *
+      <select name="transaction_type" id="txn-type" class="form-input" required>
+        <option value="use">Use / consume</option>
+        <option value="discard">Discard / waste</option>
+        <option value="adjust">Adjust count</option>
+        <option value="transfer">Transfer location</option>
+      </select>
+    </label>
+
+    <div id="adjust-sign-wrap" style="display:none;">
+      <label>Adjust direction
+        <select name="adjust_sign" class="form-input">
+          <option value="remove">Remove (count was high)</option>
+          <option value="add">Add (count was low)</option>
+        </select>
+      </label>
+    </div>
+
+    <label>Quantity *
+      <input type="number" name="quantity" class="form-input" min="1" value="1" required>
+    </label>
+
+    <label id="loc-label">Location (optional for use/discard)
+      <select name="location_id" id="location_id" class="form-input">
+        <option value="">— Any / FIFO all —</option>
+        {% for loc in locations %}
+        <option value="{{ loc.id }}">{{ loc.name }}{% if loc.building_area %} · {{ loc.building_area }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div id="to-loc-wrap" style="display:none;">
+      <label>To location *
+        <select name="to_location_id" class="form-input">
+          <option value="">— Select destination —</option>
+          {% for loc in locations %}
+          <option value="{{ loc.id }}">{{ loc.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <label>Notes
+      <textarea name="notes" class="form-input" rows="2" placeholder="Event, ministry, reason…"></textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Record move</button>
+      <a href="{{ url_for('inventory.inventory_dashboard') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  var sel = document.getElementById('txn-type');
+  var adjustWrap = document.getElementById('adjust-sign-wrap');
+  var toWrap = document.getElementById('to-loc-wrap');
+  var locLabel = document.getElementById('loc-label');
+  function sync() {
+    var t = sel ? sel.value : 'use';
+    if (adjustWrap) adjustWrap.style.display = t === 'adjust' ? '' : 'none';
+    if (toWrap) toWrap.style.display = t === 'transfer' ? '' : 'none';
+    if (locLabel) {
+      if (t === 'transfer') locLabel.firstChild.textContent = 'From location * ';
+      else if (t === 'adjust') locLabel.firstChild.textContent = 'Location (required when adding) ';
+      else locLabel.firstChild.textContent = 'Location (optional) ';
+    }
+  }
+  if (sel) sel.addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endblock %}

@@ -101,6 +101,12 @@
     <span class="pastoral-tile-sub">Read, notes &amp; cross-refs</span>
   </a>
 
+  <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="glass-panel pastoral-tile pastoral-tile-curriculum">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-graduation-cap"></i></span>
+    <span class="pastoral-tile-title">Curriculum Studio</span>
+    <span class="pastoral-tile-sub">Courses, media, quizzes &amp; blanks</span>
+  </a>
+
   {% if session.get('user_role') in ['Admin', 'Owner'] %}
   <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="glass-panel pastoral-tile pastoral-tile-upload">
     <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-download"></i></span>

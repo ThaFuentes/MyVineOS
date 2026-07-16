@@ -1,0 +1,52 @@
+{% extends "volunteers/base_vol.html" %}
+{% block title %}Volunteer Skills{% endblock %}
+
+{% block vol_content %}
+<div class="vol-two-col" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;">
+  <div class="glass-panel" style="padding:1.1rem;">
+    <h1 style="margin:0 0 0.65rem; font-size:1.2rem; color:var(--primary);">Skills catalog</h1>
+    <ul style="margin:0 0 1rem; padding-left:1.1rem;">
+      {% for s in skills %}
+      <li style="margin-bottom:0.35rem;">{{ s.name }}{% if s.description %} <span style="opacity:0.65; font-size:0.85rem;">— {{ s.description }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    <form method="post" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="action" value="add_skill">
+      <label>New skill <input type="text" name="name" class="form-input" required placeholder="Sound board"></label>
+      <label>Description <input type="text" name="description" class="form-input"></label>
+      <button type="submit" class="btn btn-primary">Add skill</button>
+    </form>
+  </div>
+
+  <div class="glass-panel" style="padding:1.1rem;">
+    <h2 style="margin:0 0 0.65rem; font-size:1.1rem;">Assign skills to a person</h2>
+    <form method="get" class="styled-form" style="margin-bottom:0.75rem;">
+      <label>Member
+        <select name="user_id" class="form-input" onchange="this.form.submit()">
+          <option value="">— select —</option>
+          {% for p in people %}
+          <option value="{{ p.id }}" {% if selected_user == p.id %}selected{% endif %}>{{ p.last_name }}, {{ p.first_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </form>
+    {% if selected_user %}
+    <form method="post" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="action" value="set_user_skills">
+      <input type="hidden" name="user_id" value="{{ selected_user }}">
+      {% for s in skills %}
+      <label style="display:flex;align-items:center;gap:0.4rem; flex-direction:row !important; margin-bottom:0.35rem;">
+        <input type="checkbox" name="skill_ids" value="{{ s.id }}" {% if s.id in user_skills %}checked{% endif %}>
+        {{ s.name }}
+      </label>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Save skills</button>
+    </form>
+    {% else %}
+    <p style="opacity:0.7;">Pick a member to edit their skills. Roles can require a skill for smarter suggestions.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

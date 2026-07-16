@@ -25,6 +25,8 @@ All fields can be updated. Visibility can be changed at any time.
     <h2 class="section-title">Edit Dream / Vision</h2>
 
     <form method="POST" action="{{ url_for('dreams.edit_dream', dream_id=dream.id) }}" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
 
         <div class="form-group">
             <label for="type" class="control-label">Type <span class="required">*</span></label>

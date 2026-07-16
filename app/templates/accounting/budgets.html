@@ -1,0 +1,33 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}Budgets{% endblock %}
+
+{% block acct_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; margin-bottom:0.85rem;">
+  <h1 class="page-title" style="margin:0;">Budgets</h1>
+  <a href="{{ url_for('accounting.budget_new') }}" class="btn btn-primary">New budget</a>
+</div>
+
+{% if budgets %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead><tr><th>Name</th><th>Year</th><th>Period</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for b in budgets %}
+      <tr>
+        <td><strong>{{ b.name }}</strong></td>
+        <td>{{ b.fiscal_year }}</td>
+        <td style="font-size:0.85rem;">{{ b.start_date }} → {{ b.end_date }}</td>
+        <td><span class="acct-pill acct-pill--{{ b.status if b.status=='active' else 'draft' }}">{{ b.status }}</span></td>
+        <td><a href="{{ url_for('accounting.budget_detail', budget_id=b.id) }}" class="btn btn-secondary" style="min-height:auto;padding:0.3rem 0.6rem;font-size:0.85rem;">Open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="glass-panel" style="padding:2rem; text-align:center;">
+  <p style="opacity:0.75;">No budgets yet — create a fiscal year plan and set line amounts by account.</p>
+  <a href="{{ url_for('accounting.budget_new') }}" class="btn btn-primary">Create budget</a>
+</div>
+{% endif %}
+{% endblock %}

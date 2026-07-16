@@ -102,6 +102,7 @@ def create_tables(cursor):
         'login_locked_by':             "INT UNSIGNED NULL",
         # Personal UI preferences (theme + font sizes) — personal wins over church branding
         'ui_theme':                    "VARCHAR(40) DEFAULT 'cyan-glow'",
+        'ui_use_personal_theme':       "TINYINT(1) NOT NULL DEFAULT 0",
         'ui_font_scale':               "VARCHAR(10) DEFAULT 'md'",
         'bible_font_scale':            "VARCHAR(10) DEFAULT 'md'",
         'preferred_bible_translation': "VARCHAR(40) NULL",

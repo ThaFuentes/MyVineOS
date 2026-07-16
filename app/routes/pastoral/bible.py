@@ -62,7 +62,7 @@ from app.models.pastoral.bible_online import (
 )
 from app.models.pastoral.sermons import (
     get_sermon_by_id, get_sermon_sections, save_sermon_sections,
-    get_visible_sermons, create_sermon,
+    get_visible_sermons, create_sermon, append_scripture_to_sermon,
 )
 from app.models.pastoral.illustrations import create_illustration
 
@@ -606,11 +606,36 @@ def bible_favorite_delete(favorite_id):
 @bible_bp.route('/verse/<book>/<int:chapter>/<int:verse>')
 @pastoral_required()
 def bible_verse(book, chapter, verse):
+    """Single-verse payload (local install or online stream) for popups / inserts."""
     translation = request.args.get('translation')
+    book = normalize_book_name(book)
+    try:
+        data = get_unified_chapter(
+            book, chapter, translation=translation, user_id=session.get('user_id')
+        )
+    except Exception:
+        data = None
+    if data and data.get('verses'):
+        for v in data.get('verses') or []:
+            if int(v.get('verse') or 0) == int(verse):
+                return jsonify({
+                    'translation': data.get('translation'),
+                    'book': data.get('book'),
+                    'chapter': data.get('chapter'),
+                    'verse': int(verse),
+                    'text': v.get('text'),
+                    'reference': f"{data.get('book')} {data.get('chapter')}:{verse}",
+                    'strongs': (data.get('strongs') or {}).get(verse)
+                        or (data.get('strongs') or {}).get(str(verse))
+                        or get_strongs_for_verse(data.get('book'), chapter, verse)
+                        or [],
+                })
+    # Fallback to local-only lookup
     row = bible_get_verse(book, chapter, verse, translation)
     if not row:
         abort(404)
     row['strongs'] = get_strongs_for_verse(row['book'], chapter, verse)
+    row.setdefault('reference', f"{row.get('book')} {chapter}:{verse}")
     return jsonify(row)
 
 
@@ -697,7 +722,7 @@ def save_illustration():
 @bible_bp.route('/insert/<int:sermon_id>', methods=['POST'])
 @pastoral_required()
 def insert_verse_into_sermon(sermon_id: int):
-    """Persist a scripture block into the sermon sections table."""
+    """Append scripture into the sermon (safe for repeated + Sermon clicks)."""
     user_id = session['user_id']
     sermon = get_sermon_by_id(sermon_id, user_id)
     if not sermon:
@@ -718,30 +743,26 @@ def insert_verse_into_sermon(sermon_id: int):
     if not reference or not text:
         return jsonify({'status': 'error', 'message': 'Reference and text required'}), 400
 
-    html = f"""
-    <div class="inserted-scripture" data-reference="{reference}">
-        <p><strong>{reference}</strong></p>
-        <blockquote>{text}</blockquote>
-    </div>
-    """.strip()
+    try:
+        result = append_scripture_to_sermon(
+            sermon_id,
+            reference,
+            text,
+            translation=data.get('translation'),
+        )
+    except Exception as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
 
-    sections = get_sermon_sections(sermon_id)
-    if sections:
-        last = dict(sections[-1])
-        last['content'] = (last.get('content') or '') + html
-        if not last.get('scripture_reference'):
-            last['scripture_reference'] = reference
-        sections[-1] = last
-    else:
-        sections = [{
-            'section_type': 'scripture',
-            'title': reference,
-            'content': html,
-            'scripture_reference': reference,
-            'source': data.get('translation') or '',
-            'notes': '',
-        }]
-
-    save_sermon_sections(sermon_id, sections)
     log_change(user_id, 'insert', sermon_id, reference, 'Inserted scripture into sermon from Bible Study')
-    return jsonify({'status': 'success', 'html': html, 'reference': reference, 'persisted': True})
+    return jsonify({
+        'status': 'success',
+        'ok': True,
+        'html': result.get('html'),
+        'reference': reference,
+        'persisted': True,
+        'section_title': result.get('section_title'),
+        'sermon_id': sermon_id,
+        'sermon_title': sermon.get('title') or f'Sermon #{sermon_id}',
+        'edit_url': url_for('pastoral.sermons.edit', sermon_id=sermon_id),
+        'message': f'Added {reference} to “{sermon.get("title") or sermon_id}” (section: Bible Study inserts)',
+    })

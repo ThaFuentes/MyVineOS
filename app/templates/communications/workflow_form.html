@@ -1,0 +1,60 @@
+{% extends "communications/base_comm.html" %}
+{% block title %}New Workflow{% endblock %}
+
+{% block comm_content %}
+<div class="glass-panel" style="padding:1.25rem 1.35rem 1.4rem; max-width:38rem;">
+  <h1 style="margin:0 0 0.35rem; font-size:1.25rem; color:var(--primary);">New automation workflow</h1>
+  <p style="margin:0 0 1.15rem; opacity:0.78; font-size:0.92rem; line-height:1.45;">
+    Automatically enroll people and send a series of messages based on a trigger.
+  </p>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
+    <label>Name *
+      <input type="text" name="name" class="form-input" required placeholder="New visitor welcome series">
+    </label>
+
+    <label>Description
+      <textarea name="description" class="form-input" rows="3" placeholder="When this runs and who it helps"></textarea>
+    </label>
+
+    <label>Trigger (when people are enrolled automatically)
+      <select name="trigger_type" class="form-input" id="trigger-type">
+        {% for key, label in trigger_types %}
+        <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label id="days-inactive-wrap" style="display:none;">
+      Days without a gift (giving reminder)
+      <input type="number" name="days_inactive" class="form-input" value="60" min="7" max="730">
+    </label>
+
+    <p class="help-text">
+      Tokens you can use in messages:
+      {% raw %}
+      <code>{{first_name}}</code> <code>{{full_name}}</code> <code>{{church_name}}</code>
+      <code>{{prayer_title}}</code> <code>{{team_name}}</code> <code>{{title}}</code> <code>{{last_gift}}</code>
+      {% endraw %}
+    </p>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Create &amp; add steps</button>
+      <a href="{{ url_for('communications.workflows_list') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+<script>
+(function () {
+  var sel = document.getElementById('trigger-type');
+  var wrap = document.getElementById('days-inactive-wrap');
+  function sync() {
+    if (!sel || !wrap) return;
+    wrap.style.display = sel.value === 'giving_lapsed' ? '' : 'none';
+  }
+  if (sel) sel.addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endblock %}

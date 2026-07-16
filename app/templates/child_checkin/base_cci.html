@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Child Check-In{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/child_checkin.css') }}?v=20260714a">
+{% endblock %}
+
+{% block content %}
+{% set ep = request.endpoint or '' %}
+<div class="cci-nav-pills no-print">
+  <a href="{{ url_for('child_checkin.dashboard') }}" class="{{ 'is-active' if ep == 'child_checkin.dashboard' else '' }}">Dashboard</a>
+  <a href="{{ url_for('child_checkin.kiosk') }}" class="{{ 'is-active' if ep == 'child_checkin.kiosk' else '' }}">Check-In Station</a>
+  <a href="{{ url_for('child_checkin.pickup') }}" class="{{ 'is-active' if ep == 'child_checkin.pickup' else '' }}">Secure Pickup</a>
+  <a href="{{ url_for('child_checkin.room_board') }}" class="{{ 'is-active' if ep == 'child_checkin.room_board' else '' }}">Room Board</a>
+  <a href="{{ url_for('child_checkin.children_list') }}" class="{{ 'is-active' if 'children' in ep else '' }}">Children</a>
+  <a href="{{ url_for('child_checkin.rooms') }}" class="{{ 'is-active' if ep == 'child_checkin.rooms' else '' }}">Classrooms</a>
+  <a href="{{ url_for('child_checkin.report') }}" class="{{ 'is-active' if ep == 'child_checkin.report' else '' }}">Report</a>
+  <a href="{{ url_for('child_checkin.my_kids') }}" class="{{ 'is-active' if ep == 'child_checkin.my_kids' else '' }}">My Kids</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-messages no-print">
+    {% for category, message in messages %}
+    <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+{% block cci_content %}{% endblock %}
+{% endblock %}

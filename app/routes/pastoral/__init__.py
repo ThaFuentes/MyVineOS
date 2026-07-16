@@ -159,5 +159,12 @@ try:
 except (ImportError, AttributeError):
     pass
 
+# Curriculum studio (pastoral course builder → member /study catalog)
+try:
+    from .curriculum import curriculum_bp
+    pastoral_bp.register_blueprint(curriculum_bp)
+except (ImportError, AttributeError) as e:
+    raise ImportError(f"Critical: Failed to load curriculum sub-module: {e}")
+
 # Expose decorator at blueprint level (rarely needed, but useful)
 pastoral_bp.pastoral_required = pastoral_required

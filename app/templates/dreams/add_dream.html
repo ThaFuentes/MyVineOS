@@ -23,6 +23,8 @@ Choose visibility: Public (everyone), Private (members only), or Personal (only 
     <h2 class="section-title">Submit a Dream or Vision</h2>
 
     <form method="POST" action="{{ url_for('dreams.submit_dream') }}" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
 
         <div class="form-group">
             <label for="type" class="control-label">Type <span class="required">*</span></label>

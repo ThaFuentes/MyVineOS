@@ -101,6 +101,8 @@
                         {% if not comment.moderated %}
                         <form method="POST" action="{{ url_for('the_gathering.dreams.dream_comments', dream_id=dream_id) }}" style="display:inline;"
                               onsubmit="return confirm('Approve this comment?')">
+    {% include 'partials/csrf_field.html' %}
+
                             <input type="hidden" name="action" value="approve">
                             <input type="hidden" name="comment_id" value="{{ comment.id }}">
                             <button type="submit" class="btn btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.8rem; background:#2a2; color:#fff;"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve</button>

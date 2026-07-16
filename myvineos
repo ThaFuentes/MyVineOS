@@ -149,8 +149,41 @@ if [ "$FRESH_MODE" = true ]; then
 fi
 
 # 5. Start database via Docker Compose (uses docker-compose.yml defaults)
+# If myvinechurch-db already exists (e.g. started earlier / orphaned from compose project),
+# reuse it instead of failing with "container name already in use".
 echo -e "${BLUE}Starting MariaDB (docker compose)...${NC}"
-if ! docker compose up -d db; then
+DB_CONTAINER="myvinechurch-db"
+db_ok=false
+if docker inspect "$DB_CONTAINER" >/dev/null 2>&1; then
+    status="$(docker inspect -f '{{.State.Status}}' "$DB_CONTAINER" 2>/dev/null || echo missing)"
+    if [ "$status" = "running" ]; then
+        echo -e "${GREEN}✓ MariaDB container already running (${DB_CONTAINER})${NC}"
+        db_ok=true
+    else
+        echo -e "${YELLOW}Existing ${DB_CONTAINER} is ${status}; starting it...${NC}"
+        if docker start "$DB_CONTAINER" >/dev/null 2>&1; then
+            echo -e "${GREEN}✓ Started existing MariaDB container${NC}"
+            db_ok=true
+        else
+            echo -e "${YELLOW}Could not start existing container; removing it so compose can recreate...${NC}"
+            docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true
+        fi
+    fi
+fi
+if [ "$db_ok" != true ]; then
+    if ! docker compose up -d db; then
+        # Last-chance: name conflict after race, or compose project mismatch
+        if docker inspect "$DB_CONTAINER" >/dev/null 2>&1; then
+            if docker start "$DB_CONTAINER" >/dev/null 2>&1; then
+                echo -e "${GREEN}✓ Reused existing MariaDB container after compose conflict${NC}"
+                db_ok=true
+            fi
+        fi
+    else
+        db_ok=true
+    fi
+fi
+if [ "$db_ok" != true ]; then
     echo -e "${RED}ERROR: Failed to start MariaDB container.${NC}"
     echo "Common causes when using multiple projects in this folder:"
     echo "  - Port conflict on host (veilbreak uses 3306, driverapp uses 3307, this one now uses 3308)"
@@ -160,7 +193,8 @@ if ! docker compose up -d db; then
     echo "Debug commands:"
     echo "  docker ps -a | grep -E 'myvine|church|mariadb'"
     echo "  docker compose logs db"
-    echo "  docker compose down   # then try again"
+    echo "  docker rm -f myvinechurch-db   # then: docker compose up -d db"
+    echo "  docker compose down            # only if you want compose-managed cleanup"
     echo ""
     echo "You can also run the DB manually: docker compose up -d db"
     exit 1

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Print Labels</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/child_checkin.css') }}?v=20260714a">
+  <style>
+    body { margin: 0; background: #1a1a1a; color: #eee; font-family: system-ui, sans-serif; }
+    .toolbar { padding: 0.75rem; text-align: center; }
+    .toolbar button, .toolbar a {
+      display: inline-block; margin: 0.2rem; padding: 0.55rem 1.1rem;
+      border-radius: 8px; border: none; cursor: pointer; font-weight: 600; text-decoration: none;
+    }
+    .btn-print { background: #22d3ee; color: #0a0a0a; }
+    .btn-back { background: #333; color: #eee; }
+  </style>
+</head>
+<body>
+  <div class="toolbar no-print">
+    <button type="button" class="btn-print" onclick="window.print()">Print labels</button>
+    <a href="{{ url_for('child_checkin.kiosk') }}" class="btn-back">Back to station</a>
+    <p style="opacity:0.7; font-size:0.85rem;">{{ checkins|length }} label(s) · use browser print · set margins to minimum if needed</p>
+  </div>
+
+  <div class="cci-print-root cci-label-sheet">
+    {% for c in checkins %}
+    <div class="cci-label">
+      <div class="church">{{ settings.church_name }}</div>
+      <div class="sec-code">#{{ c.security_code }}</div>
+      <div class="child-name">{{ c.first_name }} {{ c.last_name }}{% if c.nickname %} ({{ c.nickname }}){% endif %}</div>
+      <div class="room" style="background:{{ c.classroom_color or '#e0f2fe' }};">
+        {{ c.classroom_name or 'Room' }}{% if c.classroom_location %} · {{ c.classroom_location }}{% endif %}
+      </div>
+      <div class="code-row">
+        <div>
+          <div class="code-label">Pickup code</div>
+          <div class="code-big">{{ c.pickup_code }}</div>
+        </div>
+      </div>
+      {% if c.allergies %}
+      <div class="allergy">ALLERGY: {{ c.allergies }}</div>
+      {% endif %}
+      {% if c.special_needs %}
+      <div class="allergy" style="color:#a16207; border-color:#a16207;">NOTE: {{ c.special_needs[:80] }}</div>
+      {% endif %}
+      <div class="footer">{{ settings.label_footer }} · {{ c.service_date }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    // Auto-open print dialog once labels render
+    window.addEventListener('load', function () {
+      setTimeout(function () { window.print(); }, 350);
+    });
+  </script>
+</body>
+</html>

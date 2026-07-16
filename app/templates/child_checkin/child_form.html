@@ -1,0 +1,107 @@
+{% extends "child_checkin/base_cci.html" %}
+{% block title %}Add Child{% endblock %}
+
+{% block cci_content %}
+<p style="margin:0 0 0.85rem;">
+  <a href="{{ url_for('child_checkin.children_list') }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">← Children</a>
+</p>
+
+<div class="glass-panel" style="padding:1.25rem 1.35rem 1.4rem; max-width:40rem;">
+  <h1 style="margin:0 0 0.35rem; font-size:1.25rem; color:var(--primary);">New child profile</h1>
+  <p style="margin:0 0 1.15rem; opacity:0.78; font-size:0.92rem; line-height:1.45;">
+    Used for check-in labels, room boards, and pickup authorization.
+  </p>
+
+  <form method="post" class="styled-form styled-form--wide">
+    {% include 'partials/csrf_field.html' %}
+
+    <div class="form-row">
+      <label>First name *
+        <input type="text" name="first_name" class="form-input" required>
+      </label>
+      <label>Last name *
+        <input type="text" name="last_name" class="form-input" required>
+      </label>
+    </div>
+
+    <label>Nickname
+      <input type="text" name="nickname" class="form-input" placeholder="Optional">
+    </label>
+
+    <div class="form-row form-row--3">
+      <label>Birthdate
+        <input type="date" name="birthdate" class="form-input">
+      </label>
+      <label>Gender
+        <input type="text" name="gender" class="form-input" placeholder="optional">
+      </label>
+      <label>Child PIN (4–6 digits)
+        <input type="text" name="pin_code" class="form-input" inputmode="numeric" pattern="[0-9]{4,6}" placeholder="optional">
+      </label>
+    </div>
+
+    <label>Default classroom
+      <select name="default_classroom_id" class="form-input">
+        <option value="">—</option>
+        {% for r in rooms %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
+      </select>
+    </label>
+
+    <label>Allergies
+      <input type="text" name="allergies" class="form-input" placeholder="Shown on labels & room board">
+    </label>
+
+    <label>Medical notes
+      <textarea name="medical_notes" class="form-input" rows="2"></textarea>
+    </label>
+
+    <label>Special needs / notes for teachers
+      <textarea name="special_needs" class="form-input" rows="2"></textarea>
+    </label>
+
+    <hr style="border:none; border-top:1px solid rgba(255,255,255,0.1); margin:0.25rem 0;">
+
+    <h2 style="margin:0; font-size:1.05rem; color:var(--primary);">Primary guardian (optional now)</h2>
+    <p class="help-text" style="margin:0;">You can add guardians later from the child detail page.</p>
+
+    <label>Link member account
+      <select name="guardian_user_id" class="form-input">
+        <option value="">— select member —</option>
+        {% for m in members %}
+        <option value="{{ m.id }}">{{ m.last_name }}, {{ m.first_name }}{% if m.email %} · {{ m.email }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Or name if not a member
+      <input type="text" name="guardian_name" class="form-input" placeholder="Full name">
+    </label>
+
+    <div class="form-row form-row--3">
+      <label>Relationship
+        <select name="guardian_relationship" class="form-input">
+          <option value="parent">Parent</option>
+          <option value="grandparent">Grandparent</option>
+          <option value="guardian">Guardian</option>
+          <option value="authorized">Authorized pickup</option>
+        </select>
+      </label>
+      <label>Phone
+        <input type="tel" name="guardian_phone" class="form-input">
+      </label>
+      <label>Family PIN
+        <input type="text" name="family_pin" class="form-input" inputmode="numeric" pattern="[0-9]{4,6}" placeholder="4–6 digits">
+      </label>
+    </div>
+
+    <label>Email for notifications
+      <input type="email" name="guardian_email" class="form-input">
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Create child</button>
+      <a href="{{ url_for('child_checkin.children_list') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -39,6 +39,8 @@
                 </div>
             {% else %}
                 <form method="POST" id="checkin-form" class="checkin-form">
+    {% include 'partials/csrf_field.html' %}
+
                     <input type="hidden" name="client_checkin" id="client_checkin" value="">
                     <button type="submit" class="btn-primary checkin-button">
                         Sign Me In Today

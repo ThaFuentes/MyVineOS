@@ -36,17 +36,29 @@ def register_dashboard_routes(bp):
         potluck_count = 0
 
         for e in events_list:
-            # Safe date formatting
+            # Safe date formatting (MariaDB may return date objects or strings)
             e['nice_date'] = e['event_date'] or 'No date'
-            if e['event_date']:
+            raw_d = e.get('event_date')
+            if raw_d:
                 try:
-                    date_obj = datetime.strptime(e['event_date'], '%Y-%m-%d').date()
+                    if hasattr(raw_d, 'strftime') and not isinstance(raw_d, str):
+                        date_obj = raw_d if hasattr(raw_d, 'year') and not hasattr(raw_d, 'hour') else raw_d.date() if hasattr(raw_d, 'date') else raw_d
+                        # normalize datetime -> date
+                        from datetime import date as date_cls
+                        if isinstance(raw_d, datetime):
+                            date_obj = raw_d.date()
+                        elif isinstance(raw_d, date_cls):
+                            date_obj = raw_d
+                        else:
+                            date_obj = datetime.strptime(str(raw_d)[:10], '%Y-%m-%d').date()
+                    else:
+                        date_obj = datetime.strptime(str(raw_d)[:10], '%Y-%m-%d').date()
                     e['event_date_obj'] = date_obj
                     e['nice_date'] = date_obj.strftime('%A, %B %d, %Y')
                     if date_obj >= today_local:
                         upcoming_count += 1
-                except ValueError:
-                    e['nice_date'] = e['event_date']
+                except (ValueError, TypeError, AttributeError):
+                    e['nice_date'] = str(raw_d)
 
             if e.get('potluck_enabled'):
                 potluck_count += 1

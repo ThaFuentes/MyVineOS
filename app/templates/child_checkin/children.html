@@ -1,0 +1,54 @@
+{% extends "child_checkin/base_cci.html" %}
+{% block title %}Children{% endblock %}
+
+{% block cci_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+  <h1 class="page-title" style="margin:0;">Children</h1>
+  <a href="{{ url_for('child_checkin.child_new') }}" class="btn btn-primary">
+    <i class="fa-solid fa-plus" aria-hidden="true"></i> Add child
+  </a>
+</div>
+
+<form method="get" class="glass-panel" style="padding:0.75rem; margin-bottom:0.85rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+  <input type="search" name="q" class="form-input" value="{{ search_q }}" placeholder="Search name or PIN…" style="flex:1; min-width:180px;">
+  <button type="submit" class="btn btn-secondary">Search</button>
+</form>
+
+{% if children %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Default room</th>
+        <th>PIN</th>
+        <th>Guardians</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in children %}
+      <tr>
+        <td>
+          <strong>{{ c.display_name }}</strong>
+          {% if c.allergies %}<div class="cci-allergy">⚠ {{ c.allergies[:40] }}</div>{% endif %}
+        </td>
+        <td>{{ c.age_label or '—' }}</td>
+        <td>{{ c.default_classroom_name or '—' }}</td>
+        <td>{% if c.pin_code %}<code>••••</code>{% else %}—{% endif %}</td>
+        <td>{{ c.guardian_count or 0 }}</td>
+        <td><a href="{{ url_for('child_checkin.child_detail', child_id=c.id) }}" class="btn btn-secondary" style="min-height:auto;padding:0.3rem 0.6rem;font-size:0.85rem;">Open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="glass-panel" style="padding:2rem; text-align:center;">
+  <h2 style="margin:0 0 0.5rem; color:var(--primary);">No children yet</h2>
+  <p style="opacity:0.75;">Add kids, link parents with a family PIN, and you’re ready for the station.</p>
+  <a href="{{ url_for('child_checkin.child_new') }}" class="btn btn-primary">Add first child</a>
+</div>
+{% endif %}
+{% endblock %}

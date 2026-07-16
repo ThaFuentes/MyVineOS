@@ -38,6 +38,8 @@
             <!-- Delete -->
             <form method="POST" action="{{ url_for('the_gathering.events.delete_event', event_id=event.id) }}" style="display:inline;"
                   onsubmit="return confirm('PERMANENTLY DELETE this event and ALL potluck items + comments?')">
+    {% include 'partials/csrf_field.html' %}
+
                 <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete Event</button>
             </form>
             {% endif %}
@@ -45,6 +47,8 @@
     </div>
 
     <form method="POST" action="{{ url_for('the_gathering.events.edit_event', event_id=event.id if event else None) }}" class="glass p-4">
+    {% include 'partials/csrf_field.html' %}
+
         {% if event %}
         <input type="hidden" name="event_id" value="{{ event.id }}">
         {% endif %}

@@ -231,18 +231,22 @@ def run_full_security_pipeline():
             "/resend-verification", "/verify-email",
         ) or p.startswith("/reset-password") or p.startswith("/verify-email")
 
-    # Display prefs (theme/font) — members (/profile/...) and visitors (/public/...)
+    # Display prefs + moderated guest prayer (theme/login-friendly church UX)
     path_norm = path.rstrip("/")
     is_ui_prefs = request.method == "POST" and path_norm.endswith("/ui-preferences")
-    is_public_ui_prefs = is_ui_prefs and path_norm.endswith("/public/ui-preferences")
-    is_member_ui_prefs = is_ui_prefs and path_norm.endswith("/profile/ui-preferences") and bool(session.get("user_id"))
-    debug_http = os.getenv("DEBUG_MODE", "false").lower() == "true"
+    is_public_ui_prefs = is_ui_prefs and "/public/" in path_norm
+    is_member_ui_prefs = is_ui_prefs and bool(session.get("user_id"))
+    is_guest_prayer_add = request.method == "POST" and path_norm == "/prayers/add"
+    member = _is_logged_in_member()
+    # "Safe" means: never hard-block for HTTPS/reputation quirks (still CSRF-checked below)
     is_safe_mutation = (
         is_public_guest_mutation
         or is_auth_entry
         or is_public_ui_prefs
-        or (is_member_ui_prefs and debug_http)
-        or (is_ui_prefs and debug_http)
+        or is_member_ui_prefs
+        or is_ui_prefs
+        or is_guest_prayer_add
+        or member  # signed-in church members always usable even on http reverse-proxy mishaps
     )
 
     def _request_is_https(req):
@@ -256,14 +260,16 @@ def run_full_security_pipeline():
             return True
         return False
 
-    # HTTPS enforcement -- exempt public guest mutations + auth entry so login/register work over http in dev/proxy setups
-    if REQUIRE_HTTPS and not _request_is_https(request) and not is_safe_mutation:
-        if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
-            log_security_event("https_required", "Insecure POST blocked")
+    # HTTPS: only hard-block *anonymous* mutations when REQUIRE_HTTPS is on.
+    # Never brick logged-in members, login/register, or theme prefs (common proxy misconfig).
+    if REQUIRE_HTTPS and not _request_is_https(request):
+        if request.method in ('POST', 'PUT', 'DELETE', 'PATCH') and not is_safe_mutation:
+            log_security_event("https_required", "Insecure anonymous POST blocked")
             return False
+        elif request.method in ('POST', 'PUT', 'DELETE', 'PATCH') and member:
+            log_security_event("https_required_soft", "Member POST over HTTP allowed (proxy/dev)", severity="low")
 
     ua = request.headers.get("User-Agent", "") or ""
-    member = _is_logged_in_member()
     vetted = False
     try:
         vetted = bool(is_vetted())
@@ -271,26 +277,22 @@ def run_full_security_pipeline():
         vetted = False
 
     # UA hard-block: tools/scrapers only. Never block members, auth, or known browsers.
-    # Allowed search crawlers pass. Empty UA is not treated as a bot.
     if not is_auth_entry and not member and not vetted:
         if is_allowed_crawler(ua):
-            pass  # Googlebot/Bingbot etc. — allow (log-only if needed)
+            pass
         elif is_suspicious_user_agent(ua):
             log_security_event("suspicious_ua", "Bot/scraper UA detected")
             increment_attack_stat("bot_attempt")
-            return False
+            # Only hard-block tool UAs on mutations; allow GET so church sites stay readable
+            if request.method not in ("GET", "HEAD", "OPTIONS"):
+                return False
 
     if not check_rate_limit(ip):
         g.rate_limited = True
         log_security_event("rate_limit_exceeded", "IP exceeded rate limit")
-        # Do not death-spiral reputation on rate limit for members / GET browsing
         increment_attack_stat("ddos_attempts", penalize=not member)
-        debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
-        # Auth + logged-in members always continue. Guests: allow safe GET reads.
-        if debug_mode or is_auth_entry or member:
-            pass
-        elif request.method in ("GET", "HEAD", "OPTIONS"):
-            # Soft: let them read pages; still counted in logs
+        # Auth + members always continue. Guests: allow GET; soft-block spam POSTs only.
+        if is_auth_entry or member or request.method in ("GET", "HEAD", "OPTIONS"):
             pass
         else:
             return False
@@ -298,56 +300,71 @@ def run_full_security_pipeline():
     if is_locked_out():
         log_security_event("brute_force_lock", "IP is currently locked out")
         increment_attack_stat("brute_force", penalize=not member)
-        # Keep brute-force lock on mutating requests; allow GET login form to render.
-        if request.method in ("POST", "PUT", "DELETE", "PATCH") or not is_auth_entry:
-            if not member:
-                return False
+        # Members always continue. Auth pages stay open so people can still sign in.
+        # Only block other anonymous mutations while the IP is in jail.
+        if member or is_auth_entry:
+            pass
+        elif request.method in ("POST", "PUT", "DELETE", "PATCH"):
+            return False
 
     score = get_reputation_score(ip)
-    rep_floor = int(REPUTATION_BLOCK_THRESHOLD) if REPUTATION_BLOCK_THRESHOLD is not None else 10
-    # Low reputation: only hard-block anonymous mutators / deep scrapers.
-    # Members, auth, vetted browsers, and normal GET browsing stay open.
-    if score < rep_floor and not is_safe_mutation and not member and not vetted:
+    rep_floor = int(REPUTATION_BLOCK_THRESHOLD) if REPUTATION_BLOCK_THRESHOLD is not None else 8
+    # Low reputation: hard-block only anonymous mutations. Members + GETs stay open.
+    if score < rep_floor and not member and not is_auth_entry and not vetted:
         log_security_event("low_reputation", f"reputation score {score} below threshold {rep_floor}")
         increment_attack_stat("reputation_block", penalize=False)
-        debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
-        if not debug_mode and request.method not in ("GET", "HEAD", "OPTIONS"):
+        if request.method not in ("GET", "HEAD", "OPTIONS") and not is_safe_mutation:
             return False
-        # GET still allowed so a human can open the homepage / Bible even on a bruised IP
 
     # CSRF for state changing requests
     if request.method in ("POST", "PUT", "DELETE", "PATCH") and CSRF_PROTECTION:
-        csrf_token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
+        csrf_token = (
+            request.form.get("csrf_token")
+            or request.headers.get("X-CSRF-Token")
+            or request.headers.get("X-CSRFToken")
+        )
         if not validate_csrf(csrf_token):
             log_security_event("csrf_failure", "CSRF token missing or invalid on " + request.method)
-            # Avoid reputation death-spiral on flaky mobile auth CSRF
-            if not is_auth_entry and not member:
-                increment_attack_stat("csrf_attack")
-            return False
+            # Auth entry: soft-fail so mobile WebViews can still log in (session cookie races).
+            # Real app forms for members still hard-require CSRF.
+            if is_auth_entry:
+                logger("CSRF soft-allow on auth entry (mobile-friendly)")
+            else:
+                if not member:
+                    increment_attack_stat("csrf_attack")
+                return False
 
     token = request.headers.get("X-PBT-Token") or request.args.get("pbt_token")
     if token:
         if not validate_token(token, ip):
             log_security_event("invalid_token", "Token validation failed")
             increment_attack_stat("token_attack", penalize=not member)
-            return False
+            # Invalid custom token: ignore for browsers that send junk; only block if token required
+            if not member and request.method not in ("GET", "HEAD", "OPTIONS"):
+                return False
 
     # AUTO VET THE SESSION ON FIRST GOOD REQUEST
     if not is_vetted():
         mark_as_vetted()
         logger("AUTO-MARKED SESSION AS VETTED for IP " + (ip or "")[:8])
 
-    if not require_vetted() and not is_safe_mutation and not member:
-        # Members always pass; guests get one soft miss then vet above
-        log_security_event("not_vetted", "Session not vetted")
-        return False
+    # After auto-vet, guests should pass. Never block members for vetting.
+    if not require_vetted() and not member and not is_auth_entry:
+        if request.method not in ("GET", "HEAD", "OPTIONS") and not is_safe_mutation:
+            log_security_event("not_vetted", "Session not vetted on mutation")
+            return False
+        # Soft: re-mark and continue for reads
+        try:
+            mark_as_vetted()
+        except Exception:
+            pass
 
     if DB_BULKHEAD_ENABLED:
         if hasattr(g, 'query_count') and g.query_count > N1_QUERY_THRESHOLD:
             log_security_event("n1_query_detected", "N+1 query threshold exceeded")
             increment_attack_stat("n1_attack", penalize=False)
-            # Never hard-block members on internal query counting
-            if not member:
+            # Never hard-block members or GETs on internal query counting
+            if not member and request.method not in ("GET", "HEAD", "OPTIONS"):
                 return False
 
     record_good_behavior(ip)
