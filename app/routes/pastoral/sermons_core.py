@@ -124,10 +124,21 @@ def import_sermons():
         visibility = 'private'
     also_illustrations = request.form.get('also_illustrations') == '1'
     open_first = request.form.get('open_first') == '1'
+    parse_mode = (request.form.get('parse_mode') or 'rules').strip().lower()
+    if parse_mode not in ('rules', 'auto', 'ai'):
+        parse_mode = 'rules'
 
     from app.models.pastoral.sermon_import import parse_sermon_document
     from app.models.pastoral.illustrations import create_illustration
+    from app.utils.ai_assist_parse import ai_configured
     from werkzeug.utils import secure_filename
+
+    if parse_mode in ('ai', 'auto') and not ai_configured() and parse_mode == 'ai':
+        flash(
+            'AI is not configured (Settings → AI Providers). Importing with rules only.',
+            'error',
+        )
+        parse_mode = 'rules'
 
     created = []
     errors = []
@@ -139,7 +150,9 @@ def import_sermons():
             continue
         try:
             raw = f.read()
-            parsed = parse_sermon_document(raw, filename=name, as_html=True)
+            parsed = parse_sermon_document(
+                raw, filename=name, as_html=True, use_ai=parse_mode
+            )
             title = (request.form.get('title_override') or '').strip() if len(files) == 1 else ''
             if not title:
                 title = parsed.get('title') or name
@@ -179,14 +192,25 @@ def import_sermons():
                         )
                     except Exception:
                         pass
+            how = parsed.get('parse_mode') or parse_mode
+            ai_note = ' +AI' if parsed.get('ai_used') else ''
             log_change(
                 user_id,
                 'import',
                 sermon_id,
                 title,
-                f'Imported sermon from {name} ({len(sections)} sections)',
+                f'Imported sermon from {name} ({len(sections)} sections, {how}{ai_note})',
             )
-            created.append({'id': sermon_id, 'title': title, 'file': name, 'sections': len(sections)})
+            created.append({
+                'id': sermon_id,
+                'title': title,
+                'file': name,
+                'sections': len(sections),
+                'parse_mode': how,
+                'ai_used': bool(parsed.get('ai_used')),
+            })
+            if parsed.get('ai_error') and not parsed.get('ai_used'):
+                errors.append(f'{name}: rules used (AI note: {parsed.get("ai_error")})')
         except Exception as e:
             errors.append(f'{name}: {e}')
 

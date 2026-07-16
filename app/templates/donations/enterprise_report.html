@@ -1,0 +1,61 @@
+{% extends "donations/base_donations.html" %}
+{% block page_title %}Enterprise giving report{% endblock %}
+{% block page_description %}Channel mix, import pipeline, receipts, and recurring — leadership view.{% endblock %}
+
+{% block donations_content %}
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h2 style="margin:0 0 0.5rem;">Year {{ report.year }}</h2>
+  <p style="margin:0; font-size:1.25rem;">
+    <strong>${{ report.total_amount }}</strong>
+    <span style="opacity:0.7; font-size:0.9rem;"> across {{ report.gift_count }} gifts</span>
+  </p>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:0.85rem;">
+  <div class="glass-panel" style="padding:1rem;">
+    <h3 style="margin:0 0 0.5rem; font-size:0.95rem;">By channel / method</h3>
+    <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem;">
+      {% for row in report.by_channel or [] %}
+      <li>{{ row.channel }}: ${{ row.total }} ({{ row.cnt }})</li>
+      {% else %}<li style="opacity:0.6;">No data</li>{% endfor %}
+    </ul>
+  </div>
+  <div class="glass-panel" style="padding:1rem;">
+    <h3 style="margin:0 0 0.5rem; font-size:0.95rem;">By source</h3>
+    <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem;">
+      {% for row in report.by_source or [] %}
+      <li>{{ row.source }}: ${{ row.total }} ({{ row.cnt }})</li>
+      {% else %}<li style="opacity:0.6;">No data</li>{% endfor %}
+    </ul>
+  </div>
+  <div class="glass-panel" style="padding:1rem;">
+    <h3 style="margin:0 0 0.5rem; font-size:0.95rem;">Receipt pipeline</h3>
+    <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem;">
+      {% for row in report.receipt_pipeline or [] %}
+      <li><code>{{ row.receipt_status or 'none' }}</code>: {{ row.cnt }}</li>
+      {% else %}<li style="opacity:0.6;">No data</li>{% endfor %}
+    </ul>
+  </div>
+  <div class="glass-panel" style="padding:1rem;">
+    <h3 style="margin:0 0 0.5rem; font-size:0.95rem;">Email import queue</h3>
+    <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem;">
+      {% for row in report.email_import_queue or [] %}
+      <li><code>{{ row.parse_status }}</code>: {{ row.cnt }}</li>
+      {% else %}<li style="opacity:0.6;">No messages yet</li>{% endfor %}
+    </ul>
+  </div>
+  <div class="glass-panel" style="padding:1rem;">
+    <h3 style="margin:0 0 0.5rem; font-size:0.95rem;">Recurring plans</h3>
+    <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem;">
+      {% for row in report.recurring or [] %}
+      <li><code>{{ row.status }}</code>: {{ row.cnt }} · ${{ row.monthly_run_rate }} listed</li>
+      {% else %}<li style="opacity:0.6;">None tracked yet</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+
+<p style="margin-top:1rem; font-size:0.88rem; opacity:0.8;">
+  These aggregates also feed <a href="{{ url_for('ai_insights.report', report_type='donations') }}">AI Insights → Giving</a>
+  (no donor identities).
+</p>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "donations/base_donations.html" %}
+{% block page_title %}Import #{{ msg.id }}{% endblock %}
+
+{% block donations_content %}
+<p style="margin:0 0 0.75rem;">
+  <a href="{{ url_for('donations.email_import_queue') }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.7rem;">← Queue</a>
+</p>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h2 style="margin:0 0 0.5rem; font-size:1.1rem;">{{ msg.subject }}</h2>
+  <p style="margin:0; font-size:0.88rem; opacity:0.8;">
+    From: {{ msg.from_address or '—' }} · Processor: <code>{{ msg.processor }}</code>
+    · Status: <code>{{ msg.parse_status }}</code>
+    {% if msg.is_fixture %} · <strong>Mock fixture</strong>{% endif %}
+  </p>
+  {% if msg.donation_id %}
+  <p style="margin:0.5rem 0 0;">Linked donation <strong>#{{ msg.donation_id }}</strong></p>
+  {% endif %}
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem;">
+  <div class="glass-panel" style="padding:1rem;">
+    <h3 style="margin:0 0 0.65rem; font-size:1rem;">Parsed gift</h3>
+    <form method="post" action="{{ url_for('donations.email_import_post', message_id=msg.id) }}" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      {% set p = msg.parsed or {} %}
+      <label>Donor name <input type="text" name="donor_name" value="{{ p.donor_name or '' }}" class="form-input"></label>
+      <label>Donor email <input type="email" name="donor_email" value="{{ p.donor_email or '' }}" class="form-input"></label>
+      <label>Amount <input type="text" name="amount" value="{{ p.amount or '' }}" class="form-input" required></label>
+      <label>Date <input type="date" name="date" value="{{ p.date or '' }}" class="form-input"></label>
+      <label>Method <input type="text" name="method" value="{{ p.method or '' }}" class="form-input"></label>
+      <label>Confirmation # <input type="text" name="confirmation_number" value="{{ p.confirmation_number or '' }}" class="form-input"></label>
+      <label>Fund <input type="text" name="fund_label" value="{{ p.fund_label or '' }}" class="form-input"></label>
+      <label>Notes <textarea name="notes" class="form-input" rows="2">{{ p.notes or '' }}</textarea></label>
+      <label style="display:flex; align-items:center; gap:0.4rem; margin-top:0.5rem;">
+        <input type="checkbox" name="send_receipt" value="1" checked>
+        Process receipt (uses current receipt mode: test/live/off)
+      </label>
+      <div class="form-actions" style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.4rem;">
+        {% if not msg.donation_id %}
+        <button type="submit" class="btn btn-primary">Post donation record</button>
+        {% else %}
+        <span class="help-text">Already posted.</span>
+        {% endif %}
+      </div>
+    </form>
+    <form method="post" action="{{ url_for('donations.email_import_reparse', message_id=msg.id) }}" style="margin-top:0.75rem;" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <label class="control-label" style="font-size:0.85rem;">Re-parse with</label>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem 0.9rem; margin:0.35rem 0 0.55rem; font-size:0.85rem;">
+        <label style="display:flex; align-items:center; gap:0.3rem;"><input type="radio" name="parse_mode" value="rules"> Rules only</label>
+        <label style="display:flex; align-items:center; gap:0.3rem;"><input type="radio" name="parse_mode" value="auto" checked> Auto</label>
+        <label style="display:flex; align-items:center; gap:0.3rem;"><input type="radio" name="parse_mode" value="ai"> AI assist</label>
+      </div>
+      {% set pe = (msg.parsed or {}).extras or {} %}
+      {% if pe.ai_used or pe.parse_mode %}
+      <p class="help-text" style="margin:0 0 0.4rem; font-size:0.8rem;">
+        Last parse: <code>{{ pe.parse_mode or 'rules' }}</code>
+        {% if pe.ai_used %} · AI assisted{% endif %}
+      </p>
+      {% endif %}
+      <button type="submit" class="btn btn-secondary">Re-run parser</button>
+    </form>
+  </div>
+
+  <div class="glass-panel" style="padding:1rem;">
+    <h3 style="margin:0 0 0.65rem; font-size:1rem;">Raw email body</h3>
+    <pre style="white-space:pre-wrap; font-size:0.8rem; max-height:420px; overflow:auto; margin:0;">{{ msg.body_text or msg.body_html or '(empty)' }}</pre>
+  </div>
+</div>
+{% endblock %}

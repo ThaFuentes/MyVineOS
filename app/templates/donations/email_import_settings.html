@@ -1,0 +1,102 @@
+{% extends "donations/base_donations.html" %}
+{% block page_title %}Giving automation{% endblock %}
+{% block page_description %}POP3/IMAP inbox, receipt dry-run, Stripe/ACH provider keys, recurring flags.{% endblock %}
+
+{% block donations_content %}
+<p style="margin:0 0 0.75rem;">
+  <a href="{{ url_for('donations.email_import_queue') }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.7rem;">← Import queue</a>
+</p>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1.25rem;">
+  <h2 style="margin:0 0 0.75rem; font-size:1.1rem;">Receipt &amp; automation</h2>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save_settings">
+    <label>Receipt mode
+      <select name="receipt_mode" class="form-input">
+        <option value="test" {% if settings.receipt_mode == 'test' %}selected{% endif %}>Test — only send to test address</option>
+        <option value="live" {% if settings.receipt_mode == 'live' %}selected{% endif %}>Live — send to donor email</option>
+        <option value="off" {% if settings.receipt_mode == 'off' %}selected{% endif %}>Off — never send</option>
+      </select>
+    </label>
+    <label>Test receipt email
+      <input type="email" name="test_email" class="form-input" value="{{ settings.test_email or '' }}"
+             placeholder="finance-test@yourchurch.org">
+    </label>
+    <label style="display:flex; gap:0.4rem; align-items:center;">
+      <input type="checkbox" name="auto_import" value="1" {% if settings.auto_import %}checked{% endif %}>
+      Auto-scan enabled mailboxes (when scheduler runs)
+    </label>
+    <label style="display:flex; gap:0.4rem; align-items:center;">
+      <input type="checkbox" name="auto_post" value="1" {% if settings.auto_post %}checked{% endif %}>
+      Auto-post high-confidence parses (use carefully)
+    </label>
+    <div class="form-actions" style="margin-top:0.75rem;">
+      <button type="submit" class="btn btn-primary">Save automation</button>
+    </div>
+  </form>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1.25rem;">
+  <h2 style="margin:0 0 0.75rem; font-size:1.1rem;">Giving notification mailbox (POP3 / IMAP)</h2>
+  <p class="help-text">Use a dedicated inbox that only receives Stripe/PayPal/ACH alerts — not personal mail.</p>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save_mailbox">
+    {% set mb = mailboxes[0] if mailboxes else {} %}
+    {% if mb %}<input type="hidden" name="mailbox_id" value="{{ mb.id }}">{% endif %}
+    <label>Label <input type="text" name="label" class="form-input" value="{{ mb.label or 'Giving inbox' }}"></label>
+    <label>Protocol
+      <select name="protocol" class="form-input">
+        <option value="pop3" {% if mb.protocol == 'pop3' or not mb %}selected{% endif %}>POP3</option>
+        <option value="imap" {% if mb.protocol == 'imap' %}selected{% endif %}>IMAP</option>
+      </select>
+    </label>
+    <label>Host <input type="text" name="host" class="form-input" value="{{ mb.host or '' }}" placeholder="pop.gmail.com"></label>
+    <label>Port <input type="number" name="port" class="form-input" value="{{ mb.port or 995 }}"></label>
+    <label>Username <input type="text" name="username" class="form-input" value="{{ mb.username or '' }}"></label>
+    <label>Password <input type="password" name="password" class="form-input" placeholder="{% if mb.has_password %}Leave blank to keep{% else %}Password{% endif %}" autocomplete="new-password"></label>
+    <label style="display:flex; gap:0.4rem;"><input type="checkbox" name="use_ssl" value="1" {% if mb.use_ssl or not mb %}checked{% endif %}> SSL</label>
+    <label style="display:flex; gap:0.4rem;"><input type="checkbox" name="enabled" value="1" {% if mb.enabled %}checked{% endif %}> Enabled</label>
+    <div class="form-actions" style="margin-top:0.75rem;">
+      <button type="submit" class="btn btn-primary">Save mailbox</button>
+    </div>
+  </form>
+  {% if mailboxes and mailboxes[0].last_error %}
+  <p style="color:#ff9a78; font-size:0.85rem;">Last error: {{ mailboxes[0].last_error }}</p>
+  {% endif %}
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1.25rem;">
+  <h2 style="margin:0 0 0.75rem; font-size:1.1rem;">Payment providers (Stripe / ACH / recurring)</h2>
+  <p class="help-text">
+    Store encrypted Stripe secrets for future Checkout/ACH/recurring. Online giving links still work via Settings → Online Giving.
+    Email import covers PayPal, Cash App, bank ACH alerts without API keys.
+  </p>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save_provider">
+    {% set sp = none %}
+    {% for p in providers %}
+      {% if p.provider == 'stripe' and p.mode == 'test' %}{% set sp = p %}{% endif %}
+    {% endfor %}
+    <input type="hidden" name="provider" value="stripe">
+    <label>Display name <input type="text" name="display_name" class="form-input" value="{{ sp.display_name if sp else 'Stripe' }}"></label>
+    <label>Mode
+      <select name="mode" class="form-input">
+        <option value="test" selected>Test</option>
+        <option value="live">Live</option>
+      </select>
+    </label>
+    <label style="display:flex; gap:0.4rem;"><input type="checkbox" name="enabled" value="1" {% if sp and sp.enabled %}checked{% endif %}> Enabled</label>
+    <label>Publishable key <input type="text" name="publishable_key" class="form-input" value="{{ sp.publishable_key if sp else '' }}"></label>
+    <label>Secret key <input type="password" name="secret_key" class="form-input" placeholder="{% if sp and sp.has_secret %}Leave blank to keep{% else %}sk_test_…{% endif %}" autocomplete="new-password"></label>
+    <label>Webhook secret <input type="password" name="webhook_secret" class="form-input" placeholder="{% if sp and sp.has_webhook %}Leave blank to keep{% else %}whsec_…{% endif %}" autocomplete="new-password"></label>
+    <label style="display:flex; gap:0.4rem;"><input type="checkbox" name="supports_ach" value="1" {% if sp and sp.supports_ach %}checked{% endif %}> Supports ACH</label>
+    <label style="display:flex; gap:0.4rem;"><input type="checkbox" name="supports_recurring" value="1" {% if sp and sp.supports_recurring %}checked{% endif %}> Supports recurring</label>
+    <div class="form-actions" style="margin-top:0.75rem;">
+      <button type="submit" class="btn btn-primary">Save Stripe settings</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

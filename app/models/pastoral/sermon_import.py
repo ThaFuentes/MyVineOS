@@ -30,8 +30,19 @@ _H2_MAP = {
     'body': 'body',
     'main points': 'body',
     'message': 'body',
+    # Prep / research area → sermon.notes ("Notes & References"), not podium sections
     'verses and notes': 'notes',
     'verses & notes': 'notes',
+    'notes and references': 'notes',
+    'notes & references': 'notes',
+    'notes & refs': 'notes',
+    'notes and refs': 'notes',
+    'references': 'notes',
+    'research': 'notes',
+    'personal prep': 'notes',
+    'prep notes': 'notes',
+    'delivery tips': 'notes',
+    'full scripture': 'notes',
     'scripture': 'notes',
     'scripture notes': 'notes',
     'notes': 'notes',
@@ -131,19 +142,40 @@ def _plain_paragraphs_from_docx(stream: BinaryIO) -> list[tuple[str, str]]:
 
 
 def _paragraphs_from_text(text: str) -> list[tuple[str, str]]:
+    """
+    Plain text / markdown → (style, text) pairs.
+    Whole-line labels like "Introduction", "Sermon Content", "Verses and Notes"
+    are promoted to Heading 2 so buckets (and Notes & References) work without Word styles.
+    """
     lines = (text or '').replace('\r\n', '\n').replace('\r', '\n').split('\n')
     out: list[tuple[str, str]] = []
+    saw_title = False
     for line in lines:
         t = line.rstrip()
         s = t.strip()
         if s.startswith('### '):
             out.append(('Heading 3', s[4:].strip()))
-        elif s.startswith('## '):
+            continue
+        if s.startswith('## '):
             out.append(('Heading 2', s[3:].strip()))
-        elif s.startswith('# '):
+            continue
+        if s.startswith('# '):
             out.append(('Heading 1', s[2:].strip()))
-        else:
-            out.append(('Normal', t))
+            saw_title = True
+            continue
+        # Bare major labels (common in exported/pastor-typed .txt)
+        bare = re.sub(r'[:.\-–—]+\s*$', '', s)
+        bare = re.sub(r'^\*+|\*+$', '', bare).strip()
+        mapped = _normalize_h2(bare) if bare else None
+        if mapped and len(bare) <= 48:
+            out.append(('Heading 2', bare))
+            continue
+        # First non-empty non-heading line as title if nothing else set
+        if s and not saw_title and len(s) <= 120 and not _POINT_LINE.match(s):
+            out.append(('Heading 1', s))
+            saw_title = True
+            continue
+        out.append(('Normal', t))
     return out
 
 
@@ -670,16 +702,34 @@ def parse_sermon_document(
     *,
     filename: str | None = None,
     as_html: bool = True,
+    use_ai: str | bool = 'auto',
 ) -> dict[str, Any]:
     """
     Parse a sermon DOCX or plain text into title, service_date, sections.
+
+    use_ai:
+      - False/'rules' — deterministic structure only
+      - True/'ai'     — always try AI structure assist after rules
+      - 'auto'        — AI only when rule parse looks weak (one blob / few sections)
     """
+    from app.utils.ai_assist_parse import (
+        ai_parse_sermon_structure,
+        normalize_parse_mode,
+        sermon_rules_quality,
+    )
+
+    mode = normalize_parse_mode(
+        'ai' if use_ai is True else ('rules' if use_ai is False else str(use_ai))
+    )
+
     if isinstance(stream, bytes):
         stream = BytesIO(stream)
     fname = filename or ''
     lower = fname.lower()
 
+    plain_for_ai = ''
     if isinstance(stream, str):
+        plain_for_ai = stream
         paragraphs = _paragraphs_from_text(stream)
     else:
         try:
@@ -689,12 +739,14 @@ def parse_sermon_document(
             if lower.endswith(('.txt', '.md')):
                 raise ValueError('text file')
             paragraphs = _plain_paragraphs_from_docx(stream)
+            plain_for_ai = '\n'.join(t for _, t in paragraphs if (t or '').strip())
         except Exception:
             if hasattr(stream, 'seek'):
                 stream.seek(0)
             raw = stream.read() if hasattr(stream, 'read') else b''
             if isinstance(raw, bytes):
                 raw = raw.decode('utf-8', errors='replace')
+            plain_for_ai = raw
             paragraphs = _paragraphs_from_text(raw)
 
     # Title = first H1 / Title style
@@ -821,21 +873,10 @@ def parse_sermon_document(
             })
 
     primary = None
-    if notes_blob:
-        for note_sec in _split_notes(notes_blob):
-            if not primary and note_sec.get('scripture_reference'):
-                primary = note_sec['scripture_reference']
-            content = note_sec['content']
-            sections.append({
-                'section_type': note_sec['section_type'],
-                'title': note_sec['title'],
-                'content': _html_from_text(content) if as_html else content,
-                'notes': '',
-                'scripture_reference': note_sec.get('scripture_reference') or '',
-                'source': '',
-            })
-        if not primary:
-            primary = _first_ref(notes_blob)
+    # Verses / Notes / References → sermon-level Notes & References field (not podium sections)
+    prep_notes = (notes_blob or '').strip()
+    if prep_notes:
+        primary = _first_ref(prep_notes)
 
     if not sections:
         all_text = '\n'.join(
@@ -850,20 +891,174 @@ def parse_sermon_document(
             'source': '',
         })
 
-    # Prefer primary passage from first scripture section if still empty
+    # Prefer primary passage from first section scripture if still empty
     if not primary:
         for sec in sections:
-            if sec.get('section_type') == 'scripture' and sec.get('scripture_reference'):
+            if sec.get('scripture_reference'):
                 primary = sec['scripture_reference']
                 break
 
+    # Pull any mis-filed prep/notes sections out of the podium list → prep_notes
+    sections, prep_notes = _redirect_prep_sections_to_notes(sections, prep_notes)
+
     service_date = extract_service_date(fname, title)
 
-    return {
+    result = {
         'title': title[:500],
         'service_date': service_date,
         'primary_passage': primary or '',
-        'notes': '',  # notes live in sections now for podium clarity
+        # Editor field: "Notes & References (personal prep… not printed by default)"
+        'notes': prep_notes or '',
         'sections': sections,
         'source_filename': fname,
+        'parse_mode': 'rules',
+        'ai_used': False,
     }
+
+    quality = sermon_rules_quality(result)
+    result['rules_quality'] = quality
+    # Auto: only invite AI when rules clearly failed to structure (not when already good)
+    need_ai = mode == 'ai' or (mode == 'auto' and quality < 55)
+    if not need_ai or not plain_for_ai.strip():
+        return result
+
+    from app.utils.ai_assist_parse import materialize_ai_sermon_sections
+
+    ai_data, ai_err = ai_parse_sermon_structure(
+        plain_for_ai, filename=fname, rules_hint=result
+    )
+    if not ai_data:
+        result['ai_error'] = ai_err or 'AI structure assist failed — kept your full rules parse'
+        return result
+
+    # CRITICAL: never use model-written body text. Slice original lines by AI ranges.
+    ai_sections, meta = materialize_ai_sermon_sections(
+        ai_data,
+        as_html=as_html,
+        html_from_text=_html_from_text,
+    )
+    if meta.get('rejected') or not ai_sections:
+        result['ai_error'] = meta.get('reason') or ai_err or 'AI structure rejected — kept full rules parse'
+        result['ai_coverage'] = meta.get('coverage')
+        return result
+
+    # Prefer AI structure only if we still have (almost) all original words
+    rules_chars = sum(len(re.sub(r'<[^>]+>', '', s.get('content') or '')) for s in sections)
+    ai_chars = sum(len(re.sub(r'<[^>]+>', '', s.get('content') or '')) for s in ai_sections)
+    if rules_chars > 0 and ai_chars < rules_chars * 0.75:
+        result['ai_error'] = (
+            f'AI structure would drop content ({ai_chars} vs {rules_chars} chars) — kept full rules parse'
+        )
+        result['ai_coverage'] = meta.get('coverage')
+        return result
+
+    # Prep notes from AI "notes" ranges → sermon Notes & References field
+    ai_prep = (meta.get('prep_notes') or '').strip()
+    if ai_prep:
+        existing_prep = (result.get('notes') or '').strip()
+        result['notes'] = (existing_prep + '\n\n' + ai_prep).strip() if existing_prep else ai_prep
+
+    # Safety: never leave notes-type rows on the podium list
+    podium, more_prep = _redirect_prep_sections_to_notes(ai_sections, result.get('notes') or '')
+    result['sections'] = podium
+    result['notes'] = more_prep
+    result['parse_mode'] = 'rules+ai' if sections else 'ai'
+    result['ai_used'] = True
+    result['ai_coverage'] = meta.get('coverage')
+
+    # Metadata only — still never rewrite body
+    if ai_data.get('title'):
+        ai_title = str(ai_data.get('title')).strip()
+        if ai_title and (
+            not result.get('title')
+            or result['title'] in ('Imported Sermon',)
+            or result['title'].lower() == (fname or '').lower()
+        ):
+            result['title'] = ai_title[:500]
+    if ai_data.get('primary_passage') and not result.get('primary_passage'):
+        result['primary_passage'] = str(ai_data.get('primary_passage'))[:200]
+    if not result.get('primary_passage'):
+        for sec in podium:
+            if sec.get('scripture_reference'):
+                result['primary_passage'] = sec['scripture_reference']
+                break
+        if not result.get('primary_passage') and result.get('notes'):
+            result['primary_passage'] = _first_ref(result['notes']) or ''
+    if ai_data.get('service_date') and not result.get('service_date'):
+        result['service_date'] = str(ai_data.get('service_date'))[:10]
+
+    return result
+
+
+def _plain_from_section_content(content: str) -> str:
+    """HTML section content → plain text for the prep Notes & References box."""
+    text = content or ''
+    text = re.sub(r'(?i)<br\s*/?>', '\n', text)
+    text = re.sub(r'(?i)</p\s*>', '\n\n', text)
+    text = re.sub(r'(?i)<p[^>]*>', '', text)
+    text = re.sub(r'<[^>]+>', '', text)
+    text = text.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def _is_prep_notes_section(sec: dict) -> bool:
+    """True if this belongs in sermon Notes & References, not the podium outline."""
+    st = (sec.get('section_type') or '').strip().lower()
+    title = (sec.get('title') or '').strip().lower()
+    if st in ('notes', 'reference', 'references', 'research'):
+        return True
+    if re.match(
+        r'^(verses?\s*(and|&)?\s*notes|notes\s*(and|&)?\s*references?|notes\s*(and|&)?\s*refs|'
+        r'references?|research|personal prep|prep notes|delivery tips|full scripture|scripture notes)\b',
+        title,
+    ):
+        return True
+    return False
+
+
+def _redirect_prep_sections_to_notes(
+    sections: list[dict],
+    existing_notes: str = '',
+) -> tuple[list[dict], str]:
+    """
+    Move Verses/Notes/References sections out of the podium list into the
+    sermon-level Notes & References field (personal prep, not printed by default).
+    """
+    podium: list[dict] = []
+    prep_parts: list[str] = []
+    if (existing_notes or '').strip():
+        prep_parts.append(existing_notes.strip())
+
+    for sec in sections or []:
+        if _is_prep_notes_section(sec):
+            plain = _plain_from_section_content(sec.get('content') or '')
+            if not plain:
+                continue
+            label = (sec.get('title') or 'Notes & References').strip()
+            # Avoid double-labeling if content already starts with the heading
+            if plain.lower().startswith(label.lower()):
+                prep_parts.append(plain)
+            else:
+                prep_parts.append(f'{label}\n{plain}')
+            # Also preserve any per-section notes field
+            extra = (sec.get('notes') or '').strip()
+            if extra and extra not in plain:
+                prep_parts.append(extra)
+            continue
+        podium.append(sec)
+
+    # Re-number Section N after removals so outline stays clean
+    n = 0
+    for sec in podium:
+        st = (sec.get('section_type') or '').lower()
+        title = (sec.get('title') or '').strip()
+        if st in ('point', 'body', 'scripture') or re.match(r'^section\s+\d+$', title, re.I):
+            if st in ('point', 'body') or re.match(r'^section\s+\d+$', title, re.I):
+                n += 1
+                if st != 'scripture':
+                    sec['section_type'] = 'point'
+                    sec['title'] = f'Section {n}'
+
+    combined = '\n\n'.join(p for p in prep_parts if p).strip()
+    return podium, combined

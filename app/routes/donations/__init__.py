@@ -25,6 +25,7 @@ from . import views
 from . import queries
 from . import forms
 from . import utils
+from . import import_views  # email import + AI-assisted parse + enterprise report
 
 # Re-export for easy import in app/__init__.py
 __all__ = ['donations_bp']

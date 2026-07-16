@@ -45,11 +45,37 @@
           <span>Open the sermon editor after importing a single file</span>
         </label>
       </div>
-      <div class="form-group" style="margin-bottom:1.1rem;">
+      <div class="form-group" style="margin-bottom:0.85rem;">
         <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:500; cursor:pointer;">
           <input type="checkbox" name="also_illustrations" value="1" style="width:auto; min-height:auto; margin-top:0.2rem;">
           <span>Also save each section into Illustrations Library (optional)</span>
         </label>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.1rem;">
+        <label class="control-label" style="display:block; margin-bottom:0.4rem;">How to structure the sermon</label>
+        <div style="display:flex; flex-direction:column; gap:0.45rem;">
+          <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer; font-weight:500;">
+            <input type="radio" name="parse_mode" value="rules" checked style="width:auto; min-height:auto; margin-top:0.2rem;">
+            <span>
+              <strong>Without AI (recommended)</strong> — keeps 100% of your wording; splits on headings / Point 1: / scripture lines
+            </span>
+          </label>
+          <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer; font-weight:500;">
+            <input type="radio" name="parse_mode" value="auto" style="width:auto; min-height:auto; margin-top:0.2rem;">
+            <span>
+              <strong>Auto</strong> — rules first; AI only suggests section breaks if the doc looks unstructured
+              (AI never rewrites your words)
+            </span>
+          </label>
+          <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer; font-weight:500;">
+            <input type="radio" name="parse_mode" value="ai" style="width:auto; min-height:auto; margin-top:0.2rem;">
+            <span>
+              <strong>AI section breaks</strong> — AI only marks where sections start/end, then we copy your original text
+              + detect Bible verses per section. If AI would drop content, we keep the full rules parse instead.
+            </span>
+          </label>
+        </div>
       </div>
 
       <div style="display:flex; flex-wrap:wrap; gap:0.55rem;">
@@ -62,15 +88,21 @@
   </div>
 
   <div class="glass-panel" style="padding:1rem 1.15rem; margin-top:0.85rem; font-size:0.88rem; opacity:0.88;">
-    <strong style="color:var(--primary);">Best results with this structure</strong>
-    <ul style="margin:0.5rem 0 0; padding-left:1.2rem; line-height:1.5;">
-      <li><strong>Title</strong> as Heading 1</li>
-      <li><strong>Introduction</strong>, <strong>Sermon Content</strong>, <strong>Verses and Notes</strong> as Heading 2</li>
-      <li>Inside body: <code>Point 1:</code> / <code>Section 2:</code> lines for separate podium sections</li>
-      <li>Notes lines like <code>Note: John 3:16: …</code></li>
-    </ul>
-    <p style="margin:0.75rem 0 0; opacity:0.75;">
-      Your content stays yours — after import, use <strong>Export DOCX</strong> anytime from the library.
+    <strong style="color:var(--primary);">How MyVine structures a sermon</strong>
+    <ol style="margin:0.5rem 0 0; padding-left:1.2rem; line-height:1.55;">
+      <li><strong>Introduction</strong> — top only (opener / welcome)</li>
+      <li><strong>Section 1</strong> — starts at <em>Sermon Content</em> / first main point</li>
+      <li><strong>Section 2, 3, …</strong> — each additional point or story</li>
+      <li><strong>Application</strong> (optional) then <strong>Conclusion</strong> (optional)</li>
+      <li><strong>Verses and Notes / Notes &amp; References</strong> → the editor’s
+        <em>Notes &amp; References</em> box at the bottom (personal prep — not printed by default).
+        Not a podium section.</li>
+    </ol>
+    <p style="margin:0.65rem 0 0;">
+      Best Word layout: Title as Heading 1; Introduction / Sermon Content / Verses and Notes as Heading 2;
+      inside the body use <code>Point 1:</code>, <code>Point 2:</code>, etc.
+      AI mode only finds those breaks — it does not rewrite your words.
+      Full scripture dumps and research always land in <strong>Notes &amp; References</strong>.
     </p>
   </div>
 </div>
