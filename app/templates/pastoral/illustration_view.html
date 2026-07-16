@@ -20,11 +20,19 @@
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <div class="card glass-card shadow">
-                <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <div class="card-header bg-dark d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h2 class="mb-0 text-cyan">{{ item.title }}</h2>
-                    <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-outline-cyan">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Library
-                    </a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('pastoral.illustrations.download', item_id=item.id, type=item.type) }}" class="btn btn-outline-cyan">
+                            <i class="fas fa-download me-1"></i> Markdown
+                        </a>
+                        <a href="{{ url_for('pastoral.illustrations.download', item_id=item.id, type=item.type, format='docx') }}" class="btn btn-outline-cyan">
+                            <i class="fas fa-file-word me-1"></i> Word
+                        </a>
+                        <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-outline-cyan">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Library
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
                     <!-- Type Badge -->

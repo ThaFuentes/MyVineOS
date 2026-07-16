@@ -16,7 +16,14 @@
              style="width:100%; padding:0.5rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
     </div>
     <button type="submit" class="btn btn-primary" style="min-height:42px;">Search</button>
+    <a href="{{ url_for('pastoral.vault.download_all') }}" class="btn btn-secondary" style="min-height:42px;" title="Download all vault items">
+      <i class="fa-solid fa-download" aria-hidden="true"></i> Download all
+    </a>
+    <a href="{{ url_for('pastoral.vault.download_all', format='docx') }}" class="btn btn-secondary" style="min-height:42px;" title="Download all as Word ZIP">
+      <i class="fa-solid fa-file-word" aria-hidden="true"></i> DOCX ZIP
+    </a>
   </form>
+  <p style="margin:0.5rem 0 0; font-size:0.78rem; opacity:0.65;">Your saved sections stay with you — download any card or the whole vault.</p>
 </div>
 
 {% if edit_item %}
@@ -58,9 +65,17 @@
       {% if item.tag_list %}
       <div style="font-size:0.75rem; opacity:0.7;">Tags: {{ item.tag_list|join(', ') }}</div>
       {% endif %}
-      {% if item.can_edit %}
-      <a href="{{ url_for('pastoral.vault.library', edit_id=item.id, q=q) }}" class="btn btn-small btn-secondary" style="align-self:flex-start;">Edit</a>
-      {% endif %}
+      <div style="display:flex; flex-wrap:wrap; gap:0.35rem; margin-top:auto;">
+        <a href="{{ url_for('pastoral.vault.download', item_id=item.id) }}" class="btn btn-small btn-secondary" title="Download Markdown">
+          <i class="fa-solid fa-download" aria-hidden="true"></i> .md
+        </a>
+        <a href="{{ url_for('pastoral.vault.download', item_id=item.id, format='docx') }}" class="btn btn-small btn-secondary" title="Download Word">
+          <i class="fa-solid fa-file-word" aria-hidden="true"></i> DOCX
+        </a>
+        {% if item.can_edit %}
+        <a href="{{ url_for('pastoral.vault.library', edit_id=item.id, q=q) }}" class="btn btn-small btn-secondary">Edit</a>
+        {% endif %}
+      </div>
     </div>
     {% endfor %}
   </div>

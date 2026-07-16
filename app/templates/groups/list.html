@@ -96,6 +96,20 @@
                                     <div class="potluck-content">
                                         <!-- Full Description -->
                                         <section class="detail-section">
+                                            <h3 class="detail-heading">Permissions ({{ group.permission_list|length if group.permission_list is defined else 0 }})</h3>
+                                            <div class="detail-content">
+                                                {% if group.permission_labels %}
+                                                <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+                                                    {% for label in group.permission_labels %}
+                                                    <span style="font-size:0.75rem; padding:0.2rem 0.55rem; border-radius:9999px; background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.22); color:var(--primary);">{{ label }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                                {% else %}
+                                                <p class="help-text" style="margin:0;">No permissions granted yet — edit the group to assign access.</p>
+                                                {% endif %}
+                                            </div>
+                                        </section>
+                                        <section class="detail-section">
                                             <h3 class="detail-heading">Full Description</h3>
                                             <div class="detail-content">
                                                 {{ group.description|nl2br|default('No description provided.') }}

@@ -14,7 +14,7 @@
 #   - Supports rich content (Quill editor).
 #   - Robust for desktop pastoral use.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, abort
 import json
 import pymysql
 
@@ -30,8 +30,50 @@ from app.models.pastoral.illustrations import (
     get_visible_illustrations
 )
 from app.models.pastoral.vault import delete_vault_item
+from app.models.pastoral.content_export import (
+    format_illustration_markdown,
+    illustration_to_docx,
+    safe_filename,
+    send_markdown_download,
+    send_docx_download,
+    zip_named_bytes,
+)
 
 illustrations_bp = Blueprint('illustrations', __name__, url_prefix='/illustrations')
+
+
+def _fetch_library_item(item_id: int, user_id: int, kind: str | None = None) -> dict | None:
+    """Load illustration or vault section by id (optionally forced kind)."""
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    kind = (kind or '').strip().lower() or None
+
+    if kind in (None, 'illustration', 'illus'):
+        cur.execute(
+            """
+            SELECT il.*, 'illustration' AS type, il.source AS source_url
+            FROM illustration_library il
+            WHERE il.id = %s AND (il.user_id = %s OR il.user_id IS NULL)
+            """,
+            (item_id, user_id),
+        )
+        row = cur.fetchone()
+        if row:
+            return row
+        if kind in ('illustration', 'illus'):
+            return None
+
+    if kind in (None, 'section', 'vault'):
+        cur.execute(
+            """
+            SELECT pv.*, 'section' AS type, pv.source_url
+            FROM pastoral_vault pv
+            WHERE pv.id = %s AND (pv.user_id = %s OR pv.user_id IS NULL)
+            """,
+            (item_id, user_id),
+        )
+        return cur.fetchone()
+    return None
 
 
 @illustrations_bp.route('/quick_add', methods=['POST'])
@@ -97,13 +139,28 @@ def library():
 
     items = []
 
+    # Campus isolation fragment (shared for both tables)
+    try:
+        from app.models.campuses import content_campus_filter_sql
+        illus_campus_frag, illus_campus_params = content_campus_filter_sql(
+            'il.campus_id', user_id=user_id, owner_column='il.user_id'
+        )
+        vault_campus_frag, vault_campus_params = content_campus_filter_sql(
+            'pv.campus_id', user_id=user_id, owner_column='pv.user_id'
+        )
+    except Exception:
+        illus_campus_frag, illus_campus_params = '', []
+        vault_campus_frag, vault_campus_params = '', []
+
     # Illustrations
     illus_sql = """
         SELECT il.*, 'illustration' AS type, il.source AS source_url
         FROM illustration_library il
-        WHERE il.user_id = %s OR il.user_id IS NULL
+        WHERE (il.user_id = %s OR il.user_id IS NULL)
     """
     params = [user_id]
+    illus_sql += illus_campus_frag
+    params += list(illus_campus_params)
 
     if q:
         like = f"%{q}%"
@@ -117,9 +174,11 @@ def library():
     vault_sql = """
         SELECT pv.*, 'section' AS type, pv.source_url
         FROM pastoral_vault pv
-        WHERE pv.user_id = %s OR pv.user_id IS NULL
+        WHERE (pv.user_id = %s OR pv.user_id IS NULL)
     """
     params = [user_id]
+    vault_sql += vault_campus_frag
+    params += list(vault_campus_params)
 
     if q:
         like = f"%{q}%"
@@ -253,26 +312,8 @@ def library():
 @pastoral_required()
 def view(item_id: int):
     user_id = session['user_id']
-
-    db = get_db()
-    cur = db.cursor(pymysql.cursors.DictCursor)
-
-    # Try illustration
-    cur.execute("""
-        SELECT il.*, 'illustration' AS type, il.source AS source_url
-        FROM illustration_library il
-        WHERE il.id = %s AND (il.user_id = %s OR il.user_id IS NULL)
-    """, (item_id, user_id))
-    item = cur.fetchone()
-
-    if not item:
-        # Try vault section
-        cur.execute("""
-            SELECT pv.*, 'section' AS type, pv.source_url
-            FROM pastoral_vault pv
-            WHERE pv.id = %s AND (pv.user_id = %s OR pv.user_id IS NULL)
-        """, (item_id, user_id))
-        item = cur.fetchone()
+    kind = request.args.get('type') or request.args.get('kind')
+    item = _fetch_library_item(item_id, user_id, kind)
 
     if not item:
         flash('Item not found or access denied.', 'error')
@@ -284,6 +325,99 @@ def view(item_id: int):
         'pastoral/illustration_view.html',
         item=item
     )
+
+
+@illustrations_bp.route('/download/<int:item_id>')
+@pastoral_required()
+def download(item_id: int):
+    """Download one illustration or vault section as Markdown or DOCX (creator-owned content)."""
+    user_id = session['user_id']
+    kind = request.args.get('type') or request.args.get('kind')
+    fmt = (request.args.get('format') or 'md').strip().lower()
+    item = _fetch_library_item(item_id, user_id, kind)
+    if not item:
+        abort(404)
+
+    item_kind = item.get('type') or 'illustration'
+    item['tag_list'] = _safe_load_tags(item.get('tags'))
+    base = safe_filename(item.get('title') or f'{item_kind}_{item_id}')
+
+    log_change(
+        user_id,
+        'export',
+        item_id,
+        item.get('title'),
+        f'Downloaded {item_kind} as {fmt}',
+    )
+
+    if fmt in ('docx', 'doc', 'word'):
+        doc = illustration_to_docx(item, kind=item_kind)
+        return send_docx_download(doc, f'{base}.docx')
+
+    body = format_illustration_markdown(item, kind=item_kind)
+    return send_markdown_download(body, f'{base}.md')
+
+
+@illustrations_bp.route('/download/all')
+@pastoral_required()
+def download_all():
+    """ZIP of all illustrations + vault sections visible to the creator."""
+    user_id = session['user_id']
+    fmt = (request.args.get('format') or 'md').strip().lower()
+    as_docx = fmt in ('docx', 'doc', 'word')
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+
+    cur.execute(
+        """
+        SELECT il.*, 'illustration' AS type, il.source AS source_url
+        FROM illustration_library il
+        WHERE il.user_id = %s OR il.user_id IS NULL
+        ORDER BY il.created_at DESC
+        """,
+        (user_id,),
+    )
+    items = list(cur.fetchall() or [])
+
+    cur.execute(
+        """
+        SELECT pv.*, 'section' AS type, pv.source_url
+        FROM pastoral_vault pv
+        WHERE pv.user_id = %s OR pv.user_id IS NULL
+        ORDER BY pv.created_at DESC
+        """,
+        (user_id,),
+    )
+    items.extend(list(cur.fetchall() or []))
+
+    if not items:
+        flash('No library content to download yet.', 'error')
+        return redirect(url_for('pastoral.illustrations.library'))
+
+    files = []
+    for item in items:
+        item['tag_list'] = _safe_load_tags(item.get('tags'))
+        kind = item.get('type') or 'illustration'
+        base = safe_filename(item.get('title') or f'{kind}_{item.get("id")}')
+        folder = 'illustrations' if kind == 'illustration' else 'vault_sections'
+        if as_docx:
+            from app.models.pastoral.content_export import docx_bytes
+
+            doc = illustration_to_docx(item, kind=kind)
+            files.append((f'{folder}/{base}.docx', docx_bytes(doc).read()))
+        else:
+            body = format_illustration_markdown(item, kind=kind)
+            files.append((f'{folder}/{base}.md', body.encode('utf-8')))
+
+    log_change(
+        user_id,
+        'export_bulk',
+        None,
+        None,
+        f'Downloaded {len(files)} library items as {"docx" if as_docx else "md"} zip',
+    )
+    return zip_named_bytes(files, 'MyVine_Illustrations_Library_{date}.zip')
 
 
 @illustrations_bp.route('/delete/<int:item_id>', methods=['POST'])

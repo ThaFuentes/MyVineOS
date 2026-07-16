@@ -27,7 +27,16 @@
     <button type="button" id="add-item-btn" class="btn btn-secondary" style="min-height:42px;">
       <i class="fa-solid fa-plus" aria-hidden="true"></i> Add illustration
     </button>
+    <a href="{{ url_for('pastoral.illustrations.download_all') }}" class="btn btn-secondary" style="min-height:42px;" title="Download all as Markdown ZIP">
+      <i class="fa-solid fa-download" aria-hidden="true"></i> Download all
+    </a>
+    <a href="{{ url_for('pastoral.illustrations.download_all', format='docx') }}" class="btn btn-secondary" style="min-height:42px;" title="Download all as Word ZIP">
+      <i class="fa-solid fa-file-word" aria-hidden="true"></i> DOCX ZIP
+    </a>
   </form>
+  <p style="margin:0.55rem 0 0; font-size:0.78rem; opacity:0.65;">
+    Your stories and sections are yours — download any item from its card, or grab the whole library as a ZIP.
+  </p>
 </div>
 
 {% if docked_count > 0 %}
@@ -93,8 +102,14 @@
         {% endif %}
       </button>
       <div class="illus-card-actions">
-        <a href="{{ url_for('pastoral.illustrations.view', item_id=item.id) }}" class="btn btn-secondary">
+        <a href="{{ url_for('pastoral.illustrations.view', item_id=item.id, type=item.type) }}" class="btn btn-secondary">
           <i class="fa-solid fa-eye" aria-hidden="true"></i> View
+        </a>
+        <a href="{{ url_for('pastoral.illustrations.download', item_id=item.id, type=item.type) }}" class="btn btn-secondary" title="Download Markdown">
+          <i class="fa-solid fa-download" aria-hidden="true"></i>
+        </a>
+        <a href="{{ url_for('pastoral.illustrations.download', item_id=item.id, type=item.type, format='docx') }}" class="btn btn-secondary" title="Download Word">
+          <i class="fa-solid fa-file-word" aria-hidden="true"></i>
         </a>
         <a href="{{ url_for('pastoral.illustrations.library') }}?edit_id={{ item.id }}{% if q %}&q={{ q }}{% endif %}" class="btn btn-secondary">
           <i class="fa-solid fa-pen" aria-hidden="true"></i> Edit

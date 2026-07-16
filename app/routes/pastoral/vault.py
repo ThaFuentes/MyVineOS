@@ -11,7 +11,7 @@
 #   - All routes require Pastoral Group membership (@pastoral_required)
 #   - Consistent with illustrations.py: direct DB access, safe helpers, audit logging
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, abort
 import json
 import pymysql
 
@@ -19,6 +19,15 @@ from . import pastoral_required
 from app.models.log import log_change
 from app.utils.helpers import contains_censored_word
 from app.models.db import get_db
+from app.models.pastoral.content_export import (
+    format_illustration_markdown,
+    illustration_to_docx,
+    safe_filename,
+    send_markdown_download,
+    send_docx_download,
+    zip_named_bytes,
+    docx_bytes,
+)
 
 vault_bp = Blueprint('vault', __name__, url_prefix='/vault')
 
@@ -69,9 +78,18 @@ def library():
     sql = """
         SELECT pv.*, 'section' AS type, pv.source_url
         FROM pastoral_vault pv
-        WHERE pv.user_id = %s OR pv.user_id IS NULL
+        WHERE (pv.user_id = %s OR pv.user_id IS NULL)
     """
     params = [user_id]
+    try:
+        from app.models.campuses import content_campus_filter_sql
+        frag, cparams = content_campus_filter_sql(
+            'pv.campus_id', user_id=user_id, owner_column='pv.user_id'
+        )
+        sql += frag
+        params.extend(cparams)
+    except Exception:
+        pass
 
     if q:
         like = f"%{q}%"
@@ -133,6 +151,11 @@ def library():
             return redirect(request.url)
 
         owner_id = user_id if visibility == 'private' else None
+        try:
+            from app.models.campuses import resolve_campus_id_for_write
+            campus_id = resolve_campus_id_for_write()
+        except Exception:
+            campus_id = None
 
         try:
             if edit_item:
@@ -149,9 +172,9 @@ def library():
                 cur.execute("""
                     INSERT INTO pastoral_vault (
                         user_id, title, content, section_type, scripture_reference,
-                        source_url, notes, tags, visibility
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (owner_id, title, content, section_type, scripture_reference, source_url, notes, tags_json, visibility))
+                        source_url, notes, tags, visibility, campus_id
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (owner_id, title, content, section_type, scripture_reference, source_url, notes, tags_json, visibility, campus_id))
                 new_id = cur.lastrowid
                 db.commit()
                 log_change(user_id, 'vault_create', new_id, title, 'Created vault item')
@@ -167,6 +190,75 @@ def library():
         q=q,
         edit_item=edit_item
     )
+
+
+@vault_bp.route('/download/<int:item_id>')
+@pastoral_required()
+def download(item_id: int):
+    """Download one vault section as Markdown or DOCX."""
+    user_id = session['user_id']
+    fmt = (request.args.get('format') or 'md').strip().lower()
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute(
+        """
+        SELECT pv.*, 'section' AS type, pv.source_url
+        FROM pastoral_vault pv
+        WHERE pv.id = %s AND (pv.user_id = %s OR pv.user_id IS NULL)
+        """,
+        (item_id, user_id),
+    )
+    item = cur.fetchone()
+    if not item:
+        abort(404)
+
+    item['tag_list'] = _safe_load_tags(item.get('tags'))
+    base = safe_filename(item.get('title') or f'vault_{item_id}')
+    log_change(user_id, 'export', item_id, item.get('title'), f'Downloaded vault item as {fmt}')
+
+    if fmt in ('docx', 'doc', 'word'):
+        return send_docx_download(illustration_to_docx(item, kind='section'), f'{base}.docx')
+    return send_markdown_download(format_illustration_markdown(item, kind='section'), f'{base}.md')
+
+
+@vault_bp.route('/download/all')
+@pastoral_required()
+def download_all():
+    """ZIP of every vault section the creator can access."""
+    user_id = session['user_id']
+    fmt = (request.args.get('format') or 'md').strip().lower()
+    as_docx = fmt in ('docx', 'doc', 'word')
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute(
+        """
+        SELECT pv.*, 'section' AS type, pv.source_url
+        FROM pastoral_vault pv
+        WHERE pv.user_id = %s OR pv.user_id IS NULL
+        ORDER BY pv.created_at DESC
+        """,
+        (user_id,),
+    )
+    items = list(cur.fetchall() or [])
+    if not items:
+        flash('No vault items to download yet.', 'error')
+        return redirect(url_for('pastoral.vault.library'))
+
+    files = []
+    for item in items:
+        item['tag_list'] = _safe_load_tags(item.get('tags'))
+        base = safe_filename(item.get('title') or f'vault_{item.get("id")}')
+        if as_docx:
+            files.append((f'{base}.docx', docx_bytes(illustration_to_docx(item, kind='section')).read()))
+        else:
+            files.append(
+                (f'{base}.md', format_illustration_markdown(item, kind='section').encode('utf-8'))
+            )
+
+    log_change(user_id, 'export_bulk', None, None, f'Downloaded {len(files)} vault items')
+    return zip_named_bytes(files, 'MyVine_Vault_{date}.zip')
 
 
 @vault_bp.route('/save_section_ajax', methods=['POST'])
@@ -212,16 +304,22 @@ def save_section_ajax():
         return jsonify({'status': 'error', 'message': 'Prohibited content detected'}), 400
 
     try:
+        from app.models.campuses import resolve_campus_id_for_write
+        campus_id = resolve_campus_id_for_write()
+    except Exception:
+        campus_id = None
+
+    try:
         db = get_db()
         cur = db.cursor()
         cur.execute("""
             INSERT INTO pastoral_vault (
                 user_id, title, content, section_type, scripture_reference,
-                source_url, notes, tags, visibility
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                source_url, notes, tags, visibility, campus_id
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (owner_id, data['title'], data['content'], data['section_type'],
               data['scripture_reference'], data['source_url'], data['notes'],
-              data['tags'], data['visibility']))
+              data['tags'], data['visibility'], campus_id))
         new_id = cur.lastrowid
         db.commit()
         log_change(user_id, 'vault_create', new_id, data['title'][:50], 'Quick-saved sermon section to Vault')
@@ -244,9 +342,18 @@ def search_ajax():
     sql = """
         SELECT pv.*, 'section' AS type, pv.source_url
         FROM pastoral_vault pv
-        WHERE pv.user_id = %s OR pv.user_id IS NULL
+        WHERE (pv.user_id = %s OR pv.user_id IS NULL)
     """
     params = [user_id]
+    try:
+        from app.models.campuses import content_campus_filter_sql
+        frag, cparams = content_campus_filter_sql(
+            'pv.campus_id', user_id=user_id, owner_column='pv.user_id'
+        )
+        sql += frag
+        params.extend(cparams)
+    except Exception:
+        pass
 
     if query:
         like = f"%{query}%"

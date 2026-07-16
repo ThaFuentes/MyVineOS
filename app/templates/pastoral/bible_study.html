@@ -3,8 +3,8 @@
 {% block title %}Bible Study{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713f">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260716bible4">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260716sticky1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260716sermonbar1">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -26,35 +26,35 @@
 <div class="bible-sermon-bar glass-card mb-3">
     <div class="bible-sermon-bar-inner">
         <div class="bible-sermon-field">
-            <label class="form-label small mb-1" for="bible-sermon-select">Active sermon</label>
-            <select id="bible-sermon-select" class="form-select form-control-dark">
-                <option value="">- Choose a sermon to insert into -</option>
+            <label class="form-label small" for="bible-sermon-select">Active sermon</label>
+            <select id="bible-sermon-select" class="form-select form-control-dark" aria-describedby="bible-sermon-hint">
+                <option value="">— Choose a sermon to insert into —</option>
                 {% for s in sermons %}
                 <option value="{{ s.id }}" {% if sermon_id == s.id %}selected{% endif %}>{{ s.title }}{% if s.primary_passage %} ({{ s.primary_passage }}){% endif %}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="bible-sermon-actions">
+        <div class="bible-sermon-actions" role="group" aria-label="Sermon actions">
             <button type="button" id="bible-new-sermon-btn" class="btn btn-outline-cyan btn-sm" title="Create a draft sermon and select it">
-                <i class="fas fa-plus me-1"></i>New
+                <i class="fas fa-plus" aria-hidden="true"></i> New
             </button>
             <a href="#" id="bible-open-sermon-btn" class="btn btn-cyan btn-sm disabled"
                title="Open the active sermon in this tab">
-                <i class="fas fa-pen me-1"></i>Open sermon
+                <i class="fas fa-pen" aria-hidden="true"></i> Open
             </a>
             <a href="#" id="bible-open-sermon-tab-btn" class="btn btn-outline-cyan btn-sm disabled"
                target="_blank" rel="noopener"
                title="Open the active sermon in a new browser tab">
-                <i class="fas fa-up-right-from-square me-1"></i>New tab
+                <i class="fas fa-up-right-from-square" aria-hidden="true"></i> New tab
             </a>
         </div>
     </div>
     <p id="bible-sermon-hint" class="small text-muted mb-0 mt-2 bible-sermon-hint">
         {% if sermon_id and sermon %}
-        Active sermon: <strong>{{ sermon.title }}</strong>. Use <strong>+ Sermon</strong> on a verse to append it into that sermon’s
-        <em>Bible Study inserts</em> section. Use <strong>Open sermon</strong> (this tab) or <strong>New tab</strong> to review.
+        Active sermon: <strong>{{ sermon.title }}</strong>. Use <strong>+ Sermon</strong> on a verse to append it.
+        Use <strong>Open</strong> (this tab) or <strong>New tab</strong> to review.
         {% else %}
-        Pick a sermon, then <strong>+ Sermon</strong> inserts verses into it. <strong>Note</strong> = personal Study notes below
+        Pick a sermon, then <strong>+ Sermon</strong> inserts verses into it. <strong>Note</strong> = Study notes below
         (not illustrations). <strong>+ Library</strong> = Illustration Library only.
         {% endif %}
     </p>

@@ -70,6 +70,24 @@ def create_tables(cursor):
         except Exception:
             pass
 
+    # Per-module settings (bus depot, church address, approved routes, radius limits, …)
+    try:
+        cursor.execute(
+            """
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'custom_modules'
+              AND COLUMN_NAME = 'settings_json'
+            """
+        )
+        if not cursor.fetchone():
+            cursor.execute(
+                "ALTER TABLE custom_modules ADD COLUMN settings_json TEXT NULL"
+            )
+            print("Migration: custom_modules.settings_json added")
+    except Exception as e:
+        print(f"Migration settings_json note: {e}")
+
     _seed_module_types(cursor)
 
 
@@ -85,10 +103,38 @@ def _seed_module_types(cursor):
                 'list_label': 'Routes & Stops',
                 'record_label': 'Stop',
                 'title_field': 'stop_name',
+                'bus_module': True,
                 'fields': [
-                    {'key': 'stop_name', 'label': 'Stop Name', 'type': 'text', 'required': True},
-                    {'key': 'pickup_time', 'label': 'Pickup Time', 'type': 'time'},
-                    {'key': 'dropoff_location', 'label': 'Drop-off Location', 'type': 'text'},
+                    {
+                        'key': 'route_name',
+                        'label': 'Approved route',
+                        'type': 'select',
+                        'required': True,
+                        'options': [],
+                        'help': 'Only routes the bus owner/manager has approved. Set these under Bus settings.',
+                    },
+                    {'key': 'stop_name', 'label': 'Stop name', 'type': 'text', 'required': True},
+                    {
+                        'key': 'stop_address',
+                        'label': 'Stop address / area',
+                        'type': 'text',
+                        'required': True,
+                        'help': 'Pickup location for this stop.',
+                    },
+                    {
+                        'key': 'miles_from_church',
+                        'label': 'Miles from church',
+                        'type': 'number',
+                        'required': True,
+                        'help': 'Approximate road miles from the church. Must stay within the max radius for this route / bus.',
+                    },
+                    {'key': 'pickup_time', 'label': 'Pickup time', 'type': 'time'},
+                    {
+                        'key': 'dropoff_location',
+                        'label': 'Drop-off (if not church)',
+                        'type': 'text',
+                        'help': 'Leave blank if riders get off at the church.',
+                    },
                     {'key': 'driver_name', 'label': 'Driver', 'type': 'text'},
                     {'key': 'route_notes', 'label': 'Notes', 'type': 'textarea'},
                 ],
@@ -174,12 +220,25 @@ def _seed_module_types(cursor):
         ('weekly_schedule', 'Ministry Calendar',
          'Optional - when ministries meet (e.g. Wednesday Youth 7pm). Bulletin-style, not chat or signups.'),
         ('bus_routes', 'Bus Routes',
-         'Pickup stops, times, and drivers for church transportation.'),
+         'Church bus: set depot + church locations, approve routes, and keep stops inside a max radius.'),
         ('youth_group', 'Youth Group',
          'Youth events and meetings - dates, locations, leaders.'),
     ):
         cursor.execute("""
             UPDATE custom_module_types SET name = %s, description = %s WHERE type_key = %s
         """, (name, desc, type_key))
+
+    # Keep bus_routes field schema current on existing installs
+    for type_key, name, desc, icon, theme, schema in types:
+        if type_key != 'bus_routes':
+            continue
+        cursor.execute(
+            """
+            UPDATE custom_module_types
+            SET schema_json = %s, description = %s, name = %s
+            WHERE type_key = %s
+            """,
+            (json.dumps(schema), desc, name, type_key),
+        )
 
     print("Custom module types seeded: bus_routes, youth_group, ministry calendar, equipment & rooms.")

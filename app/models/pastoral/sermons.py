@@ -61,6 +61,17 @@ def get_visible_sermons(user_id, search=None, visibility=None, limit=None, offse
     """
     params = [user_id, user_id]
 
+    # Multi-branch: hide other campuses' isolated content
+    try:
+        from app.models.campuses import content_campus_filter_sql
+        frag, cparams = content_campus_filter_sql(
+            'ps.campus_id', user_id=user_id, owner_column='ps.created_by'
+        )
+        sql += frag
+        params.extend(cparams)
+    except Exception:
+        pass
+
     if search:
         sql += " AND (ps.title LIKE %s OR ps.primary_passage LIKE %s)"
         params.extend([f"%{search}%", f"%{search}%"])
@@ -108,7 +119,7 @@ def get_sermon_by_id(sermon_id, user_id):
         """, (sermon_id,))
         return cur.fetchone()
 
-    cur.execute("""
+    sql = """
         SELECT ps.*,
                CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,'')) AS creator_name
         FROM pastoral_sermons ps
@@ -121,7 +132,18 @@ def get_sermon_by_id(sermon_id, user_id):
                ))
                OR ps.visibility = 'pastoral_group'
                OR ps.visibility = 'shared')
-    """, (sermon_id, user_id, user_id))
+    """
+    params = [sermon_id, user_id, user_id]
+    try:
+        from app.models.campuses import content_campus_filter_sql
+        frag, cparams = content_campus_filter_sql(
+            'ps.campus_id', user_id=user_id, owner_column='ps.created_by'
+        )
+        sql += frag
+        params.extend(cparams)
+    except Exception:
+        pass
+    cur.execute(sql, params)
 
     return cur.fetchone()
 
@@ -163,11 +185,19 @@ def create_sermon(data, user_id):
     db = get_db()
     cur = db.cursor()
 
+    campus_id = data.get('campus_id')
+    if campus_id in (None, '', 0, '0'):
+        try:
+            from app.models.campuses import resolve_campus_id_for_write
+            campus_id = resolve_campus_id_for_write(data.get('campus_id'))
+        except Exception:
+            campus_id = None
+
     cur.execute("""
         INSERT INTO pastoral_sermons (
             title, preacher_id, primary_passage, service_date, visibility,
-            header_text, footer_text, conclusion_text, series_tags, notes, created_by
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            header_text, footer_text, conclusion_text, series_tags, notes, created_by, campus_id
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         data.get('title'),
         data.get('preacher_id'),
@@ -179,7 +209,8 @@ def create_sermon(data, user_id):
         data.get('conclusion_text'),
         data.get('series_tags'),
         data.get('notes'),
-        user_id
+        user_id,
+        campus_id,
     ))
 
     db.commit()
@@ -202,7 +233,8 @@ def update_sermon(sermon_id, data, user_id):
     params = []
     updatable_fields = [
         'title', 'preacher_id', 'primary_passage', 'service_date', 'visibility',
-        'header_text', 'footer_text', 'conclusion_text', 'series_tags', 'notes'
+        'header_text', 'footer_text', 'conclusion_text', 'series_tags', 'notes',
+        'campus_id',
     ]
 
     for field in updatable_fields:

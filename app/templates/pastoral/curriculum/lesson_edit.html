@@ -1,12 +1,15 @@
 {% extends "pastoral/base_pastoral.html" %}
 {% block title %}{{ lesson.title }} · Builder{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260716form">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260716add">
 {% endblock %}
 
 {% block pastoral_content %}
 <p class="curr-back-row" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin:0 0 0.85rem;">
   <a href="{{ url_for('pastoral.curriculum_studio.series_edit', series_id=series.id) }}" class="btn-secondary">← {{ series.title }}</a>
+  <a href="{{ url_for('pastoral.curriculum_studio.lesson_download', lesson_id=lesson.id) }}" class="btn-secondary" title="Download this lesson as Markdown">
+    <i class="fa-solid fa-download" aria-hidden="true"></i> Download lesson
+  </a>
   <a href="{{ url_for('pastoral.curriculum_studio.lesson_preview', lesson_id=lesson.id) }}" class="btn-secondary" target="_blank" rel="noopener">
     <i class="fa-solid fa-play" aria-hidden="true"></i> Preview
   </a>
@@ -50,16 +53,19 @@
 
 {# Add-block toolbar #}
 <div class="curr-toolbar" role="toolbar" aria-label="Add content">
-  <span style="font-size:0.78rem; opacity:0.7; align-self:center; margin-right:0.25rem;">Add:</span>
-  <button type="button" data-curr-open="panel-text"><i class="fa-solid fa-align-left"></i> Material</button>
-  <button type="button" data-curr-open="panel-scripture"><i class="fa-solid fa-book-bible"></i> Scripture</button>
-  <button type="button" data-curr-open="panel-image"><i class="fa-solid fa-image"></i> Image</button>
-  <button type="button" data-curr-open="panel-video"><i class="fa-solid fa-video"></i> Video</button>
-  <button type="button" data-curr-open="panel-mc"><i class="fa-solid fa-list-check"></i> Multiple choice</button>
-  <button type="button" data-curr-open="panel-tf"><i class="fa-solid fa-toggle-on"></i> True / False</button>
-  <button type="button" data-curr-open="panel-blank"><i class="fa-solid fa-i-cursor"></i> Fill blank</button>
-  <button type="button" data-curr-open="panel-divider"><i class="fa-solid fa-minus"></i> Divider</button>
+  <span style="font-size:0.78rem; opacity:0.7; align-self:center; margin-right:0.25rem;">Add section:</span>
+  <button type="button" class="btn-chip" data-curr-open="panel-text"><i class="fa-solid fa-align-left"></i> Material</button>
+  <button type="button" class="btn-chip" data-curr-open="panel-scripture"><i class="fa-solid fa-book-bible"></i> Scripture</button>
+  <button type="button" class="btn-chip" data-curr-open="panel-image"><i class="fa-solid fa-image"></i> Image</button>
+  <button type="button" class="btn-chip" data-curr-open="panel-video"><i class="fa-solid fa-video"></i> Video</button>
+  <button type="button" class="btn-chip" data-curr-open="panel-mc"><i class="fa-solid fa-list-check"></i> Multiple choice</button>
+  <button type="button" class="btn-chip" data-curr-open="panel-tf"><i class="fa-solid fa-toggle-on"></i> True / False</button>
+  <button type="button" class="btn-chip" data-curr-open="panel-blank"><i class="fa-solid fa-i-cursor"></i> Fill blank</button>
+  <button type="button" class="btn-chip" data-curr-open="panel-divider"><i class="fa-solid fa-minus"></i> Divider</button>
 </div>
+<p class="help-text" style="margin:0.35rem 0 0.85rem; font-size:0.8rem; opacity:0.7;">
+  Tap a type above to open the form, fill it in, then <strong>Add to lesson</strong>.
+</p>
 
 {% macro add_panel(id, btype, title) %}
 <div class="glass-panel curr-add-panel curr-block" id="{{ id }}" hidden style="border-color:color-mix(in srgb, var(--primary) 40%, transparent);">
@@ -294,5 +300,8 @@
 </div>
 {% endif %}
 
-<script src="{{ url_for('static', filename='js/global/pastoral/curriculum.js') }}?v=20260714a"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/global/pastoral/curriculum.js') }}?v=20260716add"></script>
 {% endblock %}

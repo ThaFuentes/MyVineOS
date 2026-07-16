@@ -15,11 +15,18 @@ from flask import (
     send_from_directory,
     session,
     url_for,
+    abort,
 )
 
 from . import pastoral_required
 from app.models.log import log_change
 from app.models.pastoral import curriculum as cur_model
+from app.models.pastoral.content_export import (
+    format_curriculum_series_markdown,
+    format_curriculum_lesson_markdown,
+    safe_filename,
+    send_markdown_download,
+)
 
 # Nested under pastoral → endpoints: pastoral.curriculum_studio.*
 curriculum_bp = Blueprint('curriculum_studio', __name__, url_prefix='/curriculum')
@@ -151,6 +158,40 @@ def series_edit(series_id):
         stats=stats,
         audiences=cur_model.AUDIENCES,
     )
+
+
+@curriculum_bp.route('/<int:series_id>/download')
+@pastoral_required()
+def series_download(series_id):
+    """Download full course (all lessons + blocks) as Markdown — creator keeps their content."""
+    series = cur_model.get_series(series_id)
+    if not series:
+        abort(404)
+    lessons = cur_model.list_lessons(series_id)
+    packed = []
+    for les in lessons:
+        row = dict(les)
+        row['blocks'] = cur_model.list_blocks(les['id'])
+        packed.append(row)
+    body = format_curriculum_series_markdown(series, packed)
+    base = safe_filename(series.get('title') or f'course_{series_id}')
+    log_change(_uid(), 'export', series_id, series.get('title'), 'Downloaded curriculum series as Markdown')
+    return send_markdown_download(body, f'{base}.md')
+
+
+@curriculum_bp.route('/lessons/<int:lesson_id>/download')
+@pastoral_required()
+def lesson_download(lesson_id):
+    """Download one lesson with all blocks as Markdown."""
+    lesson = cur_model.get_lesson(lesson_id)
+    if not lesson:
+        abort(404)
+    series = cur_model.get_series(lesson['series_id']) or {'title': 'Course'}
+    blocks = cur_model.list_blocks(lesson_id)
+    body = format_curriculum_lesson_markdown(series, lesson, blocks)
+    base = safe_filename(lesson.get('title') or f'lesson_{lesson_id}')
+    log_change(_uid(), 'export', lesson_id, lesson.get('title'), 'Downloaded curriculum lesson as Markdown')
+    return send_markdown_download(body, f'{base}.md')
 
 
 @curriculum_bp.route('/<int:series_id>/lessons/new', methods=['POST'])

@@ -59,12 +59,22 @@ def fetch_groups_with_details(cur, base_sql, params=[], current_user_id=None):
         """, (group['id'],))
         group['members'] = cur.fetchall()
 
-        # Parse permissions
+        # Parse permissions (labels include Church App keys when present)
         perms_json = group.get('permissions') or '[]'
-        permission_list = json.loads(perms_json)
+        try:
+            permission_list = json.loads(perms_json)
+        except (TypeError, json.JSONDecodeError):
+            permission_list = []
+        if not isinstance(permission_list, list):
+            permission_list = []
         group['permission_list'] = permission_list
+        try:
+            from .utils import extend_known_permissions_with_apps
+            label_map = extend_known_permissions_with_apps(cur)
+        except Exception:
+            label_map = KNOWN_PERMISSIONS
         group['permission_labels'] = [
-            KNOWN_PERMISSIONS.get(p, p.replace('_', ' ').title()) for p in permission_list
+            label_map.get(p, p.replace('_', ' ').title()) for p in permission_list
         ]
 
         # Can current user manage this group?

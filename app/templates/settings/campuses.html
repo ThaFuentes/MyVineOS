@@ -4,8 +4,10 @@
 <section class="content-section">
   <h2 class="section-title">Campuses / Branches</h2>
   <p class="help-text">
-    Multi-campus support for one organization with several locations.
+    Multi-campus support for one organization with several locations
+    (for example Texas HQ, Boston, and the Philippines).
     Staff can switch campus scope in the top bar; records can be tagged to a campus.
+    Each branch can optionally keep its content private so other campuses cannot see it.
   </p>
 </section>
 
@@ -42,6 +44,19 @@
         </select>
         <p class="help-text small">Used when a user has no home campus set.</p>
       </div>
+      <div class="form-group full-width">
+        <label class="checkbox-label" style="display:flex; align-items:flex-start; gap:0.55rem; font-weight:500; color:var(--text-primary);">
+          <input type="checkbox" name="campus_all_view_admin_only" value="1" {% if all_view_admin_only %}checked{% endif %}
+                 style="width:auto; min-height:auto; margin-top:0.2rem;">
+          <span>
+            Only Admins / Owner may use “All campuses”
+            <span class="help-text small" style="display:block; margin:0.25rem 0 0; font-weight:400;">
+              Branch staff stay focused on their own campus switcher options.
+              Recommended when some campuses keep content private.
+            </span>
+          </span>
+        </label>
+      </div>
     </div>
     <div class="form-actions" style="margin-top:0.75rem;">
       <button type="submit" class="btn-primary">Save multi-campus settings</button>
@@ -60,6 +75,7 @@
         <strong style="flex:1; font-size:1.05rem;">{{ c.name }}</strong>
         <code style="font-size:0.75rem; opacity:0.85;">{{ c.code }}</code>
         {% if c.is_primary %}<span class="member-scope-badge" style="background:rgba(0,255,255,0.18);">PRIMARY</span>{% endif %}
+        {% if c.content_isolation %}<span class="member-scope-badge" style="background:rgba(250,204,21,0.2); color:#fde68a;" title="Other campuses cannot see this branch's content">PRIVATE BRANCH</span>{% endif %}
         {% if not c.is_active %}<span class="help-text small" style="margin:0;">Inactive</span>{% endif %}
       </div>
       <div class="help-text small" style="margin:0; line-height:1.45;">
@@ -67,6 +83,7 @@
         {% if c.phone %}<br>{{ c.phone }}{% endif %}
         {% if c.pastor_name %}<br>Pastor: {{ c.pastor_name }}{% endif %}
         <br>{{ (members_by_campus.get(c.id) or [])|length }} member{{ 's' if (members_by_campus.get(c.id) or [])|length != 1 else '' }} linked
+        {% if c.content_isolation %}<br><strong>Content stays on this branch</strong> — other campuses cannot browse it.{% endif %}
       </div>
       {% if c.is_active %}
       <form method="post" style="margin-top:0.75rem;" onsubmit="return confirm('Deactivate this campus? Existing records keep their campus tag.');">
@@ -120,8 +137,9 @@
             data-color="{{ c.color or '#22d3ee' }}"
             data-primary="{{ 1 if c.is_primary else 0 }}"
             data-active="{{ 1 if c.is_active else 0 }}"
+            data-isolation="{{ 1 if c.content_isolation else 0 }}"
             data-sort="{{ c.sort_order or 0 }}"
-            data-notes="{{ (c.notes or '')|e }}">{{ c.name }} ({{ c.code }}){% if not c.is_active %} — inactive{% endif %}</option>
+            data-notes="{{ (c.notes or '')|e }}">{{ c.name }} ({{ c.code }}){% if c.content_isolation %} · private{% endif %}{% if not c.is_active %} — inactive{% endif %}</option>
           {% endfor %}
         </select>
         <p class="help-text small">Leave on “Create a new campus” to add one, or pick an existing campus to update it.</p>
@@ -230,6 +248,22 @@
           Active
         </label>
         <p class="help-text small">Inactive campuses stay in history but drop out of pickers.</p>
+      </div>
+
+      <div class="form-group full-width">
+        <label class="checkbox-label" style="display:flex; align-items:flex-start; gap:0.55rem; font-weight:500; color:var(--text-primary);">
+          <input type="checkbox" name="content_isolation" id="c-isolation" value="1"
+                 style="width:auto; min-height:auto; margin-top:0.2rem;">
+          <span>
+            Keep this branch’s content private from other campuses
+            <span class="help-text small" style="display:block; margin:0.25rem 0 0; font-weight:400;">
+              Turn this on for locations (e.g. Boston or the Philippines) that should not
+              intermingle with Texas HQ or other branches. Sermons, illustrations, vault,
+              and similar pastoral content tagged to this campus stay visible only to people
+              linked to it (plus Admins/Owner). Open campuses can still share across the org.
+            </span>
+          </span>
+        </label>
       </div>
     </div>
 
@@ -342,6 +376,7 @@
     setVal('c-notes', '');
     setCheck('c-primary', false);
     setCheck('c-active', true);
+    setCheck('c-isolation', false);
     if (title) title.textContent = 'Add new campus';
     if (submitBtn) submitBtn.textContent = 'Save campus';
   }
@@ -367,6 +402,7 @@
     setVal('c-notes', o.dataset.notes || '');
     setCheck('c-primary', o.dataset.primary === '1');
     setCheck('c-active', o.dataset.active === '1');
+    setCheck('c-isolation', o.dataset.isolation === '1');
     if (title) title.textContent = 'Update campus';
     if (submitBtn) submitBtn.textContent = 'Update campus';
   }

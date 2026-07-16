@@ -1,101 +1,364 @@
-{# app/templates/pastoral/podium_view.html #}
-{# Full path: WebChurchMan/app/templates/pastoral/podium_view.html #}
-{# File name: podium_view.html #}
-{# Brief, detailed purpose:
-#   Full-screen teleprompter / podium mode for live service.
-#   Automatically loads the sermon linked to today's service plan.
-#   Fallback: most recent sermon.
-#   Large, readable text with per-browser font size persistence (localStorage).
-#   Teleprompter controls: play/pause (space), speed slider (arrows), timer, reset (R), auto-fullscreen.
-#   Dark theme, cyan accents. #}
-
-{% extends "pastoral/base_pastoral.html" %}
-
-{% block title %}Podium Mode - {{ sermon.title if sermon else 'No Sermon Loaded' }}{% endblock %}
-
-{% block pastoral_content %}
-<div id="podium-container" class="h-screen overflow-y-auto bg-black text-white p-8">
-    <div id="podium-content" class="max-w-4xl mx-auto" style="font-size: 40px; line-height: 1.8; text-align: left;">
-        {% if sermon %}
-            <h1 class="text-6xl text-center mb-12 text-cyan">{{ sermon.title }}</h1>
-            {% if sermon.primary_passage %}
-                <h2 class="text-4xl text-center mb-8 text-cyan">{{ sermon.primary_passage }}</h2>
-            {% endif %}
-
-            {% for section in sections %}
-                <div class="mb-16">
-                    <h2 class="text-5xl mb-6 text-cyan">{{ section.title or 'Untitled Section' }}</h2>
-                    {% if section.scripture_reference %}
-                        <p class="text-3xl mb-4 text-cyan-300">{{ section.scripture_reference }}</p>
-                    {% endif %}
-                    <div class="text-4xl mb-8 leading-relaxed">{{ section.content|safe }}</div>
-                    {% if section.notes %}
-                        <details class="mt-4">
-                            <summary class="text-2xl cursor-pointer text-cyan-400">Preacher Notes</summary>
-                            <div class="text-3xl mt-4 text-gray-300">{{ section.notes|safe }}</div>
-                        </details>
-                    {% endif %}
-                </div>
-            {% endfor %}
-
-            {% if sermon.conclusion_text %}
-                <h2 class="text-5xl mb-6 text-cyan">Conclusion</h2>
-                <div class="text-4xl mb-12 leading-relaxed">{{ sermon.conclusion_text|safe }}</div>
-            {% endif %}
-        {% else %}
-            <h1 class="text-6xl text-center text-cyan">No Sermon Scheduled for Today</h1>
-            <p class="text-3xl text-center mt-12">Link a sermon to today's service plan or select one manually from the Sermons list.</p>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Fixed Bottom Controls -->
-<div class="fixed bottom-0 left-0 right-0 bg-black border-top border-3 border-cyan p-4 z-10">
-    <div class="max-w-4xl mx-auto d-flex justify-content-between align-items-center gap-4 flex-wrap">
-        <button id="play-pause-btn" class="btn btn-lg btn-cyan">
-            <i class="fas fa-play"></i>
-        </button>
-
-        <div class="flex-grow-1 text-center">
-            <label class="me-2">Speed: <span id="speed-display">1.0x</span></label>
-            <input type="range" id="speed-slider" class="form-range w-50" min="0.3" max="3" step="0.1" value="1.0">
-        </div>
-
-        <div class="text-center">
-            <label class="me-2">Font Size:</label>
-            <input type="range" id="font-size-slider" class="form-range w-25" min="20" max="80" step="2" value="40">
-        </div>
-
-        <div class="text-3xl text-center">
-            Timer: <span id="timer">00:00</span>
-        </div>
-
-        <button id="reset-btn" class="btn btn-outline-cyan btn-lg">
-            Reset
-        </button>
-
-        <button id="exit-fullscreen-btn" class="btn btn-outline-secondary btn-lg">
-            Exit Fullscreen
-        </button>
-    </div>
-</div>
-
-<script src="{{ url_for('static', filename='js/global/pastoral/podium.js') }}"></script>
-<script>
-    // Font size persistence + live update
-    const content = document.getElementById('podium-content');
-    const fontSlider = document.getElementById('font-size-slider');
-
-    let savedSize = localStorage.getItem('podiumFontSize');
-    if (savedSize) {
-        fontSlider.value = savedSize;
-        content.style.fontSize = savedSize + 'px';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Podium — {{ sermon.title if sermon else 'No Sermon' }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous">
+  <style>
+    /* 100% self-contained — no pastoral shell, no parent transform traps */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+      color: #f3f4f6;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      overflow: hidden;
     }
 
-    fontSlider.addEventListener('input', (e) => {
-        const size = e.target.value;
-        content.style.fontSize = size + 'px';
-        localStorage.setItem('podiumFontSize', size);
-    });
-</script>
-{% endblock %}
+    /* ===== TOP BAR: glued to viewport, always on screen ===== */
+    #podium-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 999999;
+      background: #0a0c10;
+      border-bottom: 3px solid #22d3ee;
+      padding: 0.55rem 0.75rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.75);
+    }
+    #podium-bar-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem 0.7rem;
+    }
+    #podium-bar .btn {
+      appearance: none;
+      border: 1px solid rgba(34, 211, 238, 0.45);
+      background: rgba(34, 211, 238, 0.15);
+      color: #e0f2fe;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-height: 2.5rem;
+    }
+    #podium-bar .btn:hover { background: rgba(34, 211, 238, 0.28); }
+    #podium-bar .btn-play {
+      background: #0891b2;
+      border-color: #22d3ee;
+      color: #fff;
+      min-width: 5.5rem;
+      justify-content: center;
+    }
+    #podium-bar label {
+      color: #a5f3fc;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0;
+    }
+    #podium-bar input[type="range"] {
+      width: 7rem;
+      accent-color: #22d3ee;
+      vertical-align: middle;
+    }
+    #podium-bar .toggle {
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      border-radius: 10px;
+      padding: 0.35rem 0.6rem;
+      background: rgba(255,255,255,0.05);
+      cursor: pointer;
+      user-select: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #e0f2fe;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    #podium-bar .toggle.on {
+      background: rgba(34, 211, 238, 0.2);
+      border-color: #22d3ee;
+    }
+    #podium-bar .toggle input { margin: 0; width: auto; }
+    #timer {
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: #67e8f9;
+      min-width: 4.25rem;
+      text-align: center;
+    }
+    #podium-bar .hint {
+      flex: 1 1 100%;
+      text-align: center;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.5);
+      margin: 0;
+    }
+
+    /* ===== SERMON SCROLL: fills the rest of the screen ===== */
+    #podium-scroll {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding: 8rem 1.1rem 5.5rem;
+      z-index: 1;
+      background: #000;
+    }
+    #podium-content {
+      max-width: 48rem;
+      margin: 0 auto;
+      font-size: 40px;
+      line-height: 1.65;
+    }
+    #podium-content.double {
+      line-height: 2.35;
+    }
+    .podium-title {
+      color: #22d3ee;
+      text-align: center;
+      font-size: 1.45em;
+      margin: 0 0 0.45em;
+      line-height: 1.2;
+    }
+    .podium-passage {
+      color: #67e8f9;
+      text-align: center;
+      font-style: italic;
+      font-size: 0.85em;
+      margin: 0 0 1.1em;
+    }
+    .podium-section { margin-bottom: 2em; }
+    .podium-section-title {
+      color: #22d3ee;
+      font-size: 1.1em;
+      margin: 0 0 0.4em;
+      line-height: 1.25;
+    }
+    .podium-scripture {
+      color: #a5f3fc;
+      font-style: italic;
+      font-size: 0.85em;
+      margin: 0 0 0.5em;
+    }
+    .podium-body p { margin: 0 0 0.55em; }
+    .podium-notes summary {
+      color: #67e8f9;
+      cursor: pointer;
+      font-size: 0.75em;
+    }
+    .podium-notes-body {
+      color: #d1d5db;
+      font-size: 0.85em;
+      margin-top: 0.4em;
+    }
+
+    /* Line tracking */
+    /* One visual line of text — click target */
+    .podium-line {
+      display: block;
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 0.02em 0.35em;
+      margin: 0 -0.35em;
+      border-left: 4px solid transparent;
+      transition: background 0.1s ease, border-color 0.1s ease;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .podium-line-gap {
+      display: block;
+      height: 0.45em;
+      pointer-events: none;
+      user-select: none;
+    }
+    .podium-line:hover { background: rgba(34, 211, 238, 0.1); }
+    .podium-line.is-current {
+      background: rgba(34, 211, 238, 0.32);
+      border-left-color: #22d3ee;
+      color: #fff;
+      box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.35);
+    }
+    .podium-line.is-prev {
+      background: rgba(250, 204, 21, 0.2);
+      border-left-color: #facc15;
+      color: #fef9c3;
+    }
+    .podium-body, .podium-notes-body {
+      /* lines are direct children after JS explode */
+    }
+
+    /* Bottom play only — also viewport fixed */
+    #podium-bottom {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 999999;
+      display: flex;
+      justify-content: center;
+      gap: 0.55rem;
+      padding: 0.55rem 0.75rem calc(0.55rem + env(safe-area-inset-bottom, 0));
+      background: linear-gradient(transparent, rgba(0,0,0,0.95) 35%);
+      pointer-events: none;
+    }
+    #podium-bottom > * { pointer-events: auto; }
+    #podium-bottom .btn {
+      appearance: none;
+      border: 1px solid rgba(34, 211, 238, 0.5);
+      background: #0891b2;
+      color: #fff;
+      width: 3.1rem;
+      height: 3.1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      text-decoration: none;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    }
+    #podium-bottom .btn-secondary {
+      background: #1f2937;
+      border-color: rgba(255,255,255,0.25);
+    }
+
+    @media (max-width: 640px) {
+      #podium-content { font-size: 28px; }
+      #podium-bar input[type="range"] { width: 5rem; }
+      #podium-bar .hint { display: none; }
+      #podium-scroll { padding-top: 9.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ALWAYS ON TOP OF THE SCREEN -->
+  <header id="podium-bar" role="toolbar" aria-label="Podium controls">
+    <div id="podium-bar-inner">
+      <button type="button" class="btn btn-play" id="play-pause-btn" aria-label="Play">
+        <i class="fas fa-play" aria-hidden="true"></i> Play
+      </button>
+
+      <label>
+        Speed <span id="speed-display">1.0x</span>
+        <input type="range" id="speed-slider" min="0.3" max="3" step="0.1" value="1">
+      </label>
+
+      <label>
+        Size
+        <input type="range" id="font-size-slider" min="22" max="72" step="2" value="40">
+      </label>
+
+      <label class="toggle" id="double-space-label">
+        <input type="checkbox" id="double-space-toggle">
+        Double space
+      </label>
+
+      <span id="timer" title="Elapsed">00:00</span>
+
+      <button type="button" class="btn" id="reset-btn" title="Reset (R)">
+        <i class="fas fa-rotate-left" aria-hidden="true"></i> Reset
+      </button>
+
+      <a class="btn" href="{{ url_for('pastoral.podium.index') }}" title="Back to list">
+        <i class="fas fa-list" aria-hidden="true"></i> List
+      </a>
+
+      <button type="button" class="btn" id="exit-fullscreen-btn" title="Fullscreen">
+        <i class="fas fa-expand" aria-hidden="true"></i> Fullscreen
+      </button>
+
+      <p class="hint">
+        Tap a line: <strong style="color:#67e8f9">cyan = here</strong>,
+        <strong style="color:#facc15">yellow = previous</strong>.
+        Space = play · ↑/↓ = move mark · D = double space · R = reset
+      </p>
+    </div>
+  </header>
+
+  <!-- ONLY the sermon scrolls -->
+  <main id="podium-scroll">
+    <article id="podium-content">
+      {% if sermon %}
+        <h1 class="podium-title">{{ sermon.title }}</h1>
+        {% if sermon.primary_passage %}
+          <p class="podium-passage">{{ sermon.primary_passage }}</p>
+        {% endif %}
+
+        {% for section in sections %}
+          <section class="podium-section">
+            <h2 class="podium-section-title">{{ section.title or 'Untitled Section' }}</h2>
+            {% if section.scripture_reference %}
+              <p class="podium-scripture">{{ section.scripture_reference }}</p>
+            {% endif %}
+            <div class="podium-body">{{ section.content|safe }}</div>
+            {% if section.notes %}
+              <details class="podium-notes">
+                <summary>Preacher notes</summary>
+                <div class="podium-notes-body">{{ section.notes|safe }}</div>
+              </details>
+            {% endif %}
+          </section>
+        {% endfor %}
+
+        {% if sermon.conclusion_text %}
+          <section class="podium-section">
+            <h2 class="podium-section-title">Conclusion</h2>
+            <div class="podium-body">{{ sermon.conclusion_text|safe }}</div>
+          </section>
+        {% endif %}
+      {% else %}
+        <h1 class="podium-title">No sermon loaded</h1>
+        <p class="podium-passage">Pick a sermon from the podium list.</p>
+      {% endif %}
+    </article>
+  </main>
+
+  <div id="podium-bottom">
+    <button type="button" class="btn" id="play-pause-mini" aria-label="Play">
+      <i class="fas fa-play" aria-hidden="true"></i>
+    </button>
+    <a class="btn btn-secondary" href="{{ url_for('pastoral.podium.index') }}" aria-label="List">
+      <i class="fas fa-list" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/global/pastoral/podium.js') }}?v=20260716lines1"></script>
+  <script>
+    // Pad sermon under measured top bar height
+    (function () {
+      var bar = document.getElementById('podium-bar');
+      var scroll = document.getElementById('podium-scroll');
+      function pad() {
+        if (!bar || !scroll) return;
+        scroll.style.paddingTop = (Math.ceil(bar.getBoundingClientRect().height) + 16) + 'px';
+      }
+      pad();
+      window.addEventListener('resize', pad);
+    })();
+  </script>
+</body>
+</html>

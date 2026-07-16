@@ -148,8 +148,98 @@ def _clean_boolean(value):
     return False
 
 
-def validate_record_data(schema: dict, form_data) -> tuple[dict | None, str | None]:
+def enrich_schema_for_module(schema: dict, module: dict | None = None) -> dict:
+    """
+    Return a copy of schema with dynamic options filled in
+    (e.g. approved bus route names from module settings).
+    """
+    import copy
+    schema = copy.deepcopy(schema or {})
+    if not module:
+        return schema
+    settings = module.get('settings') or {}
+    if module.get('type_key') == 'bus_routes' or schema.get('bus_module'):
+        routes = settings.get('approved_routes') or []
+        names = [r.get('name') for r in routes if isinstance(r, dict) and r.get('name')]
+        for field in schema.get('fields') or []:
+            if field.get('key') == 'route_name':
+                field['options'] = names
+                if not names:
+                    field['help'] = (
+                        'No approved routes yet. A bus manager must add routes under Bus settings first.'
+                    )
+    return schema
+
+
+def validate_bus_stop(cleaned: dict, settings: dict) -> str | None:
+    """
+    Enforce service area for bus stops.
+    Stops must use an approved route and stay within max miles of the church.
+    """
+    settings = settings or {}
+    routes = settings.get('approved_routes') or []
+    if not routes:
+        return (
+            'No approved routes are set up yet. '
+            'A bus manager must open Bus settings and add the routes they are willing to run first.'
+        )
+
+    route_name = (cleaned.get('route_name') or '').strip()
+    if not route_name:
+        return 'Choose an approved route for this stop.'
+
+    route = next((r for r in routes if (r.get('name') or '') == route_name), None)
+    if not route:
+        return f'“{route_name}” is not an approved route. Pick one from the list or ask a manager to add it.'
+
+    miles = cleaned.get('miles_from_church')
+    if miles is None or miles == '':
+        return 'Miles from church is required so we can keep stops inside the allowed area.'
+    try:
+        miles = float(miles)
+    except (TypeError, ValueError):
+        return 'Miles from church must be a number.'
+    if miles < 0:
+        return 'Miles from church cannot be negative.'
+
+    try:
+        global_max = float(settings.get('max_radius_miles') or 25)
+    except (TypeError, ValueError):
+        global_max = 25.0
+
+    route_max = route.get('max_miles')
+    try:
+        route_max = float(route_max) if route_max not in (None, '') else None
+    except (TypeError, ValueError):
+        route_max = None
+
+    limit = global_max
+    if route_max is not None:
+        limit = min(global_max, route_max)
+
+    if miles > limit + 0.05:  # small float tolerance
+        if route_max is not None and route_max < global_max:
+            return (
+                f'This stop is {miles:g} miles from church, but the “{route_name}” route '
+                f'only allows up to {limit:g} miles (owner limit for that route).'
+            )
+        return (
+            f'This stop is {miles:g} miles from church, but this bus only runs within '
+            f'{limit:g} miles of the church. Pick a closer stop or ask a manager to raise the limit.'
+        )
+
+    cleaned['miles_from_church'] = miles
+    return None
+
+
+def validate_record_data(
+    schema: dict,
+    form_data,
+    *,
+    module: dict | None = None,
+) -> tuple[dict | None, str | None]:
     """Validate POST data against a module type schema. Returns (clean_data, error)."""
+    schema = enrich_schema_for_module(schema, module)
     fields = schema.get('fields') or []
     if not fields:
         return None, 'This module type has no field schema configured.'
@@ -193,6 +283,9 @@ def validate_record_data(schema: dict, form_data) -> tuple[dict | None, str | No
                 empty = False
             if empty:
                 label = field.get('label', key)
+                # Friendlier message when select options empty (no routes yet)
+                if ftype == 'select' and not (field.get('options') or []):
+                    return None, field.get('help') or f'{label} has no options yet.'
                 return None, f'{label} is required.'
 
         cleaned[key] = val
@@ -209,6 +302,19 @@ def validate_record_data(schema: dict, form_data) -> tuple[dict | None, str | No
 
     if not title_value:
         title_value = 'Untitled'
+
+    # Bus service-area rules
+    if module and (
+        module.get('type_key') == 'bus_routes' or schema.get('bus_module')
+    ):
+        bus_err = validate_bus_stop(cleaned, module.get('settings') or {})
+        if bus_err:
+            return None, bus_err
+        # Title: "Route — Stop"
+        rn = cleaned.get('route_name') or ''
+        sn = cleaned.get('stop_name') or title_value
+        if rn and sn:
+            title_value = f'{rn} — {sn}'[:255]
 
     cleaned['_title'] = title_value
     return cleaned, None

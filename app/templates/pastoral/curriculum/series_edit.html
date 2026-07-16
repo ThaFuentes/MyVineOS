@@ -8,6 +8,9 @@
 <section class="content-section curr-series-edit">
   <p class="curr-back-row" style="display:flex; flex-wrap:wrap; gap:0.5rem;">
     <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn-secondary">← Curriculum Studio</a>
+    <a href="{{ url_for('pastoral.curriculum_studio.series_download', series_id=series.id) }}" class="btn-secondary" title="Download full course as Markdown">
+      <i class="fa-solid fa-download" aria-hidden="true"></i> Download course
+    </a>
     {% if series.status == 'published' %}
     <a href="{{ url_for('curriculum.course', series_id=series.id) }}" class="btn-secondary" target="_blank" rel="noopener">
       Open as learner

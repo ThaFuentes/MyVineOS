@@ -23,8 +23,14 @@
     <h2 style="margin:0; color:var(--primary);">
       {{ 'Create New Sermon' if not sermon else 'Edit Sermon: ' + sermon.title }}
     </h2>
-    <div>
-      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="font-size:0.85rem;"><- Cancel</a>
+    <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+      {% if sermon and sermon.id %}
+      <a href="{{ url_for('pastoral.sermons_export.single', sermon_id=sermon.id) }}" class="btn btn-secondary" style="font-size:0.85rem;" title="Download DOCX">
+        <i class="fa-solid fa-download" aria-hidden="true"></i> Download
+      </a>
+      <a href="{{ url_for('pastoral.podium.view', sermon_id=sermon.id) }}" class="btn btn-secondary" style="font-size:0.85rem;" target="_blank" rel="noopener">Podium</a>
+      {% endif %}
+      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="font-size:0.85rem;">← Library</a>
     </div>
   </div>
 </div>
@@ -221,24 +227,21 @@
     </div> <!-- /main-editor -->
 </div> <!-- /sermon-editor -->
 
-{# HIDDEN SECTION TEMPLATE #}
-<div style="display:none;">
-    <div class="section-card" data-template>
-        {% set default_section = {
-            'id': '',
-            'title': '',
-            'section_type': 'point',
-            'scripture_reference': '',
-            'source': '',
-            'content': '',
-            'notes': '',
-            'vault_tags': '',
-            'vault_visibility': 'private'
-        } %}
-        {% with section = default_section %}
-            {% include "pastoral/sermon_section_card.html" %}
-        {% endwith %}
-    </div>
+{# HIDDEN SECTION TEMPLATE — single .section-card with data-template (no nested wrapper) #}
+<div id="section-template-host" style="display:none;" aria-hidden="true">
+    {% set section = {
+        'id': '',
+        'title': '',
+        'section_type': 'point',
+        'scripture_reference': '',
+        'source': '',
+        'content': '',
+        'notes': '',
+        'vault_tags': '',
+        'vault_visibility': 'private'
+    } %}
+    {% set is_section_template = true %}
+    {% include "pastoral/sermon_section_card.html" %}
 </div>
 
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
@@ -372,20 +375,35 @@
 
         function appendSectionCard(data) {
             if (!container) return null;
-            const template = document.querySelector('.section-card[data-template]');
+            let template = document.querySelector('#section-template-host .section-card[data-template]')
+                || document.querySelector('.section-card[data-template]');
             if (!template) {
                 console.error('[sermon editor] section template missing');
+                showToast('Section template missing — refresh the page.', false);
                 return null;
             }
+            // If template wrongly nested, use the inner real card
+            const inner = template.querySelector(':scope > .section-card');
+            if (inner) template = inner;
             const newCard = template.cloneNode(true);
             newCard.removeAttribute('data-template');
             newCard.style.display = '';
             newCard.classList.remove('d-none');
+            newCard.removeAttribute('hidden');
             const root = newCard.querySelector('[data-section-root]') || newCard;
             applySectionToRoot(root, data || {});
             container.appendChild(newCard);
             const quillEl = sectionQuillEl(root);
-            if (quillEl) initQuill(quillEl);
+            if (quillEl) {
+                // Fresh host for Quill (cloned ql-container breaks init)
+                if (quillEl.classList.contains('ql-container') || quillEl.querySelector('.ql-editor')) {
+                    const html = (data && data.content) || '<p></p>';
+                    quillEl.innerHTML = '';
+                    quillEl.className = 'section-quill-editor';
+                    quillEl.innerHTML = html;
+                }
+                initQuill(quillEl);
+            }
             updateAllHeaders();
             markDirty();
             if (typeof schedulePreviewUpdate === 'function') schedulePreviewUpdate();

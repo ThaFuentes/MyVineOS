@@ -43,6 +43,20 @@ def _cursor():
     return get_db().cursor(pymysql.cursors.DictCursor)
 
 
+def _scalar(row, default=0):
+    """First column value from a fetchone() row (DictCursor or tuple)."""
+    if row is None:
+        return default
+    if isinstance(row, dict):
+        if not row:
+            return default
+        return next(iter(row.values()))
+    try:
+        return row[0]
+    except (IndexError, KeyError, TypeError):
+        return default
+
+
 def _loads(raw, default=None):
     if raw is None or raw == '':
         return default if default is not None else []
@@ -266,8 +280,11 @@ def create_lesson(series_id: int, data: dict) -> int:
     sort = data.get('sort_order')
     if sort is None:
         c2 = db.cursor()
-        c2.execute("SELECT COALESCE(MAX(sort_order),0)+1 FROM curriculum_lessons WHERE series_id=%s", (series_id,))
-        sort = c2.fetchone()[0]
+        c2.execute(
+            "SELECT COALESCE(MAX(sort_order),0)+1 AS next_sort FROM curriculum_lessons WHERE series_id=%s",
+            (series_id,),
+        )
+        sort = _scalar(c2.fetchone(), 1)
     cur.execute(
         """
         INSERT INTO curriculum_lessons
@@ -372,8 +389,11 @@ def create_block(lesson_id: int, data: dict) -> int:
     sort = data.get('sort_order')
     if sort is None:
         c2 = db.cursor()
-        c2.execute("SELECT COALESCE(MAX(sort_order),0)+1 FROM curriculum_blocks WHERE lesson_id=%s", (lesson_id,))
-        sort = c2.fetchone()[0]
+        c2.execute(
+            "SELECT COALESCE(MAX(sort_order),0)+1 AS next_sort FROM curriculum_blocks WHERE lesson_id=%s",
+            (lesson_id,),
+        )
+        sort = _scalar(c2.fetchone(), 1)
     cur.execute(
         """
         INSERT INTO curriculum_blocks

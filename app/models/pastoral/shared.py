@@ -18,33 +18,43 @@ from app.models.db import get_db
 # ----------------------------------------------------------------------
 def is_in_pastoral_group(user_id):
     """
-    Determine if the given user is a member of the 'Pastoral Group'.
+    Gatekeeper for the Pastoral Area.
 
-    This is the primary gatekeeper for access to the entire Pastoral Area.
-    Uses the general groups/user_groups tables (exact name match: 'Pastoral Group').
+    True if the user:
+      - is a member of the named 'Pastoral Group' (or system_key = pastoral), OR
+      - belongs to any group that grants the 'access_pastoral' permission
 
-    Args:
-        user_id (int or None): User ID from session (can be None)
-
-    Returns:
-        bool: True if the user is in the Pastoral Group, False otherwise
+    Owner/Admin/Staff bypass is handled by callers that also check role.
     """
     if not user_id:
         return False
+
+    import json as _json
 
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 
     cur.execute("""
-        SELECT 1
+        SELECT g.name, g.system_key, g.permissions
         FROM groups g
         JOIN user_groups ug ON g.id = ug.group_id
-        WHERE g.name = 'Pastoral Group'
-          AND ug.user_id = %s
-        LIMIT 1
+        WHERE ug.user_id = %s
     """, (user_id,))
 
-    return cur.fetchone() is not None
+    for row in cur.fetchall() or []:
+        name = (row.get('name') or '') if isinstance(row, dict) else (row[0] or '')
+        system_key = (row.get('system_key') or '') if isinstance(row, dict) else (row[1] or '')
+        if name == 'Pastoral Group' or system_key == 'pastoral':
+            return True
+        raw = row.get('permissions') if isinstance(row, dict) else row[2]
+        try:
+            perms = _json.loads(raw or '[]')
+        except (TypeError, ValueError):
+            perms = []
+        if isinstance(perms, list) and 'access_pastoral' in perms:
+            return True
+
+    return False
 
 
 def get_pastoral_team_members():

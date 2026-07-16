@@ -22,6 +22,7 @@ def campuses():
                 campus_model.set_multi_campus_enabled(
                     request.form.get('multi_campus_enabled') == '1',
                     int(request.form.get('default_campus_id')) if request.form.get('default_campus_id') else None,
+                    campus_all_view_admin_only=request.form.get('campus_all_view_admin_only') == '1',
                 )
                 flash('Multi-campus settings saved.', 'success')
                 log_change(session['user_id'], 'update', change_details='Updated multi-campus settings')
@@ -44,6 +45,7 @@ def campuses():
                     'is_active': request.form.get('is_active') != '0',
                     'sort_order': request.form.get('sort_order') or 0,
                     'notes': request.form.get('notes'),
+                    'content_isolation': request.form.get('content_isolation') == '1',
                 }, int(cid) if cid else None)
                 flash('Campus saved.', 'success')
                 log_change(session['user_id'], 'update', change_details=f"Saved campus {request.form.get('name')}")
@@ -87,4 +89,5 @@ def campuses():
         members_by_campus=members_by_campus,
         people=people,
         multi_enabled=campus_model.multi_campus_enabled(),
+        all_view_admin_only=campus_model.campus_all_view_admin_only(),
     )

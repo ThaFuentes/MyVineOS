@@ -40,6 +40,8 @@ from .utils import (
     normalize_group_role,
     can_assign_group_manager_role,
     group_role_label,
+    build_group_permissions_context,
+    resolve_group_permissions,
 )
 from .gathering_place import (
     is_gathering_place_group_id,
@@ -47,6 +49,25 @@ from .gathering_place import (
     can_manage_group_members,
     can_edit_group_record,
 )
+
+
+def _render_group_form(template, **extra):
+    """Render create/edit group with full permission editor context."""
+    db = get_db()
+    cur = db.cursor(DictCursor)
+    user_id = session.get('user_id')
+    user_role = session.get('user_role')
+    current = extra.pop('current_permissions', None)
+    if current is None:
+        current = extra.get('group', {}).get('permissions')
+        if isinstance(current, str):
+            try:
+                current = json.loads(current or '[]')
+            except (TypeError, json.JSONDecodeError):
+                current = []
+        current = current or []
+    ctx = build_group_permissions_context(cur, user_id, user_role, current)
+    return render_template(template, **extra, **ctx)
 
 
 # ----------------------------------------------------------------------
@@ -100,12 +121,23 @@ def search_groups_route():
 @login_required
 @role_required(['Staff', 'Admin', 'Owner'])
 def create_group():
+    user_id = session['user_id']
+    user_role = session.get('user_role')
+
     if request.method == 'POST':
         clean_data = validate_create_group_form(request.form)
         if not clean_data:
-            return render_template('groups/create.html', known_permissions=KNOWN_PERMISSIONS)
+            return _render_group_form(
+                'groups/create.html',
+                current_permissions=request.form.getlist('permissions'),
+            )
 
-        permissions_json = json.dumps(clean_data['permissions'])
+        db = get_db()
+        cur = db.cursor(DictCursor)
+        resolved = resolve_group_permissions(
+            cur, user_id, user_role, [], clean_data['permissions']
+        )
+        permissions_json = json.dumps(resolved)
 
         try:
             group_id = create_group(
@@ -113,15 +145,22 @@ def create_group():
                 description=clean_data['description'],
                 visibility=clean_data['visibility'],
                 permissions=permissions_json,
-                user_id=session['user_id']
+                user_id=user_id
             )
-            log_change(session['user_id'], 'create', change_details=f'Created group "{clean_data["name"]}" with permissions {permissions_json}')
+            log_change(
+                user_id, 'create',
+                change_details=f'Created group "{clean_data["name"]}" with permissions {permissions_json}',
+            )
             flash('Group created successfully.', 'success')
             return redirect(url_for('groups.list_groups'))
         except IntegrityError:
             flash('A group with this name already exists.', 'error')
+            return _render_group_form(
+                'groups/create.html',
+                current_permissions=resolved,
+            )
 
-    return render_template('groups/create.html', known_permissions=KNOWN_PERMISSIONS)
+    return _render_group_form('groups/create.html', current_permissions=[])
 
 
 # ----------------------------------------------------------------------
@@ -169,7 +208,12 @@ def edit_group(group_id):
     group['can_change_roles'] = can_assign_group_manager_role()
 
     # Current permissions as list for checkboxes
-    current_permissions = json.loads(group.get('permissions') or '[]')
+    try:
+        current_permissions = json.loads(group.get('permissions') or '[]')
+    except (TypeError, json.JSONDecodeError):
+        current_permissions = []
+    if not isinstance(current_permissions, list):
+        current_permissions = []
 
     if request.method == 'POST':
         if not group['can_edit']:
@@ -178,12 +222,16 @@ def edit_group(group_id):
 
         clean_data = validate_edit_group_form(request.form)
         if not clean_data:
-            return render_template('groups/edit.html',
-                                   group=group,
-                                   known_permissions=KNOWN_PERMISSIONS,
-                                   current_permissions=current_permissions)
+            return _render_group_form(
+                'groups/edit.html',
+                group=group,
+                current_permissions=request.form.getlist('permissions') or current_permissions,
+            )
 
-        permissions_json = json.dumps(clean_data['permissions'])
+        resolved = resolve_group_permissions(
+            cur, user_id, user_role, current_permissions, clean_data['permissions']
+        )
+        permissions_json = json.dumps(resolved)
 
         try:
             update_group(
@@ -200,11 +248,17 @@ def edit_group(group_id):
             return redirect(url_for('groups.edit_group', group_id=group_id))
         except IntegrityError:
             flash('A group with this name already exists.', 'error')
+            return _render_group_form(
+                'groups/edit.html',
+                group=group,
+                current_permissions=resolved,
+            )
 
-    return render_template('groups/edit.html',
-                           group=group,
-                           known_permissions=KNOWN_PERMISSIONS,
-                           current_permissions=current_permissions)
+    return _render_group_form(
+        'groups/edit.html',
+        group=group,
+        current_permissions=current_permissions,
+    )
 
 
 # ----------------------------------------------------------------------
