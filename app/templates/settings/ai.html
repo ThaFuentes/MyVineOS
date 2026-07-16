@@ -5,60 +5,303 @@
     <h2 class="section-title">AI Provider Configuration</h2>
     <p class="help-text">
         Configure each AI provider independently. Enable only the services you use.
-        The <strong>default provider</strong> powers sermon AI tools in the Pastoral area.
+        The <strong>default provider</strong> powers Pastoral AI tools and AI Insights reports.
+        Model lists are loaded live from the provider when a key is available — so you always see
+        what your key can actually use.
     </p>
 
-    <form method="POST" class="styled-form">
+    <form method="POST" class="styled-form" id="ai-settings-form">
         {% include 'partials/csrf_field.html' %}
 
         {% for p in providers %}
-        <div class="form-grid" style="margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08);">
-            <div class="form-group full-width">
-                <h3 style="margin:0; text-transform:capitalize;">{{ p.provider }}{% if p.provider == 'openai' %} (ChatGPT){% elif p.provider == 'grok' %} (xAI){% elif p.provider == 'gemini' %} (Google){% endif %}</h3>
-            </div>
+        <div class="ai-provider-card glass-panel"
+             data-provider="{{ p.provider }}"
+             style="margin-bottom:1.25rem; padding:1rem 1.1rem;">
+            <div class="form-grid" style="margin-bottom:0;">
+                <div class="form-group full-width" style="display:flex; flex-wrap:wrap; align-items:center; gap:0.75rem 1.25rem;">
+                    <h3 style="margin:0;">{{ p.display_name }}</h3>
+                    <label style="margin:0;">
+                        <input type="checkbox" name="enabled_{{ p.provider }}" value="1"
+                               class="ai-enabled" {% if p.enabled %}checked{% endif %}>
+                        Enabled
+                    </label>
+                    <label style="margin:0;">
+                        <input type="radio" name="default_provider" value="{{ p.provider }}"
+                               {% if p.is_default %}checked{% endif %}>
+                        Default for Pastoral / Insights
+                    </label>
+                </div>
 
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" name="enabled_{{ p.provider }}" value="1" {% if p.enabled %}checked{% endif %}>
-                    Enabled
-                </label>
-            </div>
+                {% if p.provider != 'ollama' %}
+                <div class="form-group full-width">
+                    <label for="api_key_{{ p.provider }}">API Key</label>
+                    <input type="password" name="api_key_{{ p.provider }}" id="api_key_{{ p.provider }}"
+                           class="form-input ai-api-key"
+                           placeholder="{% if p.has_key %}Configured — leave blank to keep{% else %}Enter API key{% endif %}"
+                           autocomplete="new-password">
+                    {% if p.has_key %}
+                    <p class="help-text" style="margin-top:0.35rem;">
+                        <span class="ai-key-badge">Key on file</span> — paste a new key only if you want to replace it.
+                    </p>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="form-group full-width">
+                    <label for="base_url_{{ p.provider }}">Ollama Base URL</label>
+                    <input type="text" name="base_url_{{ p.provider }}" id="base_url_{{ p.provider }}"
+                           class="form-input ai-base-url" value="{{ p.base_url }}">
+                    <p class="help-text">Local Ollama — no API key required. Models are read from <code>/api/tags</code>.</p>
+                </div>
+                {% endif %}
 
-            <div class="form-group">
-                <label>
-                    <input type="radio" name="default_provider" value="{{ p.provider }}" {% if p.is_default %}checked{% endif %}>
-                    Default for Pastoral AI
-                </label>
-            </div>
+                <div class="form-group full-width">
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.35rem;">
+                        <label for="model_pick_{{ p.provider }}" style="margin:0;">Default model</label>
+                        <button type="button" class="btn-secondary btn-small ai-refresh-models"
+                                data-provider="{{ p.provider }}">
+                            Refresh available models
+                        </button>
+                    </div>
 
-            {% if p.provider != 'ollama' %}
-            <div class="form-group full-width">
-                <label for="api_key_{{ p.provider }}">API Key</label>
-                <input type="password" name="api_key_{{ p.provider }}" id="api_key_{{ p.provider }}"
-                       placeholder="{% if p.has_key %}Configured - leave blank to keep{% else %}Enter API key{% endif %}"
-                       autocomplete="new-password">
-            </div>
-            {% else %}
-            <div class="form-group full-width">
-                <label for="base_url_ollama">Ollama Base URL</label>
-                <input type="text" name="base_url_ollama" id="base_url_ollama" value="{{ p.base_url }}">
-                <p class="help-text">Local Ollama - no API key required when enabled.</p>
-            </div>
-            {% endif %}
+                    <select name="model_pick_{{ p.provider }}" id="model_pick_{{ p.provider }}"
+                            class="form-input ai-model-pick" data-provider="{{ p.provider }}">
+                        {% set cur = p.model_default %}
+                        {% set found = namespace(ok=false) %}
+                        {% for m in p.recommended_models %}
+                            <option value="{{ m.id }}"
+                                    {% if cur == m.id %}selected{% set found.ok = true %}{% endif %}>
+                                {{ m.label or m.id }}{% if m.note %} — {{ m.note }}{% endif %}
+                            </option>
+                        {% endfor %}
+                        {% if cur and not found.ok %}
+                            <option value="{{ cur }}" selected>{{ cur }} (current)</option>
+                        {% endif %}
+                        <option value="__custom__">Custom model ID…</option>
+                    </select>
 
-            <div class="form-group full-width">
-                <label for="model_{{ p.provider }}">Default Model (optional)</label>
-                <input type="text" name="model_{{ p.provider }}" id="model_{{ p.provider }}"
-                       value="{{ p.model_default }}"
-                       placeholder="{% if p.provider == 'grok' %}grok-beta{% elif p.provider == 'openai' %}gpt-4o-mini{% elif p.provider == 'gemini' %}gemini-1.5-flash{% else %}llama3.1{% endif %}">
+                    <input type="text" name="model_custom_{{ p.provider }}" id="model_custom_{{ p.provider }}"
+                           class="form-input ai-model-custom" data-provider="{{ p.provider }}"
+                           value="{% if cur and not found.ok %}{{ cur }}{% endif %}"
+                           placeholder="e.g. {{ p.default_model }}"
+                           style="margin-top:0.5rem; {% if not (cur and not found.ok) %}display:none;{% endif %}">
+
+                    {# Hidden legacy field kept for compatibility #}
+                    <input type="hidden" name="model_{{ p.provider }}" id="model_{{ p.provider }}" value="{{ cur }}">
+
+                    <p class="help-text ai-model-status" id="ai-status-{{ p.provider }}" style="margin-top:0.45rem;">
+                        Showing recommended models. Click <strong>Refresh available models</strong>
+                        {% if p.provider == 'ollama' %}to load what is installed locally.
+                        {% else %}to load what this API key can use right now.
+                        {% endif %}
+                    </p>
+                    <div class="ai-model-meta" id="ai-meta-{{ p.provider }}" style="font-size:0.8rem; opacity:0.75;"></div>
+                </div>
             </div>
         </div>
         {% endfor %}
 
-        <div class="form-actions">
+        <div class="form-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
             <button type="submit" class="btn-primary">Save AI Settings</button>
             <a href="{{ url_for('settings.general') }}" class="btn-secondary">Back to Settings</a>
         </div>
     </form>
 </section>
+
+<style>
+  .ai-key-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.12rem 0.45rem;
+    border-radius: 9999px;
+    background: rgba(0, 229, 255, 0.12);
+    border: 1px solid rgba(0, 229, 255, 0.28);
+    color: var(--primary, #00e5ff);
+  }
+  .ai-provider-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
+  .ai-model-status.is-error { color: #ff8a80; }
+  .ai-model-status.is-ok { color: #69f0ae; }
+  .ai-model-status.is-warn { color: #ffd54f; }
+  .ai-opt-live { font-weight: 600; }
+</style>
+
+<script>
+(function () {
+  const csrf = document.querySelector('input[name="csrf_token"]')?.value || '';
+
+  function statusEl(prov) { return document.getElementById('ai-status-' + prov); }
+  function metaEl(prov) { return document.getElementById('ai-meta-' + prov); }
+  function pickEl(prov) { return document.getElementById('model_pick_' + prov); }
+  function customEl(prov) { return document.getElementById('model_custom_' + prov); }
+  function hiddenEl(prov) { return document.getElementById('model_' + prov); }
+  function keyEl(prov) { return document.getElementById('api_key_' + prov); }
+  function baseEl(prov) { return document.getElementById('base_url_' + prov); }
+
+  function setStatus(prov, text, kind) {
+    const el = statusEl(prov);
+    if (!el) return;
+    el.textContent = text || '';
+    el.classList.remove('is-error', 'is-ok', 'is-warn');
+    if (kind) el.classList.add('is-' + kind);
+  }
+
+  function syncCustomVisibility(prov) {
+    const pick = pickEl(prov);
+    const custom = customEl(prov);
+    if (!pick || !custom) return;
+    const isCustom = pick.value === '__custom__';
+    custom.style.display = isCustom ? '' : 'none';
+    if (isCustom) custom.focus();
+    syncHidden(prov);
+  }
+
+  function syncHidden(prov) {
+    const pick = pickEl(prov);
+    const custom = customEl(prov);
+    const hidden = hiddenEl(prov);
+    if (!pick || !hidden) return;
+    if (pick.value === '__custom__') {
+      hidden.value = (custom && custom.value) || '';
+    } else {
+      hidden.value = pick.value || '';
+    }
+  }
+
+  function fillModels(prov, payload) {
+    const pick = pickEl(prov);
+    if (!pick) return;
+    const current = (hiddenEl(prov)?.value || pick.value || '').trim();
+    const models = payload.models || [];
+    const liveCount = payload.live_count || 0;
+
+    // Preserve selection
+    let selected = current;
+    if (selected === '__custom__') selected = (customEl(prov)?.value || '').trim();
+
+    pick.innerHTML = '';
+    const seen = new Set();
+
+    models.forEach(m => {
+      if (!m.id || seen.has(m.id)) return;
+      seen.add(m.id);
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      const tag = m.source === 'live' ? '● ' : '';
+      let label = tag + (m.label || m.id);
+      if (m.note) label += ' — ' + String(m.note).slice(0, 80);
+      opt.textContent = label;
+      if (m.source === 'live') opt.className = 'ai-opt-live';
+      if (m.id === selected) opt.selected = true;
+      pick.appendChild(opt);
+    });
+
+    // If current not in list, keep it as an option
+    if (selected && !seen.has(selected)) {
+      const opt = document.createElement('option');
+      opt.value = selected;
+      opt.textContent = selected + ' (current)';
+      opt.selected = true;
+      pick.insertBefore(opt, pick.firstChild);
+      seen.add(selected);
+    }
+
+    const customOpt = document.createElement('option');
+    customOpt.value = '__custom__';
+    customOpt.textContent = 'Custom model ID…';
+    if (selected && !seen.has(selected)) customOpt.selected = true;
+    pick.appendChild(customOpt);
+
+    // If nothing selected, pick default
+    if (!pick.value && payload.default) {
+      pick.value = payload.default;
+    }
+
+    syncCustomVisibility(prov);
+    syncHidden(prov);
+
+    const meta = metaEl(prov);
+    if (meta) {
+      const bits = [];
+      if (liveCount) bits.push(liveCount + ' live from API');
+      if (payload.source === 'recommended') bits.push('recommended catalog');
+      if (payload.source === 'mixed') bits.push('live + recommended');
+      if (payload.fetched_at) {
+        const d = new Date(payload.fetched_at * 1000);
+        bits.push('updated ' + d.toLocaleTimeString());
+      }
+      meta.textContent = bits.join(' · ');
+    }
+
+    if (payload.error && !liveCount) {
+      setStatus(prov, payload.error + ' Showing recommended models until refresh succeeds.', 'warn');
+    } else if (payload.error && liveCount) {
+      setStatus(prov, 'Loaded ' + liveCount + ' models. Note: ' + payload.error, 'warn');
+    } else if (liveCount) {
+      setStatus(prov, 'Loaded ' + liveCount + ' models available to this API key.', 'ok');
+    } else {
+      setStatus(prov, 'Showing recommended models. Save a key and refresh for live list.', 'warn');
+    }
+  }
+
+  async function refreshModels(prov, { force } = { force: true }) {
+    const btn = document.querySelector('.ai-refresh-models[data-provider="' + prov + '"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+    }
+    setStatus(prov, 'Fetching models from provider…', null);
+
+    const params = new URLSearchParams();
+    if (force) params.set('refresh', '1');
+    const keyInput = keyEl(prov);
+    const baseInput = baseEl(prov);
+    if (keyInput && keyInput.value.trim()) params.set('api_key', keyInput.value.trim());
+    if (baseInput && baseInput.value.trim()) params.set('base_url', baseInput.value.trim());
+
+    try {
+      const res = await fetch('/settings/ai/models/' + encodeURIComponent(prov) + '?' + params.toString(), {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.models) data.models = [];
+      fillModels(prov, data);
+      if (!res.ok && !data.models.length) {
+        setStatus(prov, data.error || ('Could not load models (HTTP ' + res.status + ')'), 'error');
+      }
+    } catch (e) {
+      setStatus(prov, 'Network error loading models.', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Refresh available models';
+      }
+    }
+  }
+
+  document.querySelectorAll('.ai-model-pick').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const prov = sel.dataset.provider;
+      syncCustomVisibility(prov);
+    });
+  });
+  document.querySelectorAll('.ai-model-custom').forEach(inp => {
+    inp.addEventListener('input', () => syncHidden(inp.dataset.provider));
+  });
+  document.querySelectorAll('.ai-refresh-models').forEach(btn => {
+    btn.addEventListener('click', () => refreshModels(btn.dataset.provider, { force: true }));
+  });
+
+  // Auto-load live lists on page open for providers that already have a key (or ollama)
+  document.querySelectorAll('.ai-provider-card').forEach(card => {
+    const prov = card.dataset.provider;
+    const hasKeyBadge = !!card.querySelector('.ai-key-badge');
+    if (hasKeyBadge || prov === 'ollama') {
+      refreshModels(prov, { force: false });
+    }
+  });
+})();
+</script>
 {% endblock %}

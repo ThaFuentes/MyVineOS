@@ -18,105 +18,17 @@ from . import pastoral_bp, pastoral_required  # Package-relative import within p
 from app.models.db import get_db
 from app.models.log import log_change
 from app.utils.helpers import contains_censored_word
-import requests
+from app.utils.ai_client import call_ai as _shared_call_ai
 import json
 import pymysql
 
-# ----------------------------------------------------------------------
-# Helper: Load AI configuration from settings table
-# ----------------------------------------------------------------------
-def load_ai_config(preferred_provider=None):
-    from app.routes.settings import load_ai_providers, decrypt
-    providers = load_ai_providers()
-    if not providers:
-        return None
-
-    chosen = None
-    if preferred_provider:
-        chosen = next((p for p in providers if p['provider'] == preferred_provider and p.get('enabled')), None)
-    if not chosen:
-        chosen = next((p for p in providers if p.get('is_default') and p.get('enabled')), None)
-    if not chosen:
-        chosen = next((p for p in providers if p.get('enabled')), None)
-    if not chosen:
-        return None
-
-    api_key = decrypt(chosen.get('api_key') or '') if chosen.get('api_key') else None
-    return {
-        'provider': chosen['provider'],
-        'api_key': api_key,
-        'base_url': chosen.get('base_url') or '',
-        'model': chosen.get('model_default'),
-    }
 
 # ----------------------------------------------------------------------
-# Helper: Call the configured AI provider
+# Helper: Call the configured AI provider (shared client)
 # ----------------------------------------------------------------------
 def call_ai(prompt, model=None):
-    config = load_ai_config()
-    if not config:
-        return None, "AI not configured. Enable a provider in Settings -> AI."
-    if config['provider'] != 'ollama' and not config['api_key']:
-        return None, "AI provider enabled but API key missing."
-    model = model or config.get('model')
-
-    headers = {"Content-Type": "application/json"}
-    timeout = 30  # Prevent hanging on slow APIs
-
-    try:
-        if config['provider'] == 'gemini':
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model or 'gemini-1.5-flash'}:generateContent"
-            data = {"contents": [{"role": "user", "parts": [{"text": prompt}]}]}
-            params = {"key": config['api_key']}
-            response = requests.post(url, headers=headers, json=data, params=params, timeout=timeout)
-
-        elif config['provider'] == 'openai':
-            url = "https://api.openai.com/v1/chat/completions"
-            data = {
-                "model": model or "gpt-4o-mini",
-                "messages": [{"role": "user", "content": prompt}]
-            }
-            headers["Authorization"] = f"Bearer {config['api_key']}"
-            response = requests.post(url, headers=headers, json=data, timeout=timeout)
-
-        elif config['provider'] == 'grok':
-            url = "https://api.x.ai/v1/chat/completions"
-            data = {
-                "model": model or "grok-beta",
-                "messages": [{"role": "user", "content": prompt}]
-            }
-            headers["Authorization"] = f"Bearer {config['api_key']}"
-            response = requests.post(url, headers=headers, json=data, timeout=timeout)
-
-        elif config['provider'] == 'ollama':
-            url = f"{config['base_url'].rstrip('/')}/api/generate"
-            data = {
-                "model": model or "llama3.1",
-                "prompt": prompt,
-                "stream": False
-            }
-            response = requests.post(url, headers=headers, json=data, timeout=timeout)
-
-        else:
-            return None, "Unsupported AI provider."
-
-        if response.status_code != 200:
-            return None, f"AI API error: {response.status_code} - {response.text}"
-
-        result = response.json()
-        if config['provider'] == 'gemini':
-            text = result['candidates'][0]['content']['parts'][0]['text']
-        elif config['provider'] == 'ollama':
-            text = result['response']
-        else:
-            text = result['choices'][0]['message']['content']
-
-        return text.strip(), None
-
-    except requests.RequestException as e:
-        return None, f"Network error calling AI provider: {str(e)}"
-    except Exception as e:
-        return None, f"Parse/error processing AI response: {str(e)}"
+    """Thin wrapper so pastoral sermon tools share Gemini model fixes."""
+    return _shared_call_ai(prompt, model=model, timeout=45)
 
 # ----------------------------------------------------------------------
 # Generate Outline

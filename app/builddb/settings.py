@@ -167,15 +167,56 @@ def create_tables(cursor):
     cursor.execute("SELECT COUNT(*) FROM ai_providers")
     if cursor.fetchone()[0] == 0:
         for prov, model in [
-            ('grok', 'grok-beta'),
+            ('grok', 'grok-2-latest'),
             ('openai', 'gpt-4o-mini'),
-            ('gemini', 'gemini-1.5-flash'),
+            ('gemini', 'gemini-flash-latest'),
             ('ollama', 'llama3.1'),
         ]:
             cursor.execute("""
                 INSERT INTO ai_providers (provider, enabled, is_default, model_default)
                 VALUES (%s, 0, %s, %s)
             """, (prov, 1 if prov == 'grok' else 0, model))
+
+    # Migrate retired / fragile Gemini model IDs to rolling aliases that stay valid.
+    try:
+        cursor.execute("""
+            UPDATE ai_providers
+            SET model_default = 'gemini-flash-latest'
+            WHERE provider = 'gemini'
+              AND (
+                model_default IS NULL
+                OR model_default = ''
+                OR model_default IN (
+                    'gemini-1.5-flash',
+                    'gemini-1.5-flash-latest',
+                    'gemini-1.5-flash-8b',
+                    'gemini-pro',
+                    'gemini-2.5-flash-lite',
+                    'gemini-2.0-flash-lite',
+                    'models/gemini-1.5-flash'
+                )
+              )
+        """)
+        cursor.execute("""
+            UPDATE ai_providers
+            SET model_default = 'gemini-2.5-pro'
+            WHERE provider = 'gemini'
+              AND model_default IN (
+                'gemini-1.5-pro',
+                'gemini-1.5-pro-latest',
+                'gemini-pro-latest',
+                'models/gemini-1.5-pro'
+              )
+        """)
+        # Fixed lite IDs often 404 for new API keys
+        cursor.execute("""
+            UPDATE ai_providers
+            SET model_default = 'gemini-flash-lite-latest'
+            WHERE provider = 'gemini'
+              AND model_default IN ('gemini-2.5-flash-lite', 'gemini-2.0-flash-lite')
+        """)
+    except Exception as e:
+        print(f"AI provider model migration note: {e}")
 
     # Migrate legacy single-key settings into ai_providers if present
     cursor.execute("""

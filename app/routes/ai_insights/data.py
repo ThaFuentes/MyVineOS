@@ -277,8 +277,9 @@ def prompt_for(report_type: str, dataset: dict, extra_question: str = '') -> tup
     system = (
         'You are an assistant for church administrators. '
         'Use only the provided JSON aggregates. Do not invent names, emails, or exact people. '
-        'Be practical, concise, and pastoral in tone. Use bullet points and short sections. '
-        'If data is missing, say what is missing instead of guessing.'
+        'Be practical, concise, and pastoral in tone. Use short bullet sections. '
+        'If data is sparse or missing, say so clearly instead of guessing. '
+        'Keep the whole answer under ~400 words.'
     )
     titles = {
         'donations': 'Giving / donations report',
@@ -288,10 +289,13 @@ def prompt_for(report_type: str, dataset: dict, extra_question: str = '') -> tup
         'overview': 'Church operations overview',
     }
     title = titles.get(report_type, 'Church report')
+    # Compact JSON (no indent) — smaller payload, faster for overloaded providers
+    payload = json.dumps(dataset, default=str, separators=(',', ':'))[:10000]
     user = (
-        f'Write a clear {title} for leadership based on this data JSON:\n'
-        f'{json.dumps(dataset, default=str, indent=2)[:12000]}\n\n'
-        'Include: 1) Snapshot 2) Notable trends 3) Risks or gaps 4) 3–5 suggested next actions.'
+        f'Write a clear {title} for leadership from this aggregate JSON only:\n'
+        f'{payload}\n\n'
+        'Sections: 1) Snapshot 2) Trends 3) Risks/gaps 4) 3–5 next actions. '
+        'If counts are very low, note that the sample is small and avoid overclaiming trends.'
     )
     q = (extra_question or '').strip()
     if q:
