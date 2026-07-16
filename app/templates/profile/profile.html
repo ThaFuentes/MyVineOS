@@ -26,9 +26,11 @@
         {% include 'partials/my_stuff_nav.html' %}
 
         <p class="page-description">
-            Manage your personal information, privacy preferences, and family connections within the church community.
-            <a href="{{ url_for('profile.security') }}">Security & 2FA -></a>
-            <a href="{{ url_for('help.help_index') }}" style="margin-left:0.75rem;">Help & how-to guides -></a>
+            Manage your personal information, privacy preferences, email opt-outs, kids &amp; check-in PINs, and family connections.
+            <a href="{{ url_for('profile.security') }}">Security &amp; 2FA →</a>
+            <a href="#email-prefs" style="margin-left:0.75rem;">Email opt-out →</a>
+            <a href="{{ url_for('child_checkin.my_kids') }}" style="margin-left:0.75rem;">My Kids / PIN →</a>
+            <a href="{{ url_for('help.help_index') }}" style="margin-left:0.75rem;">Help →</a>
         </p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -45,7 +47,9 @@
         <div class="top-controls" style="margin-bottom: 2rem;">
             <div class="filter-buttons">
                 <button class="btn btn-primary filter-btn active" data-target="profile-tab">Profile</button>
+                <button class="btn btn-secondary filter-btn" data-target="email-tab">Email preferences</button>
                 <button class="btn btn-secondary filter-btn" data-target="family-tab">Family</button>
+                <a href="{{ url_for('child_checkin.my_kids') }}" class="btn btn-secondary" style="text-decoration:none;">My Kids &amp; PIN</a>
             </div>
         </div>
 
@@ -147,6 +151,41 @@
                     <button type="submit" class="btn-primary">Update Profile</button>
                 </div>
             </form>
+        </section>
+
+        <!-- Email preferences / opt-out -->
+        <section id="email-tab" class="content-section tab-section" style="display:none;">
+            <div id="email-prefs">
+            <h2 class="section-title">Email preferences &amp; opt-out</h2>
+            <p class="help-text" style="margin-bottom:1rem;">
+                Choose which church emails you receive. Uncheck <strong>Receive church emails</strong>
+                to opt out of all automated messages (except security/account-critical notices).
+            </p>
+            <form method="POST" action="{{ url_for('profile.profile') }}" class="styled-form">
+                {% include 'partials/csrf_field.html' %}
+                <input type="hidden" name="action" value="email_preferences">
+                {% for field, label in email_preferences %}
+                <div class="form-group" style="margin-bottom:0.65rem;">
+                    <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
+                        <input type="checkbox" name="{{ field }}" value="1"
+                               {% if user[field] %}checked{% endif %}
+                               {% if field != 'accepts_emails' %}data-email-pref="1"{% endif %}
+                               style="width:auto; min-height:auto; margin-top:0.2rem;">
+                        <span>
+                            {{ label }}
+                            {% if field == 'accepts_emails' %}
+                            <br><span class="help-text" style="margin:0;">Master switch — off turns off all categories below.</span>
+                            {% endif %}
+                        </span>
+                    </label>
+                </div>
+                {% endfor %}
+                <div class="form-actions" style="margin-top:1rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
+                    <button type="submit" class="btn-primary">Save email preferences</button>
+                    <a href="{{ url_for('profile.security') }}" class="btn-secondary">Security &amp; 2FA</a>
+                </div>
+            </form>
+            </div>
         </section>
 
         <!-- Family Tab -->
@@ -276,22 +315,46 @@
     </div>
 
 <script>
-  // Tab switching - uses global button classes
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => {
-        b.classList.remove('btn-primary');
-        b.classList.add('btn-secondary');
-      });
-      btn.classList.remove('btn-secondary');
-      btn.classList.add('btn-primary');
-
-      document.querySelectorAll('.tab-section').forEach(section => {
-        section.style.display = 'none';
-      });
-      document.getElementById(btn.dataset.target).style.display = 'block';
+  function showProfileTab(targetId) {
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.remove('btn-primary', 'active');
+      b.classList.add('btn-secondary');
     });
+    document.querySelectorAll('.tab-section').forEach(section => {
+      section.style.display = 'none';
+    });
+    const panel = document.getElementById(targetId);
+    if (panel) panel.style.display = 'block';
+    const btn = document.querySelector('.filter-btn[data-target="' + targetId + '"]');
+    if (btn) {
+      btn.classList.remove('btn-secondary');
+      btn.classList.add('btn-primary', 'active');
+    }
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => showProfileTab(btn.dataset.target));
   });
+
+  // Deep-link: #email-prefs or #email-tab opens email opt-out
+  if (window.location.hash === '#email-prefs' || window.location.hash === '#email-tab') {
+    showProfileTab('email-tab');
+  }
+
+  // Master email switch disables category checkboxes
+  (function () {
+    var master = document.querySelector('#email-tab input[name="accepts_emails"]');
+    if (!master) return;
+    function sync() {
+      var on = master.checked;
+      document.querySelectorAll('#email-tab input[data-email-pref]').forEach(function (el) {
+        el.disabled = !on;
+        if (!on) el.checked = false;
+      });
+    }
+    master.addEventListener('change', sync);
+    sync();
+  })();
 
   // Live search for suggested members
   const searchInput = document.getElementById('member-search');

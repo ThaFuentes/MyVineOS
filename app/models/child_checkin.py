@@ -343,6 +343,153 @@ def remove_guardian(guardian_id: int) -> None:
     db.commit()
 
 
+def user_is_guardian(user_id: int, child_id: int) -> bool:
+    if not user_id or not child_id:
+        return False
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT 1 FROM child_guardians
+        WHERE user_id = %s AND child_id = %s
+        LIMIT 1
+        """,
+        (user_id, child_id),
+    )
+    return bool(cur.fetchone())
+
+
+def update_guardian_for_user(user_id: int, child_id: int, data: dict) -> None:
+    """Parent updates their own guardian link (family PIN + notify flags)."""
+    if not user_is_guardian(user_id, child_id):
+        raise ValueError('You are not linked to this child.')
+    pin = (data.get('family_pin') or '').strip()
+    if pin and (not pin.isdigit() or not (4 <= len(pin) <= 6)):
+        raise ValueError('Family PIN must be 4–6 digits.')
+    db = get_db()
+    cur = db.cursor()
+    # Empty PIN field means "leave unchanged"
+    if pin:
+        cur.execute(
+            """
+            UPDATE child_guardians
+            SET family_pin = %s,
+                notify_email = %s,
+                notify_checkin = %s,
+                notify_checkout = %s,
+                relationship = COALESCE(NULLIF(%s, ''), relationship)
+            WHERE user_id = %s AND child_id = %s
+            """,
+            (
+                pin,
+                1 if data.get('notify_email', True) else 0,
+                1 if data.get('notify_checkin', True) else 0,
+                1 if data.get('notify_checkout', True) else 0,
+                (data.get('relationship') or '').strip()[:40],
+                user_id,
+                child_id,
+            ),
+        )
+    else:
+        cur.execute(
+            """
+            UPDATE child_guardians
+            SET notify_email = %s,
+                notify_checkin = %s,
+                notify_checkout = %s,
+                relationship = COALESCE(NULLIF(%s, ''), relationship)
+            WHERE user_id = %s AND child_id = %s
+            """,
+            (
+                1 if data.get('notify_email', True) else 0,
+                1 if data.get('notify_checkin', True) else 0,
+                1 if data.get('notify_checkout', True) else 0,
+                (data.get('relationship') or '').strip()[:40],
+                user_id,
+                child_id,
+            ),
+        )
+    db.commit()
+
+
+def parent_create_child(user_id: int, data: dict) -> int:
+    """
+    Parent self-service: create a child profile and link this user as primary guardian.
+    Used from My Kids — no staff role required.
+    """
+    if not user_id:
+        raise ValueError('You must be logged in.')
+    # Reuse profile create
+    child_id = save_child(
+        {
+            'first_name': data.get('first_name'),
+            'last_name': data.get('last_name'),
+            'nickname': data.get('nickname'),
+            'birthdate': data.get('birthdate'),
+            'gender': data.get('gender'),
+            'allergies': data.get('allergies'),
+            'medical_notes': data.get('medical_notes'),
+            'special_needs': data.get('special_needs'),
+            'pin_code': data.get('pin_code'),
+            'default_classroom_id': data.get('default_classroom_id'),
+            'notes': data.get('notes'),
+            'active': True,
+        },
+        created_by=user_id,
+    )
+    # Parent account as guardian
+    from app.models.users import get_user_by_id
+    user = get_user_by_id(user_id) or {}
+    full_name = f"{user.get('first_name') or ''} {user.get('last_name') or ''}".strip() or None
+    add_guardian(
+        child_id,
+        {
+            'user_id': user_id,
+            'full_name': full_name,
+            'relationship': (data.get('relationship') or 'parent').strip()[:40],
+            'phone': user.get('phone'),
+            'email': user.get('email'),
+            'family_pin': data.get('family_pin') or data.get('pin_code'),
+            'is_primary': True,
+            'can_pickup': True,
+            'notify_email': data.get('notify_email', True),
+            'notify_checkin': data.get('notify_checkin', True),
+            'notify_checkout': data.get('notify_checkout', True),
+        },
+    )
+    return child_id
+
+
+def parent_update_child(user_id: int, child_id: int, data: dict) -> None:
+    """Parent updates limited fields for their own child (PIN, allergies, etc.)."""
+    if not user_is_guardian(user_id, child_id):
+        raise ValueError('You are not linked to this child.')
+    # Load existing so we don't wipe required names if omitted
+    child = get_child(child_id)
+    if not child:
+        raise ValueError('Child not found.')
+    save_child(
+        {
+            'first_name': data.get('first_name') or child.get('first_name'),
+            'last_name': data.get('last_name') or child.get('last_name'),
+            'nickname': data.get('nickname') if data.get('nickname') is not None else child.get('nickname'),
+            'birthdate': data.get('birthdate') if data.get('birthdate') is not None else child.get('birthdate'),
+            'gender': data.get('gender') if data.get('gender') is not None else child.get('gender'),
+            'allergies': data.get('allergies') if data.get('allergies') is not None else child.get('allergies'),
+            'medical_notes': data.get('medical_notes') if data.get('medical_notes') is not None else child.get('medical_notes'),
+            'special_needs': data.get('special_needs') if data.get('special_needs') is not None else child.get('special_needs'),
+            'pin_code': data.get('pin_code') if data.get('pin_code') not in (None, '') else child.get('pin_code'),
+            'default_classroom_id': (
+                data.get('default_classroom_id')
+                if data.get('default_classroom_id') not in (None, '')
+                else child.get('default_classroom_id')
+            ),
+            'notes': data.get('notes') if data.get('notes') is not None else child.get('notes'),
+            'active': True,
+        },
+        child_id=child_id,
+    )
+
+
 def children_for_user(user_id: int) -> list[dict]:
     cur = _cur()
     cur.execute(
