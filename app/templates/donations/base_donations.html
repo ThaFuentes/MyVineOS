@@ -40,6 +40,9 @@
 
         <a {% if request.endpoint == 'donations.view_all_donations' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
            href="{{ url_for('donations.view_all_donations') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">View All</a>
+
+        <a {% if request.endpoint and request.endpoint.startswith('donations.email_import') %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
+           href="{{ url_for('donations.email_import_queue') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Email import</a>
     {% endif %}
 
     {% if session.user_role in ['Admin', 'Owner'] %}
