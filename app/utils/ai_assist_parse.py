@@ -183,12 +183,22 @@ def ai_parse_sermon_structure(
     if not any(ln.strip() for ln in lines):
         return None, 'Empty sermon text.'
 
-    # Cap lines sent to model but keep mapping to original via line numbers
-    max_lines = 400
+    # Cap lines sent to model (prompt size). Mapping always uses FULL source lines after.
+    # For long docs, prefer denser packing: skip pure blank lines in the numbered view
+    # but keep original indices so slices stay correct.
+    max_lines = 600
     send_lines = lines[:max_lines]
-    numbered = '\n'.join(f'{i+1}|{ln}' for i, ln in enumerate(send_lines))
+    numbered_parts = []
+    for i, ln in enumerate(send_lines):
+        # Always include non-empty; include blanks only every other to save tokens
+        if ln.strip() or (i > 0 and send_lines[i - 1].strip()):
+            numbered_parts.append(f'{i+1}|{ln}')
+    numbered = '\n'.join(numbered_parts)
     if len(lines) > max_lines:
-        numbered += f'\n# NOTE: source continues after line {max_lines}; map only lines 1-{max_lines}.'
+        numbered += (
+            f'\n# NOTE: source has {len(lines)} lines total; you only see 1-{max_lines}. '
+            f'Map what you see. Software will keep ALL remaining lines after your last end_line.'
+        )
 
     system = (
         'You are a STRUCTURE indexer for MyVineOS pastoral sermons. '
@@ -288,6 +298,14 @@ def ai_parse_sermon_structure(
     return data, None
 
 
+def _plain_len(text: str) -> int:
+    """Comparable character count (ignore HTML + collapse whitespace)."""
+    t = re.sub(r'(?i)<br\s*/?>', '\n', text or '')
+    t = re.sub(r'<[^>]+>', ' ', t)
+    t = re.sub(r'\s+', '', t)
+    return len(t)
+
+
 def materialize_ai_sermon_sections(
     ai_data: dict,
     *,
@@ -296,14 +314,15 @@ def materialize_ai_sermon_sections(
 ) -> tuple[list[dict], dict]:
     """
     Build sections from AI line ranges + original source lines.
-    Returns (sections, meta) where meta has coverage stats / errors.
-    Rejects / pads if AI dropped large portions of the original.
+
+    CRITICAL: every original line is assigned to exactly one bucket so AI mode
+    never drops content. Overlaps and gaps are healed before slicing.
     """
     lines = list(ai_data.get('_source_lines') or [])
     n = len(lines)
     meta = {
         'coverage': 0.0,
-        'chars_original': sum(len(x) for x in lines),
+        'chars_original': _plain_len('\n'.join(lines)),
         'chars_used': 0,
         'rejected': False,
         'reason': '',
@@ -328,9 +347,9 @@ def materialize_ai_sermon_sections(
             start = 1
         if end < start:
             end = start
-        # Clamp to lines we have (AI only saw first max_lines sometimes)
-        start = min(start, n)
-        end = min(end, n)
+        # Clamp to lines we have (AI may only have seen a prefix)
+        start = min(max(start, 1), n)
+        end = min(max(end, start), n)
         heading_text = (sec.get('heading_text') or sec.get('subtitle') or '').strip()[:200]
         ranges.append({
             'title': (sec.get('title') or 'Section').strip()[:200] or 'Section',
@@ -346,40 +365,72 @@ def materialize_ai_sermon_sections(
         meta['reason'] = 'no valid line ranges'
         return [], meta
 
-    # Sort and de-overlap (keep earlier assignment)
-    ranges.sort(key=lambda r: (r['start'], r['end']))
-    cleaned = []
-    covered_until = 0
-    for r in ranges:
-        s = max(r['start'], covered_until + 1)
-        e = r['end']
-        if s > e:
-            continue
-        if s > n:
-            continue
-        e = min(e, n)
-        cleaned.append({**r, 'start': s, 'end': e})
-        covered_until = e
+    # --- Assign EVERY line to exactly one range index (no drops) ---
+    # First claim: earlier ranges win on overlap so we don't zero out later ones wrongly;
+    # then fill gaps from nearest previous claim.
+    owner = [-1] * n
+    ranges_sorted = sorted(enumerate(ranges), key=lambda ir: (ir[1]['start'], ir[1]['end']))
+    for orig_i, r in ranges_sorted:
+        for li in range(r['start'] - 1, r['end']):
+            if 0 <= li < n and owner[li] < 0:
+                owner[li] = orig_i
 
-    # Extend last section to document end if AI stopped early (keep original text)
-    if cleaned and cleaned[-1]['end'] < n:
-        cleaned[-1]['end'] = n
+    # Fill unassigned with previous owner; leading unassigned → first claimed
+    first_claimed = next((i for i, o in enumerate(owner) if o >= 0), None)
+    if first_claimed is None:
+        # Shouldn't happen if ranges valid — put all in range 0
+        owner = [0] * n
+    else:
+        # leading
+        for i in range(first_claimed):
+            owner[i] = owner[first_claimed]
+        # middle + trailing: propagate previous
+        prev = owner[first_claimed]
+        for i in range(first_claimed, n):
+            if owner[i] < 0:
+                owner[i] = prev
+            else:
+                prev = owner[i]
+        # Ensure trailing after last AI line is still owned (propagate already does)
 
-    # Fill leading gap before first section
-    if cleaned and cleaned[0]['start'] > 1:
-        # Prefer attach to first section rather than drop
-        cleaned[0]['start'] = 1
-
-    # Fill internal gaps by extending previous end
-    for i in range(1, len(cleaned)):
-        prev = cleaned[i - 1]
-        cur = cleaned[i]
-        if cur['start'] > prev['end'] + 1:
-            # Unassigned middle lines — attach to previous section (preserve text)
-            prev['end'] = cur['start'] - 1
+    # Rebuild contiguous ranges from owner map (preserves original metadata)
+    cleaned: list[dict] = []
+    i = 0
+    while i < n:
+        oid = owner[i]
+        j = i
+        while j + 1 < n and owner[j + 1] == oid:
+            j += 1
+        base = ranges[oid] if 0 <= oid < len(ranges) else ranges[0]
+        cleaned.append({
+            **base,
+            'start': i + 1,
+            'end': j + 1,
+        })
+        i = j + 1
 
     # Normalize MyVine shape: Introduction → Section 1..N → Application → Conclusion → Notes
     cleaned = _normalize_myvine_section_plan(cleaned, lines)
+
+    # After reorder, re-heal any range issues by re-slicing only (ranges still cover all lines)
+    # Verify full line coverage
+    covered = set()
+    for r in cleaned:
+        for li in range(r['start'] - 1, r['end']):
+            covered.add(li)
+    missing = [i for i in range(n) if i not in covered]
+    if missing:
+        # Attach missing lines to nearest previous section end
+        for mi in missing:
+            # find section to extend
+            target = None
+            for r in cleaned:
+                if r['end'] - 1 < mi:
+                    target = r
+            if target is None:
+                cleaned[0]['start'] = min(cleaned[0]['start'], mi + 1)
+            else:
+                target['end'] = max(target['end'], mi + 1)
 
     sections: list[dict] = []
     prep_note_chunks: list[str] = []
@@ -392,8 +443,8 @@ def materialize_ai_sermon_sections(
         chunk_lines = lines[r['start'] - 1 : r['end']]
         content = '\n'.join(chunk_lines).strip()
         if not content:
+            # keep blank-only chunks out of UI but chars already in coverage via other buckets
             continue
-        used_chars += len(content)
         stype = r['section_type'] if r['section_type'] in valid_types else 'point'
         title = (r.get('title') or '').strip()
 
@@ -411,12 +462,14 @@ def materialize_ai_sermon_sections(
                 prep_note_chunks.append(content)
             else:
                 prep_note_chunks.append(f'{label}\n{content}')
+            used_chars += _plain_len(content)
             continue
+
+        used_chars += _plain_len(content)
 
         # Scripture: AI value if present, else first/all refs found in original chunk
         refs_found = _all_scriptures_in(content)
         scripture = r['scripture_reference'] or (refs_found[0] if refs_found else '')
-        # If AI missed but body has refs, put multi-ref note in notes field
         notes_parts = []
         heading = (r.get('heading_text') or '').strip()
         if heading and heading.lower() not in title.lower():
@@ -428,7 +481,6 @@ def materialize_ai_sermon_sections(
         if as_html and html_from_text and '<' not in body:
             body = html_from_text(body)
         elif as_html and '<' not in body:
-            # minimal paragraphs
             paras = [p.strip() for p in re.split(r'\n\s*\n', body) if p.strip()]
             if not paras:
                 paras = [body]
@@ -443,16 +495,23 @@ def materialize_ai_sermon_sections(
         })
 
     meta['prep_notes'] = '\n\n'.join(prep_note_chunks).strip()
+    meta['chars_used'] = used_chars + _plain_len(meta['prep_notes'])
+    # Avoid double-counting if prep already in used_chars
     meta['chars_used'] = used_chars
     orig = max(meta['chars_original'], 1)
-    meta['coverage'] = used_chars / orig
+    meta['coverage'] = min(1.0, used_chars / orig) if orig else 1.0
+    meta['line_coverage'] = 1.0  # by construction every line is owned
 
-    # Reject if AI would throw away most of the sermon
-    if meta['coverage'] < 0.75 or not sections:
+    # Only reject if we somehow produced zero podium content AND no prep
+    if not sections and not meta['prep_notes']:
         meta['rejected'] = True
-        meta['reason'] = (
-            f'AI structure covered only {int(meta["coverage"] * 100)}% of original text; kept rules parse'
-        )
+        meta['reason'] = 'AI structure produced no usable sections'
+        return [], meta
+
+    # If only prep notes (weird), still reject for podium — keep rules
+    if not sections:
+        meta['rejected'] = True
+        meta['reason'] = 'AI only found prep notes, no podium sections'
         return [], meta
 
     return sections, meta

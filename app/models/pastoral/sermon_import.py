@@ -932,6 +932,7 @@ def parse_sermon_document(
         return result
 
     # CRITICAL: never use model-written body text. Slice original lines by AI ranges.
+    # materialize assigns EVERY original line so content is never dropped.
     ai_sections, meta = materialize_ai_sermon_sections(
         ai_data,
         as_html=as_html,
@@ -942,29 +943,40 @@ def parse_sermon_document(
         result['ai_coverage'] = meta.get('coverage')
         return result
 
-    # Prefer AI structure only if we still have (almost) all original words
-    rules_chars = sum(len(re.sub(r'<[^>]+>', '', s.get('content') or '')) for s in sections)
-    ai_chars = sum(len(re.sub(r'<[^>]+>', '', s.get('content') or '')) for s in ai_sections)
-    if rules_chars > 0 and ai_chars < rules_chars * 0.75:
+    # Compare TOTAL content: podium sections + Notes & References (prep)
+    def _count_chars(secs, notes_text=''):
+        from app.utils.ai_assist_parse import _plain_len
+        total = sum(_plain_len(s.get('content') or '') for s in (secs or []))
+        total += _plain_len(notes_text or '')
+        return total
+
+    ai_prep = (meta.get('prep_notes') or '').strip()
+    existing_prep = (result.get('notes') or '').strip()
+    merged_prep = (
+        (existing_prep + '\n\n' + ai_prep).strip()
+        if existing_prep and ai_prep and ai_prep not in existing_prep
+        else (ai_prep or existing_prep)
+    )
+
+    rules_chars = _count_chars(sections, result.get('notes') or '')
+    ai_chars = _count_chars(ai_sections, merged_prep or ai_prep)
+    # Soft check only: if AI somehow still lost a lot, keep rules (should be rare now)
+    if rules_chars > 400 and ai_chars < rules_chars * 0.55:
         result['ai_error'] = (
-            f'AI structure would drop content ({ai_chars} vs {rules_chars} chars) — kept full rules parse'
+            f'AI structure still looked incomplete ({ai_chars} vs {rules_chars} chars) — kept full rules parse'
         )
         result['ai_coverage'] = meta.get('coverage')
         return result
 
-    # Prep notes from AI "notes" ranges → sermon Notes & References field
-    ai_prep = (meta.get('prep_notes') or '').strip()
-    if ai_prep:
-        existing_prep = (result.get('notes') or '').strip()
-        result['notes'] = (existing_prep + '\n\n' + ai_prep).strip() if existing_prep else ai_prep
-
     # Safety: never leave notes-type rows on the podium list
-    podium, more_prep = _redirect_prep_sections_to_notes(ai_sections, result.get('notes') or '')
+    podium, more_prep = _redirect_prep_sections_to_notes(ai_sections, merged_prep)
     result['sections'] = podium
     result['notes'] = more_prep
     result['parse_mode'] = 'rules+ai' if sections else 'ai'
     result['ai_used'] = True
     result['ai_coverage'] = meta.get('coverage')
+    result['ai_chars'] = ai_chars
+    result['rules_chars'] = rules_chars
 
     # Metadata only — still never rewrite body
     if ai_data.get('title'):
