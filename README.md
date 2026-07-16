@@ -102,7 +102,7 @@ cp .env.example .env   # set SECRET_KEY and FERNET_KEY for real use
 
 ## What is included (feature map)
 
-This is software that ships **modules you can turn on for real church life** — public website surfaces and private tools together.
+This is free open-source software that ships **modules you can turn on for real church life** — public website surfaces and private tools together. Below is what **ships on `main` today** (not a future roadmap).
 
 ### Public website & community
 
@@ -110,23 +110,59 @@ This is software that ships **modules you can turn on for real church life** —
 - Public **events**, **sermons**, **announcements**, **prayers**, **prophecies**, **dreams**  
 - Community feed and guest-friendly navigation  
 - **Public Bible Study** in the same top/bottom nav as Welcome (visitors can read without an account)  
-- Display themes (theme + text size) available to visitors and members  
+- Display themes (theme + **page / Bible text size**, including large “Huge” sizes for accessibility)  
+- Cards and forms are built to **grow with larger text** so elderly users are not cut off  
 - Comments / contributions where enabled, with moderation paths for managers  
 
 ### Members, groups & attendance
 
 - Member directory and profiles  
 - Groups, roles, pending registration workflows  
-- Attendance tools including **kiosk** sign-in flows  
+- Attendance tools including **kiosk** sign-in, **session/day detail**, and **attendance reports + CSV export**  
 - Email roster and bulk communication hooks  
 - Account login locks / shadow-ban helpers (also surfaced in **Security Console**)  
 
 ### Dashboard & day-to-day UX
 
-- Role-aware private dashboard tiles  
-- Birthdays, prayers, announcements, upcoming events widgets  
+- Role-aware private dashboard tiles (not a dump of every link)  
+- Birthdays, prayers, announcements, upcoming events, community content feeds  
 - Personal display preferences (theme, page text, Bible text size)  
 - Mobile-first shell (top bar + bottom nav on phones)  
+- **Campus switcher** when multi-campus mode is enabled  
+
+### Multi-campus / branches
+
+- Settings → **Campuses / Branches** — enable multi-campus mode, default campus, campus records  
+- Color-coded campuses, soft-deactivate, link members to a campus / home campus  
+- Session campus scope for staff (org-wide vs one location)  
+- Forms use the same readable layout as events / tickets  
+
+### Modules & apps toggle
+
+- Settings → **Modules & Apps** — turn optional product areas on/off without a rebuild  
+- Dashboard tiles and nav respect module toggles  
+- **Church Apps** / custom module types (e.g. bus routes, youth, equipment) when enabled  
+
+### Volunteers & My Serving
+
+- Staff **Volunteers** area: teams, roles, skills, rotations, schedule / serving dates  
+- Round-robin **rotations** with ordered people and cursor  
+- Members **My Serving / my schedule** — see assignments and respond  
+- Public token respond links where configured  
+- Polished team / rotation / schedule forms (readable labels, help text, spacing)  
+
+### Child check-in
+
+- Rooms, children registry, kiosk-style check-in, pickup codes  
+- Parent **My kids**, staff board / labels / reports  
+- Designed for kids ministry weekend flow  
+
+### Curriculum studio (discipleship courses)
+
+- Pastoral **Curriculum Studio** — create courses, lessons, interactive blocks  
+- Study material, scripture, image/video, multiple choice, true/false, fill-in-the-blank  
+- Member **Study & Grow** catalog (`/study/`) when published  
+- Audience / visibility controls (members, public-with-login, pastoral-only)  
 
 ### Pastoral command center
 
@@ -136,7 +172,7 @@ This is software that ships **modules you can turn on for real church life** —
 - **Podium mode** for live preaching  
 - Care dashboard and pastoral follow-up flows  
 - Pastoral vault library for notes and shared pastoral content  
-- Pastoral **Bible Study** with sermon insert, notes → illustration library, installable translations  
+- Pastoral **Bible Study** (see below — sermon insert + study notes)  
 
 ### Worship team
 
@@ -145,7 +181,7 @@ This is software that ships **modules you can turn on for real church life** —
 - Setlists, notes, public/prompter-style links where configured  
 - Import/export oriented workflows for plans  
 
-### Bible Study (member + public)
+### Bible Study (member + public + pastoral)
 
 A full in-app Bible reader — not just a verse lookup:
 
@@ -156,13 +192,15 @@ A full in-app Bible reader — not just a verse lookup:
 | **Personal study version** | Each logged-in user can save “my Bible” (overrides church default for them only) |
 | **Resume place** | Last book / chapter / verse remembered per account across devices |
 | **Highlights** | Multi-color verse highlights |
-| **Notes** | Verse, chapter, or book scope; searchable library + download |
+| **Study notes** | Notes save into the on-page **Study notes** panel (not the illustration library by default) |
 | **Favorites** | Heart verses, chapters, or whole books |
 | **Strong’s** | Lexicon lookup + occurrences (when data is seeded/imported) |
-| **Cross-references** | Related passages + curated messianic / “related to Jesus” links |
+| **Cross-references** | Related passages + curated messianic / “related to Jesus” links — **popup** preview (copy / highlight / go to passage) instead of hard-navigating away |
 | **Chapter grid** | Paged chapter picker for long books (e.g. Isaiah) |
 | **Visitors** | Can **read**, switch versions for the visit, Strong’s & cross-refs — **no** highlights/notes/favorites (login CTA) |
 | **Members** | Full personal study features; version + place sticky after login |
+| **Pastoral tools** | Multi-select verses; **Copy** / **Note** / **+ Sermon** / **+ Library**; whole-chapter copy/note; active sermon bar with **Open sermon** (same tab) and **New tab** |
+| **Sermon insert** | Appends into a dedicated **Bible Study inserts** section (safe for many inserts in a row); clear confirmation + open links |
 
 **Where to open it**
 
@@ -170,32 +208,40 @@ A full in-app Bible reader — not just a verse lookup:
 |----------|------------|
 | **Everyone (public)** | **`/bible/`** · public top nav **Bible** · mobile bottom nav **Bible** |
 | **Logged-in members** | Same URL · also under **Community → Bible** |
-| **Pastoral** | Pastoral nav **Bible** · study tools + sermon integration |
+| **Pastoral** | **`/pastoral/bible/study`** · study tools + sermon integration |
 
-### Donations, bills & inventory
+### Donations, bills, accounting & inventory
 
 - Donations dashboard, records, export-oriented reporting  
-- Online giving **settings** (options, copy, images, enable/disable) — configure how you present giving; wire your processor links as your church uses them  
-- Recurring **bills** dashboard, assignment, reminders  
-- **Encrypted bill credentials** (utility logins, etc.) with **password re-auth** before reveal  
-- Inventory catalog, receive/scan style workflows, dashboards  
+- Online giving **settings** (options, copy, images, enable/disable)  
+- Recurring **bills** dashboard, assignment, reminders, links into accounting where configured  
+- **Encrypted bill credentials** with **password re-auth** before reveal  
+- **Accounting** module: accounts, expenses, journal, ledger, budgets, vendors, payroll runs, reports  
+- Inventory catalog, receive/scan, stock moves, kits/sets style workflows, dashboards  
 
-### Events, tickets & operations
+### Communications & AI Insights
+
+- Communications: campaigns, workflows, send log, SMS settings hooks  
+- **AI Insights** overview and report surfaces (wired for optional AI backends; see settings)  
+
+### Events, tickets & help
 
 - Event management, contributions / potluck-style participation  
-- Tickets / support ticket modules  
-- The Gathering Place manager area for community moderation  
-- Settings: timezone, email, notifications, censored words, custom modules, AI-related settings hooks  
+- Member tickets + staff **Ticket Manager** (ticket managers group, export)  
+- Support-ticket style submit flows with polished forms  
+- In-app **Help** center + Owner **Help manage** (articles, categories)  
+- **Enterprise help packs** (`myvine_help_v1` JSON) — export / import shareable documentation packs  
 
 ### Auth & admin
 
 - Login / register, email verification flows (configurable)  
-- **Check your email** guidance after register: shows the **live From address** from Settings → Email (e.g. `admin@poweredby.top`) and spam-folder reminders  
+- **Check your email** guidance after register: shows the **live From address** from Settings → Email and spam-folder reminders  
 - Optional **TOTP 2FA** (`pyotp`)  
 - Roles such as Owner / Admin / Staff / Member (plus pending/banned workflows)  
 - Permission helpers and group-aware gates across modules  
 - Audit-style **change logging** for important actions  
 - **Security Console** (see below)  
+- Settings: church general, campuses, modules, timezone, email, notifications, censored words, custom modules / church apps, AI hooks  
 
 ---
 
