@@ -1,6 +1,15 @@
 {% extends "security/base_security.html" %}
 
 {% block security_content %}
+<div class="glass" style="padding:0.85rem 1rem; margin-bottom:1rem; border-left:3px solid var(--primary);">
+  <strong style="color:var(--primary);">Reading the threat log</strong>
+  <p class="sec-muted" style="margin:0.35rem 0 0; font-size:0.88rem; line-height:1.45;">
+    Events tagged <code>csrf_soft_member</code> or notes starting with
+    <code>[likely-false-positive]</code> are usually <em>you</em> (multi-tab, long forms, mobile Wi‑Fi) —
+    not a hacker. Real anonymous CSRF shows as <code>csrf_failure</code> and counts toward attack stats.
+    Use <strong>Trust IP</strong> on Bans for your office/home connection if needed.
+  </p>
+</div>
 <div class="sec-cards">
   <div class="sec-card"><div class="n">{{ stats.events_24h }}</div><div class="l">Events (24h)</div></div>
   <div class="sec-card"><div class="n">{{ stats.events_total }}</div><div class="l">Events total</div></div>

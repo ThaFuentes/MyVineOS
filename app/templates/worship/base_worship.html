@@ -15,7 +15,8 @@
   <a href="{{ url_for('worship.history') }}" class="wn-history">Play History</a>
   {% if can_manage_worship() %}
   <a href="{{ url_for('worship.defaults') }}" class="wn-roles">Default Roles</a>
-  <a href="{{ url_for('worship.songs_import') }}" class="wn-import">Import JSON</a>
+  <a href="{{ url_for('worship.songs_import') }}" class="wn-import">Import / AI</a>
+  <a href="{{ url_for('worship.songs_public_domain') }}" class="wn-import">PD Pack</a>
   {% endif %}
   <span style="flex:1;"></span>
   <a href="{{ url_for('dashboard.dashboard') }}" class="wn-back"><- Dashboard</a>

@@ -1,40 +1,145 @@
 {% extends "worship/base_worship.html" %}
 
-{% block worship_title %}Import Songs (JSON){% endblock %}
+{% block worship_title %}Import Songs{% endblock %}
 
 {% block worship_content %}
-<h1 style="margin:0 0 0.5rem; font-size:1.35rem; color:var(--primary);">Bulk import songs</h1>
+<h1 style="margin:0 0 0.5rem; font-size:1.35rem; color:var(--primary);">Import songs</h1>
 <p style="margin:0 0 1rem; opacity:0.75; font-size:0.9rem;">
-  Paste JSON or upload a <code>.json</code> file. Matching title+artist updates existing songs.
+  Bring in charts you already have rights to use (ChordPro, typed chords + lyrics, exports).
+  Use AI to help structure chords with lyrics — then arrange play order in the song editor.
+  For licensed modern songs, use your <strong>CCLI SongSelect</strong> account and paste here.
 </p>
 
-<div class="glass-panel" style="padding:1rem; margin-bottom:1rem; font-size:0.85rem;">
-<pre style="margin:0; white-space:pre-wrap;">{
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+  <a href="{{ url_for('worship.songs_public_domain') }}" class="btn btn-primary">Public domain starter pack</a>
+  <a href="{{ url_for('worship.songs_list') }}" class="btn btn-secondary">Song library</a>
+</div>
+
+{# ── Chord chart + AI ── #}
+<div class="glass-panel" style="padding:1.1rem; margin-bottom:1.25rem;">
+  <h2 style="margin:0 0 0.35rem; font-size:1.1rem;">Chord chart → song sections</h2>
+  <p class="hint" style="margin:0 0 0.85rem; opacity:0.8; font-size:0.88rem;">
+    Paste ChordPro (<code>[G]Amazing [C]grace</code>), chord-over-lyrics, or section markers like
+    <code>[Verse 1]</code> / <code>[Chorus]</code>. AI keeps your chords + wording and splits sections.
+  </p>
+  <form method="post" enctype="multipart/form-data" class="styled-form" style="display:grid; gap:0.65rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="chart">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+      <label>Title (optional hint)
+        <input type="text" name="title" class="form-input" style="width:100%; margin-top:0.25rem;" placeholder="Leave blank to detect">
+      </label>
+      <label>Artist (optional)
+        <input type="text" name="artist" class="form-input" style="width:100%; margin-top:0.25rem;">
+      </label>
+    </div>
+    <label>Chart text
+      <textarea name="chart_text" rows="12" class="form-input" style="width:100%; font-family:ui-monospace,monospace; font-size:0.85rem; margin-top:0.25rem;"
+        placeholder="[Verse 1]&#10;[G]Amazing [C]grace how [G]sweet the sound&#10;..."></textarea>
+    </label>
+    <label>Or upload file (.txt, .chordpro, .docx)
+      <input type="file" name="chart_file" accept=".txt,.md,.chordpro,.chopro,.cho,.crd,.docx" style="margin-top:0.25rem;">
+    </label>
+    <div>
+      <span style="font-size:0.9rem; font-weight:600;">Parse mode</span>
+      <div style="display:flex; flex-wrap:wrap; gap:0.75rem 1.2rem; margin-top:0.4rem; font-size:0.88rem;">
+        <label style="display:flex; gap:0.35rem; align-items:center; cursor:pointer;">
+          <input type="radio" name="parse_mode" value="rules"> Rules only (markers / ChordPro)
+        </label>
+        <label style="display:flex; gap:0.35rem; align-items:center; cursor:pointer;">
+          <input type="radio" name="parse_mode" value="auto" checked> Auto (rules first, AI if unstructured)
+        </label>
+        <label style="display:flex; gap:0.35rem; align-items:center; cursor:pointer;">
+          <input type="radio" name="parse_mode" value="ai"> Always use AI assist
+        </label>
+      </div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+      <button type="submit" name="save_now" value="0" class="btn btn-secondary">Preview parse</button>
+      <button type="submit" name="save_now" value="1" class="btn btn-primary">Parse &amp; save to library</button>
+    </div>
+  </form>
+</div>
+
+{% if chart_preview %}
+<div class="glass-panel" style="padding:1.1rem; margin-bottom:1.25rem;">
+  <h2 style="margin:0 0 0.5rem; font-size:1.05rem;">Parse preview</h2>
+  <p style="margin:0 0 0.5rem; font-size:0.9rem;">
+    <strong>{{ chart_preview.title }}</strong>
+    {% if chart_preview.artist %} · {{ chart_preview.artist }}{% endif %}
+    · mode <code>{{ chart_preview.parse_mode }}</code>
+    {% if chart_preview.ai_used %} · AI assisted{% endif %}
+  </p>
+  {% if chart_preview.copyright_line %}
+  <p style="margin:0 0 0.5rem; font-size:0.85rem; opacity:0.75;">{{ chart_preview.copyright_line }}
+    {% if chart_preview.ccli_song_number %} · CCLI {{ chart_preview.ccli_song_number }}{% endif %}
+  </p>
+  {% endif %}
+  {% if chart_preview.notes %}
+  <p class="help-text">{{ chart_preview.notes }}</p>
+  {% endif %}
+  {% for sec in chart_preview.sections or [] %}
+  <div style="margin:0.55rem 0; padding:0.55rem 0.65rem; border-radius:10px; background:rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.06);">
+    <strong style="color:var(--primary);">{{ sec.label or sec.type }}</strong>
+    <pre style="margin:0.35rem 0 0; white-space:pre-wrap; font-family:ui-monospace,monospace; font-size:0.82rem;">{{ sec.content }}</pre>
+  </div>
+  {% endfor %}
+  <form method="post" style="margin-top:0.85rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="chart">
+    <input type="hidden" name="save_now" value="1">
+    {# Re-parse structured lyrics_raw with rules (already section-marked) #}
+    <input type="hidden" name="parse_mode" value="rules">
+    <input type="hidden" name="title" value="{{ chart_preview.title }}">
+    <input type="hidden" name="artist" value="{{ chart_preview.artist or '' }}">
+    <input type="hidden" name="ccli_hint" value="{{ chart_preview.ccli_song_number or '' }}">
+    <input type="hidden" name="copyright_hint" value="{{ chart_preview.copyright_line or '' }}">
+    <textarea name="chart_text" hidden>{{ chart_preview.lyrics_raw or '' }}</textarea>
+    <button type="submit" class="btn btn-primary">Save this parse to library</button>
+  </form>
+</div>
+{% endif %}
+
+{# ── JSON bulk ── #}
+<div class="glass-panel" style="padding:1.1rem;">
+  <h2 style="margin:0 0 0.5rem; font-size:1.05rem;">Bulk JSON import</h2>
+  <p style="margin:0 0 0.75rem; opacity:0.75; font-size:0.88rem;">
+    Advanced: paste JSON or upload <code>.json</code>. Matching title+artist updates existing songs.
+  </p>
+  <details>
+    <summary style="cursor:pointer; margin-bottom:0.65rem;">JSON format example</summary>
+    <pre style="margin:0; white-space:pre-wrap; font-size:0.8rem; opacity:0.85;">{
   "songs": [
     {
       "title": "Amazing Grace",
       "artist": "Traditional",
-      "ccli_song_number": "22025",
+      "ccli_song_number": "",
       "copyright_line": "Public Domain",
-      "lyrics_raw": "[Verse 1]\nAmazing grace...\n\n[Chorus]\n...",
-      "sections": [
-        {"type": "verse", "label": "Verse 1", "content": "Amazing grace...", "sort": 1}
-      ]
+      "lyrics_raw": "[Verse 1]\n[G]Amazing grace...\n\n[Chorus]\n..."
     }
   ]
 }</pre>
-<p style="margin:0.75rem 0 0; opacity:0.7;"><strong>Verse/chorus detection:</strong> If you only provide <code>lyrics_raw</code>, lines like <code>[Verse 1]</code>, <code>(Chorus)</code>, or <code>Bridge</code> are parsed automatically for the prompter.</p>
-</div>
-
-<form method="post" enctype="multipart/form-data" class="glass-panel" style="padding:1rem; display:grid; gap:0.75rem;">
+  </details>
+  <form method="post" enctype="multipart/form-data" style="display:grid; gap:0.65rem;">
     {% include 'partials/csrf_field.html' %}
-
-  <label>JSON data
-    <textarea name="json_data" rows="14" style="width:100%; font-family:monospace; font-size:0.85rem; margin-top:0.25rem;"></textarea>
-  </label>
-  <label>Or upload file
-    <input type="file" name="json_file" accept=".json,application/json" style="margin-top:0.25rem;">
-  </label>
-  <button type="submit" class="btn btn-primary">Import</button>
-</form>
+    <input type="hidden" name="action" value="json">
+    <label>JSON data
+      <textarea name="json_data" rows="10" style="width:100%; font-family:monospace; font-size:0.85rem; margin-top:0.25rem;"></textarea>
+    </label>
+    <label>Or upload file
+      <input type="file" name="json_file" accept=".json,application/json" style="margin-top:0.25rem;">
+    </label>
+    <button type="submit" class="btn btn-primary">Import JSON</button>
+  </form>
+  {% if result %}
+  <p style="margin:0.75rem 0 0; font-size:0.9rem;">
+    Created {{ result.created }}, updated {{ result.updated }}, skipped {{ result.skipped }}.
+  </p>
+  {% if result.errors %}
+  <ul style="font-size:0.85rem; opacity:0.85;">
+    {% for e in result.errors[:12] %}<li>{{ e }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% endif %}
+</div>
 {% endblock %}

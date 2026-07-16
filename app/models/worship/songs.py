@@ -71,7 +71,21 @@ def bulk_import_songs(items: list, user_id: int) -> dict:
         sections = normalize_sections(item.get('sections'), item.get('lyrics_raw'))
         if not sections and item.get('lyrics_raw'):
             sections = parse_lyrics_to_sections(item['lyrics_raw'])
+            if not sections:
+                try:
+                    from app.models.worship.song_parse import parse_chart_to_sections
+                    sections = parse_chart_to_sections(item['lyrics_raw'])
+                except Exception:
+                    pass
+        for j, sec in enumerate(sections or []):
+            if not sec.get('id'):
+                sec['id'] = f's{j + 1}'
+            sec['sort'] = j + 1
         sections_json = json.dumps(sections or [])
+        play_order = parse_play_order(item.get('play_order'))
+        if not play_order:
+            play_order = default_play_order_from_sections(sections or [])
+        play_order_json = json.dumps(play_order)
         cur.execute("SELECT id FROM worship_songs WHERE title = %s AND IFNULL(artist,'') = IFNULL(%s,'') LIMIT 1", (
             title, (item.get('artist') or '').strip() or None,
         ))
@@ -85,13 +99,14 @@ def bulk_import_songs(items: list, user_id: int) -> dict:
             item.get('copyright_year'),
             (item.get('lyrics_raw') or '').strip() or None,
             sections_json,
+            play_order_json,
             (item.get('notes_permanent') or '').strip() or None,
         )
         if existing:
             cur2 = db.cursor()
             cur2.execute("""
                 UPDATE worship_songs SET title=%s, artist=%s, ccli_song_number=%s, copyright_line=%s,
-                    publisher=%s, copyright_year=%s, lyrics_raw=%s, sections_json=%s,
+                    publisher=%s, copyright_year=%s, lyrics_raw=%s, sections_json=%s, play_order_json=%s,
                     notes_permanent=%s, updated_by=%s WHERE id=%s
             """, (*fields, user_id, existing['id']))
             updated += 1
@@ -99,8 +114,8 @@ def bulk_import_songs(items: list, user_id: int) -> dict:
             cur2 = db.cursor()
             cur2.execute("""
                 INSERT INTO worship_songs (title, artist, ccli_song_number, copyright_line, publisher,
-                    copyright_year, lyrics_raw, sections_json, notes_permanent, created_by, updated_by)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    copyright_year, lyrics_raw, sections_json, play_order_json, notes_permanent, created_by, updated_by)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (*fields, user_id, user_id))
             created += 1
     db.commit()

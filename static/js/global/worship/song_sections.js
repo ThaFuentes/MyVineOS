@@ -176,9 +176,9 @@
     if (ta) ta.focus();
   }
 
-  function parseLyrics(text) {
+  function parseLyricsLocal(text) {
     const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
-    const marker = /^\s*[\[\(]?\s*(verse\s*\d*|chorus|bridge|pre-?chorus|tag|intro|outro|ending|interlude)\s*[\]\)]?\s*$/i;
+    const marker = /^\s*[\[\{\(]?\s*(verse\s*\d*|v\s*\d*|chorus|ch|bridge|br|pre-?chorus|prechorus|tag|intro|outro|ending|interlude)\s*[\]\}\)]?\s*:?\s*$/i;
     const out = [];
     let label = 'Lyrics';
     let type = 'verse';
@@ -202,16 +202,16 @@
       if (marker.test(stripped)) {
         flush();
         buf = [];
-        label = stripped.replace(/^[\[\(]|[\]\)]$/g, '').trim();
+        label = stripped.replace(/^[\[\{\(]|[\]\}\)]$/g, '').replace(/:$/, '').trim();
         const low = label.toLowerCase();
         if (low.includes('pre') && low.includes('chorus')) type = 'prechorus';
-        else if (low.includes('chorus')) type = 'chorus';
-        else if (low.includes('bridge')) type = 'bridge';
+        else if (low.includes('chorus') || low === 'ch' || low === 'refrain') type = 'chorus';
+        else if (low.includes('bridge') || low === 'br') type = 'bridge';
         else if (low.includes('tag')) type = 'tag';
         else if (low.includes('intro')) type = 'intro';
         else if (low.includes('outro') || low.includes('ending')) type = 'outro';
+        else if (low.includes('interlude') || low.includes('instrumental')) type = 'interlude';
         else type = 'verse';
-        // title-case-ish
         label = label.replace(/\b\w/g, (c) => c.toUpperCase());
         return;
       }
@@ -219,6 +219,98 @@
     });
     flush();
     return out;
+  }
+
+  function getParseMode() {
+    const el = document.querySelector('input[name="client_parse_mode"]:checked');
+    return el ? el.value : 'auto';
+  }
+
+  function applyParsedSong(song) {
+    if (!song) return;
+    const secs = Array.isArray(song.sections) ? song.sections : [];
+    sections = secs.map((s, i) => ({
+      id: s.id || uid(),
+      type: s.type || 'verse',
+      label: s.label || defaultLabel(s.type || 'verse'),
+      content: s.content || '',
+      sort: s.sort || i + 1,
+      repeat: s.repeat || 1,
+    }));
+    if (Array.isArray(song.play_order) && song.play_order.length) {
+      const ids = new Set(sections.map((s) => s.id));
+      playOrder = song.play_order.filter((id) => ids.has(id));
+    } else {
+      playOrder = sections.map((s) => s.id);
+    }
+    // Optional metadata fill if empty
+    const titleEl = document.querySelector('input[name="title"]');
+    const artistEl = document.querySelector('input[name="artist"]');
+    const ccliEl = document.querySelector('input[name="ccli_song_number"]');
+    const copyEl = document.querySelector('input[name="copyright_line"]');
+    if (titleEl && !titleEl.value && song.title) titleEl.value = song.title;
+    if (artistEl && !artistEl.value && song.artist) artistEl.value = song.artist;
+    if (ccliEl && !ccliEl.value && song.ccli_song_number) ccliEl.value = song.ccli_song_number;
+    if (copyEl && !copyEl.value && song.copyright_line) copyEl.value = song.copyright_line;
+    renderSections();
+  }
+
+  function parseLyricsViaServer(text, mode) {
+    const status = document.getElementById('lyrics-parse-status');
+    const url = cfg.parseUrl;
+    const finishLocal = (msg) => {
+      const local = parseLyricsLocal(text);
+      if (!local.length) {
+        if (status) status.textContent = msg || 'No sections found.';
+        else alert(msg || 'No sections found. Use markers like [Verse 1] or (Chorus).');
+        return;
+      }
+      applyParsedSong({ sections: local });
+      if (status) status.textContent = msg || 'Local rules · ' + local.length + ' sections';
+      document.getElementById('lyrics-paste-box')?.classList.remove('is-open');
+    };
+    if (!url) {
+      finishLocal();
+      return;
+    }
+    if (status) status.textContent = mode === 'rules' ? 'Parsing…' : 'Parsing (may use AI)…';
+    const body = new FormData();
+    body.append('chart_text', text);
+    body.append('parse_mode', mode || 'auto');
+    body.append('title', document.querySelector('input[name="title"]')?.value || '');
+    body.append('artist', document.querySelector('input[name="artist"]')?.value || '');
+    if (cfg.csrf) body.append('csrf_token', cfg.csrf);
+    fetch(url, {
+      method: 'POST',
+      body,
+      credentials: 'same-origin',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(cfg.csrf ? { 'X-CSRF-Token': cfg.csrf } : {}),
+      },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data || !data.ok) {
+          finishLocal((data && data.error) || 'Parse failed — using local rules');
+          return;
+        }
+        applyParsedSong(data.song);
+        if (status) {
+          const s = data.song || {};
+          status.textContent =
+            'OK · ' +
+            (s.parse_mode || mode) +
+            (s.ai_used ? ' · AI' : '') +
+            ' · ' +
+            (s.sections || []).length +
+            ' sections';
+        }
+        document.getElementById('lyrics-paste-box')?.classList.remove('is-open');
+      })
+      .catch(() => {
+        finishLocal('Network error — local rules used');
+      });
   }
 
   // Events
@@ -237,16 +329,12 @@
     document.getElementById('lyrics-paste-box')?.classList.remove('is-open');
   });
   document.getElementById('lyrics-parse-btn')?.addEventListener('click', () => {
-    const text = document.getElementById('lyrics-paste-input')?.value || '';
-    const parsed = parseLyrics(text);
-    if (!parsed.length) {
-      alert('No sections found. Use markers like [Verse 1] or (Chorus), or paste plain text.');
+    const text = (document.getElementById('lyrics-paste-input')?.value || '').trim();
+    if (!text) {
+      alert('Paste a chord chart or lyrics first (ChordPro, chord-over-lyrics, or [Verse]/[Chorus] markers).');
       return;
     }
-    sections = parsed;
-    playOrder = parsed.map((s) => s.id);
-    document.getElementById('lyrics-paste-box')?.classList.remove('is-open');
-    renderSections();
+    parseLyricsViaServer(text, getParseMode());
   });
 
   listEl.addEventListener('click', (e) => {

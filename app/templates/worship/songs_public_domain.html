@@ -1,0 +1,118 @@
+{% extends "worship/base_worship.html" %}
+
+{% block worship_title %}Public Domain Starter Pack{% endblock %}
+
+{% block worship_content %}
+<h1 style="margin:0 0 0.4rem; font-size:1.35rem; color:var(--primary);">
+  <i class="fa-solid fa-book-bible" aria-hidden="true"></i> Public domain starter pack
+</h1>
+<p style="margin:0 0 1rem; opacity:0.8; font-size:0.92rem; max-width:46rem;">
+  Classic hymns that are <strong>public domain</strong> (lyrics). Simple chord symbols are included for church use —
+  not commercial charts. Select which ones you want in <em>your</em> library.
+  Modern Vineyard / CCLI songs still require your SongSelect account (paste into Import).
+</p>
+
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+  <a href="{{ url_for('worship.songs_import') }}" class="btn btn-secondary">← Chord / AI import</a>
+  <a href="{{ url_for('worship.songs_list') }}" class="btn btn-secondary">Song library</a>
+</div>
+
+{% if not can_manage %}
+<p class="glass-panel" style="padding:1rem;">View only — worship managers can add pack songs to the library.</p>
+{% endif %}
+
+<form method="post" id="pd-pack-form">
+  {% include 'partials/csrf_field.html' %}
+
+  {% if can_manage %}
+  <div class="glass-panel" style="padding:0.75rem 1rem; margin-bottom:0.85rem; display:flex; flex-wrap:wrap; gap:0.65rem; align-items:center;">
+    <button type="button" class="btn btn-secondary btn-small" id="pd-select-all">Select all</button>
+    <button type="button" class="btn btn-secondary btn-small" id="pd-select-new">Select not in library</button>
+    <button type="button" class="btn btn-secondary btn-small" id="pd-clear">Clear</button>
+    <button type="submit" class="btn btn-primary">Add / update selected in my library</button>
+    <span class="help-text" style="margin:0;" id="pd-count">0 selected</span>
+  </div>
+  {% endif %}
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:0.75rem;">
+    {% for p in pack %}
+    <div class="glass-panel" style="padding:0.9rem 1rem; {% if p.in_library %}border-color:rgba(61,191,154,0.35);{% endif %}">
+      <label style="display:flex; gap:0.55rem; align-items:flex-start; cursor:{% if can_manage %}pointer{% else %}default{% endif %};">
+        {% if can_manage %}
+        <input type="checkbox" name="pack_id" value="{{ p.id }}" class="pd-check"
+               data-in-library="{{ '1' if p.in_library else '0' }}"
+               style="width:auto; min-height:auto; margin-top:0.25rem;">
+        {% endif %}
+        <span style="min-width:0; flex:1;">
+          <strong style="display:block; color:var(--text-primary);">{{ p.title }}</strong>
+          <span style="font-size:0.82rem; opacity:0.7;">{{ p.artist }}</span>
+          <div style="margin-top:0.35rem; font-size:0.75rem;">
+            <span style="padding:0.1rem 0.45rem; border-radius:999px; background:rgba(0,229,255,0.12); border:1px solid rgba(0,229,255,0.25); color:var(--primary);">
+              {{ p.copyright_line or 'Public Domain' }}
+            </span>
+            {% if p.has_chords %}
+            <span style="margin-left:0.25rem; opacity:0.65;">+ chords</span>
+            {% endif %}
+            {% if p.in_library %}
+            <span style="margin-left:0.25rem; color:#3dbf9a; opacity:0.9;">· in library (re-select to refresh)</span>
+            {% endif %}
+          </div>
+          <p style="margin:0.45rem 0 0; font-size:0.78rem; opacity:0.65; line-height:1.35;">{{ p.preview }}…</p>
+          <a href="{{ url_for('worship.songs_public_domain', preview=p.id) }}" style="font-size:0.8rem;">Preview full chart</a>
+        </span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if can_manage %}
+  <div style="margin-top:1rem;">
+    <button type="submit" class="btn btn-primary">Add selected to my library</button>
+  </div>
+  {% endif %}
+</form>
+
+{% if preview %}
+<div class="glass-panel" style="padding:1.1rem; margin-top:1.25rem;">
+  <h2 style="margin:0 0 0.35rem; font-size:1.1rem;">{{ preview.title }}</h2>
+  <p style="margin:0 0 0.75rem; opacity:0.75; font-size:0.9rem;">
+    {{ preview.artist }} · {{ preview.copyright_line or 'Public Domain' }}
+  </p>
+  <pre style="margin:0; white-space:pre-wrap; font-family:ui-monospace,monospace; font-size:0.85rem; max-height:420px; overflow:auto;">{{ preview.lyrics_raw }}</pre>
+  {% if can_manage %}
+  <form method="post" style="margin-top:0.85rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="pack_id" value="{{ preview.id }}">
+    <button type="submit" class="btn btn-primary">Add this song to library</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+<script>
+(function () {
+  var checks = Array.prototype.slice.call(document.querySelectorAll('.pd-check'));
+  var countEl = document.getElementById('pd-count');
+  function sync() {
+    var n = checks.filter(function (c) { return c.checked; }).length;
+    if (countEl) countEl.textContent = n + ' selected';
+  }
+  checks.forEach(function (c) { c.addEventListener('change', sync); });
+  document.getElementById('pd-select-all')?.addEventListener('click', function () {
+    checks.forEach(function (c) { c.checked = true; });
+    sync();
+  });
+  document.getElementById('pd-select-new')?.addEventListener('click', function () {
+    checks.forEach(function (c) {
+      c.checked = c.getAttribute('data-in-library') !== '1';
+    });
+    sync();
+  });
+  document.getElementById('pd-clear')?.addEventListener('click', function () {
+    checks.forEach(function (c) { c.checked = false; });
+    sync();
+  });
+  sync();
+})();
+</script>
+{% endblock %}

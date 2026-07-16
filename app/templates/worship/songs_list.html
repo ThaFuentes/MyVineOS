@@ -6,7 +6,11 @@
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
   <h1 style="margin:0; font-size:1.35rem; color:var(--primary);">Song Library</h1>
   {% if can_manage %}
-  <a href="{{ url_for('worship.song_new') }}" class="btn btn-primary">+ Add Song</a>
+  <div style="display:flex; flex-wrap:wrap; gap:0.45rem;">
+    <a href="{{ url_for('worship.songs_public_domain') }}" class="btn btn-secondary">PD starter pack</a>
+    <a href="{{ url_for('worship.songs_import') }}" class="btn btn-secondary">Import / AI</a>
+    <a href="{{ url_for('worship.song_new') }}" class="btn btn-primary">+ Add Song</a>
+  </div>
   {% endif %}
 </div>
 
@@ -23,7 +27,13 @@
 {% else %}
 <div class="glass-panel" style="padding:1.5rem; text-align:center; opacity:0.75;">
   No songs in the library yet.
-  {% if can_manage %}<br><a href="{{ url_for('worship.song_new') }}">Add your first song</a>{% endif %}
+  {% if can_manage %}
+  <p style="margin:0.75rem 0 0;">
+    Start with the <a href="{{ url_for('worship.songs_public_domain') }}">public domain pack</a>,
+    <a href="{{ url_for('worship.songs_import') }}">import a chart with AI</a>,
+    or <a href="{{ url_for('worship.song_new') }}">add a song manually</a>.
+  </p>
+  {% endif %}
 </div>
 {% endif %}
 {% endblock %}
