@@ -169,7 +169,7 @@ def create_tables(cursor):
         for prov, model in [
             ('grok', 'grok-2-latest'),
             ('openai', 'gpt-4o-mini'),
-            ('gemini', 'gemini-flash-latest'),
+            ('gemini', 'gemini-flash-lite-latest'),
             ('ollama', 'llama3.1'),
         ]:
             cursor.execute("""

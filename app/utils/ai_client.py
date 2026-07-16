@@ -19,29 +19,29 @@ from app.utils.helpers import contains_censored_word
 PROVIDERS = ('grok', 'openai', 'gemini', 'ollama')
 
 # Current stable defaults.
-# Prefer gemini-flash-latest: always tracks Google's current free/paid flash endpoint
-# (fixed IDs like gemini-2.5-flash-lite are often 404 for new API keys; 3.5 can be slow/503).
+# Free-tier Gemini often rate-limits or times out on heavier flash models; lite alias is most reliable.
 DEFAULT_MODELS = {
     'grok': 'grok-2-latest',
     'openai': 'gpt-4o-mini',
-    'gemini': 'gemini-flash-latest',
+    'gemini': 'gemini-flash-lite-latest',
     'ollama': 'llama3.1',
 }
 
 # Map retired / fragile aliases → reliable Gemini model IDs.
 _GEMINI_MODEL_ALIASES = {
-    'gemini-1.5-flash': 'gemini-flash-latest',
+    'gemini-1.5-flash': 'gemini-flash-lite-latest',
     'gemini-1.5-flash-latest': 'gemini-flash-latest',
     'gemini-1.5-flash-8b': 'gemini-flash-lite-latest',
-    'gemini-1.5-pro': 'gemini-2.5-pro',
-    'gemini-1.5-pro-latest': 'gemini-2.5-pro',
-    'gemini-pro': 'gemini-flash-latest',
-    'gemini-pro-latest': 'gemini-2.5-pro',
-    # flash-lite fixed IDs frequently 404 for new keys — use rolling alias
+    'gemini-1.5-pro': 'gemini-flash-latest',
+    'gemini-1.5-pro-latest': 'gemini-flash-latest',
+    'gemini-pro': 'gemini-flash-lite-latest',
+    'gemini-pro-latest': 'gemini-flash-latest',
+    # Fixed IDs frequently 404 for new keys — use rolling aliases
     'gemini-2.5-flash-lite': 'gemini-flash-lite-latest',
     'gemini-2.0-flash-lite': 'gemini-flash-lite-latest',
-    'models/gemini-1.5-flash': 'gemini-flash-latest',
-    'models/gemini-1.5-pro': 'gemini-2.5-pro',
+    'gemini-2.5-flash': 'gemini-flash-latest',
+    'models/gemini-1.5-flash': 'gemini-flash-lite-latest',
+    'models/gemini-1.5-pro': 'gemini-flash-latest',
 }
 
 
@@ -63,11 +63,10 @@ def normalize_model_name(provider: str, model: str | None) -> str:
 # Curated fallbacks when live list is unavailable (still better than a blank box).
 RECOMMENDED_MODELS: dict[str, list[dict[str, str]]] = {
     'gemini': [
-        {'id': 'gemini-flash-latest', 'label': 'Gemini Flash (latest) — recommended', 'note': 'Most reliable; tracks Google’s current flash model'},
-        {'id': 'gemini-flash-lite-latest', 'label': 'Gemini Flash-Lite (latest)', 'note': 'Cheapest / fastest alias'},
-        {'id': 'gemini-2.5-flash', 'label': 'Gemini 2.5 Flash', 'note': 'Stable fixed ID when available'},
-        {'id': 'gemini-2.5-pro', 'label': 'Gemini 2.5 Pro', 'note': 'Higher quality reasoning'},
-        {'id': 'gemini-3.5-flash', 'label': 'Gemini 3.5 Flash', 'note': 'Newer; can be slower or rate-limited on free tier'},
+        {'id': 'gemini-flash-lite-latest', 'label': 'Gemini Flash-Lite (latest) — recommended', 'note': 'Best free-tier reliability / speed'},
+        {'id': 'gemini-flash-latest', 'label': 'Gemini Flash (latest)', 'note': 'Higher quality; may rate-limit on free tier'},
+        {'id': 'gemini-2.5-pro', 'label': 'Gemini 2.5 Pro', 'note': 'Higher quality when quota allows'},
+        {'id': 'gemini-3.5-flash', 'label': 'Gemini 3.5 Flash', 'note': 'Newer; often slow or limited on free tier'},
     ],
     'openai': [
         {'id': 'gpt-4o-mini', 'label': 'GPT-4o mini (recommended)', 'note': 'Good default for reports'},
@@ -584,9 +583,8 @@ _RETRYABLE_STATUS = frozenset({408, 429, 500, 502, 503, 504})
 
 # Fallbacks when primary is slow/503/404. Prefer rolling aliases that stay valid for new keys.
 _GEMINI_FALLBACK_MODELS = (
-    'gemini-flash-latest',
     'gemini-flash-lite-latest',
-    'gemini-2.5-flash',
+    'gemini-flash-latest',
     'gemini-2.0-flash',
     'gemini-3-flash-preview',
 )
