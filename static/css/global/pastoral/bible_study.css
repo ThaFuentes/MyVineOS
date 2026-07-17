@@ -488,3 +488,59 @@
   pointer-events: none;
   opacity: 0.45;
 }
+
+/* Favorites + font size (parity with member Bible) */
+.bible-font-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.15rem;
+}
+.bible-font-controls .btn {
+  min-width: 2.1rem;
+  font-weight: 700;
+  padding: 0.2rem 0.35rem;
+}
+.bible-font-label {
+  min-width: 1.6rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  opacity: 0.75;
+  letter-spacing: 0.03em;
+}
+.bible-verse-heart {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0 0.25rem 0 0;
+  line-height: 1;
+  vertical-align: baseline;
+}
+.bible-verse-heart:hover,
+.bible-verse-heart.on,
+.bible-verse-line.is-favorite .bible-verse-heart {
+  color: #ff6b8a;
+}
+#bible-fav-chapter.is-faved,
+#bible-fav-book.is-faved {
+  color: #ff6b8a;
+  border-color: rgba(255, 107, 138, 0.45);
+}
+.bible-fav-jump {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.4rem 0.55rem;
+  margin-bottom: 0.35rem;
+  color: inherit;
+  cursor: pointer;
+}
+.bible-fav-jump:hover {
+  border-color: rgba(0, 229, 255, 0.35);
+}

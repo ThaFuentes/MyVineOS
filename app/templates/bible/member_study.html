@@ -25,18 +25,9 @@
     </div>
     {% else %}
     <p class="page-description" style="margin-bottom:0.5rem;">
-        Read Scripture online, browse versions, and use Strong’s and cross-references freely.
-        Highlights, notes, favorites, and a saved reading place need a free account.
+        <strong>No login required.</strong> Read any version, search, Strong’s, and cross-references freely.
+        Optional: <a href="{{ login_url }}" id="member-bible-login-cta">log in</a> only if you want to save highlights, favorites, or notes.
     </p>
-    <div class="member-bible-guest-banner glass-panel mb-2" style="padding:0.65rem 0.85rem;">
-        <p class="mb-1 small" style="margin:0;">
-            <strong>Browsing as a visitor.</strong>
-            You’ll start on the church default Bible each visit. Try other versions while you’re here — nothing is saved until you log in.
-        </p>
-        <a href="{{ login_url }}" class="btn btn-sm btn-primary" id="member-bible-login-cta">
-            Log in to save highlights, notes &amp; favorites
-        </a>
-    </div>
     {% endif %}
 </div>
 
@@ -56,6 +47,7 @@
                     {% endfor %}
                 {% endif %}
             </select>
+            {% if is_logged_in %}
             <label class="member-hl-default-wrap small" title="Default highlight color for the Highlight button on each verse">
                 <span class="member-hl-default-label">Color</span>
                 <select id="member-hl-color" class="form-control form-control-sm member-hl-default-color">
@@ -66,6 +58,7 @@
             </label>
             <button type="button" id="member-fav-chapter" class="btn btn-secondary btn-sm" title="Favorite this chapter">♡ Ch</button>
             <button type="button" id="member-fav-book" class="btn btn-secondary btn-sm" title="Favorite this book">♡ Book</button>
+            {% endif %}
             <div class="bible-font-controls" title="Bible text size">
                 <button type="button" id="bible-font-smaller" class="btn btn-secondary btn-sm" aria-label="Smaller">A-</button>
                 <span id="bible-font-label" class="bible-font-label">MD</span>
@@ -81,17 +74,23 @@
     <div id="member-selection-bar" class="member-selection-bar glass-panel" style="display:none;">
         <span id="member-selection-label" class="small">Verse selected</span>
         <div class="member-selection-actions">
+            {% if is_logged_in %}
             <button type="button" id="member-hl-btn" class="btn btn-sm btn-warning">Highlight</button>
             <button type="button" id="member-hl-clear" class="btn btn-sm btn-secondary">Clear</button>
             <button type="button" id="member-fav-verse" class="btn btn-sm btn-secondary">♡ Favorite</button>
             <button type="button" id="member-note-btn" class="btn btn-sm btn-primary">Add note</button>
+            {% else %}
+            <button type="button" id="member-copy-sel-guest" class="btn btn-sm btn-secondary">Copy selection</button>
+            <span class="small text-muted">Reading is free — <a href="{{ login_url }}">log in</a> only to save highlights/favorites</span>
+            {% endif %}
         </div>
     </div>
 
     <div id="member-bible-content" class="bible-stage-main glass-panel">
-        <p class="text-muted">Tap <strong>Books</strong> to pick a chapter. Click a verse to highlight, heart, or note.</p>
+        <p class="text-muted">Tap <strong>Books</strong> to pick a chapter. Use <strong>Study</strong> for search and Strong’s.{% if is_logged_in %} Click a verse to highlight, heart, or note.{% else %} Copy verses anytime — save tools appear when you log in.{% endif %}</p>
     </div>
 
+    {% if is_logged_in %}
     <div id="member-notes-panel" class="member-notes-panel glass-panel mt-2">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
             <h3 class="h6 mb-0"><i class="fa-solid fa-sticky-note me-1"></i> Notes on this reading</h3>
@@ -104,6 +103,7 @@
         </div>
         <div id="member-notes-list"><p class="small text-muted mb-0">Verse, chapter, and book notes appear here.</p></div>
     </div>
+    {% endif %}
 </div>
 
 <!-- Canon flyout -->
@@ -183,6 +183,7 @@
         </div>
         <p class="small text-muted mb-3">Jump by reference on any version. Word search needs an installed translation.</p>
 
+        {% if is_logged_in %}
         <h4 class="small text-cyan">My notes</h4>
         <div class="member-bible-search-row">
             <input type="text" id="member-notes-q" class="form-control" placeholder="Title or tag…">
@@ -205,6 +206,12 @@
             <option value="book">Books</option>
         </select>
         <div id="member-favs-lib" class="member-lib-results"></div>
+        {% else %}
+        <p class="small text-muted mt-2 mb-0">
+            Strong’s and search work without an account. Optional saves (notes, favorites, highlights) are available after
+            <a href="{{ login_url }}">login</a> — never required to read.
+        </p>
+        {% endif %}
     </div>
 </div>
 
@@ -281,5 +288,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260716a"></script>
+<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260717guest2"></script>
 {% endblock %}

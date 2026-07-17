@@ -1,0 +1,53 @@
+{% extends base_layout %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/promotions.css') }}?v=20260717p2">
+{% endblock %}
+
+{% block content %}
+<div class="promotions-page">
+  <header class="promotions-header">
+    {% if page_title %}
+    <h1 class="page-title"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i> {{ page_title }}</h1>
+    {% endif %}
+    {% if page_intro %}
+    <p class="page-description promotions-intro">{{ page_intro }}</p>
+    {% endif %}
+  </header>
+
+  <div class="promotions-grid">
+    {% for p in items %}
+    <article class="glass-panel promotion-card">
+      {% if p.image_path %}
+      <div class="promotion-card-media">
+        <img src="{{ url_for('public.promotion_image', filename=p.image_path) }}"
+             alt="{{ p.title }}" loading="lazy">
+      </div>
+      {% endif %}
+      <div class="promotion-card-body">
+        {% if p.badge %}
+        <span class="promotion-badge">{{ p.badge }}</span>
+        {% endif %}
+        {% if p.title %}
+        <h2 class="promotion-title">{{ p.title }}</h2>
+        {% endif %}
+        {% if p.subtitle %}
+        <p class="promotion-subtitle">{{ p.subtitle }}</p>
+        {% endif %}
+        {% if p.body_text %}
+        <div class="promotion-text">{{ p.body_text }}</div>
+        {% endif %}
+        {% if p.link_url %}
+        <a class="btn btn-primary promotion-link" href="{{ p.link_url }}" target="_blank" rel="noopener noreferrer">
+          {{ p.link_label or 'Visit website' }}
+          <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+        </a>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

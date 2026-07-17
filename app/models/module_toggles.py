@@ -131,9 +131,16 @@ OPTIONAL_MODULES: list[dict[str, Any]] = [
     {
         'key': 'bible_study',
         'label': 'Bible study page',
-        'description': 'In-app Bible reader for members.',
+        'description': 'In-app Bible reader for visitors and members (saving notes/highlights requires login).',
         'category': 'Community extras',
         'default': True,
+    },
+    {
+        'key': 'promotions',
+        'label': 'Ministry Partners',
+        'description': 'Share missionaries, prophets, and ministries you love (public + members). Turn off completely when unused — nothing shows on the site.',
+        'category': 'Community extras',
+        'default': False,
     },
     # Admin extras
     {
@@ -298,6 +305,7 @@ def module_for_endpoint(endpoint: str | None) -> Optional[str]:
         ('prophecies.', 'prophecies'),
         ('bible.', 'bible_study'),
         ('ai_insights.', 'ai_insights'),
+        # public.promotions_list handled via module + empty-list hide in nav
         ('the_gathering.', 'gathering_manager'),
         ('tickets.', 'ticket_manager'),
         ('support_tickets.', 'support_tickets'),

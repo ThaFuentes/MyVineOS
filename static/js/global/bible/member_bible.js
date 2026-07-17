@@ -25,16 +25,17 @@
   const base = '/bible';
   const main = () => el('member-bible-content');
 
-  /** Guests may read / Strong's; personal study features need an account. */
+  /**
+   * Guests may fully use the Bible (read, search, Strong's, copy).
+   * Only personal saves need an account — never force-navigate to login.
+   */
   function requireLogin(feature) {
     if (isLoggedIn) return true;
-    const label = feature || 'this feature';
-    toast(`Log in to use ${label}`);
-    // Highlight the guest banner / login CTA if present (no forced redirect)
+    const label = feature || 'highlights, favorites, or notes';
+    toast(`Keep reading freely — log in only if you want to save ${label}`);
     const cta = el('member-bible-login-cta');
     if (cta) {
       cta.classList.add('member-bible-login-pulse');
-      cta.focus?.();
       window.setTimeout(() => cta.classList.remove('member-bible-login-pulse'), 1800);
     }
     return false;
@@ -533,18 +534,24 @@
       const ref = `${data.book} ${data.chapter}:${v.verse}`;
       const strongs = (data.strongs && data.strongs[v.verse]) || [];
       const hl = highlightClass(v.verse, highlights);
-      const isFav = favoriteVerses.has(v.verse);
+      const isFav = isLoggedIn && favoriteVerses.has(v.verse);
       html += `<div class="member-bible-verse${hl}${isFav ? ' is-favorite' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
       html += `<span class="member-bible-verse-num">${v.verse}</span>`;
-      html += `<button type="button" class="member-verse-heart${isFav ? ' on' : ''}" data-heart-verse="${v.verse}" title="Favorite verse" aria-label="Favorite">${isFav ? '♥' : '♡'}</button>`;
+      // Hearts / highlight / notes only for signed-in users — guests still read + Strong's + copy
+      if (isLoggedIn) {
+        html += `<button type="button" class="member-verse-heart${isFav ? ' on' : ''}" data-heart-verse="${v.verse}" title="Favorite verse" aria-label="Favorite">${isFav ? '♥' : '♡'}</button>`;
+      }
       html += `<span class="member-bible-verse-text">${linkStrongs(v.text, strongs)}</span>`;
       html += xrefHtml(v.verse, crossRefs);
-      // One Highlight button uses the default color from the top toolbar
-      html += `<div class="member-verse-actions">
+      html += `<div class="member-verse-actions">`;
+      if (isLoggedIn) {
+        html += `
         <button type="button" class="btn btn-warning btn-sm" data-hl-verse="${v.verse}" title="Highlight with your default color">Highlight</button>
         <button type="button" class="btn btn-secondary btn-sm" data-hl-clear-verse="${v.verse}" title="Clear highlight">Clear</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-note-verse="${v.verse}">Note</button>`;
+      }
+      html += `
         <button type="button" class="btn btn-secondary btn-sm" data-copy="${escapeAttr(ref)}" data-copy-text="${escapeAttr(v.text)}">Copy</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-note-verse="${v.verse}">Note</button>
       </div>`;
       html += '</div>';
     });
@@ -1459,6 +1466,14 @@
       if (!val) return toast('Pick a Bible version first');
       const data = await savePreferredTranslation(val);
       if (data && data.ok) toast(data.message || 'Saved as your study Bible');
+    });
+
+    // Guests: copy selected verses without any account
+    el('member-copy-sel-guest')?.addEventListener('click', () => {
+      const bundle = selectedScripture();
+      if (!bundle) return toast('Select a verse first');
+      const payload = `${bundle.reference}\n${bundle.scripture_text || ''}`.trim();
+      navigator.clipboard.writeText(payload).then(() => toast('Copied')).catch(() => toast('Could not copy'));
     });
 
     // Open notes/favs libraries: login required

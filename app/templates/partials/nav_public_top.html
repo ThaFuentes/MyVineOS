@@ -13,6 +13,9 @@
 <a href="{{ url_for('public.public_sermons.public_sermons') }}" class="{{ 'active' if ep.startswith('public.public_sermons') else '' }}">Sermons</a>
 <a href="{{ url_for('public.public_prophecies.public_prophecies') }}" class="{{ 'active' if ep.startswith('public.public_prophecies') else '' }}">Prophecies</a>
 <a href="{{ url_for('public.public_announcements.public_announcements') }}" class="{{ 'active' if ep.startswith('public.public_announcements') else '' }}">Announcements</a>
+{% if promotions_nav_visible|default(false) %}
+<a href="{{ url_for('public.promotions_list') }}" class="{{ 'active' if ep == 'public.promotions_list' else '' }}">Ministry Partners</a>
+{% endif %}
 {% if s.get('online_donations_enabled') %}
 <a href="{{ url_for('public.donate') }}" class="{{ 'active' if ep == 'public.donate' else '' }}">Donate</a>
 {% endif %}
