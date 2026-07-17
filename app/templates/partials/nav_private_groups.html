@@ -51,10 +51,10 @@
     {% if module_on('donations') and can_view_donations() %}
     <a href="{{ url_for('donations.donations_dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('donations.') else '' }}">Donations</a>
     {% endif %}
-    {% if module_on('bills') %}
+    {% if module_on('bills') and can_access_bills() %}
     <a href="{{ url_for('bills.bills') }}" role="menuitem" class="{{ 'active' if ep.startswith('bills.') else '' }}">Bills</a>
     {% endif %}
-    {% if module_on('accounting') and endpoint_exists('accounting.dashboard') %}
+    {% if module_on('accounting') and endpoint_exists('accounting.dashboard') and can_access_accounting() %}
     <a href="{{ url_for('accounting.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('accounting.') else '' }}">Accounting</a>
     {% endif %}
     {% if module_on('inventory') and can_manage_inventory() %}
@@ -66,10 +66,10 @@
     {% if module_on('child_checkin') and endpoint_exists('child_checkin.dashboard') and can_manage_attendance() %}
     <a href="{{ url_for('child_checkin.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('child_checkin.') and ep != 'child_checkin.my_kids' else '' }}">Child Check-In</a>
     {% endif %}
-    {% if module_on('volunteers') and endpoint_exists('volunteers.dashboard') %}
+    {% if module_on('volunteers') and endpoint_exists('volunteers.dashboard') and can_access_volunteers_admin() %}
     <a href="{{ url_for('volunteers.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('volunteers.') and ep not in ('volunteers.my_schedule','volunteers.my_respond') else '' }}">Volunteers</a>
     {% endif %}
-    {% if module_on('communications') and endpoint_exists('communications.dashboard') %}
+    {% if module_on('communications') and endpoint_exists('communications.dashboard') and can_access_communications() %}
     <a href="{{ url_for('communications.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('communications.') else '' }}">Communications</a>
     {% endif %}
     <a href="{{ url_for('groups.list_groups') }}" role="menuitem" class="{{ 'active' if ep.startswith('groups.') else '' }}">Groups</a>

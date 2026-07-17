@@ -2,7 +2,7 @@
 
 from flask import redirect, url_for, flash, session, request
 from app.utils.decorators import login_required
-from .utils import is_bill_manager
+from .utils import is_bill_manager, user_can_access_bill
 from app.models.db import get_db
 from app.models.log import log_change
 from datetime import datetime
@@ -25,15 +25,10 @@ def register_payment_routes(bp):
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
 
-        # Access check
-        if not is_manager:
-            cur.execute(
-                "SELECT 1 FROM recurring_bill_assignments WHERE bill_id = %s AND user_id = %s",
-                (bill_id, user_id),
-            )
-            if not cur.fetchone():
-                flash('You do not have access to record payment for this bill.', 'error')
-                return redirect(url_for('bills.bills'))
+        # Access check: manager or assigned only
+        if not user_can_access_bill(bill_id, user_id):
+            flash('You do not have access to record payment for this bill.', 'error')
+            return redirect(url_for('dashboard.dashboard'))
 
         cur.execute("SELECT * FROM recurring_bills WHERE id = %s", (bill_id,))
         bill = cur.fetchone()

@@ -338,10 +338,28 @@ def create_app():
             can_manage_users,
         )
         from app.routes.donations.utils import can_view_donations, can_manage_donations
-        from app.routes.bills.utils import can_manage_bills
+        from app.routes.bills.utils import can_manage_bills, can_access_bills
         from app.routes.inventory.utils import can_manage_inventory
         from app.routes.attendance.utils import can_manage_attendance
         from app.routes.help.utils import can_manage_help
+
+        def can_access_accounting():
+            # Ledger is finance-staff only (not random members)
+            return (
+                user_has_permission('manage_accounting')
+                or user_has_permission('manage_bills')
+                or user_has_permission('manage_donations')
+            )
+
+        def can_access_volunteers_admin():
+            return (
+                user_has_permission('manage_volunteers')
+                or user_has_permission('manage_attendance')
+            )
+
+        def can_access_communications():
+            return user_has_permission('send_emails')
+
         return dict(
             user_has_permission=user_has_permission,
             can_view_members=can_view_members,
@@ -350,6 +368,10 @@ def create_app():
             can_view_donations=can_view_donations,
             can_manage_donations=can_manage_donations,
             can_manage_bills=can_manage_bills,
+            can_access_bills=can_access_bills,
+            can_access_accounting=can_access_accounting,
+            can_access_volunteers_admin=can_access_volunteers_admin,
+            can_access_communications=can_access_communications,
             can_manage_inventory=can_manage_inventory,
             can_manage_attendance=can_manage_attendance,
             can_manage_help=can_manage_help,

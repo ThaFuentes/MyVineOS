@@ -111,7 +111,7 @@
       <i class="fa-solid fa-hand-holding-dollar" aria-hidden="true"></i> Donations
     </a>
     {% endif %}
-    {% if module_on('bills') %}
+    {% if module_on('bills') and can_access_bills() %}
     <a href="{{ url_for('bills.bills') }}" class="nav-sheet-link {{ 'active' if ep.startswith('bills.') else '' }}">
       <i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> Bills
     </a>
@@ -121,7 +121,7 @@
       <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Inventory
     </a>
     {% endif %}
-    {% if module_on('accounting') and endpoint_exists('accounting.dashboard') %}
+    {% if module_on('accounting') and endpoint_exists('accounting.dashboard') and can_access_accounting() %}
     <a href="{{ url_for('accounting.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('accounting.') else '' }}">
       <i class="fa-solid fa-calculator" aria-hidden="true"></i> Accounting
     </a>
@@ -141,12 +141,12 @@
       <i class="fa-solid fa-children" aria-hidden="true"></i> Child Check-In
     </a>
     {% endif %}
-    {% if module_on('volunteers') and endpoint_exists('volunteers.dashboard') %}
+    {% if module_on('volunteers') and endpoint_exists('volunteers.dashboard') and can_access_volunteers_admin() %}
     <a href="{{ url_for('volunteers.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('volunteers.') and ep not in ('volunteers.my_schedule','volunteers.my_respond') else '' }}">
       <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i> Volunteers
     </a>
     {% endif %}
-    {% if module_on('communications') and endpoint_exists('communications.dashboard') %}
+    {% if module_on('communications') and endpoint_exists('communications.dashboard') and can_access_communications() %}
     <a href="{{ url_for('communications.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('communications.') else '' }}">
       <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Communications
     </a>
