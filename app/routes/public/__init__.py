@@ -70,6 +70,45 @@ def donate():
     return redirect(url_for('public.public_dashboard.public_dashboard'))
 
 
+@public_bp.route('/promotions')
+@public_bp.route('/partners')
+def promotions_list():
+    """Public + member page for Ministry Partners (missionaries, prophets, ministries)."""
+    from flask import abort, render_template, session
+    from app.models import promotions as promo_model
+    from app.models.module_toggles import get_module_toggles, is_module_enabled
+
+    if not is_module_enabled('promotions', get_module_toggles()):
+        abort(404)
+    items = promo_model.list_promotions(published_only=True)
+    if not items:
+        abort(404)
+    meta = promo_model.get_page_meta()
+    is_logged_in = bool(session.get('user_id'))
+    return render_template(
+        'public/promotions.html',
+        base_layout='base.html' if is_logged_in else 'base_public.html',
+        items=items,
+        page_title=meta.get('page_title') or 'Ministry Partners',
+        page_intro=meta.get('page_intro') or '',
+        is_logged_in=is_logged_in,
+    )
+
+
+@public_bp.route('/promotions/image/<path:filename>')
+@public_bp.route('/partners/image/<path:filename>')
+def promotion_image(filename):
+    """Serve Ministry Partner photos (public)."""
+    from flask import abort, current_app, send_from_directory
+    from app.models import promotions as promo_model
+    # Path traversal guard
+    name = (filename or '').replace('\\', '/').split('/')[-1]
+    if not name or name.startswith('.'):
+        abort(404)
+    folder = promo_model.promotions_upload_dir(current_app)
+    return send_from_directory(folder, name)
+
+
 @public_bp.route('/ui-preferences', methods=['POST'])
 def ui_preferences():
     """

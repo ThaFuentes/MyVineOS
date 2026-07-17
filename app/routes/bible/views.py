@@ -57,9 +57,12 @@ def _login_required_json():
 
 @bible_bp.route('/')
 @bible_bp.route('/study')
-@login_required
 def member_study():
-    """Member Bible reader (login required). Guests use public pages when available."""
+    """Bible reader for everyone.
+
+    Guests can read, search, Strong's, and cross-refs.
+    Highlights, notes, favorites, and saved place require login.
+    """
     user_id = session.get('user_id')
     is_logged_in = bool(user_id)
 

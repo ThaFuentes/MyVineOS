@@ -36,6 +36,12 @@
     <span class="icon"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></span>
     <span class="label">Announce</span>
   </a>
+  {% if promotions_nav_visible|default(false) %}
+  <a href="{{ url_for('public.promotions_list') }}" class="{{ 'active' if ep == 'public.promotions_list' else '' }}">
+    <span class="icon"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i></span>
+    <span class="label">Partners</span>
+  </a>
+  {% endif %}
   {% if not session.get('user_id') %}
   <a href="{{ url_for('auth.login') }}" class="{{ 'active' if ep in ('auth.login', 'auth.register') else '' }}">
     <span class="icon"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i></span>

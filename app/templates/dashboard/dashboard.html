@@ -61,6 +61,12 @@
     <span class="dash-tile-label">Study Courses</span>
   </a>
   {% endif %}
+  {% if promotions_nav_visible|default(false) %}
+  <a href="{{ url_for('public.promotions_list') }}" class="glass-panel dash-tile dash-tile-community">
+    <span class="dash-tile-icon"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Ministry Partners</span>
+  </a>
+  {% endif %}
 
   {% if can_view_members() %}
   <a href="{{ url_for('members.members_directory') }}" class="glass-panel dash-tile dash-tile-members">

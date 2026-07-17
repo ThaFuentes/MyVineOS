@@ -1,0 +1,208 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+<h2 style="margin:0 0 0.35rem; font-size:1.2rem;">Ministry Partners</h2>
+<p class="page-description" style="margin-bottom:1rem;">
+  Share missionaries, prophets, and ministries your church loves — not ads, just relationships.
+  Empty fields on a card stay hidden. With the feature off or no published partners, guests and members
+  see <strong>nothing</strong> (no nav link, no home tile, no public page).
+</p>
+
+{# Site-wide show / hide #}
+<div class="glass-panel" style="padding:1rem; margin-bottom:1.1rem; border:1px solid {% if feature_enabled and published_count %}rgba(61,191,154,0.35){% else %}rgba(255,255,255,0.08){% endif %};">
+  <h3 style="margin:0 0 0.4rem; font-size:1rem;">Show on the website</h3>
+  {% if feature_enabled and published_count %}
+  <p style="margin:0 0 0.65rem; font-size:0.9rem; color:#3dbf9a;">
+    <strong>Live</strong> — “Partners” appears for guests and members ({{ published_count }} published).
+  </p>
+  {% elif feature_enabled and not published_count %}
+  <p style="margin:0 0 0.65rem; font-size:0.9rem; opacity:0.85;">
+    Feature is <strong>on</strong>, but nothing is published yet — the site still shows no Partners link.
+  </p>
+  {% else %}
+  <p style="margin:0 0 0.65rem; font-size:0.9rem; opacity:0.85;">
+    <strong>Hidden from the whole site.</strong> Manage cards below anytime; turn this on when you’re ready to share them.
+  </p>
+  {% endif %}
+  <form method="post" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="set_feature">
+    {% if feature_enabled %}
+    <input type="hidden" name="enabled" value="0">
+    <button type="submit" class="btn btn-secondary">Remove Partners from the site</button>
+    {% else %}
+    <input type="hidden" name="enabled" value="1">
+    <button type="submit" class="btn btn-primary">Show Ministry Partners on the site</button>
+    {% endif %}
+    <span class="help-text" style="margin:0;">Also available under Modules &amp; Apps.</span>
+  </form>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1.1rem;">
+  <h3 style="margin:0 0 0.65rem; font-size:1rem;">Page header (optional)</h3>
+  <form method="post" class="styled-form" style="display:grid; gap:0.65rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save_page">
+    <label>Page title
+      <input type="text" name="page_title" value="{{ page_title }}" maxlength="200"
+             placeholder="e.g. Ministry Partners (blank = default name)"
+             style="width:100%; margin-top:0.25rem;">
+    </label>
+    <label>Intro text
+      <textarea name="page_intro" rows="3" placeholder="Optional welcome under the title — leave blank to hide"
+                style="width:100%; margin-top:0.25rem;">{{ page_intro }}</textarea>
+    </label>
+    <button type="submit" class="btn btn-primary">Save page header</button>
+  </form>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1.1rem;">
+  <h3 style="margin:0 0 0.65rem; font-size:1rem;">Add a partner</h3>
+  <form method="post" enctype="multipart/form-data" class="styled-form" style="display:grid; gap:0.65rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="add">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+      <label>Name / header *
+        <input type="text" name="title" required maxlength="200" style="width:100%; margin-top:0.25rem;"
+               placeholder="e.g. Smith Family Missions">
+      </label>
+      <label>Label (optional)
+        <input type="text" name="badge" maxlength="80" style="width:100%; margin-top:0.25rem;"
+               placeholder="Missionary, Prophet, Partner…">
+      </label>
+    </div>
+    <label>Subtitle
+      <input type="text" name="subtitle" maxlength="255" style="width:100%; margin-top:0.25rem;"
+             placeholder="Optional short line under the name">
+    </label>
+    <label>About them
+      <textarea name="body_text" rows="4" style="width:100%; margin-top:0.25rem;"
+                placeholder="Optional description — leave blank to hide"></textarea>
+    </label>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+      <label>Website URL
+        <input type="url" name="link_url" maxlength="500" style="width:100%; margin-top:0.25rem;"
+               placeholder="https://…">
+      </label>
+      <label>Link button text
+        <input type="text" name="link_label" maxlength="120" style="width:100%; margin-top:0.25rem;"
+               placeholder="Visit their ministry (optional)">
+      </label>
+    </div>
+    <label>Photo
+      <input type="file" name="image" accept=".png,.jpg,.jpeg,.gif,.webp" style="margin-top:0.25rem;">
+    </label>
+    <label style="display:flex; gap:0.4rem; align-items:center;">
+      <input type="checkbox" name="is_published" checked style="width:auto; min-height:auto;">
+      Publish (include on the Partners page when the feature is on)
+    </label>
+    <button type="submit" class="btn btn-primary">Add partner</button>
+  </form>
+</div>
+
+<p style="margin:0 0 0.75rem; font-size:0.9rem; opacity:0.8;">
+  {{ items|length }} total · {{ published_count }} published
+  {% if feature_enabled and published_count %}
+  · <a href="{{ url_for('public.promotions_list') }}" target="_blank" rel="noopener">View live page</a>
+  {% endif %}
+</p>
+
+{% if items %}
+<div style="display:grid; gap:0.85rem;">
+  {% for p in items %}
+  <div class="glass-panel" style="padding:1rem; {% if not p.is_published %}opacity:0.72;{% endif %}">
+    <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-start; justify-content:space-between;">
+      <div style="display:flex; gap:0.75rem; min-width:0; flex:1;">
+        {% if p.image_path %}
+        <img src="{{ url_for('public.promotion_image', filename=p.image_path) }}" alt=""
+             style="width:72px; height:72px; object-fit:cover; border-radius:10px; flex-shrink:0;">
+        {% endif %}
+        <div style="min-width:0;">
+          <strong>{{ p.title }}</strong>
+          {% if p.badge %}<span style="margin-left:0.35rem; font-size:0.75rem; opacity:0.75;">· {{ p.badge }}</span>{% endif %}
+          {% if not p.is_published %}<span style="margin-left:0.35rem; font-size:0.75rem; color:#e0a84a;">(not published)</span>{% endif %}
+          {% if p.subtitle %}<div style="font-size:0.85rem; opacity:0.75;">{{ p.subtitle }}</div>{% endif %}
+          {% if p.link_url %}<div style="font-size:0.8rem; margin-top:0.2rem;"><a href="{{ p.link_url }}" target="_blank" rel="noopener">{{ p.link_url }}</a></div>{% endif %}
+        </div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+        <form method="post" style="display:inline;">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="move_up">
+          <input type="hidden" name="promo_id" value="{{ p.id }}">
+          <button type="submit" class="btn btn-secondary btn-sm" title="Move up">↑</button>
+        </form>
+        <form method="post" style="display:inline;">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="move_down">
+          <input type="hidden" name="promo_id" value="{{ p.id }}">
+          <button type="submit" class="btn btn-secondary btn-sm" title="Move down">↓</button>
+        </form>
+        <form method="post" style="display:inline;">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="toggle_publish">
+          <input type="hidden" name="promo_id" value="{{ p.id }}">
+          <button type="submit" class="btn btn-secondary btn-sm">{{ 'Unpublish' if p.is_published else 'Publish' }}</button>
+        </form>
+        <form method="post" style="display:inline;" onsubmit="return confirm('Remove this partner from the list?');">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="promo_id" value="{{ p.id }}">
+          <button type="submit" class="btn btn-secondary btn-sm">Delete</button>
+        </form>
+      </div>
+    </div>
+
+    <details style="margin-top:0.75rem;">
+      <summary style="cursor:pointer; font-size:0.9rem;">Edit</summary>
+      <form method="post" enctype="multipart/form-data" style="display:grid; gap:0.55rem; margin-top:0.65rem;">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="update">
+        <input type="hidden" name="promo_id" value="{{ p.id }}">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.55rem;">
+          <label>Name *
+            <input type="text" name="title" value="{{ p.title }}" required maxlength="200" style="width:100%; margin-top:0.2rem;">
+          </label>
+          <label>Label
+            <input type="text" name="badge" value="{{ p.badge or '' }}" maxlength="80" style="width:100%; margin-top:0.2rem;">
+          </label>
+        </div>
+        <label>Subtitle
+          <input type="text" name="subtitle" value="{{ p.subtitle or '' }}" maxlength="255" style="width:100%; margin-top:0.2rem;">
+        </label>
+        <label>About them
+          <textarea name="body_text" rows="3" style="width:100%; margin-top:0.2rem;">{{ p.body_text or '' }}</textarea>
+        </label>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.55rem;">
+          <label>Website URL
+            <input type="url" name="link_url" value="{{ p.link_url or '' }}" maxlength="500" style="width:100%; margin-top:0.2rem;">
+          </label>
+          <label>Link button text
+            <input type="text" name="link_label" value="{{ p.link_label or '' }}" maxlength="120" style="width:100%; margin-top:0.2rem;">
+          </label>
+        </div>
+        <label>Replace photo
+          <input type="file" name="image" accept=".png,.jpg,.jpeg,.gif,.webp" style="margin-top:0.2rem;">
+        </label>
+        {% if p.image_path %}
+        <label style="display:flex; gap:0.4rem; align-items:center;">
+          <input type="checkbox" name="remove_image" value="1" style="width:auto; min-height:auto;">
+          Remove current photo
+        </label>
+        {% endif %}
+        <label style="display:flex; gap:0.4rem; align-items:center;">
+          <input type="checkbox" name="is_published" {% if p.is_published %}checked{% endif %} style="width:auto; min-height:auto;">
+          Published
+        </label>
+        <button type="submit" class="btn btn-primary">Save changes</button>
+      </form>
+    </details>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel" style="padding:1.25rem; text-align:center; opacity:0.8;">
+  No partners listed yet. Add missionaries, prophets, or ministries above when you’re ready.
+</div>
+{% endif %}
+{% endblock %}

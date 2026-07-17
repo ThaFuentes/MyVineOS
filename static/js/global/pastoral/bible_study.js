@@ -13,6 +13,9 @@
   let annotationKey = null;
   let chapterData = null;
   let selectedVerses = new Set();
+  let favoriteVerses = new Set();
+  let favChapter = false;
+  let favBook = false;
   let lastSource = null;
   let chapterPage = 0;
   const CHAPTERS_PER_PAGE = 20;
@@ -412,29 +415,130 @@
     navigator.clipboard.writeText(payload).then(() => toast(label || 'Copied'));
   }
 
-  async function quickCreateSermon(reference) {
-    const title = reference ? `Sermon — ${reference}` : 'New Sermon from Bible Study';
-    if (!confirm(`Create "${title}" and use it?`)) return null;
-    const resp = await fetch(urls.quickSermon, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, reference }),
-    });
-    const data = await resp.json();
-    if (data.status === 'success') {
-      const sel = el('bible-sermon-select');
-      if (sel) {
-        const opt = document.createElement('option');
-        opt.value = data.sermon_id;
-        opt.textContent = data.title;
-        opt.selected = true;
-        sel.appendChild(opt);
-      }
-      updateSermonBar();
-      toast('New sermon created');
-      return data.sermon_id;
+  let _newSermonResolve = null;
+
+  function suggestedPassageFromContext(reference) {
+    if (reference && String(reference).trim()) return String(reference).trim();
+    if (currentBook && currentChapter) return `${currentBook} ${currentChapter}`;
+    return '';
+  }
+
+  function openNewSermonModal(opts) {
+    opts = opts || {};
+    const modal = el('bible-new-sermon-modal');
+    const titleInput = el('bible-new-sermon-title');
+    const passageInput = el('bible-new-sermon-passage');
+    const dateInput = el('bible-new-sermon-date');
+    const hint = el('bible-new-sermon-suggest-hint');
+    if (!modal || !titleInput) {
+      // Fallback if modal missing
+      const t = window.prompt('Sermon title', '') || '';
+      if (!t.trim()) return Promise.resolve(null);
+      return submitQuickSermon({
+        title: t.trim(),
+        reference: suggestedPassageFromContext(opts.reference),
+      });
     }
-    return null;
+    // Free title — never pre-fill with "Sermon — chapter"
+    titleInput.value = (opts.title || '').trim();
+    titleInput.placeholder = opts.titlePlaceholder || 'e.g. The Gift of Grace';
+    const suggested = suggestedPassageFromContext(opts.reference || opts.suggestedPassage);
+    passageInput.value = (opts.passage != null ? opts.passage : suggested) || '';
+    if (dateInput) dateInput.value = opts.service_date || '';
+    if (hint) {
+      if (suggested && !opts.hideSuggestHint) {
+        hint.style.display = '';
+        hint.textContent = `Suggested from current reading: ${suggested}. Change or clear anytime.`;
+      } else {
+        hint.style.display = 'none';
+        hint.textContent = '';
+      }
+    }
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => {
+      titleInput.focus();
+      titleInput.select();
+    }, 30);
+    return new Promise((resolve) => {
+      _newSermonResolve = resolve;
+    });
+  }
+
+  function closeNewSermonModal(result) {
+    const modal = el('bible-new-sermon-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    const resolve = _newSermonResolve;
+    _newSermonResolve = null;
+    if (resolve) resolve(result == null ? null : result);
+  }
+
+  async function submitQuickSermon(payload) {
+    const title = (payload.title || '').trim();
+    if (!title) {
+      toast('Enter a sermon title');
+      el('bible-new-sermon-title')?.focus();
+      return null;
+    }
+    const body = {
+      title,
+      reference: (payload.reference || payload.primary_passage || '').trim(),
+      primary_passage: (payload.reference || payload.primary_passage || '').trim(),
+      service_date: (payload.service_date || '').trim() || null,
+    };
+    try {
+      const resp = await fetch(urls.quickSermon, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(cfg.csrf ? { 'X-CSRF-Token': cfg.csrf } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if (data.status === 'success') {
+        const sel = el('bible-sermon-select');
+        if (sel) {
+          const opt = document.createElement('option');
+          opt.value = data.sermon_id;
+          const pass = data.primary_passage || body.reference || '';
+          opt.textContent = pass ? `${data.title} (${pass})` : data.title;
+          opt.selected = true;
+          sel.appendChild(opt);
+        }
+        updateSermonBar();
+        toast('New sermon created');
+        return data.sermon_id;
+      }
+      toast((data && data.message) || 'Could not create sermon');
+      return null;
+    } catch (e) {
+      toast('Network error creating sermon');
+      return null;
+    }
+  }
+
+  /** Open create form; chapter/passage is optional suggestion only. */
+  async function quickCreateSermon(reference) {
+    return openNewSermonModal({ reference: reference || '' });
+  }
+
+  async function confirmNewSermonFromModal() {
+    const title = (el('bible-new-sermon-title')?.value || '').trim();
+    if (!title) {
+      toast('Enter a sermon title');
+      el('bible-new-sermon-title')?.focus();
+      return;
+    }
+    const id = await submitQuickSermon({
+      title,
+      reference: (el('bible-new-sermon-passage')?.value || '').trim(),
+      service_date: (el('bible-new-sermon-date')?.value || '').trim(),
+    });
+    closeNewSermonModal(id);
   }
 
   function renderBooks(testament) {
@@ -826,16 +930,124 @@
     return html;
   }
 
+  function updateFavButtons() {
+    const ch = el('bible-fav-chapter');
+    const bk = el('bible-fav-book');
+    if (ch) {
+      ch.textContent = favChapter ? '♥ Ch' : '♡ Ch';
+      ch.classList.toggle('is-faved', favChapter);
+    }
+    if (bk) {
+      bk.textContent = favBook ? '♥ Book' : '♡ Book';
+      bk.classList.toggle('is-faved', favBook);
+    }
+  }
+
+  async function toggleFavorite(scope, extra = {}) {
+    const body = {
+      scope,
+      book: currentBook,
+      chapter: scope === 'book' ? 0 : currentChapter,
+      verse: scope === 'verse' ? (extra.verse || Array.from(selectedVerses)[0] || 0) : 0,
+      translation: annotationKey || getTranslation(),
+      scripture_text: extra.text || '',
+    };
+    if (scope === 'verse' && !body.verse) return toast('Select a verse first');
+    try {
+      const resp = await fetch(urls.favorite || `${api}/favorite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!data.ok) throw new Error(data.error || 'Failed');
+      if (scope === 'verse') {
+        if (data.favorited) favoriteVerses.add(body.verse);
+        else favoriteVerses.delete(body.verse);
+        const line = main()?.querySelector(`.bible-verse-line[data-verse="${body.verse}"]`);
+        const heart = line?.querySelector('.bible-verse-heart');
+        if (line) line.classList.toggle('is-favorite', !!data.favorited);
+        if (heart) {
+          heart.textContent = data.favorited ? '♥' : '♡';
+          heart.classList.toggle('on', !!data.favorited);
+        }
+      } else if (scope === 'chapter') {
+        favChapter = !!data.favorited;
+      } else if (scope === 'book') {
+        favBook = !!data.favorited;
+      }
+      updateFavButtons();
+      toast(data.favorited
+        ? `Favorited ${data.label || scope}`
+        : `Removed ${data.label || scope} from favorites`);
+    } catch (e) {
+      toast(e.message || 'Could not update favorite');
+    }
+  }
+
+  async function loadFavoritesLibrary(q) {
+    const box = el('bible-favs-lib-results');
+    if (!box) return;
+    box.innerHTML = '<p class="small text-muted">Loading…</p>';
+    const scope = el('bible-favs-scope')?.value || '';
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (scope) params.set('scope', scope);
+    params.set('limit', '80');
+    try {
+      const resp = await fetch((urls.favorites || `${api}/favorites`) + '?' + params.toString());
+      const data = await resp.json().catch(() => ({}));
+      const rows = data.favorites || [];
+      if (!rows.length) {
+        box.innerHTML = '<p class="small text-muted">No favorites yet. Heart a verse, chapter, or book.</p>';
+        return;
+      }
+      box.innerHTML = rows.map((r) => {
+        const label = escapeHtml(r.label || r.reference || `${r.book || ''} ${r.chapter || ''}`);
+        const scopeLabel = escapeHtml(r.scope || 'verse');
+        return `<button type="button" class="bible-online-result bible-fav-jump" data-book="${escapeAttr(r.book || '')}" data-chapter="${r.chapter || 1}" data-verse="${r.verse || 1}">
+          <strong>${label}</strong>
+          <span class="small text-muted"> · ${scopeLabel}</span>
+        </button>`;
+      }).join('');
+      box.querySelectorAll('.bible-fav-jump').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const book = btn.dataset.book;
+          const ch = parseInt(btn.dataset.chapter, 10) || 1;
+          const v = parseInt(btn.dataset.verse, 10) || 1;
+          if (!book) return;
+          closeFlyouts();
+          prepareBook(book, { chapter: ch, scrollToVerse: v });
+        });
+      });
+    } catch (e) {
+      box.innerHTML = '<p class="small text-muted">Could not load favorites.</p>';
+    }
+  }
+
   function renderChapter(data) {
     const reader = main();
     const highlights = data.highlights || [];
     const crossRefs = data.cross_refs || {};
+    const favs = data.favorites || {};
+    favoriteVerses = new Set(favs.verses || []);
+    favChapter = !!favs.chapter;
+    favBook = !!favs.book;
+    updateFavButtons();
     let html = '';
     (data.verses || []).forEach((v) => {
       const ref = `${data.book} ${data.chapter}:${v.verse}`;
       const strongs = (data.strongs && data.strongs[v.verse]) || [];
       const hl = highlightClassForVerse(v.verse, highlights);
-      html += `<div class="bible-verse-line${hl}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
+      const isFav = favoriteVerses.has(v.verse);
+      html += `<div class="bible-verse-line${hl}${isFav ? ' is-favorite' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
+      html += `<button type="button" class="bible-verse-heart${isFav ? ' on' : ''}" data-heart-verse="${v.verse}" title="Favorite verse" aria-label="Favorite">${isFav ? '♥' : '♡'}</button>`;
       html += `<span class="bible-verse-num">${v.verse}</span>`;
       html += `<span class="bible-verse-text">${linkStrongsInVerse(v.text, strongs)}</span>`;
       html += xrefHtmlForVerse(v.verse, crossRefs);
@@ -1069,9 +1281,23 @@
         });
       });
     });
+    reader?.querySelectorAll('.bible-verse-heart').forEach((heart) => {
+      heart.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const v = parseInt(heart.dataset.heartVerse, 10);
+        if (!v) return;
+        const line = heart.closest('.bible-verse-line');
+        toggleFavorite('verse', { verse: v, text: line?.dataset.text || '' });
+      });
+    });
     reader?.querySelectorAll('.bible-verse-line').forEach((line) => {
       line.addEventListener('click', (e) => {
-        if (e.target.closest('.content-actions') || e.target.closest('.strongs-word') || e.target.closest('.bible-xrefs')) return;
+        if (
+          e.target.closest('.content-actions')
+          || e.target.closest('.strongs-word')
+          || e.target.closest('.bible-xrefs')
+          || e.target.closest('.bible-verse-heart')
+        ) return;
         const v = parseInt(line.dataset.verse, 10);
         if (!v) return;
         if (e.shiftKey && selectedVerses.size) {
@@ -1689,12 +1915,54 @@
     el('bible-translation-toolbar')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
     el('bible-sermon-select')?.addEventListener('change', updateSermonBar);
     el('bible-new-sermon-btn')?.addEventListener('click', async () => {
-      const id = await quickCreateSermon(`${currentBook} ${currentChapter}`);
+      // Title free-form; current book/chapter only pre-fills optional passage field
+      const id = await openNewSermonModal({
+        suggestedPassage: currentBook && currentChapter ? `${currentBook} ${currentChapter}` : '',
+      });
       if (id) updateSermonBar();
+    });
+    el('bible-new-sermon-cancel')?.addEventListener('click', () => closeNewSermonModal(null));
+    el('bible-new-sermon-create')?.addEventListener('click', () => confirmNewSermonFromModal());
+    el('bible-new-sermon-modal')?.addEventListener('click', (e) => {
+      if (e.target === el('bible-new-sermon-modal')) closeNewSermonModal(null);
+    });
+    el('bible-new-sermon-title')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        confirmNewSermonFromModal();
+      }
+    });
+    el('bible-new-sermon-passage')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        confirmNewSermonFromModal();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const modal = el('bible-new-sermon-modal');
+      if (modal && modal.style.display === 'flex') closeNewSermonModal(null);
     });
 
     el('bible-hl-btn')?.addEventListener('click', applyHighlight);
     el('bible-hl-clear-btn')?.addEventListener('click', clearHighlight);
+    el('bible-fav-verse')?.addEventListener('click', () => {
+      const v = Array.from(selectedVerses)[0];
+      if (!v) return toast('Select a verse first');
+      const line = main()?.querySelector(`.bible-verse-line[data-verse="${v}"]`);
+      toggleFavorite('verse', { verse: v, text: line?.dataset.text || '' });
+    });
+    el('bible-fav-chapter')?.addEventListener('click', () => toggleFavorite('chapter'));
+    el('bible-fav-book')?.addEventListener('click', () => toggleFavorite('book'));
+    el('bible-favs-lib-btn')?.addEventListener('click', () => {
+      loadFavoritesLibrary(el('bible-favs-lib-q')?.value || '');
+    });
+    el('bible-favs-lib-q')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadFavoritesLibrary(el('bible-favs-lib-q')?.value || '');
+    });
+    el('bible-favs-scope')?.addEventListener('change', () => {
+      loadFavoritesLibrary(el('bible-favs-lib-q')?.value || '');
+    });
     el('bible-note-btn')?.addEventListener('click', () => openNoteModal());
     el('bible-to-illustration-btn')?.addEventListener('click', selectionToIllustration);
     el('bible-copy-sel-btn')?.addEventListener('click', () => {

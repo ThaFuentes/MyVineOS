@@ -660,16 +660,19 @@ def strongs_search_route():
 @bible_bp.route('/quick_sermon', methods=['POST'])
 @pastoral_required()
 def quick_sermon():
-    """Create a blank sermon linked to Bible Study (optionally with a passage)."""
+    """Create a sermon from Bible Study. Title is free-form; passage is optional."""
     user_id = session['user_id']
     data = request.get_json(silent=True) or {}
     reference = (data.get('reference') or data.get('primary_passage') or '').strip()
     title = (data.get('title') or '').strip()
+    # Do not force title from chapter/passage — only a soft default if left blank
     if not title:
-        title = f"Sermon - {reference}" if reference else "New Sermon from Bible Study"
+        title = 'New Sermon'
+    service_date = (data.get('service_date') or '').strip() or None
     sermon_id = create_sermon({
-        'title': title,
-        'primary_passage': reference or None,
+        'title': title[:200],
+        'primary_passage': reference[:255] if reference else None,
+        'service_date': service_date,
         'visibility': 'private',
     }, user_id)
     log_change(user_id, 'create', sermon_id, title, 'Quick sermon from Bible Study')
@@ -677,6 +680,7 @@ def quick_sermon():
         'status': 'success',
         'sermon_id': sermon_id,
         'title': title,
+        'primary_passage': reference or '',
         'edit_url': url_for('pastoral.sermons.edit', sermon_id=sermon_id),
         'study_url': url_for('pastoral.bible.bible_study', sermon_id=sermon_id),
     })

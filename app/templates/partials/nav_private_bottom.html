@@ -83,6 +83,11 @@
       <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Study Courses
     </a>
     {% endif %}
+    {% if promotions_nav_visible|default(false) %}
+    <a href="{{ url_for('public.promotions_list') }}" class="nav-sheet-link {{ 'active' if ep == 'public.promotions_list' else '' }}">
+      <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i> Partners
+    </a>
+    {% endif %}
     <a href="{{ url_for('legal.legal_index') }}" class="nav-sheet-link {{ 'active' if ep.startswith('legal.') else '' }}">
       <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Legal
     </a>

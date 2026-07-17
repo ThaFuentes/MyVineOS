@@ -101,7 +101,13 @@ def create_app():
             if is_module_enabled(key, toggles):
                 return
             flash('That area is not enabled for this church right now.', 'info')
-            return redirect(url_for('dashboard.dashboard'))
+            if session.get('user_id'):
+                return redirect(url_for('dashboard.dashboard'))
+            # Guests: do not bounce into private dashboard
+            try:
+                return redirect(url_for('public.public_dashboard.public_dashboard'))
+            except Exception:
+                return redirect(url_for('auth.login'))
         except Exception:
             return
 
@@ -152,22 +158,22 @@ def create_app():
             '/worship', '/security', '/ai-insights', '/communications', '/study',
             '/modules', '/log', '/the_gathering', '/campus', '/help/manage',
             '/events', '/prayers', '/dreams', '/sermons', '/announcements',
-            '/prophecies', '/bible', '/help',
+            '/prophecies', '/help',
+            # NOTE: /bible is NOT private — visitors may read freely.
+            # Save actions (highlight/note/favorite) stay login-gated in bible routes.
         )
         # Guest-safe: dual-mode community list pages can stay readable without login
         # but POST mutations still require CSRF + should not create private content.
-        # Guest-safe reads: public community lists + open Bible text APIs only.
+        # Guest-safe reads: public community lists + full open Bible reader + text APIs.
         # Operational Help, groups, dashboard, finance, pastoral, etc. require login.
         pr = path.rstrip('/')
         guest_read_ok = (
             pr in (
                 '/prayers', '/dreams', '/sermons', '/announcements', '/prophecies',
             )
-            or path.startswith('/bible/chapter/')
-            or path.startswith('/bible/verse/')
-            or path.startswith('/bible/search')
-            or path.startswith('/bible/strongs/')
-            or path.startswith('/bible/online/')
+            # Entire Bible reader + read APIs are public (writes still @login_required)
+            or path == '/bible'
+            or path.startswith('/bible/')
             or (
                 path.startswith('/prayers/')
                 and request.method == 'GET'
@@ -201,9 +207,13 @@ def create_app():
             )
         )
         # Mutations never guest-open except moderated guest prayer at /prayers/add (CSRF required)
+        # Bible POST/DELETE writes are handled by @login_required on those routes (JSON 401) —
+        # do not hard-redirect the whole app when a guest taps highlight/favorite.
         if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
             if pr == '/prayers/add':
                 return
+            if path == '/bible' or path.startswith('/bible/'):
+                return  # let bible views decide (JSON 401 vs success)
             if any(path == p or path.startswith(p + '/') or path.startswith(p) for p in private_prefixes):
                 flash('Please log in to continue.', 'error')
                 return redirect(url_for('auth.login', next=request.url))
@@ -379,6 +389,15 @@ def create_app():
             def module_on(_key: str) -> bool:
                 return True
             return dict(module_toggles={}, module_on=module_on)
+
+    @app.context_processor
+    def inject_promotions_nav():
+        """Show Partners nav only when module is on and at least one card is published."""
+        try:
+            from app.models.promotions import is_promotions_visible
+            return dict(promotions_nav_visible=is_promotions_visible())
+        except Exception:
+            return dict(promotions_nav_visible=False)
 
     @app.context_processor
     def inject_endpoint_exists():

@@ -24,6 +24,22 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
+            # AJAX / API clients: never force a browser login redirect mid-feature
+            wants_json = (
+                request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+                or request.accept_mimetypes.best == 'application/json'
+                or (request.content_type or '').startswith('application/json')
+                or request.path.startswith('/bible/')
+                or '/api/' in (request.path or '')
+            )
+            if wants_json:
+                from flask import jsonify
+                return jsonify({
+                    'ok': False,
+                    'login_required': True,
+                    'error': 'Log in required for this action.',
+                    'login_url': url_for('auth.login', next=request.url),
+                }), 401
             flash('Please log in to access this page.', 'error')
             return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)
