@@ -33,10 +33,24 @@ class ParsedGift:
         return d
 
 
-AMOUNT_RE = re.compile(
-    r'(?:USD\s*)?\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})|[0-9]+\.[0-9]{2})',
+# Prefer labeled money ($12.00 / Amount: 12.00) — never bare decimals from IPs
+AMOUNT_LABELED_RE = re.compile(
+    r'(?:'
+    r'(?:amount|total|payment|paid|sent you|received|donation|gift|credit)\s*[:\-]?\s*'
+    r'|(?:USD\s*)\$?\s*'
+    r'|\$\s*'
+    r')'
+    r'([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})|[0-9]+\.[0-9]{2})'
+    r'(?:\s*(?:USD|usd))?',
     re.I,
 )
+AMOUNT_DOLLAR_RE = re.compile(
+    r'\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?|[0-9]+\.[0-9]{2})\b',
+    re.I,
+)
+# Keep legacy name for any external imports
+AMOUNT_RE = AMOUNT_DOLLAR_RE
+IP_V4_RE = re.compile(r'\b\d{1,3}(?:\.\d{1,3}){3}\b')
 EMAIL_RE = re.compile(r'[\w.+-]+@[\w.-]+\.\w+', re.I)
 DATE_RE = re.compile(
     r'\b('
@@ -47,15 +61,98 @@ DATE_RE = re.compile(
     re.I,
 )
 
+NON_PAYMENT_MARKERS = (
+    'client configuration settings',
+    'mail client manual settings',
+    'calendar & contacts manual settings',
+    'imap port',
+    'pop3 port',
+    'smtp port',
+    'cpanel',
+    'mail delivery failed',
+    'mailer-daemon',
+    'undelivered mail returned',
+    'delivery status notification',
+    'password reset',
+    'reset your password',
+    'verify your email',
+    'confirm your email',
+    'two-factor',
+    'ssl/tls settings',
+    'do not reply to this automated message',
+    'mobileconfig',
+    'carddav',
+    'caldav',
+)
+
+PAYMENT_SIGNAL_MARKERS = (
+    'you received a payment',
+    'you received a donation',
+    "you've received",
+    'sent you $',
+    'paid you $',
+    'payment from',
+    'payment id',
+    'transaction id',
+    'donation id',
+    'receipt number',
+    'ach credit',
+    'ach deposit',
+    'direct deposit',
+    'tithe',
+    'offering',
+    'stripe.com',
+    'paypal.com',
+    'cash app',
+    'venmo',
+    'zelle',
+    'tithe.ly',
+    'pushpay',
+    'givelify',
+    'planning center',
+    'amount $',
+    'amount:',
+    'payment method',
+)
+
+
+def _mask_non_money_numbers(text: str) -> str:
+    t = text or ''
+    t = IP_V4_RE.sub('[ip]', t)
+    t = re.sub(r'(?i)\bport\s*:\s*\d+', 'port: [n]', t)
+    return t
+
 
 def _first_amount(text: str) -> Optional[float]:
-    m = AMOUNT_RE.search(text or '')
-    if not m:
-        return None
-    try:
-        return float(m.group(1).replace(',', ''))
-    except ValueError:
-        return None
+    cleaned = _mask_non_money_numbers(text or '')
+    for cre in (AMOUNT_LABELED_RE, AMOUNT_DOLLAR_RE):
+        m = cre.search(cleaned)
+        if not m:
+            continue
+        try:
+            val = float(m.group(1).replace(',', ''))
+        except ValueError:
+            continue
+        if 0.01 <= val <= 1_000_000:
+            return val
+    return None
+
+
+def is_non_payment_email(subject: str, body: str, from_addr: str = '') -> bool:
+    blob = f'{subject or ""}\n{from_addr or ""}\n{body or ""}'.lower()
+    if any(m in blob for m in NON_PAYMENT_MARKERS):
+        return True
+    from_l = (from_addr or '').lower()
+    if 'cpanel' in from_l or 'mailer-daemon' in from_l or 'postmaster@' in from_l:
+        return True
+    return False
+
+
+def has_payment_signals(subject: str, body: str, from_addr: str = '', processor: str = 'unknown') -> bool:
+    if processor and processor not in ('unknown', ''):
+        return True
+    blob = f'{subject or ""}\n{from_addr or ""}\n{body or ""}'.lower()
+    return any(m in blob for m in PAYMENT_SIGNAL_MARKERS)
 
 
 def _normalize_date(raw: str) -> str:
@@ -124,21 +221,37 @@ def detect_processor(subject: str, body: str, from_addr: str = '') -> str:
     return 'unknown'
 
 
+def default_donation_parse_mode() -> str:
+    """
+    Software chooses how to parse — staff should not pick a format.
+    Prefer AI when configured; otherwise rules with auto AI fallback.
+    """
+    try:
+        from app.utils.ai_assist_parse import ai_configured
+        if ai_configured():
+            return 'ai'
+    except Exception:
+        pass
+    return 'auto'
+
+
 def parse_payment_email(
     subject: str,
     body: str,
     from_addr: str = '',
     received_at: str = '',
     *,
-    use_ai: str | bool = 'auto',
+    use_ai: str | bool | None = None,
 ) -> ParsedGift:
     """
-    Best-effort multi-processor parser.
+    Best-effort multi-processor parser. Staff do not pick email format —
+    software detects Stripe/PayPal/etc. and fills amount/donor/method.
 
     use_ai:
+      - None          — software default (AI first when configured)
       - False/'rules' — rules only (no API call)
       - True/'ai'     — always try AI after rules, merge results
-      - 'auto'        — AI only when confidence is low or amount missing
+      - 'auto'        — AI when rules are weak
     """
     from app.utils.ai_assist_parse import (
         ai_parse_donation_email,
@@ -146,14 +259,29 @@ def parse_payment_email(
         normalize_parse_mode,
     )
 
+    if use_ai is None:
+        use_ai = default_donation_parse_mode()
     mode = normalize_parse_mode(
         'ai' if use_ai is True else ('rules' if use_ai is False else str(use_ai))
     )
     gift = _parse_payment_email_rules(subject, body, from_addr, received_at)
 
+    # Hard non-payment (cPanel, bounces, etc.) — never call AI, never invent a gift
+    if (gift.extras or {}).get('not_a_payment'):
+        extras = dict(gift.extras or {})
+        extras['parse_mode'] = 'rules'
+        extras['ai_used'] = False
+        gift.extras = extras
+        return gift
+
     need_ai = mode == 'ai' or (
-        mode == 'auto' and (gift.amount <= 0 or gift.confidence < 70 or gift.processor == 'unknown')
+        mode == 'auto'
+        and gift.amount > 0
+        and (gift.confidence < 70 or gift.processor == 'unknown')
     )
+    # auto + no amount: stay skipped (do not spend AI on newsletters / config mail)
+    if mode == 'auto' and gift.amount <= 0:
+        need_ai = False
     if not need_ai:
         extras = dict(gift.extras or {})
         extras['parse_mode'] = 'rules'
@@ -161,8 +289,19 @@ def parse_payment_email(
         gift.extras = extras
         return gift
 
+    # Do not feed a dubious rules amount into AI (causes copy-through of IP false positives)
+    hint = gift.to_dict()
+    if gift.processor == 'unknown' or gift.confidence < 50:
+        hint = dict(hint)
+        hint['amount'] = 0
+        hint['confidence'] = min(float(hint.get('confidence') or 0), 40)
+        hint['notes'] = (
+            (hint.get('notes') or '')
+            + ' Rules were uncertain; verify this is really a payment email.'
+        ).strip()
+
     ai_data, ai_err = ai_parse_donation_email(
-        subject, body, from_addr, rules_hint=gift.to_dict()
+        subject, body, from_addr, rules_hint=hint
     )
     if not ai_data:
         extras = dict(gift.extras or {})
@@ -173,6 +312,14 @@ def parse_payment_email(
         return gift
 
     merged = merge_donation_parse(gift.to_dict(), ai_data)
+    # Final safety: non-payment markers still force skip even if model is messy
+    if is_non_payment_email(subject, body, from_addr):
+        merged['amount'] = 0
+        merged['confidence'] = 0
+        extras = dict(merged.get('extras') or {})
+        extras['not_a_payment'] = True
+        extras['skip_reason'] = 'non_payment_markers'
+        merged['extras'] = extras
     return ParsedGift(
         processor=merged.get('processor') or gift.processor,
         amount=float(merged.get('amount') or 0),
@@ -198,7 +345,28 @@ def _parse_payment_email_rules(subject: str, body: str, from_addr: str = '', rec
     body = body or ''
     text = f'{subject}\n{body}'
     processor = detect_processor(subject, body, from_addr)
+
+    # Clear non-gifts first (cPanel config used IP 72.48.x.x as a fake $72.48 before)
+    if is_non_payment_email(subject, body, from_addr):
+        return ParsedGift(
+            processor='unknown',
+            amount=0.0,
+            method='',
+            donor_name='',
+            confidence=0.0,
+            raw_subject=subject[:500],
+            notes='Not a payment notification (system / config / bounce / marketing).',
+            extras={
+                'from_address': from_addr,
+                'not_a_payment': True,
+                'skip_reason': 'non_payment_markers',
+            },
+        )
+
     amount = _first_amount(text) or 0.0
+    # Unknown processor without payment language: do not treat random numbers as gifts
+    if amount > 0 and not has_payment_signals(subject, body, from_addr, processor):
+        amount = 0.0
     date = _find_date(text)
     if received_at and not DATE_RE.search(text):
         date = _normalize_date(str(received_at)[:10])
@@ -388,32 +556,41 @@ def _parse_payment_email_rules(subject: str, body: str, from_addr: str = '', rec
         ).hexdigest()[:16]
         external_id = f'em-{digest}'
 
-    score = 20.0
+    score = 10.0
     if amount > 0:
         score += 35
     if donor_name and donor_name != 'Online Donor':
         score += 15
-    if confirmation or external_id:
+    # Only real provider IDs boost confidence — not synthetic em-* digests
+    real_id = bool(confirmation) or (
+        bool(external_id) and not str(external_id).startswith('em-')
+    )
+    if real_id:
         score += 15
     if processor != 'unknown':
-        score += 15
+        score += 20
     if donor_email:
         score += 10
+    if amount <= 0:
+        score = min(score, 25.0)
+    if processor == 'unknown' and amount > 0:
+        # Cautious: money-like number without a known processor
+        score = min(score, 55.0)
     score = min(100.0, score)
 
     return ParsedGift(
         processor=processor,
         amount=float(amount or 0),
         currency='USD',
-        donor_name=donor_name,
-        donor_email=donor_email,
-        confirmation_number=confirmation or external_id,
-        method=method,
+        donor_name=donor_name if amount > 0 else '',
+        donor_email=donor_email if amount > 0 else '',
+        confirmation_number=(confirmation or external_id) if amount > 0 else '',
+        method=method if amount > 0 else '',
         date=date,
         notes=' '.join(notes_parts),
         fund_label=fund,
         is_recurring=is_recurring,
-        external_id=external_id,
+        external_id=external_id if amount > 0 else '',
         confidence=score,
         raw_subject=subject[:500],
         extras={'from_address': from_addr},

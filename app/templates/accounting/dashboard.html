@@ -5,13 +5,15 @@
 <div class="glass-panel acct-hero">
   <h1><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Accounting</h1>
   <p>
-    Chart of accounts, double-entry ledger, vendors, expenses, budgets, and payroll —
-    built for church finance, alongside Bills and Donations.
+    Chart of accounts, double-entry ledger, vendors, expenses, budgets, and payroll.
+    <strong>Donations</strong> post here automatically (Debit Cash · Credit Tithes &amp; Offerings)
+    when you add a gift or approve an email gift.
   </p>
   <div class="acct-actions">
     <a href="{{ url_for('accounting.expense_new') }}" class="btn btn-primary">Record expense</a>
     <a href="{{ url_for('accounting.journal_new') }}" class="btn btn-secondary">Journal entry</a>
     <a href="{{ url_for('accounting.reports', report='pnl') }}" class="btn btn-secondary">P&amp;L report</a>
+    <a href="{{ url_for('donations.donations_dashboard') }}" class="btn btn-secondary">Donations</a>
   </div>
 </div>
 

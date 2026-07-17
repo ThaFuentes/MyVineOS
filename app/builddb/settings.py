@@ -125,6 +125,10 @@ def create_tables(cursor):
         'incoming_username':      "TEXT",
         'incoming_password':      "TEXT",
         'is_default':             "INTEGER DEFAULT 0",
+        # Purpose labels: one place for all email accounts (send + giving import, etc.)
+        'is_giving_inbox':        "TINYINT(1) NOT NULL DEFAULT 0",
+        'last_scan_at':           "TIMESTAMP NULL",
+        'last_error':             "VARCHAR(500) NULL",
         'created_at':             "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
     }
 
@@ -132,6 +136,55 @@ def create_tables(cursor):
         if col_name not in existing_email_columns:
             print(f"Migration: Adding missing column '{col_name}' to email_accounts table.")
             cursor.execute(f"ALTER TABLE email_accounts ADD COLUMN {col_name} {col_def}")
+
+    # One-time: migrate legacy donation_email_mailbox rows into email_accounts (giving inbox role)
+    try:
+        cursor.execute("""
+            SELECT COUNT(*) AS c FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'donation_email_mailbox'
+        """)
+        row = cursor.fetchone()
+        has_legacy = (row[0] if not isinstance(row, dict) else row.get('c', 0)) if row else 0
+        if has_legacy:
+            cursor.execute("SELECT * FROM donation_email_mailbox")
+            legacy_rows = cursor.fetchall() or []
+            # get column names if tuple rows
+            cursor.execute("SELECT COUNT(*) FROM email_accounts WHERE is_giving_inbox = 1")
+            already = cursor.fetchone()
+            already_n = already[0] if not isinstance(already, dict) else already.get('COUNT(*)', 0)
+            if legacy_rows and not already_n:
+                for lr in legacy_rows:
+                    # support both dict and tuple depending on cursor
+                    if isinstance(lr, dict):
+                        label = lr.get('label') or 'Giving inbox'
+                        protocol = (lr.get('protocol') or 'pop3').upper()
+                        if protocol == 'POP3':
+                            protocol = 'POP3'
+                        host = lr.get('host') or ''
+                        port = lr.get('port') or 995
+                        user = lr.get('username') or ''
+                        pwd = lr.get('password_enc')  # already encrypted same scheme
+                        use_ssl = lr.get('use_ssl', 1)
+                        enabled = lr.get('enabled', 0)
+                        enc = 'SSL' if use_ssl else 'None'
+                    else:
+                        continue
+                    if not host or not user:
+                        continue
+                    cursor.execute("""
+                        INSERT INTO email_accounts
+                        (name, outgoing_server, outgoing_port, outgoing_encryption,
+                         outgoing_username, outgoing_password,
+                         incoming_protocol, incoming_server, incoming_port, incoming_encryption,
+                         incoming_username, incoming_password, is_default, is_giving_inbox)
+                        VALUES (%s, NULL, NULL, NULL, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s)
+                    """, (
+                        label, user, pwd, protocol, host, port, enc, user, pwd,
+                        1 if enabled else 0,
+                    ))
+                print(f"Migration: moved {len(legacy_rows)} donation mailbox(es) into email_accounts (Giving inbox).")
+    except Exception as e:
+        print(f"Migration donation_email_mailbox → email_accounts: {e}")
 
     # ----- LEGACY MIGRATION: Move old single email config to new table as "Main Account" -----
     # Check if legacy email fields exist in settings (old schema)

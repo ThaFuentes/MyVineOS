@@ -111,14 +111,46 @@ def load_ai_providers():
     return []
 
 
+def ensure_email_account_role_columns():
+    """Purpose flags on shared email_accounts (giving inbox, scan status)."""
+    try:
+        db = get_db()
+        cur = db.cursor(pymysql.cursors.DictCursor)
+        cur.execute("""
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'email_accounts'
+        """)
+        have = {r['COLUMN_NAME'] for r in (cur.fetchall() or [])}
+        adds = {
+            'is_giving_inbox': "TINYINT(1) NOT NULL DEFAULT 0",
+            'last_scan_at': "TIMESTAMP NULL",
+            'last_error': "VARCHAR(500) NULL",
+        }
+        cur2 = db.cursor()
+        for col, defn in adds.items():
+            if col not in have:
+                cur2.execute(f"ALTER TABLE email_accounts ADD COLUMN {col} {defn}")
+        db.commit()
+    except Exception as e:
+        print(f'email_accounts role columns: {e}')
+
+
 def load_email_accounts():
+    ensure_email_account_role_columns()
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
-    cur.execute("SELECT * FROM email_accounts ORDER BY is_default DESC, name ASC")
+    cur.execute(
+        "SELECT * FROM email_accounts ORDER BY is_default DESC, is_giving_inbox DESC, name ASC"
+    )
     accounts = cur.fetchall()
     for acc in accounts:
-        acc['outgoing_username_dec'] = decrypt(acc.get('outgoing_username', ''))
-        acc['incoming_username_dec'] = decrypt(acc.get('incoming_username', ''))
+        acc['outgoing_username_dec'] = decrypt(acc.get('outgoing_username', '') or '')
+        acc['incoming_username_dec'] = decrypt(acc.get('incoming_username', '') or '')
+        acc['is_giving_inbox'] = bool(acc.get('is_giving_inbox'))
+        acc['has_incoming'] = bool(
+            (acc.get('incoming_server') or '').strip()
+            and (acc.get('incoming_protocol') or '').strip()
+        )
     return accounts
 
 # ----------------------------------------------------------------------

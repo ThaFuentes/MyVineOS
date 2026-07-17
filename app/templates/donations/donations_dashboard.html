@@ -1,72 +1,109 @@
-<!-- app/templates/donations/donations_dashboard.html -->
-<!-- Full path: WebChurchMan/app/templates/donations/donations_dashboard.html -->
-<!-- File name: donations_dashboard.html -->
-<!-- Brief, detailed purpose: Donations Dashboard - extends base_donations.html for full consistency.
-   Glassmorphism summary cards + recent table (mirrors Events/Announcements dashboards).
-   ONLY global classes (.card.glass, .table-wrapper.glass, .large-amount, etc.).
-   + Add New Donation button at top (visible since route is Staff+ protected).
-   Clean, readable layout - no permission conditional (route enforces access). -->
-
 {% extends "donations/base_donations.html" %}
 
 {% block page_title %}Donations Dashboard{% endblock %}
 
 {% block page_description %}
-Overview of donation activity for the current year ({{ current_year }}).<br>
-Use the menu to add donations, view all records, generate reports, or export statements.
+Overview of gifts for <strong>{{ current_year }}</strong>.
+Totals below are the <strong>sum of every gift record</strong> this year (not a unique-donor figure).
+Donations post into <a href="{{ url_for('accounting.dashboard') }}">Accounting</a> as Cash / Tithes &amp; Offerings.
 {% endblock %}
 
 {% block donations_content %}
 
-<!-- App-style stats -->
 <div style="margin-bottom:0.75rem;">
-  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.3rem; letter-spacing:0.5px;">CURRENT YEAR ({{ current_year }})</div>
+  <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.3rem; letter-spacing:0.5px;">
+    CURRENT YEAR ({{ current_year }}) — all recorded gifts
+  </div>
   <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.55rem;">
     <div class="glass-panel" style="text-align:center; padding:0.7rem;">
-      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">${{ "%.2f"|format(total_this_year|default(0.0)) }}</div>
-      <div style="font-size:0.75rem; opacity:0.7;">Total Amount</div>
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">
+        ${{ "%.2f"|format(total_this_year|default(0.0)) }}
+      </div>
+      <div style="font-size:0.75rem; opacity:0.7;">Total amount (year)</div>
     </div>
     <div class="glass-panel" style="text-align:center; padding:0.7rem;">
-      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ recent_donations|length }}</div>
-      <div style="font-size:0.75rem; opacity:0.7;">Recent Donations</div>
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">
+        {{ stats.gift_count if stats else (recent_donations|length) }}
+      </div>
+      <div style="font-size:0.75rem; opacity:0.7;">Gifts recorded (year)</div>
     </div>
+    <div class="glass-panel" style="text-align:center; padding:0.7rem;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">
+        {{ stats.unique_donors if stats else '—' }}
+      </div>
+      <div style="font-size:0.75rem; opacity:0.7;">Unique donor names</div>
+    </div>
+    {% if acct_ytd_income is not none %}
+    <div class="glass-panel" style="text-align:center; padding:0.7rem;">
+      <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">
+        ${{ "%.2f"|format(acct_ytd_income) }}
+      </div>
+      <div style="font-size:0.75rem; opacity:0.7;">
+        Accounting YTD income
+        <a href="{{ url_for('accounting.dashboard') }}" style="display:block; margin-top:0.2rem;">Open Accounting →</a>
+      </div>
+    </div>
+    {% endif %}
   </div>
+  {% if stats %}
+  <p class="help-text" style="margin:0.55rem 0 0;">
+    Members ${{ "%.2f"|format(stats.member_total or 0) }}
+    · Guests / others ${{ "%.2f"|format(stats.guest_total or 0) }}.
+    If totals look high, check for duplicate test/sample gifts or bounce emails under Email gifts.
+  </p>
+  {% endif %}
 </div>
 
-<!-- Recent Donations (app feed style) -->
 <div style="margin-bottom:0.5rem;">
   <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.4rem;">
     <div style="font-size:0.8rem; opacity:0.65; letter-spacing:0.5px;">RECENT DONATIONS</div>
-    <a href="{{ url_for('donations.add_donation') }}" class="btn btn-primary" style="padding:0.35rem 0.8rem; font-size:0.85rem;">+ Add Donation</a>
+    <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+      <a href="{{ url_for('donations.email_import_queue') }}" class="btn btn-secondary" style="padding:0.35rem 0.8rem; font-size:0.85rem;">Email gifts</a>
+      <a href="{{ url_for('donations.add_donation') }}" class="btn btn-primary" style="padding:0.35rem 0.8rem; font-size:0.85rem;">+ Add Donation</a>
+    </div>
   </div>
 
-    {% if recent_donations %}
-        <div class="table-wrapper glass">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Donor</th>
-                        <th>Type</th>
-                        <th>Amount</th>
-                        <th>Method</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for d in recent_donations %}
-                        <tr>
-                            <td>{{ d.date[:10] if d.date else 'No date' }}</td>
-                            <td>{{ d.name }}{% if d.username %} <small class="text-muted">@{{ d.username }}</small>{% endif %}</td>
-                            <td>{{ (d.donor_type or 'guest')|capitalize }}</td>
-                            <td>${{ "%.2f"|format(d.amount) }}</td>
-                            <td>{{ d.method }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p class="no-data">No donations recorded yet.</p>
-    {% endif %}
+  {% if recent_donations %}
+  <div class="table-wrapper glass">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Donor</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Method</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in recent_donations %}
+        <tr>
+          <td>{{ d.date[:10] if d.date else 'No date' }}</td>
+          <td>
+            {{ d.name }}
+            {% if d.username %}<small class="text-muted"> @{{ d.username }}</small>{% endif %}
+          </td>
+          <td>
+            {% if d.user_id or (d.donor_type or '') == 'member' %}
+              Member
+            {% else %}
+              {{ (d.donor_type or 'guest')|capitalize }}
+            {% endif %}
+          </td>
+          <td>${{ "%.2f"|format(d.amount) }}</td>
+          <td>{{ d.method }}</td>
+          <td style="font-size:0.8rem; opacity:0.8;">
+            {% if d.source == 'email_import' %}Email{% elif d.source %}{{ d.source }}{% else %}Manual{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="no-data">No donations recorded yet.</p>
+  {% endif %}
+</div>
 
 {% endblock %}

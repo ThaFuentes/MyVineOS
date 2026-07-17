@@ -1,0 +1,174 @@
+{% extends "worship/base_worship.html" %}
+
+{% block worship_title %}CCLI usage report{% endblock %}
+
+{% block worship_content %}
+<h1 style="margin:0 0 0.35rem; font-size:1.35rem; color:var(--primary);">CCLI songs used</h1>
+<p class="help-text" style="margin:0 0 1rem; max-width:42rem;">
+  List CCLI song numbers from services you <strong>confirmed as played</strong>
+  (Play History). Download a CSV and/or email the list through
+  <strong>Settings → Email</strong> for your church CCLI records.
+  This does not auto-submit to CCLI — you still report through your official CCLI account.
+</p>
+
+<form method="get" action="{{ url_for('worship.ccli_report') }}" class="settings-card styled-form" style="margin-bottom:1rem;">
+  <h2 class="section-subtitle" style="margin:0 0 0.65rem;">Date range</h2>
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="period">Period</label>
+      <select id="period" name="period">
+        <option value="day" {% if period == 'day' %}selected{% endif %}>Day</option>
+        <option value="week" {% if period == 'week' %}selected{% endif %}>Week (Mon–Sun)</option>
+        <option value="month" {% if period == 'month' %}selected{% endif %}>Month</option>
+        <option value="year" {% if period == 'year' %}selected{% endif %}>Year</option>
+        <option value="custom" {% if period == 'custom' %}selected{% endif %}>Custom range</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="on_date">Around date</label>
+      <input type="date" id="on_date" name="on_date" value="{{ on_date }}">
+      <p class="help-text">Used for day / week / month / year.</p>
+    </div>
+    <div class="form-group">
+      <label for="start">Custom start</label>
+      <input type="date" id="start" name="start" value="{{ start }}">
+    </div>
+    <div class="form-group">
+      <label for="end">Custom end</label>
+      <input type="date" id="end" name="end" value="{{ end }}">
+    </div>
+    <div class="form-group full-width">
+      <label style="display:flex; gap:0.5rem; align-items:center; cursor:pointer;">
+        <input type="checkbox" name="include_planned" value="1"
+               {% if include_planned %}checked{% endif %}
+               style="width:auto; min-height:auto;">
+        Also include songs on dated setlists (planned, even if service not confirmed yet)
+      </label>
+    </div>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn-primary">Show CCLI list</button>
+    <a href="{{ url_for('worship.history') }}" class="btn-secondary">Play History</a>
+  </div>
+</form>
+
+<div class="settings-card" style="margin-bottom:1rem;">
+  <h2 class="section-subtitle" style="margin:0 0 0.35rem;">{{ period_label }}</h2>
+  <p class="help-text" style="margin:0 0 0.75rem;">
+    {% if report.church_name %}{{ report.church_name }} · {% endif %}
+    {% if report.church_license %}Church license # {{ report.church_license }} · {% endif %}
+    <strong>{{ report.unique_count }}</strong> unique CCLI #
+    · <strong>{{ report.rows|length }}</strong> usage rows
+    · <strong>{{ report.missing_count }}</strong> songs missing a CCLI #
+  </p>
+
+  {% if can_manage %}
+  <div style="display:grid; gap:0.85rem; max-width:36rem;">
+    <form method="post" action="{{ url_for('worship.ccli_report') }}" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="period" value="{{ period }}">
+      <input type="hidden" name="on_date" value="{{ on_date }}">
+      <input type="hidden" name="start" value="{{ start }}">
+      <input type="hidden" name="end" value="{{ end }}">
+      {% if include_planned %}<input type="hidden" name="include_planned" value="1">{% endif %}
+      <input type="hidden" name="action" value="download">
+      <button type="submit" class="btn-primary">Download CSV</button>
+    </form>
+
+    <form method="post" action="{{ url_for('worship.ccli_report') }}" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="period" value="{{ period }}">
+      <input type="hidden" name="on_date" value="{{ on_date }}">
+      <input type="hidden" name="start" value="{{ start }}">
+      <input type="hidden" name="end" value="{{ end }}">
+      {% if include_planned %}<input type="hidden" name="include_planned" value="1">{% endif %}
+      <label for="to_email">Email address</label>
+      <input type="email" id="to_email" name="to_email" required
+             placeholder="treasurer@yourchurch.org"
+             autocomplete="email">
+      <p class="help-text">Uses Settings → Email outbound SMTP. Type the address — nothing is sent by default.</p>
+      <div class="form-actions" style="margin-top:0.5rem;">
+        <button type="submit" name="action" value="email" class="btn-secondary">Email list only</button>
+        <button type="submit" name="action" value="download_and_email" class="btn-primary">Email and download CSV</button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <p class="help-text">View only. Ask a worship manager to download or email the list.</p>
+  {% endif %}
+</div>
+
+<div class="settings-card" style="margin-bottom:1rem;">
+  <h2 class="section-subtitle" style="margin:0 0 0.65rem;">Unique CCLI numbers</h2>
+  {% if report.unique_ccli %}
+  <div class="table-wrapper glass">
+    <table class="data-table" style="width:100%;">
+      <thead>
+        <tr>
+          <th>CCLI #</th>
+          <th>Title</th>
+          <th>Artist</th>
+          <th>Times</th>
+          <th>Dates</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in report.unique_ccli %}
+        <tr>
+          <td><code>{{ u.ccli_song_number }}</code></td>
+          <td>{{ u.title }}</td>
+          <td>{{ u.artist or '—' }}</td>
+          <td>{{ u.times_used }}</td>
+          <td style="font-size:0.85rem;">{{ u.dates_text }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="help-text" style="margin:0;">
+    No songs with a CCLI number in this range.
+    Confirm services from a dated setlist (so plays are logged), and enter CCLI # on each song.
+  </p>
+  {% endif %}
+</div>
+
+{% if report.rows %}
+<div class="settings-card" style="margin-bottom:1rem;">
+  <h2 class="section-subtitle" style="margin:0 0 0.65rem;">Detail by service</h2>
+  <div class="table-wrapper glass">
+    <table class="data-table" style="width:100%;">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>CCLI #</th>
+          <th>Title</th>
+          <th>Kind</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in report.rows %}
+        <tr>
+          <td style="white-space:nowrap;">{{ r.service_date }}</td>
+          <td>
+            {% if r.ccli_song_number %}
+            <code>{{ r.ccli_song_number }}</code>
+            {% else %}
+            <span style="color:#ff9a78;">Missing</span>
+            {% endif %}
+          </td>
+          <td>{{ r.title }}{% if r.artist %} <span style="opacity:0.7;">— {{ r.artist }}</span>{% endif %}</td>
+          <td style="font-size:0.85rem;">{{ r.usage_kind }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<details class="settings-card">
+  <summary style="cursor:pointer; color:var(--primary); font-weight:600;">Plain-text preview (what email sends)</summary>
+  <pre style="white-space:pre-wrap; font-size:0.8rem; margin:0.75rem 0 0; max-height:320px; overflow:auto;">{{ text_preview }}</pre>
+</details>
+{% endblock %}

@@ -63,7 +63,12 @@ def ai_parse_worship_song(
         'Do NOT invent verses that are not in the source. Do NOT remove large parts of the song. '
         'If source has chord lines above lyrics, convert to ChordPro inline on the lyric line. '
         'play_order lists section ids in a typical performance order (chorus may repeat). '
-        'If public domain / unknown CCLI, leave ccli_song_number empty and set copyright_line to "Public Domain" when appropriate.'
+        'LEGAL: Structure only content the user provided. Do NOT invent CCLI numbers. '
+        'Only set ccli_song_number if an explicit CCLI number appears in the source text; '
+        'otherwise leave it empty. Never invent copyrighted lyrics or sheet music. '
+        'If public domain is clearly indicated, set copyright_line to "Public Domain". '
+        'Prefer ChordPro with chords inline on lyric lines like [G]Amazing [C]grace '
+        'so the app can display chords sitting above the words when editing.'
     )
     user = (
         f'Title hint: {title_hint or "(none)"}\n'
@@ -125,12 +130,19 @@ def ai_parse_donation_email(
         return None, 'AI is not configured (Settings → AI Providers).'
 
     system = (
-        'You extract donation/gift data from payment-provider notification emails. '
+        'You extract donation/gift data ONLY from real payment-provider or bank gift emails '
+        '(Stripe, PayPal, Cash App, Venmo, Tithe.ly, Zelle, ACH, Pushpay, Givelify, etc.). '
         'Return ONLY a JSON object with keys: '
-        'processor, amount, currency, donor_name, donor_email, confirmation_number, '
-        'method, date (YYYY-MM-DD), fund_label, is_recurring (bool), notes, confidence (0-100). '
-        'If a field is unknown use empty string, 0 for amount, false for is_recurring. '
-        'Do not invent amounts or confirmation numbers that are not in the email. '
+        'is_payment_email (bool), processor, amount, currency, donor_name, donor_email, '
+        'confirmation_number, method, date (YYYY-MM-DD), fund_label, is_recurring (bool), '
+        'notes, confidence (0-100). '
+        'If this is NOT a payment/donation/transfer notice '
+        '(cPanel, server config, bounces, marketing, password reset, newsletters, etc.), '
+        'set is_payment_email=false, amount=0, confidence=0, processor="unknown". '
+        'Never treat IP addresses (e.g. 72.48.197.107), ports, versions, or message-ids as money. '
+        'Only set amount when a clear currency amount appears (e.g. $125.00 or Amount: 50.00). '
+        'Do not invent amounts or confirmation numbers. Do not copy a rules_hint amount if the '
+        'email body does not clearly support it. '
         'processor is one of: stripe, paypal, cashapp, venmo, tithely, zelle, pushpay, '
         'givelify, planning_center, ach, unknown.'
     )
@@ -758,9 +770,29 @@ def _normalize_myvine_section_plan(ranges: list[dict], lines: list[str]) -> list
 
 
 def merge_donation_parse(rules: dict, ai: dict) -> dict:
-    """Prefer non-empty AI fields when rules are weak; never replace a good amount with 0."""
+    """Merge AI + rules. AI can reject non-payments (amount 0); never invent money from IPs."""
     out = dict(rules or {})
     ai = ai or {}
+
+    # Explicit AI rejection of non-payment emails
+    ai_says_not_payment = ai.get('is_payment_email') is False or str(
+        ai.get('is_payment_email') or ''
+    ).lower() in ('false', '0', 'no')
+    if ai_says_not_payment:
+        out['amount'] = 0
+        out['confidence'] = min(float(ai.get('confidence') or 0), 10.0)
+        out['processor'] = 'unknown'
+        out['donor_name'] = ''
+        out['donor_email'] = ''
+        out['confirmation_number'] = ''
+        out['method'] = ''
+        extras = dict(out.get('extras') or {})
+        extras['parse_mode'] = 'rules+ai'
+        extras['ai_used'] = True
+        extras['not_a_payment'] = True
+        extras['skip_reason'] = 'ai_not_payment_email'
+        out['extras'] = extras
+        return out
 
     def pick(key, *, prefer_ai_if_rules_empty=True, numeric=False):
         rv = out.get(key)
@@ -774,6 +806,15 @@ def merge_donation_parse(rules: dict, ai: dict) -> dict:
                 av_n = float(av or 0)
             except (TypeError, ValueError):
                 av_n = 0.0
+            # AI says no amount: trust that when rules were weak/unknown
+            if av_n <= 0 and (out.get('processor') in (None, '', 'unknown') or rv_n <= 0):
+                out[key] = 0
+                return
+            if av_n <= 0 and rv_n > 0 and float(ai.get('confidence') or 0) >= 50:
+                # Strong AI "no money" overrides weak rules amount
+                if out.get('processor') in (None, '', 'unknown'):
+                    out[key] = 0
+                    return
             if rv_n <= 0 and av_n > 0:
                 out[key] = av_n
             elif av_n > 0 and rv_n > 0 and abs(av_n - rv_n) / max(rv_n, 0.01) < 0.02:
@@ -787,7 +828,6 @@ def merge_donation_parse(rules: dict, ai: dict) -> dict:
         if prefer_ai_if_rules_empty and empty_rules and as_:
             out[key] = as_
         elif as_ and not empty_rules and key in ('donor_email', 'fund_label', 'confirmation_number', 'method'):
-            # fill missing specific fields from AI
             if empty_rules:
                 out[key] = as_
 
@@ -799,7 +839,6 @@ def merge_donation_parse(rules: dict, ai: dict) -> dict:
         pick(k)
     if 'is_recurring' in ai:
         out['is_recurring'] = bool(ai.get('is_recurring'))
-    # confidence: max of both, with AI floor when it found amount
     try:
         rc = float(out.get('confidence') or 0)
     except (TypeError, ValueError):
@@ -809,12 +848,16 @@ def merge_donation_parse(rules: dict, ai: dict) -> dict:
     except (TypeError, ValueError):
         ac = 0.0
     if float(out.get('amount') or 0) > 0 and ac:
-        out['confidence'] = min(100.0, max(rc, ac, 75.0))
+        out['confidence'] = min(100.0, max(rc, ac, 60.0))
+    elif float(out.get('amount') or 0) <= 0:
+        out['confidence'] = min(25.0, max(rc, ac))
     else:
         out['confidence'] = min(100.0, max(rc, ac))
     extras = dict(out.get('extras') or {})
     extras['parse_mode'] = 'rules+ai'
     extras['ai_used'] = True
+    if float(out.get('amount') or 0) <= 0:
+        extras['not_a_payment'] = extras.get('not_a_payment') or False
     out['extras'] = extras
     return out
 

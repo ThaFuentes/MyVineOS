@@ -132,6 +132,13 @@ def create_tables(cursor):
         'donation_email_auto_import': "TINYINT(1) NOT NULL DEFAULT 0",
         'donation_email_auto_post': "TINYINT(1) NOT NULL DEFAULT 0",
         'donation_receipt_test_email': "VARCHAR(255) NULL",
+        'donation_email_import_enabled': "TINYINT(1) NOT NULL DEFAULT 1",
+        'donation_email_auto_post_min_conf': "INT NOT NULL DEFAULT 90",
+        'donation_email_auto_receipt': "TINYINT(1) NOT NULL DEFAULT 0",
+        'donation_receipt_policy': "VARCHAR(24) NOT NULL DEFAULT 'all'",
+        'donation_receipt_email_list': "MEDIUMTEXT NULL",
+        'donation_receipt_staff_notify': "VARCHAR(500) NULL",
+        'donation_email_parse_mode': "VARCHAR(16) NOT NULL DEFAULT 'auto'",
     }.items():
         if name not in scols:
             print(f"Migration: Adding settings.{name}")

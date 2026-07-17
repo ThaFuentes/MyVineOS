@@ -19,6 +19,7 @@ def _uid():
 @login_required
 @permission_required('manage_accounting', 'manage_bills', 'manage_donations')
 def dashboard():
+    # note: donations post here via post_donation_income (Cash / Tithes)
     stats = acct.dashboard_stats()
     y = stats['year']
     recent_exp = acct.list_expenses(limit=8, start=f'{y}-01-01')

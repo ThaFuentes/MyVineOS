@@ -1,123 +1,694 @@
 {% extends "donations/base_donations.html" %}
-{% block page_title %}Email Import Queue{% endblock %}
+{% block page_title %}Email gifts{% endblock %}
 {% block page_description %}
-Scan POP3/IMAP giving notifications (Stripe, PayPal, Cash App, ACH…) into donation records.
-Use mock fixtures to validate parsers and receipt dry-run before going live.
+Check mail accounts from Settings → Email. Payment type (Stripe, PayPal, etc.) comes from the email itself when parsed — you do not re-enter that here.
 {% endblock %}
 
 {% block donations_content %}
-<div class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.9rem;">
-  <strong>Receipt mode:</strong>
-  <code>{{ settings.receipt_mode }}</code>
-  {% if settings.receipt_mode == 'test' %}
-  — receipts go only to <code>{{ settings.test_email or 'not set' }}</code> (never the donor).
-  {% elif settings.receipt_mode == 'live' %}
-  — receipts go to donors when posting with send enabled.
-  {% else %}
-  — receipts off.
-  {% endif %}
-  <a href="{{ url_for('donations.email_import_settings') }}" style="margin-left:0.75rem;">Settings</a>
-  ·
-  <a href="{{ url_for('donations.enterprise_report') }}">Enterprise report</a>
-</div>
 
-<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
-  <form method="post" action="{{ url_for('donations.email_import_load_fixtures') }}">
-    {% include 'partials/csrf_field.html' %}
-    <button type="submit" class="btn btn-primary">Load mock payment emails</button>
-  </form>
-  {% for mb in mailboxes %}
-  <form method="post" action="{{ url_for('donations.email_import_scan', mailbox_id=mb.id) }}">
-    {% include 'partials/csrf_field.html' %}
-    <button type="submit" class="btn btn-secondary" {% if not mb.enabled %}disabled{% endif %}>
-      Scan {{ mb.label }} ({{ mb.protocol|upper }})
-    </button>
-  </form>
-  {% endfor %}
-  <a href="{{ url_for('donations.email_import_queue', status='needs_review') }}" class="btn btn-secondary">Needs review</a>
-  <a href="{{ url_for('donations.email_import_queue', status='parsed') }}" class="btn btn-secondary">Parsed</a>
-  <a href="{{ url_for('donations.email_import_queue') }}" class="btn btn-secondary">All</a>
-</div>
-
-<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
-  <h3 style="margin:0 0 0.5rem; font-size:1rem;">Paste a payment email</h3>
-  <p class="help-text" style="margin:0 0 0.75rem;">
-    Forward/copy a Stripe, PayPal, Cash App, Tithe.ly, Zelle, etc. notification.
-    <strong>Rules first</strong> (free, instant). AI only when you choose it or when auto mode is unsure.
+{# ── Check mail (accounts from Settings → Email only) ── #}
+<section class="content-section eg-check">
+  <h2 class="section-title">Check emails</h2>
+  <p class="help-text">
+    Pulls from POP3/IMAP accounts under
+    <a href="{{ url_for('settings.email') }}">Settings → Email</a>.
+    Choose how to parse <strong>this check</strong>, then review gifts below.
   </p>
-  <form method="post" action="{{ url_for('donations.email_import_paste') }}" class="styled-form">
+
+  <div class="settings-card">
+    <form method="post" action="{{ url_for('donations.email_import_check_all') }}" class="styled-form" id="check-emails-form">
+      {% include 'partials/csrf_field.html' %}
+
+      <div class="form-group full-width" style="margin-bottom:0;">
+        <label style="margin-bottom:0.65rem;">How to parse this check</label>
+        <div class="eg-choice-grid eg-choice-grid-2">
+          <label class="eg-choice{% if settings.parse_mode == 'rules' %} is-selected{% endif %}">
+            <input type="radio" name="parse_mode" value="rules" class="check-parse-mode"
+                   {% if settings.parse_mode == 'rules' %}checked{% endif %}>
+            <span class="eg-choice-body">
+              <span class="eg-choice-title">Software check only</span>
+              <span class="eg-choice-desc">No AI API calls. Built-in rules for Stripe, PayPal, Cash App, ACH, etc.</span>
+            </span>
+          </label>
+          <label class="eg-choice{% if settings.parse_mode != 'rules' %} is-selected{% endif %}">
+            <input type="radio" name="parse_mode" value="{% if settings.parse_mode == 'ai' %}ai{% else %}auto{% endif %}" class="check-parse-mode"
+                   {% if settings.parse_mode != 'rules' %}checked{% endif %}>
+            <span class="eg-choice-body">
+              <span class="eg-choice-title">Use AI to help check emails for donations</span>
+              <span class="eg-choice-desc">
+                API keys from <a href="{{ url_for('settings.ai') }}">Settings → AI</a>
+                + software rules
+                {% if settings.parse_mode == 'ai' %}(AI on every email).{% else %}(AI only when unsure).{% endif %}
+                {% if not settings.ai_configured %}
+                <strong>Keys not set</strong> — falls back to software until you add them.
+                {% else %}
+                AI keys ready.
+                {% endif %}
+              </span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions" style="margin-top:1rem;">
+        <button type="submit" class="btn-primary" {% if not mailboxes %}disabled{% endif %}>
+          Check emails now
+        </button>
+        <a href="{{ url_for('settings.email') }}" class="btn-secondary">Settings → Email</a>
+      </div>
+    </form>
+  </div>
+
+  {% if mailboxes %}
+  <div class="settings-card">
+    <div class="settings-card-header">
+      <div>
+        <h3 class="section-subtitle" style="margin:0;">Incoming accounts</h3>
+        <p class="help-text" style="margin:0.35rem 0 0;">Managed under Settings → Email. Per-account check uses the mode selected above.</p>
+      </div>
+    </div>
+    <div class="eg-mailbox-list">
+      {% for mb in mailboxes %}
+      <div class="eg-mailbox-row">
+        <div class="eg-mailbox-meta">
+          <strong>{{ mb.label or 'Email account' }}</strong>
+          <span class="eg-mailbox-detail">
+            {{ (mb.protocol or 'pop3')|upper }} · {{ mb.host }}{% if mb.port %}:{{ mb.port }}{% endif %}
+          </span>
+          {% if mb.last_scan_at %}<span class="eg-mailbox-detail">Last check: {{ mb.last_scan_at }}</span>{% endif %}
+          {% if mb.last_error %}<span class="eg-mailbox-error">{{ mb.last_error }}</span>{% endif %}
+        </div>
+        <form method="post" action="{{ url_for('donations.email_import_scan', mailbox_id=mb.id) }}" class="mailbox-check-form">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="parse_mode" value="{{ settings.parse_mode or 'auto' }}" class="mailbox-parse-mode">
+          <button type="submit" class="btn-secondary btn-small">Check</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <script>
+  (function () {
+    function selectedMode() {
+      var r = document.querySelector('#check-emails-form input[name="parse_mode"]:checked');
+      return r ? r.value : 'auto';
+    }
+    function syncMailboxModes() {
+      var mode = selectedMode();
+      document.querySelectorAll('.mailbox-parse-mode').forEach(function (el) {
+        el.value = mode;
+      });
+      document.querySelectorAll('#check-emails-form .eg-choice').forEach(function (card) {
+        var input = card.querySelector('input');
+        card.classList.toggle('is-selected', !!(input && input.checked));
+      });
+    }
+    document.querySelectorAll('#check-emails-form input[name="parse_mode"]').forEach(function (el) {
+      el.addEventListener('change', syncMailboxModes);
+    });
+    syncMailboxModes();
+  })();
+  </script>
+  {% else %}
+  <div class="settings-card">
+    <p class="help-text" style="margin:0;">
+      No POP3/IMAP accounts found.
+      Open <a href="{{ url_for('settings.email') }}">Settings → Email</a>, set Incoming protocol + server, save, then refresh this page.
+    </p>
+  </div>
+  {% endif %}
+</section>
+
+{# ── Practice samples (multi-processor) ── #}
+<section class="content-section">
+  <h2 class="section-title">Practice with sample gifts</h2>
+  <p class="help-text">
+    Safe test data for Stripe, PayPal, Cash App, Venmo, ACH, Tithe.ly, Zelle, and Pushpay.
+    Use these to compare <strong>software only</strong> vs <strong>AI help</strong> without waiting for real donors.
+  </p>
+  <div class="settings-card">
+    <div class="form-grid">
+      <div class="form-group">
+        <form method="post" action="{{ url_for('donations.email_import_load_fixtures') }}" class="styled-form">
+          {% include 'partials/csrf_field.html' %}
+          <label>Instant queue samples</label>
+          <p class="help-text">Adds mock payment emails straight into Needs you (no SMTP, no mailbox wait).</p>
+          <button type="submit" class="btn-primary">Load sample gifts into queue</button>
+        </form>
+      </div>
+      <div class="form-group">
+        <form method="post" action="{{ url_for('donations.email_import_send_samples') }}" class="styled-form">
+          {% include 'partials/csrf_field.html' %}
+          <label for="sample_to_email">Send samples via SMTP (end-to-end)</label>
+          <p class="help-text">
+            Uses Settings → Email outgoing SMTP. You must type a To address —
+            <strong>nothing is sent to admin or your real mailboxes by default</strong>.
+            Prefer a throwaway / test address. Or use <strong>Load sample gifts into queue</strong> (no email at all).
+          </p>
+          <input type="email" id="sample_to_email" name="to_email" class="form-input" required
+                 autocomplete="off" placeholder="you-must-type-a-test-address@example.com">
+          <div class="form-actions" style="margin-top:0.65rem;">
+            <button type="submit" class="btn-secondary">Email sample payments (only if To is filled)</button>
+          </div>
+        </form>
+      </div>
+      <div class="form-group full-width">
+        <form method="post" action="{{ url_for('donations.email_import_revalidate') }}" class="styled-form">
+          {% include 'partials/csrf_field.html' %}
+          <label>Clean false gifts</label>
+          <p class="help-text">
+            Re-runs software rules on open rows (e.g. cPanel config mail that was misread as money).
+            Moves non-gifts to Manually check other emails.
+          </p>
+          <button type="submit" class="btn-secondary">Re-check open emails with software rules</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── Review queue ── #}
+<section class="content-section">
+  <h2 class="section-title">Review &amp; approve</h2>
+  <p class="help-text">
+    Only emails where a <strong>gift amount</strong> was found (rules or AI). Marketing, bounces, and “not found” messages are auto-skipped — open them under <strong>Manually check other emails</strong> if needed.
+  </p>
+
+  <div class="settings-card">
+    <div class="eg-filter-pills" style="margin-bottom:1rem;">
+      <a href="{{ url_for('donations.email_import_queue', status='inbox') }}"
+         class="eg-pill-link{% if filter_status in ('inbox','','new','unposted') %} is-active{% endif %}">
+        Needs you ({{ counts.inbox }})
+      </a>
+      <a href="{{ url_for('donations.email_import_queue', status='needs_review') }}"
+         class="eg-pill-link{% if filter_status == 'needs_review' %} is-active{% endif %}">
+        Unclear ({{ counts.needs_review }})
+      </a>
+      <a href="{{ url_for('donations.email_import_queue', status='posted') }}"
+         class="eg-pill-link{% if filter_status == 'posted' %} is-active{% endif %}">
+        Saved ({{ counts.posted }})
+      </a>
+      <a href="{{ url_for('donations.email_import_queue', status='manual') }}"
+         class="eg-pill-link{% if filter_status in ('manual','skipped','other','not_gifts') %} is-active{% endif %}">
+        Manually check other emails ({{ counts.manual or 0 }})
+      </a>
+    </div>
+
+    {% if filter_status in ('manual','skipped','other','not_gifts') %}
+    <p class="help-text" style="margin:0 0 0.85rem;">
+      These were auto-skipped (no amount / not a payment email) or you marked them “not a gift.”
+      Open one only if you think the software missed a real donation.
+    </p>
+    {% endif %}
+
+    {% if messages %}
+    <form method="post" action="{{ url_for('donations.email_import_bulk_approve') }}">
+      {% include 'partials/csrf_field.html' %}
+      {% if filter_status not in ('manual','skipped','other','not_gifts','posted') %}
+      <div class="form-actions" style="margin-bottom:0.85rem;">
+        <button type="submit" class="btn-primary">Approve selected</button>
+        {% if messages and filter_status in ('inbox','','new','unposted','needs_review') %}
+        <a href="{{ url_for('donations.email_import_detail', message_id=messages[0].id) }}" class="btn-secondary">
+          Start reviewing (next gift)
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+      <div class="table-wrapper glass">
+        <table class="data-table" style="width:100%;">
+          <thead>
+            <tr>
+              {% if filter_status not in ('manual','skipped','other','not_gifts','posted') %}<th></th>{% endif %}
+              <th>When</th>
+              <th>Processor</th>
+              <th>Subject</th>
+              <th>Gift</th>
+              <th>Donor</th>
+              <th>On file</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in messages %}
+            {% set p = m.parsed or {} %}
+            {% set dm = m.donor_match or {} %}
+            <tr id="eg-msg-{{ m.id }}" {% if focus_id and focus_id == m.id %}style="outline:2px solid var(--primary);"{% endif %}>
+              {% if filter_status not in ('manual','skipped','other','not_gifts','posted') %}
+              <td>
+                {% if not m.donation_id and m.parse_status not in ('posted','already_recorded','skipped','dismissed') and p.amount %}
+                <input type="checkbox" name="message_id" value="{{ m.id }}" style="width:auto; min-height:auto;">
+                {% endif %}
+              </td>
+              {% endif %}
+              <td style="white-space:nowrap; font-size:0.82rem;">{{ m.created_at or m.received_at or '—' }}</td>
+              <td><strong>{{ m.processor or p.method or '—' }}</strong></td>
+              <td style="max-width:220px; font-size:0.88rem;">{{ m.subject }}</td>
+              <td style="font-size:0.85rem;">{% if p.amount %}${{ p.amount }}{% else %}— not found{% endif %}</td>
+              <td style="font-size:0.85rem;">{{ p.donor_name or dm.name or '—' }}</td>
+              <td style="font-size:0.8rem; white-space:nowrap;">
+                {% if dm.kind == 'member' %}
+                  <span style="color:#3dbf9a;">Member</span>
+                {% elif dm.kind == 'prior_guest' %}
+                  <span style="color:#ffd54f;">Prior guest</span>
+                {% elif p.amount %}
+                  <span style="opacity:0.75;">New guest</span>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('donations.email_import_detail', message_id=m.id) }}"
+                   class="btn-secondary btn-small">
+                  {% if filter_status in ('manual','skipped','other','not_gifts') %}Open{% else %}Review{% endif %}
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </form>
+    {% else %}
+    <p class="help-text" style="margin:0;">
+      {% if filter_status in ('manual','skipped','other','not_gifts') %}
+      No skipped emails stored yet. After you check mail, non-gifts land here instead of “Needs you.”
+      {% else %}
+      Nothing waiting. Click <strong>Check emails now</strong>. Non-payment emails are auto-skipped.
+      {% endif %}
+    </p>
+    {% endif %}
+  </div>
+</section>
+
+{# ── Automation options (settings-card layout, matches Settings / Add Donation) ── #}
+<section class="content-section eg-automation">
+  <h2 class="section-title">Automation options</h2>
+  <p class="help-text">
+    Turn these on only after you trust the parses. This does <strong>not</strong> replace
+    <a href="{{ url_for('settings.email') }}">Settings → Email</a>
+    (mailboxes stay there). Manual <strong>Check emails</strong> still asks software vs AI at the top.
+  </p>
+
+  <form method="post" action="{{ url_for('donations.email_import_queue') }}" class="styled-form">
     {% include 'partials/csrf_field.html' %}
-    <div class="form-group">
-      <label for="paste-subject">Subject</label>
-      <input type="text" id="paste-subject" name="subject" class="form-input" placeholder="You received a payment…">
+    <input type="hidden" name="action" value="save_automation">
+
+    {# At-a-glance status #}
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <div>
+          <h3 class="section-subtitle" style="margin:0;">Current setup</h3>
+          <p class="help-text" style="margin:0.35rem 0 0;">Snapshot of what is active right now.</p>
+        </div>
+      </div>
+      <div class="settings-preview">
+        <div class="settings-preview-item">
+          <strong>Background parse</strong>
+          <span>
+            {% if settings.parse_mode == 'rules' %}Software only
+            {% elif settings.parse_mode == 'ai' %}Always AI assist
+            {% else %}Software first, AI if unsure{% endif %}
+          </span>
+        </div>
+        <div class="settings-preview-item">
+          <strong>Auto-check mail</strong>
+          <span>{% if settings.auto_import %}On{% else %}Off{% endif %}</span>
+        </div>
+        <div class="settings-preview-item">
+          <strong>Auto-approve</strong>
+          <span>
+            {% if settings.auto_post %}On · min {{ settings.auto_post_min_confidence or 90 }}%
+            {% else %}Off{% endif %}
+          </span>
+        </div>
+        <div class="settings-preview-item">
+          <strong>Receipts</strong>
+          <span>
+            {% if settings.auto_receipt %}
+              On · {{ settings.receipt_mode or 'test' }}
+            {% else %}
+              Off after auto-approve
+            {% endif %}
+          </span>
+        </div>
+        <div class="settings-preview-item">
+          <strong>AI keys</strong>
+          <span>
+            {% if settings.ai_configured %}
+              Ready · <a href="{{ url_for('settings.ai') }}">Settings → AI</a>
+            {% else %}
+              Not set · <a href="{{ url_for('settings.ai') }}">Add keys</a>
+            {% endif %}
+          </span>
+        </div>
+        <div class="settings-preview-item">
+          <strong>Mailboxes</strong>
+          <span>
+            <a href="{{ url_for('settings.email') }}">Settings → Email</a>
+            only (not configured here)
+          </span>
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="paste-from">From (optional)</label>
-      <input type="text" id="paste-from" name="from_address" class="form-input" placeholder="receipts@stripe.com">
-    </div>
-    <div class="form-group">
-      <label for="paste-body">Email body <span class="required">*</span></label>
-      <textarea id="paste-body" name="body" class="form-input" rows="8" required placeholder="Paste the full email text here…"></textarea>
-    </div>
-    <div class="form-group">
-      <label class="control-label">Parse mode</label>
-      <div style="display:flex; flex-wrap:wrap; gap:0.75rem 1.25rem; margin-top:0.35rem;">
-        <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
-          <input type="radio" name="parse_mode" value="rules"> Rules only (no AI)
+
+    {# Parse default #}
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <div>
+          <h3 class="section-subtitle" style="margin:0;">Background parse mode</h3>
+          <p class="help-text" style="margin:0.35rem 0 0;">
+            Used for auto-check and as the default selection on Check emails.
+            {% if not settings.ai_configured %}
+            AI modes need keys under <a href="{{ url_for('settings.ai') }}">Settings → AI</a>.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+      <div class="eg-choice-grid">
+        <label class="eg-choice{% if settings.parse_mode == 'rules' %} is-selected{% endif %}">
+          <input type="radio" name="parse_mode" value="rules"
+                 {% if settings.parse_mode == 'rules' %}checked{% endif %}>
+          <span class="eg-choice-body">
+            <span class="eg-choice-title">Software only</span>
+            <span class="eg-choice-desc">No AI API calls. Built-in Stripe, PayPal, Cash App, ACH patterns.</span>
+          </span>
         </label>
-        <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
-          <input type="radio" name="parse_mode" value="auto" checked> Auto (rules first, AI if unsure)
+        <label class="eg-choice{% if settings.parse_mode == 'auto' or not settings.parse_mode %} is-selected{% endif %}">
+          <input type="radio" name="parse_mode" value="auto"
+                 {% if settings.parse_mode == 'auto' or not settings.parse_mode %}checked{% endif %}>
+          <span class="eg-choice-body">
+            <span class="eg-choice-title">Software first, AI if unsure <span class="eg-pill">Recommended</span></span>
+            <span class="eg-choice-desc">Same idea as “Use AI to help” on Check emails — AI only when the parse looks weak.</span>
+          </span>
         </label>
-        <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
-          <input type="radio" name="parse_mode" value="ai"> Always use AI assist
+        <label class="eg-choice{% if settings.parse_mode == 'ai' %} is-selected{% endif %}">
+          <input type="radio" name="parse_mode" value="ai"
+                 {% if settings.parse_mode == 'ai' %}checked{% endif %}>
+          <span class="eg-choice-body">
+            <span class="eg-choice-title">Always use AI assist</span>
+            <span class="eg-choice-desc">AI on every new email (uses API quota). Strongest default for messy providers.</span>
+          </span>
         </label>
       </div>
     </div>
-    <div class="form-actions" style="margin-top:0.75rem;">
-      <button type="submit" class="btn btn-primary">Parse &amp; add to queue</button>
+
+    {# Auto-check & approve #}
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <div>
+          <h3 class="section-subtitle" style="margin:0;">Auto-check &amp; approve</h3>
+          <p class="help-text" style="margin:0.35rem 0 0;">
+            Optional hands-off steps. Wrong auto-approves can still hit the books — keep confidence high.
+          </p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label class="eg-toggle">
+            <input type="checkbox" name="auto_import" value="1"
+                   {% if settings.auto_import %}checked{% endif %}>
+            <span>
+              <span class="eg-toggle-title">Auto-check mail in the background</span>
+              <span class="help-text" style="margin:0.25rem 0 0;">
+                Periodically pull new messages from accounts under Settings → Email (uses background parse mode above).
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div class="form-group full-width">
+          <label class="eg-toggle">
+            <input type="checkbox" name="auto_post" value="1"
+                   {% if settings.auto_post %}checked{% endif %}>
+            <span>
+              <span class="eg-toggle-title">Auto-approve when confidence is high enough</span>
+              <span class="help-text" style="margin:0.25rem 0 0;">
+                Saves gifts as donations without clicking Approve. Use only after you trust the pipeline.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="auto_post_min_confidence">Min confidence (%)</label>
+          <input type="number" id="auto_post_min_confidence" name="auto_post_min_confidence"
+                 min="50" max="99" value="{{ settings.auto_post_min_confidence or 90 }}">
+          <p class="help-text">Suggested 90–95 once parses look solid.</p>
+        </div>
+      </div>
+    </div>
+
+    {# Receipts #}
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <div>
+          <h3 class="section-subtitle" style="margin:0;">Receipts &amp; staff notify</h3>
+          <p class="help-text" style="margin:0.35rem 0 0;">
+            Applies after auto-approve (and when you choose to send receipts). Start in Test mode.
+          </p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label class="eg-toggle">
+            <input type="checkbox" name="auto_receipt" value="1"
+                   {% if settings.auto_receipt %}checked{% endif %}>
+            <span>
+              <span class="eg-toggle-title">After auto-approve, send receipts</span>
+              <span class="help-text" style="margin:0.25rem 0 0;">
+                Uses receipt mode and who-gets-receipts rules below.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="receipt_mode">Receipt mode</label>
+          <select id="receipt_mode" name="receipt_mode">
+            <option value="test" {% if settings.receipt_mode == 'test' %}selected{% endif %}>Test address only</option>
+            <option value="live" {% if settings.receipt_mode == 'live' %}selected{% endif %}>Live to donors</option>
+            <option value="off" {% if settings.receipt_mode == 'off' %}selected{% endif %}>Off</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="test_email">Test receipt email</label>
+          <input type="email" id="test_email" name="test_email"
+                 value="{{ settings.test_email or '' }}"
+                 placeholder="finance-test@yourchurch.org">
+          <p class="help-text">Where test-mode receipts go.</p>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="receipt_policy">Who gets receipts</label>
+          <select id="receipt_policy" name="receipt_policy">
+            <option value="all" {% if settings.receipt_policy == 'all' %}selected{% endif %}>All donors with an email</option>
+            <option value="allowlist" {% if settings.receipt_policy == 'allowlist' %}selected{% endif %}>Only the emails listed below</option>
+            <option value="denylist" {% if settings.receipt_policy == 'denylist' %}selected{% endif %}>Everyone except the emails listed below</option>
+            <option value="none" {% if settings.receipt_policy == 'none' %}selected{% endif %}>Never email donors</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="receipt_email_list">Email list (only / except)</label>
+          <textarea id="receipt_email_list" name="receipt_email_list" rows="4"
+                    placeholder="one@example.com&#10;two@example.com">{{ settings.receipt_email_list or '' }}</textarea>
+          <p class="help-text">One address per line (or comma-separated). Used when policy is “only” or “except”.</p>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="staff_notify">Staff notify on auto-approve (optional)</label>
+          <input type="text" id="staff_notify" name="staff_notify"
+                 value="{{ settings.staff_notify or '' }}"
+                 placeholder="treasurer@church.org, admin@church.org">
+          <p class="help-text">Always notified when a gift is auto-approved — separate from donor receipts.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">Save automation options</button>
+      <a href="{{ url_for('settings.email') }}" class="btn-secondary">Settings → Email</a>
+      <a href="{{ url_for('settings.ai') }}" class="btn-secondary">Settings → AI</a>
     </div>
   </form>
-</div>
+</section>
 
-{% if messages %}
-<div class="glass-panel" style="padding:0; overflow:auto;">
-  <table class="data-table" style="width:100%;">
-    <thead>
-      <tr>
-        <th>When</th>
-        <th>Processor</th>
-        <th>Subject</th>
-        <th>Parsed</th>
-        <th>Status</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for m in messages %}
-      <tr>
-        <td style="white-space:nowrap; font-size:0.85rem;">{{ m.created_at }}</td>
-        <td>
-          <strong>{{ m.processor or '—' }}</strong>
-          {% if m.is_fixture %}<span style="opacity:0.6; font-size:0.75rem;">mock</span>{% endif %}
-        </td>
-        <td style="max-width:240px;">{{ m.subject }}</td>
-        <td style="font-size:0.85rem;">
-          {% if m.parsed %}
-            {% if m.parsed.amount %}${{ m.parsed.amount }}{% else %}$0{% endif %}
-            · {{ m.parsed.donor_name or '—' }}
-            <br><span style="opacity:0.65;">conf {{ m.parse_confidence or 0 }}%</span>
-          {% else %}—{% endif %}
-        </td>
-        <td><code>{{ m.parse_status }}</code></td>
-        <td><a href="{{ url_for('donations.email_import_detail', message_id=m.id) }}" class="btn btn-secondary" style="font-size:0.8rem; padding:0.25rem 0.55rem;">Open</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% else %}
-<p class="glass-panel" style="padding:1rem; opacity:0.75;">
-  No imported messages yet. Click <strong>Load mock payment emails</strong> to practice with Stripe, PayPal, Cash App, ACH, Venmo, Tithe.ly, and Zelle samples.
-</p>
-{% endif %}
+<style>
+  /* Shared Email gifts chrome — matches Settings cards + site form patterns */
+  .eg-choice-grid {
+    display: grid;
+    gap: 0.75rem;
+  }
+  @media (min-width: 720px) {
+    .eg-choice-grid:not(.eg-choice-grid-2) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .eg-choice-grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .eg-choice {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
+    cursor: pointer;
+    margin: 0;
+    padding: 0.85rem 0.95rem;
+    border-radius: var(--radius-medium, 12px);
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.18));
+    background: rgba(0, 0, 0, 0.22);
+    color: var(--text-primary, #eee);
+    font-weight: 500;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .eg-choice:hover {
+    border-color: rgba(0, 229, 255, 0.4);
+    background: rgba(0, 229, 255, 0.06);
+  }
+  .eg-choice.is-selected,
+  .eg-choice:has(input:checked) {
+    border-color: var(--primary, #00e5ff);
+    box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.14);
+    background: rgba(0, 229, 255, 0.08);
+  }
+  .eg-choice input {
+    width: auto !important;
+    min-height: auto !important;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+  }
+  .eg-choice-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+  .eg-choice-title {
+    color: var(--primary, #00e5ff);
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+  .eg-choice-desc {
+    color: var(--text-muted, #aaa);
+    font-size: 0.84rem;
+    font-weight: 400;
+    line-height: 1.45;
+  }
+  .eg-choice-desc a {
+    color: var(--primary, #00e5ff);
+  }
+  .eg-pill {
+    display: inline-block;
+    margin-left: 0.25rem;
+    padding: 0.08rem 0.4rem;
+    border-radius: 9999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    background: rgba(0, 229, 255, 0.14);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    color: var(--primary, #00e5ff);
+  }
+  .eg-toggle {
+    display: flex !important;
+    gap: 0.7rem;
+    align-items: flex-start;
+    cursor: pointer;
+    margin: 0;
+    padding: 0.85rem 0.95rem;
+    border-radius: var(--radius-medium, 12px);
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.14));
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--text-primary, #eee);
+  }
+  .eg-toggle input {
+    width: auto !important;
+    min-height: auto !important;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+  }
+  .eg-toggle-title {
+    display: block;
+    color: var(--primary, #00e5ff);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .eg-toggle:has(input:checked) {
+    border-color: rgba(0, 229, 255, 0.35);
+    background: rgba(0, 229, 255, 0.06);
+  }
+  .eg-mailbox-list {
+    display: grid;
+    gap: 0.55rem;
+  }
+  .eg-mailbox-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem 1rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--radius-medium, 12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.18);
+  }
+  .eg-mailbox-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+  }
+  .eg-mailbox-detail {
+    font-size: 0.82rem;
+    color: var(--text-muted, #aaa);
+  }
+  .eg-mailbox-error {
+    font-size: 0.82rem;
+    color: #ff9a78;
+  }
+  .eg-filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .eg-pill-link {
+    display: inline-block;
+    padding: 0.4rem 0.9rem;
+    border-radius: 9999px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary, #eee);
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.15));
+  }
+  .eg-pill-link.is-active {
+    background: var(--primary, #00e5ff);
+    color: var(--text-on-primary, #000);
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .settings-preview-item a {
+    color: var(--primary, #00e5ff);
+  }
+</style>
+<script>
+(function () {
+  document.querySelectorAll('.eg-automation input[name="parse_mode"]').forEach(function (el) {
+    el.addEventListener('change', function () {
+      document.querySelectorAll('.eg-automation .eg-choice').forEach(function (card) {
+        var input = card.querySelector('input');
+        card.classList.toggle('is-selected', !!(input && input.checked));
+      });
+    });
+  });
+})();
+</script>
 {% endblock %}

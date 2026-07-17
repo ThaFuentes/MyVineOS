@@ -853,7 +853,26 @@ def dashboard_stats() -> dict:
 
 
 def post_donation_income(donation_id: int, amount, donation_date: str, memo: str = '', created_by=None) -> int | None:
-    """Optional helper: post a donation to Tithes & Cash. Call from donations if desired."""
+    """
+    Post a donation into the ledger: Debit Cash (1000) / Credit Tithes & Offerings (4000).
+    Idempotent — one journal entry per donation id.
+    """
+    if not donation_id:
+        return None
+    # Already posted?
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT id FROM acct_journal_entries
+        WHERE source = 'donation' AND source_id = %s AND status = 'posted'
+        LIMIT 1
+        """,
+        (int(donation_id),),
+    )
+    existing = cur.fetchone()
+    if existing:
+        return int(existing['id'])
+
     income = get_account_by_code('4000')
     cash = get_account_by_code('1000')
     if not income or not cash:
@@ -866,10 +885,30 @@ def post_donation_income(donation_id: int, amount, donation_date: str, memo: str
         memo=memo or f'Donation #{donation_id}',
         reference=f'DON-{donation_id}',
         source='donation',
-        source_id=donation_id,
+        source_id=int(donation_id),
         created_by=created_by,
         lines=[
-            {'account_id': cash['id'], 'debit': amt, 'credit': 0},
-            {'account_id': income['id'], 'debit': 0, 'credit': amt},
+            {'account_id': cash['id'], 'debit': amt, 'credit': 0, 'description': memo or f'Donation #{donation_id}'},
+            {'account_id': income['id'], 'debit': 0, 'credit': amt, 'description': memo or f'Donation #{donation_id}'},
         ],
     )
+
+
+def void_donation_income(donation_id: int) -> bool:
+    """Void the ledger entry for a donation (if any)."""
+    if not donation_id:
+        return False
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT id FROM acct_journal_entries
+        WHERE source = 'donation' AND source_id = %s AND status = 'posted'
+        """,
+        (int(donation_id),),
+    )
+    rows = cur.fetchall() or []
+    if not rows:
+        return False
+    for row in rows:
+        void_journal_entry(int(row['id']))
+    return True
