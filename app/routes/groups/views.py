@@ -9,7 +9,8 @@
 # - 100% original behavior preserved + improved edit experience (full permission checkboxes + member management)
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
-from app.utils.decorators import login_required, role_required
+from app.utils.decorators import login_required, role_required, permission_required
+from app.utils.permissions import user_has_permission
 from app.models.db import get_db
 from app.models.log import log_change
 from pymysql import IntegrityError
@@ -70,11 +71,17 @@ def _render_group_form(template, **extra):
     return render_template(template, **extra, **ctx)
 
 
+def _can_admin_permission_groups() -> bool:
+    """Permission Groups admin UI is not for random members."""
+    return user_has_permission('manage_groups')
+
+
 # ----------------------------------------------------------------------
-# List Groups
+# List Groups (permission admin only — not open to all members)
 # ----------------------------------------------------------------------
 @groups_bp.route('/')
 @login_required
+@permission_required('manage_groups')
 def list_groups():
     is_logged_in = 'user_id' in session
     role = session.get('user_role', 'Member') if is_logged_in else 'Guest'
@@ -95,6 +102,7 @@ def list_groups():
 # ----------------------------------------------------------------------
 @groups_bp.route('/search')
 @login_required
+@permission_required('manage_groups')
 def search_groups_route():
     query = request.args.get('q', '').strip()
     visibility_filter = request.args.get('visibility', 'all')
@@ -115,11 +123,11 @@ def search_groups_route():
 
 
 # ----------------------------------------------------------------------
-# Create Group (global Staff+ only)
+# Create Group (manage_groups / Staff+)
 # ----------------------------------------------------------------------
 @groups_bp.route('/create', methods=['GET', 'POST'])
 @login_required
-@role_required(['Staff', 'Admin', 'Owner'])
+@permission_required('manage_groups')
 def create_group():
     user_id = session['user_id']
     user_role = session.get('user_role')
@@ -172,11 +180,16 @@ def edit_group(group_id):
     user_id = session['user_id']
     user_role = session.get('user_role')
     global_manager = is_global_manager()
-    if not (global_manager
-            or can_edit_group_record(group_id, user_id, user_role)
-            or can_manage_group_members(group_id, user_id, user_role)):
+    # Permission matrix editing: manage_groups (or Staff+).
+    # Group leaders may still manage members of their own group only.
+    can_admin = _can_admin_permission_groups()
+    can_lead = (
+        can_edit_group_record(group_id, user_id, user_role)
+        or can_manage_group_members(group_id, user_id, user_role)
+    )
+    if not (can_admin or can_lead):
         flash('You do not have permission to view or manage this group.', 'error')
-        return redirect(url_for('groups.list_groups'))
+        return redirect(url_for('dashboard.dashboard'))
 
     db = get_db()
     cur = db.cursor(DictCursor)
@@ -266,6 +279,7 @@ def edit_group(group_id):
 # ----------------------------------------------------------------------
 @groups_bp.route('/delete/<int:group_id>', methods=['POST'])
 @login_required
+@permission_required('manage_groups')
 @role_required(['Admin', 'Owner'])
 def delete_group(group_id):
     if is_gathering_place_group_id(group_id):

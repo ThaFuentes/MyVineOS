@@ -122,10 +122,12 @@
     <span class="dash-tile-label">Communications</span>
   </a>
   {% endif %}
+  {% if user_has_permission('manage_groups') %}
   <a href="{{ url_for('groups.list_groups') }}" class="glass-panel dash-tile dash-tile-members">
     <span class="dash-tile-icon"><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
-    <span class="dash-tile-label">Groups</span>
+    <span class="dash-tile-label">Permission Groups</span>
   </a>
+  {% endif %}
   {% if in_pastoral_group or session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
   <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="glass-panel dash-tile dash-tile-gathering">
     <span class="dash-tile-icon"><i class="fa-solid fa-cross" aria-hidden="true"></i></span>
