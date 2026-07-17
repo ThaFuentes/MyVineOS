@@ -8,7 +8,7 @@
 
 from flask import render_template, session, redirect, url_for, flash, request, jsonify
 from app.utils.decorators import login_required
-from .utils import is_bill_manager
+from .utils import is_bill_manager, bills_access_required, user_can_access_bill
 from app.models.db import get_db
 from app.models.log import log_change
 from app.models.credentials import decrypt_credential
@@ -18,7 +18,7 @@ import pymysql
 
 def register_view_routes(bp):
     @bp.route('/<int:bill_id>')
-    @login_required
+    @bills_access_required
     def view_bill(bill_id):
         user_id = session['user_id']
         is_manager = is_bill_manager()
@@ -35,11 +35,14 @@ def register_view_routes(bp):
             return redirect(url_for('bills.bills'))
 
         # Access check: manager OR assigned user
-        if not is_manager:
-            cur.execute("SELECT 1 FROM recurring_bill_assignments WHERE bill_id = %s AND user_id = %s", (bill_id, user_id))
-            if not cur.fetchone():
-                flash('You do not have access to this bill.', 'error')
-                return redirect(url_for('bills.bills'))
+        if not user_can_access_bill(bill_id, user_id):
+            flash('You do not have access to this bill.', 'error')
+            log_change(
+                user_id, 'unauthorized_access_attempt',
+                target_id=bill_id,
+                change_details=f'Denied view_bill #{bill_id}',
+            )
+            return redirect(url_for('dashboard.dashboard'))
 
         # Fetch assignments
         cur.execute("""
@@ -106,6 +109,10 @@ def register_view_routes(bp):
 
         if not entered_password:
             return jsonify({'success': False})
+
+
+        if not user_can_access_bill(bill_id, user_id):
+            return jsonify({'success': False, 'error': 'access_denied'}), 403
 
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)

@@ -80,13 +80,13 @@
     <span class="dash-tile-label">Donations</span>
   </a>
   {% endif %}
-  {% if module_on('bills') %}
+  {% if module_on('bills') and can_access_bills() %}
   <a href="{{ url_for('bills.bills') }}" class="glass-panel dash-tile dash-tile-bills">
     <span class="dash-tile-icon"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Bills</span>
   </a>
   {% endif %}
-  {% if module_on('accounting') and endpoint_exists('accounting.dashboard') %}
+  {% if module_on('accounting') and endpoint_exists('accounting.dashboard') and can_access_accounting() %}
   <a href="{{ url_for('accounting.dashboard') }}" class="glass-panel dash-tile dash-tile-bills">
     <span class="dash-tile-icon"><i class="fa-solid fa-calculator" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Accounting</span>
@@ -110,13 +110,13 @@
     <span class="dash-tile-label">Child Check-In</span>
   </a>
   {% endif %}
-  {% if module_on('volunteers') and endpoint_exists('volunteers.dashboard') %}
+  {% if module_on('volunteers') and endpoint_exists('volunteers.dashboard') and can_access_volunteers_admin() %}
   <a href="{{ url_for('volunteers.dashboard') }}" class="glass-panel dash-tile dash-tile-members">
     <span class="dash-tile-icon"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Volunteers</span>
   </a>
   {% endif %}
-  {% if module_on('communications') and endpoint_exists('communications.dashboard') %}
+  {% if module_on('communications') and endpoint_exists('communications.dashboard') and can_access_communications() %}
   <a href="{{ url_for('communications.dashboard') }}" class="glass-panel dash-tile dash-tile-settings">
     <span class="dash-tile-icon"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Communications</span>

@@ -7,8 +7,7 @@
 # Nice next due date formatting + passes is_manager flag.
 
 from flask import render_template, session
-from app.utils.decorators import login_required
-from .utils import is_bill_manager
+from .utils import is_bill_manager, bills_access_required
 from app.models.db import get_db
 from app.models.log import log_change
 from datetime import datetime, date
@@ -16,7 +15,7 @@ import pymysql
 
 def register_dashboard_routes(bp):
     @bp.route('/')
-    @login_required
+    @bills_access_required
     def bills():
         user_id = session['user_id']
         is_manager = is_bill_manager()
