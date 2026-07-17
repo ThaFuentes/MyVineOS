@@ -3,13 +3,49 @@
 {% block worship_title %}{{ song.title if song else 'New Song' }}{% endblock %}
 
 {% block worship_content %}
-<h1 style="margin:0 0 1rem; font-size:1.35rem; color:#3dbf9a;">
+{% set can_edit = can_edit_charts if can_edit_charts is defined else can_manage %}
+{% set active = active_chart if active_chart is defined else none %}
+{% set charts_list = charts if charts is defined else [] %}
+{% set ck = chart_key if chart_key is defined else 'full_band' %}
+
+<h1 style="margin:0 0 0.35rem; font-size:1.35rem; color:#3dbf9a;">
   {% if song %}{{ song.title }}{% else %}New Song{% endif %}
 </h1>
+<p class="help-text" style="margin:0 0 1rem; max-width:46rem;">
+  <strong>Music studio</strong> — put <em>real</em> chords and melody notes <strong>above</strong> the lyrics
+  (the way you play them), plus guitar TAB frets, bass TAB, and drum grids.
+  Each role tab (guitar, bass, drums, vocals) has its own parts. AI only structures charts you already have rights to use.
+</p>
 
-{% if not can_manage %}
+{% if song and charts_list %}
+<div class="settings-card" style="margin-bottom:1rem; padding:0.75rem 1rem;">
+  <div class="settings-card-header" style="margin-bottom:0.55rem; padding-bottom:0.45rem;">
+    <h2 class="section-subtitle" style="margin:0; font-size:1rem;">Role charts</h2>
+  </div>
+  <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+    {% for c in charts_list %}
+    <a href="{{ url_for('worship.song_edit', song_id=song.id, chart=c.chart_key) }}"
+       class="btn btn-secondary btn-small"
+       style="{% if c.chart_key == ck %}background:var(--primary); color:var(--text-on-primary); border-color:transparent;{% endif %}">
+      {{ c.display_name }}
+      {% if c.is_primary %} · primary{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% if active %}
+  <p class="help-text" style="margin:0.65rem 0 0;">
+    Editing: <strong>{{ active.display_name }}</strong>
+    · family {{ active.instrument_family }}
+    · {% if active.show_chords %}chords{% else %}no chords{% endif %}
+    · {% if active.show_lyrics %}lyrics{% else %}no lyrics{% endif %}
+  </p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if not can_edit and not can_manage %}
 <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
-  <p style="margin:0 0 0.75rem; opacity:0.8;">View only - managers can edit the song library.</p>
+  <p style="margin:0 0 0.75rem; opacity:0.8;">View only.</p>
   {% if song and song.sections %}
     {% for sec in song.sections %}
     <div class="song-section-card" data-type="{{ sec.type|default('verse') }}" style="margin-bottom:0.65rem;">
@@ -17,57 +53,174 @@
       <pre style="white-space:pre-wrap; font-family:inherit; margin:0.4rem 0 0;">{{ sec.content }}</pre>
     </div>
     {% endfor %}
-    {% if song.play_order %}
-    <p style="margin:0.75rem 0 0.25rem; font-size:0.85rem; opacity:0.7;">Default play order:</p>
-    <ol style="margin:0; padding-left:1.2rem; font-size:0.9rem;">
-      {% for sid in song.play_order %}
-      {% set ns = namespace(label=sid) %}
-      {% for sec in song.sections %}
-        {% if sec.id == sid %}{% set ns.label = sec.label or sec.type or sid %}{% endif %}
-      {% endfor %}
-      <li>{{ ns.label }}</li>
-      {% endfor %}
-    </ol>
-    {% endif %}
   {% elif song and song.lyrics_raw %}
   <pre style="white-space:pre-wrap; font-family:inherit; margin:0;">{{ song.lyrics_raw }}</pre>
   {% endif %}
-  {% if song and song.copyright_line %}
-  <p style="margin:1rem 0 0; font-size:0.85rem; opacity:0.65;">{{ song.copyright_line }}</p>
-  {% endif %}
 </div>
-<a href="{{ url_for('worship.songs_list') }}" class="btn btn-secondary"><- Back</a>
+<a href="{{ url_for('worship.songs_list') }}" class="btn btn-secondary">← Back</a>
 {% else %}
-<form method="post" enctype="multipart/form-data" class="glass-panel" style="padding:1rem; display:grid; gap:0.85rem;" id="song-edit-form">
-    {% include 'partials/csrf_field.html' %}
 
-  <label>Title *
-    <input type="text" name="title" value="{{ song.title if song else '' }}" required style="width:100%; margin-top:0.25rem;">
-  </label>
-  <label>Artist
-    <input type="text" name="artist" value="{{ song.artist if song and song.artist else '' }}" style="width:100%; margin-top:0.25rem;">
-  </label>
-  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.75rem;">
-    <label>CCLI #
-      <input type="text" name="ccli_song_number" value="{{ song.ccli_song_number if song and song.ccli_song_number else '' }}" style="width:100%; margin-top:0.25rem;">
-    </label>
-    <label>Copyright year
-      <input type="number" name="copyright_year" value="{{ song.copyright_year if song and song.copyright_year else '' }}" style="width:100%; margin-top:0.25rem;">
-    </label>
+{# ── Song identity + CCLI (managers) ── #}
+{% if can_manage and song %}
+<form method="post" enctype="multipart/form-data" class="settings-card styled-form" style="margin-bottom:1rem;">
+  {% include 'partials/csrf_field.html' %}
+  <input type="hidden" name="action" value="save_metadata">
+  <input type="hidden" name="chart_key" value="{{ ck }}">
+  <h2 class="section-subtitle" style="margin:0 0 0.65rem;">Song info &amp; legal (CCLI)</h2>
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="title">Title *</label>
+      <input type="text" id="title" name="title" value="{{ song.title if song else '' }}" required>
+    </div>
+    <div class="form-group">
+      <label for="artist">Artist / authors</label>
+      <input type="text" id="artist" name="artist" value="{{ song.artist if song and song.artist else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="ccli_song_number">CCLI song number</label>
+      <input type="text" id="ccli_song_number" name="ccli_song_number"
+             value="{{ song.ccli_song_number if song and song.ccli_song_number else '' }}"
+             placeholder="From your SongSelect account only">
+      <p class="help-text">
+        Enter the number from <strong>your church’s CCLI SongSelect</strong> account.
+        AI will not invent CCLI numbers.
+        <a href="{{ songselect_url }}" target="_blank" rel="noopener noreferrer">Open SongSelect search</a>
+        (requires your login — we never scrape charts).
+      </p>
+    </div>
+    <div class="form-group">
+      <label for="copyright_year">Copyright year</label>
+      <input type="number" id="copyright_year" name="copyright_year"
+             value="{{ song.copyright_year if song and song.copyright_year else '' }}">
+    </div>
+    <div class="form-group full-width">
+      <label for="copyright_line">Copyright line</label>
+      <input type="text" id="copyright_line" name="copyright_line"
+             value="{{ song.copyright_line if song and song.copyright_line else '' }}">
+    </div>
+    <div class="form-group full-width">
+      <label for="publisher">Publisher</label>
+      <input type="text" id="publisher" name="publisher"
+             value="{{ song.publisher if song and song.publisher else '' }}">
+    </div>
+    <div class="form-group full-width">
+      <label for="notes_permanent">Permanent song notes (all roles)</label>
+      <textarea id="notes_permanent" name="notes_permanent" rows="2">{{ song.notes_permanent if song and song.notes_permanent else '' }}</textarea>
+    </div>
+    <div class="form-group full-width">
+      <label>Optional PDF/doc attachment</label>
+      <input type="file" name="chords_file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
+      {% if song and song.chords_filename %}
+      <p class="help-text">Current:
+        <a href="{{ url_for('worship.chord_file', filename=song.chords_filename) }}">Download</a>
+      </p>
+      {% endif %}
+    </div>
   </div>
-  <label>Copyright line
-    <input type="text" name="copyright_line" value="{{ song.copyright_line if song and song.copyright_line else '' }}" style="width:100%; margin-top:0.25rem;">
-  </label>
-  <label>Publisher
-    <input type="text" name="publisher" value="{{ song.publisher if song and song.publisher else '' }}" style="width:100%; margin-top:0.25rem;">
-  </label>
+  <div class="form-actions">
+    <button type="submit" class="btn-primary">Save song info / CCLI</button>
+  </div>
+</form>
 
-  <!-- Structured song sections (like sermon sections) -->
+<form method="post" class="settings-card styled-form" style="margin-bottom:1rem;">
+  {% include 'partials/csrf_field.html' %}
+  <input type="hidden" name="action" value="save_ccli_settings">
+  <input type="hidden" name="chart_key" value="{{ ck }}">
+  <h2 class="section-subtitle" style="margin:0 0 0.35rem;">Church CCLI license (settings)</h2>
+  <p class="help-text">
+    Your church’s license number for compliance records only.
+    Does <strong>not</strong> download sheet music. Use SongSelect under your own account for legal charts.
+  </p>
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="ccli_license_number">CCLI license #</label>
+      <input type="text" id="ccli_license_number" name="ccli_license_number"
+             value="{{ (ccli_settings.ccli_license_number if ccli_settings else '') or '' }}"
+             placeholder="Your church license — not a song number">
+    </div>
+    <div class="form-group">
+      <label for="organization_name">Organization name</label>
+      <input type="text" id="organization_name" name="organization_name"
+             value="{{ (ccli_settings.organization_name if ccli_settings else '') or '' }}">
+    </div>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn-secondary">Save church CCLI settings</button>
+  </div>
+</form>
+{% endif %}
+
+{# ── Role chart editor ── #}
+{% if song and can_edit %}
+<form method="post" class="glass-panel styled-form" style="padding:1rem; display:grid; gap:0.85rem;" id="song-edit-form">
+  {% include 'partials/csrf_field.html' %}
+  <input type="hidden" name="action" value="save_chart">
+  <input type="hidden" name="chart_key" value="{{ ck }}">
+  {% if can_manage %}
+  {# Keep title present for managers who only save chart but form might still validate elsewhere #}
+  <input type="hidden" name="title" value="{{ song.title }}">
+  {% endif %}
+
+  <h2 class="section-subtitle" style="margin:0;">
+    {{ active.display_name if active else 'Chart' }} — sections
+  </h2>
+  <p class="help-text" style="margin:0;">
+    Paste charts you legally have (SongSelect export, original, public domain).
+    AI structures into sections; it does not fetch copyrighted material from the internet.
+  </p>
+
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="chart_display_name">Chart label</label>
+      <input type="text" id="chart_display_name" name="chart_display_name"
+             value="{{ active.display_name if active else ck }}">
+    </div>
+    <div class="form-group">
+      <label for="chart_notation">Notation</label>
+      <select id="chart_notation" name="chart_notation">
+        {% set n = (active.notation if active else 'chordpro') %}
+        <option value="chordpro" {% if n == 'chordpro' %}selected{% endif %}>ChordPro [G]lyrics</option>
+        <option value="nashville" {% if n == 'nashville' %}selected{% endif %}>Nashville / numbers</option>
+        <option value="text" {% if n == 'text' %}selected{% endif %}>Text / cues only</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="chart_capo">Capo (optional)</label>
+      <input type="number" id="chart_capo" name="chart_capo" min="0" max="12"
+             value="{{ active.capo if active and active.capo is not none else '' }}">
+    </div>
+    <div class="form-group">
+      <label class="eg-toggle" style="display:flex; gap:0.5rem; align-items:center; margin-top:1.4rem;">
+        <input type="checkbox" name="chart_show_chords" value="1"
+               {% if not active or active.show_chords %}checked{% endif %}
+               style="width:auto; min-height:auto;">
+        Show chords on this chart
+      </label>
+      <label class="eg-toggle" style="display:flex; gap:0.5rem; align-items:center;">
+        <input type="checkbox" name="chart_show_lyrics" value="1"
+               {% if not active or active.show_lyrics %}checked{% endif %}
+               style="width:auto; min-height:auto;">
+        Show lyrics on this chart
+      </label>
+      <label class="eg-toggle" style="display:flex; gap:0.5rem; align-items:center;">
+        <input type="checkbox" name="chart_is_primary" value="1"
+               {% if active and active.is_primary %}checked{% endif %}
+               style="width:auto; min-height:auto;">
+        Primary chart (prompter default)
+      </label>
+    </div>
+    <div class="form-group full-width">
+      <label for="chart_notes">Role notes (dynamics, stops, harmony cues)</label>
+      <textarea id="chart_notes" name="chart_notes" rows="2">{{ active.notes if active and active.notes else '' }}</textarea>
+    </div>
+  </div>
+
   <div class="song-sections-panel">
-    <h3><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Song sections</h3>
+    <h3><i class="fa-solid fa-music" aria-hidden="true"></i> Sections + musical notes</h3>
     <p class="hint">
-      Build the song from parts (Intro, Verse 1, Chorus…). Each part is stored once.
-      Then set the <strong>play order</strong> below so the prompter can go Intro → Chorus → Verse 1 → Chorus, etc.
+      Add Verse / Chorus, then open <strong>Chords + melody over lyrics</strong>:
+      click a letter in the lyric line → pick a chord or pitch note.
+      Use <strong>Guitar TAB</strong> / <strong>Bass TAB</strong> for string frets, <strong>Drums</strong> for kit hits.
     </p>
 
     <div class="section-type-bar" id="section-type-bar">
@@ -78,15 +231,15 @@
       <button type="button" class="stb-bridge" data-add-type="bridge">+ Bridge</button>
       <button type="button" class="stb-tag" data-add-type="tag">+ Tag</button>
       <button type="button" class="stb-outro" data-add-type="outro">+ Outro</button>
-      <button type="button" class="stb-paste" id="toggle-paste">Paste lyrics</button>
+      <button type="button" class="stb-paste" id="toggle-paste">Paste &amp; AI structure</button>
     </div>
 
     <div class="lyrics-paste-box" id="lyrics-paste-box">
       <p class="hint">
-        Paste ChordPro (<code>[G]Amazing [C]grace</code>), chord-over-lyrics, or markers like
-        <code>[Verse 1]</code> / <code>[Chorus]</code>. Choose rules or AI — then tweak play order below.
+        Paste ChordPro, chord-over-lyrics, or markers. Legal source only (your SongSelect export, original, PD).
+        AI structures sections — it will <strong>not invent CCLI numbers or missing lyrics</strong>.
       </p>
-      <textarea id="lyrics-paste-input" placeholder="[Verse 1]&#10;[G]Amazing [C]grace how [G]sweet the sound&#10;…"></textarea>
+      <textarea id="lyrics-paste-input" placeholder="[Verse 1]&#10;[G]Amazing [C]grace…"></textarea>
       <div style="margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.65rem 1rem; font-size:0.85rem;">
         <label style="display:flex; gap:0.3rem; align-items:center; cursor:pointer;">
           <input type="radio" name="client_parse_mode" value="rules"> Rules only
@@ -95,55 +248,49 @@
           <input type="radio" name="client_parse_mode" value="auto" checked> Auto
         </label>
         <label style="display:flex; gap:0.3rem; align-items:center; cursor:pointer;">
-          <input type="radio" name="client_parse_mode" value="ai"> AI chords + sections
+          <input type="radio" name="client_parse_mode" value="ai"> AI structure
         </label>
       </div>
       <div style="margin-top:0.45rem; display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center;">
-        <button type="button" class="btn btn-primary" id="lyrics-parse-btn">Parse into sections</button>
+        <button type="button" class="btn btn-primary" id="lyrics-parse-btn">Parse into this chart</button>
         <button type="button" class="btn btn-secondary" id="lyrics-paste-cancel">Cancel</button>
         <span id="lyrics-parse-status" class="hint" style="margin:0;"></span>
       </div>
     </div>
 
-    <div id="song-sections-list">
-      {# hydrated by JS from initial data #}
-    </div>
+    <div id="song-sections-list"></div>
   </div>
 
   <div class="song-play-order-panel">
-    <h3><i class="fa-solid fa-list-ol" aria-hidden="true"></i> Play order (arrangement)</h3>
-    <p class="hint">
-      Order the prompter slides. You can add Chorus more than once.
-      When this song is added to a setlist, this becomes the default arrangement.
-    </p>
+    <h3><i class="fa-solid fa-list-ol" aria-hidden="true"></i> Play order for this chart</h3>
+    <p class="hint">Chorus can appear more than once. Primary chart feeds the prompter default.</p>
     <ol class="play-order-list" id="play-order-list"></ol>
     <div class="play-order-add-row">
       <select id="play-order-pick">
         <option value="">Add section to order…</option>
       </select>
       <button type="button" class="btn btn-primary" id="play-order-add-btn">Add to order</button>
-      <button type="button" class="btn btn-secondary" id="play-order-rebuild-btn" title="One of each section in library order">Reset to library order</button>
+      <button type="button" class="btn btn-secondary" id="play-order-rebuild-btn">Reset to library order</button>
     </div>
     <div id="play-order-hidden"></div>
   </div>
 
-  <label>Permanent notes (transitions, cues)
-    <textarea name="notes_permanent" rows="3" style="width:100%; margin-top:0.25rem;">{{ song.notes_permanent if song and song.notes_permanent else '' }}</textarea>
-  </label>
-  <label>Chord chart file
-    <input type="file" name="chords_file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" style="margin-top:0.25rem;">
-    {% if song and song.chords_filename %}
-    <div style="margin-top:0.35rem; font-size:0.85rem;">
-      Current: <a href="{{ url_for('worship.chord_file', filename=song.chords_filename) }}">Download chord chart</a>
-    </div>
-    {% endif %}
-  </label>
-  <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-    <button type="submit" class="btn btn-primary">Save Song</button>
-    <a href="{{ url_for('worship.songs_list') }}" class="btn btn-secondary">Cancel</a>
-    {% if song %}
-    <button type="submit" formaction="{{ url_for('worship.song_delete', song_id=song.id) }}" formmethod="post" class="btn btn-secondary" style="margin-left:auto;" onclick="return confirm('Delete this song?');">Delete</button>
-    {% endif %}
+  <div class="form-actions">
+    <button type="submit" class="btn-primary">Save this role chart</button>
+    <a href="{{ url_for('worship.songs_list') }}" class="btn-secondary">Back to songs</a>
+  </div>
+</form>
+
+{# Personal notes for any team member #}
+<form method="post" class="settings-card styled-form" style="margin-top:1rem;">
+  {% include 'partials/csrf_field.html' %}
+  <input type="hidden" name="action" value="save_personal_note">
+  <input type="hidden" name="chart_key" value="{{ ck }}">
+  <h2 class="section-subtitle" style="margin:0 0 0.35rem;">My personal notes (this chart)</h2>
+  <p class="help-text">Only you see these — does not overwrite the master chart for the team.</p>
+  <textarea name="personal_note" rows="3" class="form-input">{{ personal_note or '' }}</textarea>
+  <div class="form-actions" style="margin-top:0.65rem;">
+    <button type="submit" class="btn-secondary">Save my notes</button>
   </div>
 </form>
 
@@ -152,9 +299,120 @@
     sections: {{ (song.sections if song and song.sections else [])|tojson }},
     playOrder: {{ (song.play_order if song and song.play_order else [])|tojson }},
     parseUrl: {{ url_for('worship.songs_parse_chart')|tojson }},
-    csrf: {{ (csrf_token() if csrf_token else '')|tojson }}
+    csrf: {{ (csrf_token() if csrf_token else '')|tojson }},
+    chartFamily: {{ ((active.instrument_family if active else 'full') or 'full')|tojson }},
+    chartKey: {{ ck|tojson }}
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/worship/song_sections.js') }}?v=20260716chords"></script>
+<script src="{{ url_for('static', filename='js/global/worship/music_studio.js') }}?v=20260717notes2"></script>
+<script src="{{ url_for('static', filename='js/global/worship/song_sections.js') }}?v=20260717notes2"></script>
+
+{% elif not song and can_manage %}
+{# New song — full Music Studio from the first screen (rules or AI) #}
+<div class="settings-card" style="margin-bottom:1rem; padding:0.85rem 1rem;">
+  <h2 class="section-subtitle" style="margin:0 0 0.35rem;">New song with real musical notes</h2>
+  <p class="help-text" style="margin:0; max-width:44rem;">
+    Build it yourself (click syllables → chords / melody notes, guitar TAB frets, bass TAB, drum grid)
+    <strong>or</strong> paste a chart and use Rules / Auto / AI to structure sections — then keep editing the notes by hand.
+    After create, each role (guitar, bass, drums, vocals) can customize their own chart.
+  </p>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="glass-panel styled-form" style="padding:1rem; display:grid; gap:0.85rem;" id="song-edit-form">
+  {% include 'partials/csrf_field.html' %}
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="title">Title *</label>
+      <input type="text" id="title" name="title" required>
+    </div>
+    <div class="form-group">
+      <label for="artist">Artist / authors</label>
+      <input type="text" id="artist" name="artist">
+    </div>
+    <div class="form-group">
+      <label for="ccli_song_number">CCLI # (your SongSelect — optional)</label>
+      <input type="text" id="ccli_song_number" name="ccli_song_number"
+             placeholder="Only if you have it from your legal account">
+    </div>
+    <div class="form-group">
+      <label for="copyright_line">Copyright line</label>
+      <input type="text" id="copyright_line" name="copyright_line">
+    </div>
+  </div>
+
+  <div class="song-sections-panel">
+    <h3><i class="fa-solid fa-music" aria-hidden="true"></i> Music Studio — sections &amp; notes</h3>
+    <p class="hint">
+      Add <strong>Verse / Chorus</strong>, type lyrics, then click a word and pick chords or melody notes so they sit <em>above</em> the lyrics.
+      Open <strong>Guitar TAB</strong>, <strong>Bass TAB</strong>, or <strong>Drums</strong> for string frets and kit hits.
+      Or paste a legal chart and parse with Rules / AI first — then fine-tune every note.
+    </p>
+    <div class="section-type-bar" id="section-type-bar">
+      <button type="button" class="stb-intro" data-add-type="intro">+ Intro</button>
+      <button type="button" class="stb-verse" data-add-type="verse">+ Verse</button>
+      <button type="button" class="stb-prechorus" data-add-type="prechorus">+ Pre-Chorus</button>
+      <button type="button" class="stb-chorus" data-add-type="chorus">+ Chorus</button>
+      <button type="button" class="stb-bridge" data-add-type="bridge">+ Bridge</button>
+      <button type="button" class="stb-tag" data-add-type="tag">+ Tag</button>
+      <button type="button" class="stb-outro" data-add-type="outro">+ Outro</button>
+      <button type="button" class="stb-paste" id="toggle-paste">Paste chart (Rules / AI)</button>
+    </div>
+    <div class="lyrics-paste-box" id="lyrics-paste-box">
+      <p class="hint">
+        Paste ChordPro or chord-over-lyrics you already have rights to use.
+        <strong>Rules only</strong> = no AI. <strong>Auto / AI</strong> = structure into sections, then you edit notes in the studio.
+      </p>
+      <textarea id="lyrics-paste-input" placeholder="[Verse 1]&#10;[G]Amazing [C]grace how [G]sweet the sound"></textarea>
+      <div style="margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.65rem 1rem; font-size:0.85rem;">
+        <label style="display:flex; gap:0.3rem; align-items:center; cursor:pointer;">
+          <input type="radio" name="client_parse_mode" value="rules"> Rules only (no AI)
+        </label>
+        <label style="display:flex; gap:0.3rem; align-items:center; cursor:pointer;">
+          <input type="radio" name="client_parse_mode" value="auto" checked> Auto
+        </label>
+        <label style="display:flex; gap:0.3rem; align-items:center; cursor:pointer;">
+          <input type="radio" name="client_parse_mode" value="ai"> AI structure
+        </label>
+      </div>
+      <div style="margin-top:0.45rem; display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center;">
+        <button type="button" class="btn btn-primary" id="lyrics-parse-btn">Parse into Music Studio</button>
+        <button type="button" class="btn btn-secondary" id="lyrics-paste-cancel">Cancel</button>
+        <span id="lyrics-parse-status" class="hint" style="margin:0;"></span>
+      </div>
+    </div>
+    <div id="song-sections-list"></div>
+  </div>
+
+  <div class="song-play-order-panel">
+    <h3><i class="fa-solid fa-list-ol" aria-hidden="true"></i> Play order</h3>
+    <p class="hint">Arrangement for the prompter (Chorus can repeat).</p>
+    <ol class="play-order-list" id="play-order-list"></ol>
+    <div class="play-order-add-row">
+      <select id="play-order-pick"><option value="">Add section…</option></select>
+      <button type="button" class="btn btn-primary" id="play-order-add-btn">Add to order</button>
+      <button type="button" class="btn btn-secondary" id="play-order-rebuild-btn">Reset order</button>
+    </div>
+    <div id="play-order-hidden"></div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn-primary">Create song with these notes</button>
+    <a href="{{ url_for('worship.songs_list') }}" class="btn-secondary">Cancel</a>
+  </div>
+</form>
+<script>
+  window.SONG_EDITOR = {
+    sections: [],
+    playOrder: [],
+    parseUrl: {{ url_for('worship.songs_parse_chart')|tojson }},
+    csrf: {{ (csrf_token() if csrf_token else '')|tojson }},
+    chartFamily: 'full',
+    chartKey: 'full_band'
+  };
+</script>
+<script src="{{ url_for('static', filename='js/global/worship/music_studio.js') }}?v=20260717notes2"></script>
+<script src="{{ url_for('static', filename='js/global/worship/song_sections.js') }}?v=20260717notes2"></script>
+{% endif %}
+
 {% endif %}
 {% endblock %}

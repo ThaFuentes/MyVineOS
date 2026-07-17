@@ -52,7 +52,18 @@
       .replace(/"/g, '&quot;');
   }
 
+  const chartFamily = (cfg.chartFamily || cfg.instrumentFamily || 'full').toLowerCase();
+
   function readCardsIntoState() {
+    if (window.WorshipMusicStudio && typeof window.WorshipMusicStudio.readAllStudios === 'function') {
+      const fromStudio = window.WorshipMusicStudio.readAllStudios(listEl);
+      if (fromStudio.length) {
+        sections = fromStudio;
+        const ids = new Set(sections.map((s) => s.id));
+        playOrder = playOrder.filter((id) => ids.has(id));
+        return;
+      }
+    }
     const cards = listEl.querySelectorAll('.song-section-card');
     const next = [];
     cards.forEach((card, i) => {
@@ -60,10 +71,18 @@
       const type = card.querySelector('[name="sec_type[]"]')?.value || 'verse';
       const label = card.querySelector('[name="sec_label[]"]')?.value || TYPE_LABELS[type] || 'Section';
       const content = card.querySelector('[name="sec_content[]"]')?.value || '';
-      next.push({ id, type, label, content, sort: i + 1, repeat: 1 });
+      let layers = null;
+      const layersEl = card.querySelector('[name="sec_layers[]"]');
+      if (layersEl && layersEl.value) {
+        try {
+          layers = JSON.parse(layersEl.value);
+        } catch (e) {
+          layers = null;
+        }
+      }
+      next.push({ id, type, label, content, layers, sort: i + 1, repeat: 1 });
     });
     sections = next;
-    // Drop play order entries for removed sections
     const ids = new Set(sections.map((s) => s.id));
     playOrder = playOrder.filter((id) => ids.has(id));
   }
@@ -72,7 +91,7 @@
     listEl.innerHTML = '';
     if (!sections.length) {
       listEl.innerHTML =
-        '<p class="hint" style="margin:0;">No sections yet. Add Intro / Verse / Chorus, or paste lyrics.</p>';
+        '<p class="hint" style="margin:0;">No sections yet. Add Intro / Verse / Chorus — then use the <strong>Music studio</strong> to put chords &amp; notes above the lyrics, guitar/bass TAB, and drums.</p>';
       renderPlayOrder();
       return;
     }
@@ -103,9 +122,12 @@
             <button type="button" class="sec-remove" title="Remove">×</button>
           </div>
         </div>
-        <textarea name="sec_content[]" class="sec-content" placeholder="Lyrics for this section…">${escapeHtml(sec.content || '')}</textarea>
+        <textarea name="sec_content[]" class="sec-content" placeholder="Lyrics…">${escapeHtml(sec.content || '')}</textarea>
       `;
       listEl.appendChild(card);
+      if (window.WorshipMusicStudio && typeof window.WorshipMusicStudio.enhanceSectionCard === 'function') {
+        window.WorshipMusicStudio.enhanceSectionCard(card, sec, chartFamily);
+      }
     });
     renderPlayOrder();
   }
@@ -166,14 +188,15 @@
       type,
       label,
       content: '',
+      layers: window.WorshipMusicStudio ? window.WorshipMusicStudio.emptyLayers() : null,
       sort: sections.length + 1,
       repeat: 1,
     });
     // Auto-append new section to play order once
     playOrder.push(id);
     renderSections();
-    const ta = listEl.querySelector(`.song-section-card[data-id="${id}"] textarea`);
-    if (ta) ta.focus();
+    const lyrics = listEl.querySelector(`.song-section-card[data-id="${id}"] [data-role="lyrics"]`);
+    if (lyrics) lyrics.focus();
   }
 
   function parseLyricsLocal(text) {
@@ -187,14 +210,18 @@
     function flush() {
       const content = buf.join('\n').trim();
       if (!content) return;
-      out.push({
+      const item = {
         id: uid(),
         type,
         label,
         content,
         sort: out.length + 1,
         repeat: 1,
-      });
+      };
+      if (window.WorshipMusicStudio && typeof window.WorshipMusicStudio.layersFromSection === 'function') {
+        item.layers = window.WorshipMusicStudio.layersFromSection({ content });
+      }
+      out.push(item);
     }
 
     lines.forEach((line) => {
@@ -229,14 +256,29 @@
   function applyParsedSong(song) {
     if (!song) return;
     const secs = Array.isArray(song.sections) ? song.sections : [];
-    sections = secs.map((s, i) => ({
-      id: s.id || uid(),
-      type: s.type || 'verse',
-      label: s.label || defaultLabel(s.type || 'verse'),
-      content: s.content || '',
-      sort: s.sort || i + 1,
-      repeat: s.repeat || 1,
-    }));
+    sections = secs.map((s, i) => {
+      const base = {
+        id: s.id || uid(),
+        type: s.type || 'verse',
+        label: s.label || defaultLabel(s.type || 'verse'),
+        content: s.content || '',
+        sort: s.sort || i + 1,
+        repeat: s.repeat || 1,
+      };
+      // AI or rules → open Music Studio with chords already sitting above lyrics
+      if (window.WorshipMusicStudio && typeof window.WorshipMusicStudio.layersFromSection === 'function') {
+        base.layers = window.WorshipMusicStudio.layersFromSection({
+          content: base.content,
+          layers: s.layers || null,
+        });
+        if (!base.content && base.layers && base.layers.lyrics) {
+          base.content =
+            window.WorshipMusicStudio.toChordPro(base.layers.lyrics, base.layers.chords) ||
+            base.layers.lyrics;
+        }
+      }
+      return base;
+    });
     if (Array.isArray(song.play_order) && song.play_order.length) {
       const ids = new Set(sections.map((s) => s.id));
       playOrder = song.play_order.filter((id) => ids.has(id));

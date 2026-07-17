@@ -327,3 +327,213 @@ html[data-theme="soft-light"] .song-section-card textarea {
     margin-left: 0;
   }
 }
+
+/* ── Music Studio: chords/melody above lyrics, TAB, drums ── */
+.ms-studio {
+  margin-top: 0.5rem;
+  border: 1px solid rgba(61, 191, 154, 0.25);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+.ms-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(61, 191, 154, 0.08);
+}
+.ms-toolbar-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #3dbf9a;
+  margin-right: 0.35rem;
+}
+.ms-tab-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.ms-tab-btn.is-active {
+  background: #3dbf9a;
+  color: #0b1412;
+  border-color: transparent;
+  font-weight: 700;
+}
+.ms-panel { display: none; padding: 0.75rem; }
+.ms-panel.is-active { display: block; }
+.ms-help {
+  margin: 0 0 0.65rem;
+  font-size: 0.84rem;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+.ms-field-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #3dbf9a;
+  margin: 0.55rem 0 0.3rem;
+}
+.ms-lyrics, .ms-raw {
+  width: 100%;
+  min-height: 88px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.ms-stack-wrap {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  overflow-x: auto;
+}
+.ms-line-block { margin-bottom: 0.85rem; }
+.ms-overlay-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  white-space: pre;
+  min-height: 1.2em;
+}
+.ms-chord-line { color: #e0a84a; font-weight: 700; }
+.ms-melody-line { color: #6a9fd8; font-weight: 600; }
+.ms-ch-tok, .ms-mel-tok {
+  display: inline-block;
+  margin-right: 0.15rem;
+  padding: 0 0.15rem;
+  border-radius: 4px;
+  background: rgba(224, 168, 74, 0.15);
+}
+.ms-mel-tok { background: rgba(106, 159, 216, 0.18); }
+.ms-lyric-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  white-space: pre;
+}
+.ms-ly-ch {
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+.ms-ly-ch:hover { background: rgba(61, 191, 154, 0.2); }
+.ms-ly-ch.is-selected {
+  background: #3dbf9a;
+  color: #0b1412;
+  font-weight: 700;
+}
+.ms-palettes {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+@media (min-width: 800px) {
+  .ms-palettes { grid-template-columns: 1fr 1fr; }
+}
+.ms-palette-block {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  background: rgba(0, 0, 0, 0.18);
+}
+.ms-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  margin: 0.12rem;
+  padding: 0.28rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.ms-chip-sm { min-width: 2.4rem; font-size: 0.75rem; }
+.ms-chip:hover, .ms-chip.is-on {
+  border-color: #3dbf9a;
+  color: #3dbf9a;
+  background: rgba(61, 191, 154, 0.12);
+}
+.ms-tab-grid { overflow-x: auto; }
+.ms-tab-row {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  margin-bottom: 0.2rem;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.ms-tab-name {
+  width: 1.4rem;
+  color: #3dbf9a;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.ms-tab-cell {
+  width: 1.55rem;
+  height: 1.55rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+  color: #eee;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-family: inherit;
+}
+.ms-tab-cell.is-selected {
+  outline: 2px solid #3dbf9a;
+  background: rgba(61, 191, 154, 0.2);
+}
+.ms-fret-bar { margin-top: 0.55rem; }
+.ms-drum-table { overflow-x: auto; }
+.ms-drum-beat-labels,
+.ms-drum-row {
+  display: flex;
+  align-items: center;
+  gap: 0.12rem;
+  margin-bottom: 0.2rem;
+}
+.ms-drum-label, .ms-drum-beat-labels > span:first-child {
+  width: 7.5rem;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+.ms-drum-beat {
+  width: 1.45rem;
+  text-align: center;
+  font-size: 0.65rem;
+  opacity: 0.55;
+}
+.ms-drum-cell {
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+.ms-drum-cell.is-on {
+  background: rgba(224, 122, 95, 0.35);
+  border-color: #e07a5f;
+  color: #ffc9b8;
+  font-weight: 700;
+}
+.ms-drum-presets { margin-top: 0.55rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }

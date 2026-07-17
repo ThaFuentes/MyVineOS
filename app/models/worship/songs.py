@@ -45,12 +45,20 @@ def list_songs():
     return rows
 
 
-def get_song(song_id: int):
+def get_song(song_id: int, *, with_charts: bool = True):
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("SELECT * FROM worship_songs WHERE id = %s", (song_id,))
     row = cur.fetchone()
-    return _attach_song_fields(row)
+    row = _attach_song_fields(row)
+    if row and with_charts:
+        try:
+            from app.models.worship.charts import ensure_default_charts_for_song, list_charts
+            ensure_default_charts_for_song(int(song_id), user_id=row.get('updated_by') or row.get('created_by'))
+            row['charts'] = list_charts(int(song_id))
+        except Exception:
+            row['charts'] = []
+    return row
 
 
 def bulk_import_songs(items: list, user_id: int) -> dict:
@@ -126,10 +134,21 @@ def save_song(data: dict, user_id: int, song_id: int = None):
     sections = normalize_sections(data.get('sections') or [], data.get('lyrics_raw'))
     if not sections and data.get('lyrics_raw'):
         sections = parse_lyrics_to_sections(data['lyrics_raw'])
+    # Preserve musical layers (chords/melody/TAB/drums) from Music Studio
+    raw_sections = data.get('sections') or []
+    layers_by_id = {}
+    for rs in raw_sections:
+        if isinstance(rs, dict) and rs.get('id') and rs.get('layers'):
+            layers_by_id[rs['id']] = rs['layers']
     for i, sec in enumerate(sections):
         if not sec.get('id'):
             sec['id'] = f"s{uuid.uuid4().hex[:8]}"
         sec['sort'] = i + 1
+        if sec['id'] in layers_by_id:
+            sec['layers'] = layers_by_id[sec['id']]
+        elif isinstance(raw_sections, list) and i < len(raw_sections) and isinstance(raw_sections[i], dict):
+            if raw_sections[i].get('layers'):
+                sec['layers'] = raw_sections[i]['layers']
     sections_json = json.dumps(sections)
 
     valid_ids = {s.get('id') for s in sections if s.get('id')}

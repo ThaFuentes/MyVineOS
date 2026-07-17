@@ -180,16 +180,70 @@ def create_tables(cursor):
         ) ENGINE=InnoDB;
     """)
 
+
     for col_sql in (
         "ALTER TABLE worship_setlists ADD COLUMN public_token VARCHAR(48) NULL",
         "ALTER TABLE worship_setlists ADD COLUMN service_confirmed_at TIMESTAMP NULL",
         # Default prompter order for a song (section ids, may repeat e.g. chorus twice)
         "ALTER TABLE worship_songs ADD COLUMN play_order_json LONGTEXT NULL",
+        "ALTER TABLE worship_songs ADD COLUMN default_key VARCHAR(16) NULL",
+        "ALTER TABLE worship_songs ADD COLUMN rights_notes TEXT NULL",
     ):
         try:
             cursor.execute(col_sql)
         except Exception:
             pass
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS worship_song_charts (
+            id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+            song_id INT UNSIGNED NOT NULL,
+            chart_key VARCHAR(40) NOT NULL,
+            display_name VARCHAR(120) NOT NULL,
+            instrument_family VARCHAR(32) NOT NULL DEFAULT 'full',
+            is_primary TINYINT(1) NOT NULL DEFAULT 0,
+            show_chords TINYINT(1) NOT NULL DEFAULT 1,
+            show_lyrics TINYINT(1) NOT NULL DEFAULT 1,
+            capo SMALLINT NULL,
+            notation VARCHAR(24) NOT NULL DEFAULT 'chordpro',
+            sections_json LONGTEXT NOT NULL,
+            play_order_json LONGTEXT NULL,
+            chart_filename VARCHAR(255) NULL,
+            notes TEXT NULL,
+            created_by INT UNSIGNED NULL,
+            updated_by INT UNSIGNED NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_worship_song_chart (song_id, chart_key),
+            FOREIGN KEY (song_id) REFERENCES worship_songs(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+            INDEX idx_worship_chart_song (song_id)
+        ) ENGINE=InnoDB;
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS worship_user_chart_notes (
+            id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+            chart_id INT UNSIGNED NOT NULL,
+            user_id INT UNSIGNED NOT NULL,
+            note_text TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_worship_user_chart (chart_id, user_id),
+            FOREIGN KEY (chart_id) REFERENCES worship_song_charts(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB;
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS worship_ccli_settings (
+            id TINYINT UNSIGNED PRIMARY KEY DEFAULT 1,
+            ccli_license_number VARCHAR(64) NULL,
+            organization_name VARCHAR(255) NULL,
+            notes TEXT NULL,
+            updated_by INT UNSIGNED NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB;
+    """)
 
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN accepts_worship_emails INTEGER DEFAULT 1")
@@ -201,4 +255,4 @@ def create_tables(cursor):
     except Exception:
         pass
 
-    print("Worship Team tables ready (songs, setlists, weekly templates, play history).")
+    print("Worship Team tables ready (songs, charts, setlists, weekly templates, play history).")

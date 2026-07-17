@@ -8,7 +8,10 @@
 from flask import render_template, request, redirect, url_for, flash, session
 from app.models.db import get_db
 from app.models.log import log_change
-from . import settings_bp, encrypt, decrypt, DONATIONS_FOLDER, has_section_permission, load_settings, load_email_accounts
+from . import (
+    settings_bp, encrypt, decrypt, DONATIONS_FOLDER, has_section_permission,
+    load_settings, load_email_accounts, ensure_email_account_role_columns,
+)
 from app.models.settings import get_settings
 import os
 import smtplib
@@ -40,6 +43,7 @@ def email():
         return redirect(url_for('settings.email'))
 
     os.makedirs(DONATIONS_FOLDER, exist_ok=True)
+    ensure_email_account_role_columns()
 
     db = get_db()
     user_id = session['user_id']
@@ -53,35 +57,44 @@ def email():
 
         if action == 'add_account':
             name = request.form.get('name', '').strip()
+            # Outgoing optional if this is only a giving inbox with POP3/IMAP
+            is_giving = 1 if request.form.get('is_giving_inbox') in ('1', 'on') else 0
+            has_out = bool((request.form.get('outgoing_server') or '').strip())
             if not name:
-                flash('Account name is required.', 'error')
-            elif not request.form.get('outgoing_server'):
-                flash('Outgoing server is required.', 'error')
+                flash('Account name is required (e.g. Main Email, Giving inbox).', 'error')
+            elif not has_out and not is_giving:
+                flash('Outgoing server is required unless this is a Giving inbox with POP3/IMAP.', 'error')
+            elif is_giving and not (request.form.get('incoming_server') or '').strip():
+                flash('Giving inbox accounts need incoming POP3/IMAP server details.', 'error')
             else:
                 is_default = 1 if 'make_default' in request.form else 0
                 if is_default:
                     cur.execute("UPDATE email_accounts SET is_default = 0")
 
                 out_port, out_enc = _normalize_smtp_settings(request.form)
+                in_user = (request.form.get('incoming_username') or request.form.get('outgoing_username') or '').strip()
+                out_user = (request.form.get('outgoing_username') or '').strip()
                 cur.execute("""
                     INSERT INTO email_accounts 
                     (name, outgoing_server, outgoing_port, outgoing_encryption, outgoing_username, outgoing_password,
-                     incoming_protocol, incoming_server, incoming_port, incoming_encryption, incoming_username, incoming_password, is_default)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     incoming_protocol, incoming_server, incoming_port, incoming_encryption, incoming_username, incoming_password,
+                     is_default, is_giving_inbox)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     name,
                     request.form.get('outgoing_server') or None,
-                    out_port,
-                    out_enc,
-                    encrypt(request.form.get('outgoing_username', '').strip()),
-                    encrypt(request.form.get('outgoing_password', '').strip()),
+                    out_port if has_out else None,
+                    out_enc if has_out else None,
+                    encrypt(out_user) if out_user else None,
+                    encrypt(request.form.get('outgoing_password', '').strip()) if request.form.get('outgoing_password') else None,
                     request.form.get('incoming_protocol') or None,
                     request.form.get('incoming_server') or None,
                     request.form.get('incoming_port') or None,
                     request.form.get('incoming_encryption') or None,
-                    encrypt(request.form.get('incoming_username', '').strip()),
-                    encrypt(request.form.get('incoming_password', '').strip()),
-                    is_default
+                    encrypt(in_user) if in_user else None,
+                    encrypt(request.form.get('incoming_password', '').strip()) if request.form.get('incoming_password') else None,
+                    is_default,
+                    is_giving,
                 ))
                 db.commit()
                 log_change(user_id, 'create', None, name, f'Added email account: {name}')
@@ -105,6 +118,7 @@ def email():
                     incoming_password = encrypt(new_in_pass) if new_in_pass else old_in_pass
 
                     is_default = 1 if 'make_default' in request.form else 0
+                    is_giving = 1 if request.form.get('is_giving_inbox') in ('1', 'on') else 0
                     if is_default:
                         cur.execute("UPDATE email_accounts SET is_default = 0")
 
@@ -121,7 +135,8 @@ def email():
                         incoming_encryption = %s,
                         incoming_username = %s,
                         incoming_password = %s,
-                        is_default = %s
+                        is_default = %s,
+                        is_giving_inbox = %s
                     """
                     out_port, out_enc = _normalize_smtp_settings(request.form)
                     values = (
@@ -137,7 +152,8 @@ def email():
                         request.form.get('incoming_encryption') or None,
                         encrypt(request.form.get('incoming_username', '').strip()),
                         incoming_password,
-                        is_default
+                        is_default,
+                        is_giving,
                     )
                     cur.execute(f"UPDATE email_accounts SET {updates} WHERE id = %s", values + (account_id,))
                     db.commit()

@@ -135,35 +135,72 @@ def get_member_for_export(member_id):
 
 
 def get_dashboard_data():
+    """
+    Returns (total_this_year, recent_list, stats_dict).
+    stats: gift_count, unique_donors, member_total, guest_total
+    """
     try:
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
         current_year = now_church().year
 
         cur.execute(f"""
-            SELECT COALESCE(SUM(amount), 0.0) AS total_this_year
+            SELECT
+              COALESCE(SUM(amount), 0.0) AS total_this_year,
+              COUNT(*) AS gift_count,
+              COUNT(DISTINCT LOWER(TRIM(name))) AS unique_donors,
+              COALESCE(SUM(CASE WHEN COALESCE(donor_type,'guest') = 'member' THEN amount ELSE 0 END), 0) AS member_total,
+              COALESCE(SUM(CASE WHEN COALESCE(donor_type,'guest') != 'member' THEN amount ELSE 0 END), 0) AS guest_total
             FROM donations
             WHERE YEAR(STR_TO_DATE(date, '{_DATE_FMT_BIND}')) = %s
-        """, (current_year,))
-        total_this_year = float(cur.fetchone()['total_this_year'])
+               OR (date REGEXP '^[0-9]{{4}}' AND LEFT(date, 4) = %s)
+        """, (current_year, str(current_year)))
+        row = cur.fetchone() or {}
+        total_this_year = float(row.get('total_this_year') or 0)
+        stats = {
+            'gift_count': int(row.get('gift_count') or 0),
+            'unique_donors': int(row.get('unique_donors') or 0),
+            'member_total': float(row.get('member_total') or 0),
+            'guest_total': float(row.get('guest_total') or 0),
+            'year': current_year,
+        }
 
         cur.execute(f"""
             SELECT d.id, d.name, d.amount, d.date, d.method, d.notes,
                    d.confirmation_number, d.goods_services_provided,
                    d.user_id, d.donor_email, d.donor_phone,
                    COALESCE(d.donor_type, 'guest') AS donor_type,
+                   d.source, d.processor, d.external_id,
                    u.username
             FROM donations d
             LEFT JOIN users u ON d.user_id = u.id
-            ORDER BY STR_TO_DATE(d.date, '{_DATE_FMT}') DESC
-            LIMIT 10
+            ORDER BY STR_TO_DATE(d.date, '{_DATE_FMT}') DESC, d.id DESC
+            LIMIT 15
         """)
         recent = cur.fetchall()
         cur.close()
-        return total_this_year, recent
+        return total_this_year, recent, stats
     except Exception as e:
         print(f"get_dashboard_data error: {e}\n{traceback.format_exc()}")
-        return 0.0, []
+        return 0.0, [], {'gift_count': 0, 'unique_donors': 0, 'member_total': 0, 'guest_total': 0, 'year': now_church().year}
+
+
+def _post_to_accounting(donation_id: int, amount, date, name: str = '', created_by=None):
+    """Link donation into Accounting ledger (Cash / Tithes). Never raises to callers."""
+    try:
+        from app.models.accounting import post_donation_income
+        memo = f"Donation #{donation_id}"
+        if name:
+            memo = f"Donation #{donation_id} · {name}"[:500]
+        post_donation_income(
+            int(donation_id),
+            amount,
+            str(date or '')[:10],
+            memo=memo,
+            created_by=created_by,
+        )
+    except Exception as e:
+        print(f"donation→accounting post failed for #{donation_id}: {e}")
 
 
 def add_donation(name, amount, date, method, notes='', confirmation_number='',
@@ -189,6 +226,7 @@ def add_donation(name, amount, date, method, notes='', confirmation_number='',
         donation_id = cur.lastrowid
         db.commit()
         cur.close()
+        _post_to_accounting(donation_id, amount, date, name=name)
         return donation_id
     except Exception as e:
         print(f"add_donation error: {e}\n{traceback.format_exc()}")

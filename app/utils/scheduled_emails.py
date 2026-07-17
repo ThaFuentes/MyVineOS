@@ -145,11 +145,22 @@ def maybe_run_scheduled_emails():
     """
     Called periodically (e.g. dashboard load).
     - Automation/drips: ~every 20 minutes
+    - Donation POP3/IMAP check (when auto-scan is on): with automation cadence
     - Bill reminders + volunteer assignment reminders: ~every 20 hours
     """
     try:
         if _should_run_automation():
             run_communications_jobs()
+            try:
+                from app.donations_import.mailbox import run_scheduled_mailbox_scans
+                result = run_scheduled_mailbox_scans()
+                if result and not result.get('skipped') and result.get('new'):
+                    print(
+                        f"Donation mailbox scan: fetched {result.get('fetched', 0)}, "
+                        f"new {result.get('new', 0)}"
+                    )
+            except Exception as de:
+                print(f"Donation mailbox scan error: {de}")
             _mark_automation_run()
         if _should_run_scheduler():
             run_bill_reminder_scheduler()

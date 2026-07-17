@@ -19,9 +19,8 @@ Choose visibility: Public (everyone), Private (members only), or Personal (only 
 <section class="content-section">
     <h2 class="section-title">Sermon Details</h2>
 
-    <form method="POST" action="{{ url_for('sermons.upload_sermon') }}" enctype="multipart/form-data">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-          class="styled-form">
+    <form method="POST" action="{{ url_for('sermons.upload_sermon') }}" enctype="multipart/form-data" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
 
         <div class="form-group">
             <label for="title">Sermon Title <span class="required">*</span></label>

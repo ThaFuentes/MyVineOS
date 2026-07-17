@@ -71,6 +71,18 @@ def can_view_worship(user_id: int = None) -> bool:
     return is_in_worship_team(user_id or session.get('user_id'))
 
 
+def can_edit_worship_charts(user_id: int = None) -> bool:
+    """
+    Worship lead/managers AND team members may edit role charts
+    (guitar/bass/vocals/lyrics) so each person can tailor their part.
+    Create/delete library songs stays manage-only.
+    """
+    user_id = user_id or session.get('user_id')
+    if can_manage_worship(user_id):
+        return True
+    return can_view_worship(user_id)
+
+
 def get_worship_team_members():
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)

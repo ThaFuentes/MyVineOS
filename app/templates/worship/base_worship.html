@@ -3,7 +3,7 @@
 {% block title %}{% block worship_title %}Worship Team{% endblock %}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/worship.css') }}?v=20260710f">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/worship.css') }}?v=20260717notes1">
 {% endblock %}
 
 {% block content %}
@@ -13,6 +13,7 @@
   <a href="{{ url_for('worship.setlists_list') }}" class="wn-setlists">Date Overrides</a>
   <a href="{{ url_for('worship.songs_list') }}" class="wn-songs">Songs</a>
   <a href="{{ url_for('worship.history') }}" class="wn-history">Play History</a>
+  <a href="{{ url_for('worship.ccli_report') }}" class="wn-history">CCLI Report</a>
   {% if can_manage_worship() %}
   <a href="{{ url_for('worship.defaults') }}" class="wn-roles">Default Roles</a>
   <a href="{{ url_for('worship.songs_import') }}" class="wn-import">Import / AI</a>

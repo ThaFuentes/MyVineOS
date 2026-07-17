@@ -52,15 +52,28 @@ def require_login_for_donations():
 @donations_bp.route('/')
 @permission_required(DONATIONS_VIEW_PERMISSIONS)
 def donations_dashboard():
-    total_this_year, recent_donations = get_dashboard_data()
+    dash = get_dashboard_data()
+    if len(dash) == 3:
+        total_this_year, recent_donations, stats = dash
+    else:
+        total_this_year, recent_donations = dash[0], dash[1]
+        stats = {}
     current_year = now_church().year
+    acct_income = None
+    try:
+        from app.models.accounting import dashboard_stats
+        acct_income = float(dashboard_stats().get('ytd_income') or 0)
+    except Exception:
+        acct_income = None
 
     log_change(session['user_id'], action='view', change_details='Viewed donations dashboard')
     return render_template(
         'donations/donations_dashboard.html',
         total_this_year=total_this_year,
         recent_donations=recent_donations,
-        current_year=current_year
+        current_year=current_year,
+        stats=stats,
+        acct_ytd_income=acct_income,
     )
 
 

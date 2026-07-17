@@ -60,41 +60,113 @@ def _body_from_message(msg) -> tuple[str, str]:
     return text, html
 
 
-def scan_mailbox(mailbox_id: int, limit: int = 40) -> dict:
+def scan_mailbox(mailbox_id: int, limit: int = 40, use_ai: str | bool | None = None) -> dict:
     """
-    Fetch recent messages and stage them for parsing.
-    Returns {fetched, new, errors}.
+    Fetch recent messages from POP3/IMAP, parse each with the chosen mode,
+    and stage gifts for human review (or auto-post if enabled).
+    Returns {fetched, new, errors, mailbox_id, label, parse_mode}.
     """
     cfg = get_mailbox_secret(mailbox_id)
     if not cfg:
-        return {'fetched': 0, 'new': 0, 'errors': ['Mailbox not found']}
+        return {'fetched': 0, 'new': 0, 'errors': ['Mailbox not found'], 'mailbox_id': mailbox_id}
     if not cfg.get('enabled'):
-        return {'fetched': 0, 'new': 0, 'errors': ['Mailbox disabled']}
+        return {
+            'fetched': 0, 'new': 0, 'errors': ['Mailbox disabled'],
+            'mailbox_id': mailbox_id, 'label': cfg.get('label'),
+        }
 
     protocol = (cfg.get('protocol') or 'pop3').lower()
     try:
         if protocol == 'imap':
-            result = _scan_imap(cfg, limit=limit)
+            result = _scan_imap(cfg, limit=limit, use_ai=use_ai)
         else:
-            result = _scan_pop3(cfg, limit=limit)
+            result = _scan_pop3(cfg, limit=limit, use_ai=use_ai)
         _mark_scan(mailbox_id, None)
+        result['mailbox_id'] = mailbox_id
+        result['label'] = cfg.get('label') or f'Mailbox #{mailbox_id}'
+        result['parse_mode'] = use_ai
         return result
     except Exception as e:
         _mark_scan(mailbox_id, str(e)[:480])
-        return {'fetched': 0, 'new': 0, 'errors': [str(e)[:200]]}
+        return {
+            'fetched': 0, 'new': 0, 'errors': [str(e)[:200]],
+            'mailbox_id': mailbox_id, 'label': cfg.get('label'),
+            'parse_mode': use_ai,
+        }
+
+
+def scan_all_enabled_mailboxes(limit: int = 50, use_ai: str | bool | None = None) -> dict:
+    """
+    Check every enabled POP3/IMAP giving mailbox.
+    Primary staff action: choose software vs AI → fetch → parse → review queue.
+    """
+    from app.donations_import.service import list_mailboxes
+
+    mailboxes = [m for m in (list_mailboxes() or []) if m.get('enabled')]
+    if not mailboxes:
+        return {
+            'fetched': 0, 'new': 0,
+            'errors': [
+                'No POP3/IMAP account found. Add incoming mail under Settings → Email '
+                '(protocol + server), then click Check emails here.'
+            ],
+            'mailboxes': 0, 'scanned': 0, 'parse_mode': use_ai,
+        }
+
+    total_fetched = total_new = 0
+    errors = []
+    scanned = 0
+    for mb in mailboxes:
+        result = scan_mailbox(int(mb['id']), limit=limit, use_ai=use_ai)
+        scanned += 1
+        total_fetched += int(result.get('fetched') or 0)
+        total_new += int(result.get('new') or 0)
+        for err in (result.get('errors') or []):
+            label = result.get('label') or mb.get('label') or mb['id']
+            errors.append(f"{label}: {err}")
+    return {
+        'fetched': total_fetched,
+        'new': total_new,
+        'errors': errors,
+        'mailboxes': len(mailboxes),
+        'scanned': scanned,
+        'parse_mode': use_ai,
+    }
+
+
+def run_scheduled_mailbox_scans() -> dict:
+    """Background / cron: only when auto-scan is enabled (uses saved automation parse mode)."""
+    from app.donations_import.service import get_receipt_settings
+    settings = get_receipt_settings()
+    if not settings.get('import_enabled', True) or not settings.get('auto_import'):
+        return {'skipped': True, 'fetched': 0, 'new': 0}
+    return scan_all_enabled_mailboxes(limit=40, use_ai=None)
 
 
 def _mark_scan(mailbox_id: int, error: Optional[str]):
+    """Record scan time/error on shared email_accounts (giving inbox role)."""
     db = get_db()
     cur = db.cursor()
-    cur.execute(
-        "UPDATE donation_email_mailbox SET last_scan_at=%s, last_error=%s WHERE id=%s",
-        (utc_now(), error, mailbox_id),
-    )
-    db.commit()
+    try:
+        cur.execute(
+            "UPDATE email_accounts SET last_scan_at=%s, last_error=%s WHERE id=%s",
+            (utc_now(), error, mailbox_id),
+        )
+        db.commit()
+        return
+    except Exception:
+        db.rollback()
+    try:
+        cur.execute(
+            "UPDATE donation_email_mailbox SET last_scan_at=%s, last_error=%s WHERE id=%s",
+            (utc_now(), error, mailbox_id),
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
 
 
-def _scan_pop3(cfg: dict, limit: int = 40) -> dict:
+def _scan_pop3(cfg: dict, limit: int = 40, use_ai: str | bool | None = None) -> dict:
     host = cfg['host']
     port = int(cfg.get('port') or 995)
     user = cfg['username']
@@ -136,13 +208,14 @@ def _scan_pop3(cfg: dict, limit: int = 40) -> dict:
                     body_text=text or html,
                     body_html=html,
                     message_id_header=mid,
-                    received_at=received,
+                    received_at=_naive_received(received),
+                    use_ai=use_ai,
                 )
                 fetched += 1
                 if _count_messages() > before:
                     new += 1
             except Exception as e:
-                errors.append(f'msg {i}: {e}'[:120])
+                errors.append(_fmt_scan_error(i, e))
         return {'fetched': fetched, 'new': new, 'errors': errors}
     finally:
         try:
@@ -151,7 +224,7 @@ def _scan_pop3(cfg: dict, limit: int = 40) -> dict:
             pass
 
 
-def _scan_imap(cfg: dict, limit: int = 40) -> dict:
+def _scan_imap(cfg: dict, limit: int = 40, use_ai: str | bool | None = None) -> dict:
     host = cfg['host']
     port = int(cfg.get('port') or 993)
     user = cfg['username']
@@ -194,13 +267,15 @@ def _scan_imap(cfg: dict, limit: int = 40) -> dict:
                     body_text=text or html,
                     body_html=html,
                     message_id_header=mid,
-                    received_at=received,
+                    received_at=_naive_received(received),
+                    use_ai=use_ai,
                 )
                 fetched += 1
                 if _count_messages() > before:
                     new += 1
             except Exception as e:
-                errors.append(str(e)[:120])
+                raw_num = num.decode() if isinstance(num, (bytes, bytearray)) else num
+                errors.append(_fmt_scan_error(raw_num, e))
         return {'fetched': fetched, 'new': new, 'errors': errors}
     finally:
         try:
@@ -210,7 +285,38 @@ def _scan_imap(cfg: dict, limit: int = 40) -> dict:
 
 
 def _count_messages() -> int:
+    """Row count for new-message detection. get_db() uses DictCursor — never index by [0]."""
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT COUNT(*) FROM donation_email_messages")
-    return int(cur.fetchone()[0])
+    cur.execute("SELECT COUNT(*) AS cnt FROM donation_email_messages")
+    row = cur.fetchone()
+    if row is None:
+        return 0
+    if isinstance(row, dict):
+        return int(row.get('cnt') or 0)
+    return int(row[0])
+
+
+def _naive_received(received):
+    """MariaDB TIMESTAMP insert is happier with naive datetimes."""
+    if received is None:
+        return None
+    try:
+        if getattr(received, 'tzinfo', None) is not None:
+            return received.replace(tzinfo=None)
+    except Exception:
+        pass
+    return received
+
+
+def _fmt_scan_error(msg_ref, exc: BaseException) -> str:
+    """Human-readable per-message error (avoid bare KeyError(0) → '0')."""
+    name = type(exc).__name__
+    detail = str(exc).strip()
+    if not detail:
+        detail = repr(exc)
+    # KeyError(0) stringifies as "0" — expand it
+    if name == 'KeyError' and detail in ('0', '1', "'0'"):
+        detail = f'{detail} (internal row access — fixed if you still see this after update)'
+    text = f'message #{msg_ref}: {name}: {detail}'
+    return text[:180]

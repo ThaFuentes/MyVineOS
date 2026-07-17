@@ -13,8 +13,10 @@ from app.models.worship import notes as notes_model
 from app.models.worship import plays as plays_model
 from app.models.worship.sections import parse_lyrics_to_sections
 from app.models.worship.shared import (
-    can_manage_worship, get_worship_team_members, get_worship_leaders,
+    can_manage_worship, can_edit_worship_charts, can_view_worship,
+    get_worship_team_members, get_worship_leaders,
 )
+from app.models.worship import charts as chart_model
 from app.utils.emailer import send_email
 
 from . import worship_bp, worship_required
@@ -27,25 +29,38 @@ def _parse_sections_form():
     types = request.form.getlist('sec_type[]')
     labels = request.form.getlist('sec_label[]')
     contents = request.form.getlist('sec_content[]')
+    layers_raw = request.form.getlist('sec_layers[]')
     if ids or labels or contents:
         sections = []
-        n = max(len(ids), len(types), len(labels), len(contents))
+        n = max(len(ids), len(types), len(labels), len(contents), len(layers_raw))
         for i in range(n):
             content = (contents[i] if i < len(contents) else '') or ''
             content = content.strip()
-            if not content:
+            layers = None
+            if i < len(layers_raw) and layers_raw[i]:
+                try:
+                    layers = json.loads(layers_raw[i])
+                except (TypeError, json.JSONDecodeError):
+                    layers = None
+            # Keep sections that have layers even if content empty briefly
+            if not content and not layers:
                 continue
+            if not content and layers:
+                content = (layers.get('lyrics') or '').strip()
             sid = (ids[i] if i < len(ids) else '') or ''
             stype = (types[i] if i < len(types) else '') or 'verse'
             label = (labels[i] if i < len(labels) else '') or stype.title()
-            sections.append({
+            sec = {
                 'id': sid.strip() or f's{i + 1}',
                 'type': stype.strip().lower() or 'verse',
                 'label': label.strip() or 'Section',
                 'content': content,
                 'sort': i + 1,
                 'repeat': 1,
-            })
+            }
+            if layers:
+                sec['layers'] = layers
+            sections.append(sec)
         if sections:
             return sections
 
@@ -233,15 +248,26 @@ def songs_import():
                         'chords_filename': None,
                     }
                     song_id = song_model.save_song(data, session['user_id'])
+                    chart_model.ensure_default_charts_for_song(
+                        song_id,
+                        session['user_id'],
+                        initial_sections=data.get('sections') or [],
+                        initial_play_order=data.get('play_order') or [],
+                    )
                     flash(
                         f"Song saved ({parsed.get('parse_mode', 'rules')}"
                         + (', AI assisted' if parsed.get('ai_used') else '')
-                        + f", {len(data['sections'])} sections).",
+                        + f", {len(data['sections'])} sections). "
+                        f"Music Studio is open — place chords/notes above lyrics, TAB, or drums.",
                         'success',
                     )
-                    return redirect(url_for('worship.song_edit', song_id=song_id))
+                    return redirect(url_for('worship.song_edit', song_id=song_id, chart='full_band'))
                 chart_preview = parsed
-                flash('Chart parsed — review below, then save to library or open the editor.', 'success')
+                flash(
+                    'Chart parsed — save to open Music Studio (chords/melody above lyrics, TAB, drums). '
+                    'AI only structures what you pasted; it does not invent notes.',
+                    'success',
+                )
         else:
             raw = (request.form.get('json_data') or '').strip()
             if not raw and request.files.get('json_file'):
@@ -271,8 +297,8 @@ def songs_import():
 @worship_bp.route('/songs/parse-chart', methods=['POST'])
 @worship_required
 def songs_parse_chart():
-    """JSON API: parse pasted chart / upload text with rules or AI (managers only)."""
-    if not can_manage_worship():
+    """JSON API: parse pasted chart / upload text with rules or AI (team chart editors)."""
+    if not can_edit_worship_charts():
         return jsonify({'ok': False, 'error': 'Permission denied'}), 403
     from app.models.worship.song_parse import extract_text_from_upload, parse_song_text
 
@@ -379,8 +405,9 @@ def songs_public_domain():
 @worship_bp.route('/songs/new', methods=['GET', 'POST'])
 @worship_required
 def song_new():
+    # Leaders/managers add library songs; team members edit role notes on existing songs
     if not can_manage_worship():
-        flash('Only worship managers can edit the song library.', 'error')
+        flash('Worship leaders/managers add songs to the library. Team members open a song and edit their instrument chart with musical notes.', 'error')
         return redirect(url_for('worship.songs_list'))
 
     if request.method == 'POST':
@@ -389,10 +416,52 @@ def song_new():
             flash('Song title is required.', 'error')
         else:
             song_id = song_model.save_song(data, session['user_id'])
-            flash('Song saved.', 'success')
-            return redirect(url_for('worship.song_edit', song_id=song_id))
+            # Seed every role chart with sections + musical layers (chords/melody/TAB/drums)
+            chart_model.ensure_default_charts_for_song(
+                song_id,
+                session['user_id'],
+                initial_sections=data.get('sections') or [],
+                initial_play_order=data.get('play_order') or [],
+            )
+            # Persist primary chart with layers explicitly
+            charts = chart_model.list_charts(song_id)
+            primary = next((c for c in charts if c.get('chart_key') == 'full_band'), None)
+            if primary and data.get('sections'):
+                chart_model.save_chart(
+                    song_id,
+                    'full_band',
+                    {
+                        'display_name': primary.get('display_name') or 'Full band (default)',
+                        'instrument_family': 'full',
+                        'notation': 'chordpro',
+                        'show_chords': True,
+                        'show_lyrics': True,
+                        'is_primary': True,
+                        'sections': data.get('sections') or [],
+                        'play_order': data.get('play_order') or [],
+                        'notes': data.get('notes_permanent') or '',
+                    },
+                    session['user_id'],
+                    chart_id=int(primary['id']),
+                )
+            flash(
+                'Song created with Music Studio. Add chords/melody above lyrics, guitar/bass TAB, or drums — '
+                'then switch role tabs so each person can customize their part.',
+                'success',
+            )
+            return redirect(url_for('worship.song_edit', song_id=song_id, chart='full_band'))
 
-    return render_template('worship/song_edit.html', song=None, can_manage=True)
+    return render_template(
+        'worship/song_edit.html',
+        song=None,
+        can_manage=True,
+        can_edit_charts=True,
+        charts=[],
+        active_chart=None,
+        chart_key='full_band',
+        ccli_settings=chart_model.get_ccli_settings(),
+        songselect_url=chart_model.songselect_search_url(),
+    )
 
 
 @worship_bp.route('/songs/<int:song_id>/edit', methods=['GET', 'POST'])
@@ -401,24 +470,117 @@ def song_edit(song_id):
     song = song_model.get_song(song_id)
     if not song:
         abort(404)
-    if not can_manage_worship():
-        return render_template('worship/song_edit.html', song=song, can_manage=False)
+
+    can_manage = can_manage_worship()
+    can_charts = can_edit_worship_charts()
+    chart_key = (request.args.get('chart') or request.form.get('chart_key') or 'full_band').strip()
+    charts = song.get('charts') or chart_model.list_charts(song_id)
+    if not charts:
+        charts = chart_model.ensure_default_charts_for_song(song_id, session.get('user_id'))
+    active = next((c for c in charts if c.get('chart_key') == chart_key), None)
+    if not active and charts:
+        active = charts[0]
+        chart_key = active.get('chart_key') or 'full_band'
 
     if request.method == 'POST':
-        chords = song.get('chords_filename')
-        uploaded = save_chord_upload(request.files.get('chords_file'), current_app)
-        if uploaded:
-            chords = uploaded
-        data = _song_form_data(chords)
-        if not data['title']:
-            flash('Song title is required.', 'error')
-        else:
-            song_model.save_song(data, session['user_id'], song_id=song_id)
-            flash('Song updated.', 'success')
-            return redirect(url_for('worship.song_edit', song_id=song_id))
-        song = song_model.get_song(song_id)
+        action = (request.form.get('action') or 'save').strip()
+        if action == 'save_personal_note' and can_view_worship() and active:
+            chart_model.save_user_chart_note(
+                int(active['id']),
+                session['user_id'],
+                request.form.get('personal_note') or '',
+            )
+            flash('Your personal chart note saved (does not change the master chart).', 'success')
+            return redirect(url_for('worship.song_edit', song_id=song_id, chart=chart_key))
 
-    return render_template('worship/song_edit.html', song=song, can_manage=True)
+        if action == 'save_ccli_settings' and can_manage:
+            chart_model.save_ccli_settings({
+                'ccli_license_number': request.form.get('ccli_license_number'),
+                'organization_name': request.form.get('organization_name'),
+                'notes': request.form.get('ccli_org_notes'),
+            }, session['user_id'])
+            flash('Church CCLI license settings saved (for your records only).', 'success')
+            return redirect(url_for('worship.song_edit', song_id=song_id, chart=chart_key))
+
+        if action in ('save', 'save_chart', 'save_metadata'):
+            if action == 'save_metadata' and not can_manage:
+                flash('Only managers can change song title/CCLI metadata.', 'error')
+                return redirect(url_for('worship.song_edit', song_id=song_id, chart=chart_key))
+            if action in ('save', 'save_chart') and not can_charts:
+                flash('You do not have permission to edit charts.', 'error')
+                return redirect(url_for('worship.song_edit', song_id=song_id, chart=chart_key))
+
+            # Metadata (managers)
+            if can_manage and action in ('save', 'save_metadata'):
+                chords = song.get('chords_filename')
+                uploaded = save_chord_upload(request.files.get('chords_file'), current_app)
+                if uploaded:
+                    chords = uploaded
+                data = _song_form_data(chords)
+                if not data['title']:
+                    flash('Song title is required.', 'error')
+                    return redirect(url_for('worship.song_edit', song_id=song_id, chart=chart_key))
+                song_model.save_song(data, session['user_id'], song_id=song_id)
+
+            # Role chart content (team + managers)
+            if can_charts and action in ('save', 'save_chart') and active:
+                chart_payload = {
+                    'display_name': request.form.get('chart_display_name') or active.get('display_name'),
+                    'instrument_family': active.get('instrument_family') or 'full',
+                    'notation': request.form.get('chart_notation') or active.get('notation') or 'chordpro',
+                    'notes': request.form.get('chart_notes') or '',
+                    'capo': request.form.get('chart_capo'),
+                    'show_chords': request.form.get('chart_show_chords') == '1',
+                    'show_lyrics': request.form.get('chart_show_lyrics') == '1',
+                    'is_primary': request.form.get('chart_is_primary') == '1' or chart_key == 'full_band',
+                    'sections': _parse_sections_form(),
+                    'play_order': _parse_play_order_form(),
+                }
+                # Prefer structured form sections when present
+                if not chart_payload['sections']:
+                    chart_payload['lyrics_raw'] = request.form.get('lyrics_raw') or ''
+                chart_model.save_chart(
+                    song_id,
+                    chart_key,
+                    chart_payload,
+                    session['user_id'],
+                    chart_id=int(active['id']),
+                )
+            flash('Saved.', 'success')
+            return redirect(url_for('worship.song_edit', song_id=song_id, chart=chart_key))
+
+        flash('Unknown action.', 'error')
+        return redirect(url_for('worship.song_edit', song_id=song_id, chart=chart_key))
+
+    # GET — show active chart sections in the editor
+    if active:
+        song = dict(song)
+        song['sections'] = active.get('sections') or song.get('sections') or []
+        song['play_order'] = active.get('play_order') or song.get('play_order') or []
+
+    personal_note = ''
+    if active and session.get('user_id'):
+        personal_note = chart_model.get_user_chart_note(int(active['id']), session['user_id'])
+
+    ccli_settings = chart_model.get_ccli_settings()
+    songselect_url = chart_model.songselect_search_url(
+        title=song.get('title') or '',
+        artist=song.get('artist') or '',
+        ccli=song.get('ccli_song_number') or '',
+    )
+
+    return render_template(
+        'worship/song_edit.html',
+        song=song,
+        can_manage=can_manage,
+        can_edit_charts=can_charts,
+        charts=charts,
+        active_chart=active,
+        chart_key=chart_key,
+        personal_note=personal_note,
+        ccli_settings=ccli_settings,
+        songselect_url=songselect_url,
+    )
 
 
 @worship_bp.route('/songs/<int:song_id>/delete', methods=['POST'])
@@ -736,6 +898,109 @@ def history():
         'worship/history.html',
         history=plays_model.get_play_history(),
         stats=plays_model.get_song_play_counts(),
+    )
+
+
+@worship_bp.route('/ccli-report', methods=['GET', 'POST'])
+@worship_required
+def ccli_report():
+    """
+    List CCLI song numbers used (played services) for day/week/month/year.
+    Download CSV and/or email the list via Settings → Email SMTP.
+    """
+    from flask import Response
+    from datetime import date as date_cls
+
+    period = (request.values.get('period') or 'week').strip().lower()
+    on_date = (request.values.get('on_date') or '').strip()
+    start = (request.values.get('start') or '').strip()
+    end = (request.values.get('end') or '').strip()
+    include_planned = request.values.get('include_planned') == '1'
+    if not on_date:
+        on_date = date_cls.today().isoformat()
+
+    start_d, end_d, period_label = plays_model.resolve_ccli_report_range(
+        period, start=start, end=end, on_date=on_date
+    )
+    report = plays_model.get_ccli_usage_report(
+        start_d, end_d, include_planned=include_planned
+    )
+    text_body = plays_model.format_ccli_report_text(report, period_label=period_label)
+
+    if request.method == 'POST':
+        action = (request.form.get('action') or '').strip().lower()
+        if action == 'download':
+            csv_data = plays_model.format_ccli_report_csv(report)
+            fname = f"ccli-usage-{start_d.isoformat()}-to-{end_d.isoformat()}.csv"
+            return Response(
+                csv_data,
+                mimetype='text/csv; charset=utf-8',
+                headers={
+                    'Content-Disposition': f'attachment; filename="{fname}"',
+                },
+            )
+        if action == 'email':
+            if not can_manage_worship():
+                flash('Only worship managers can email CCLI reports.', 'error')
+                return redirect(url_for('worship.ccli_report', period=period, on_date=on_date))
+            to_email = (request.form.get('to_email') or '').strip()
+            if not to_email or '@' not in to_email:
+                flash('Enter an email address to send the CCLI list.', 'error')
+                return redirect(url_for(
+                    'worship.ccli_report',
+                    period=period, on_date=on_date, start=start, end=end,
+                    include_planned='1' if include_planned else None,
+                ))
+            try:
+                from app.utils.emailer import send_email
+                subject = f'CCLI song usage — {period_label}'
+                send_email(to_email, subject, text_body)
+                flash(f'CCLI usage list emailed to {to_email}.', 'success')
+            except Exception as e:
+                flash(f'Could not send email: {e}', 'error')
+            return redirect(url_for(
+                'worship.ccli_report',
+                period=period, on_date=on_date, start=start, end=end,
+                include_planned='1' if include_planned else None,
+            ))
+        if action == 'download_and_email':
+            # Email first, then return CSV download
+            to_email = (request.form.get('to_email') or '').strip()
+            email_ok = False
+            if can_manage_worship() and to_email and '@' in to_email:
+                try:
+                    from app.utils.emailer import send_email
+                    send_email(to_email, f'CCLI song usage — {period_label}', text_body)
+                    email_ok = True
+                except Exception as e:
+                    flash(f'Email failed ({e}); download still provided.', 'warning')
+            elif not to_email:
+                flash('No email address — download only.', 'info')
+            csv_data = plays_model.format_ccli_report_csv(report)
+            fname = f"ccli-usage-{start_d.isoformat()}-to-{end_d.isoformat()}.csv"
+            if email_ok:
+                # Can't flash after Response easily — include note in filename path via cookie is overkill
+                pass
+            return Response(
+                csv_data,
+                mimetype='text/csv; charset=utf-8',
+                headers={
+                    'Content-Disposition': f'attachment; filename="{fname}"',
+                    'X-CCLI-Email-Sent': '1' if email_ok else '0',
+                },
+            )
+
+    return render_template(
+        'worship/ccli_report.html',
+        report=report,
+        period=period,
+        period_label=period_label,
+        on_date=on_date,
+        start=start_d.isoformat(),
+        end=end_d.isoformat(),
+        include_planned=include_planned,
+        text_preview=text_body,
+        can_manage=can_manage_worship(),
     )
 
 

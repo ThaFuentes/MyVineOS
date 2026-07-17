@@ -1,71 +1,418 @@
 {% extends "donations/base_donations.html" %}
-{% block page_title %}Import #{{ msg.id }}{% endblock %}
+{% block page_title %}Compare email &amp; gift #{{ msg.id }}{% endblock %}
+{% block page_description %}
+Read the original payment email on the left. Confirm or fix the donation fields on the right, then approve.
+{% endblock %}
 
 {% block donations_content %}
-<p style="margin:0 0 0.75rem;">
-  <a href="{{ url_for('donations.email_import_queue') }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.7rem;">← Queue</a>
+{% set p = msg.parsed or {} %}
+{% set pe = p.extras or {} %}
+
+<p style="margin:0 0 0.85rem;">
+  <a href="{{ url_for('donations.email_import_queue') }}" class="btn-secondary">← Back to inbox</a>
+  {% if msg.donation_id %}
+  <span class="help-text" style="margin-left:0.75rem;">Linked donation <strong>#{{ msg.donation_id }}</strong></span>
+  {% endif %}
 </p>
 
-<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
-  <h2 style="margin:0 0 0.5rem; font-size:1.1rem;">{{ msg.subject }}</h2>
-  <p style="margin:0; font-size:0.88rem; opacity:0.8;">
-    From: {{ msg.from_address or '—' }} · Processor: <code>{{ msg.processor }}</code>
-    · Status: <code>{{ msg.parse_status }}</code>
-    {% if msg.is_fixture %} · <strong>Mock fixture</strong>{% endif %}
-  </p>
-  {% if msg.donation_id %}
-  <p style="margin:0.5rem 0 0;">Linked donation <strong>#{{ msg.donation_id }}</strong></p>
-  {% endif %}
+{# Status strip #}
+<div class="settings-card" style="margin-bottom:1rem;">
+  <div class="settings-preview">
+    <div class="settings-preview-item">
+      <strong>Email subject</strong>
+      <span>{{ msg.subject or '—' }}</span>
+    </div>
+    <div class="settings-preview-item">
+      <strong>From</strong>
+      <span>{{ msg.from_address or '—' }}</span>
+    </div>
+    <div class="settings-preview-item">
+      <strong>Detected processor</strong>
+      <span>{{ msg.processor or p.method or '—' }}</span>
+    </div>
+    <div class="settings-preview-item">
+      <strong>Parse status</strong>
+      <span>
+        {{ msg.parse_status or '—' }}
+        {% if msg.parse_confidence is not none %} · confidence {{ msg.parse_confidence }}%{% endif %}
+      </span>
+    </div>
+    <div class="settings-preview-item">
+      <strong>How it was parsed</strong>
+      <span>
+        {% if pe.ai_used %}Software + AI{% else %}Software rules{% endif %}
+        {% if pe.parse_mode %} · mode {{ pe.parse_mode }}{% endif %}
+      </span>
+    </div>
+    <div class="settings-preview-item">
+      <strong>On-file match</strong>
+      <span>
+        {% set dm = msg.donor_match or {} %}
+        {% if dm.kind == 'member' %}
+          <strong>Registered member</strong> — {{ dm.name or msg.member_match.name }}
+          {% if dm.email %} · {{ dm.email }}{% endif %}
+          {% if dm.phone %} · {{ dm.phone }}{% endif %}
+          {% if dm.match_by %} · via {{ dm.match_by }}{% endif %}
+        {% elif dm.kind == 'prior_guest' %}
+          <strong>Prior guest on file</strong> — {{ dm.name }}
+          {% if dm.prior_donation_count %} · {{ dm.prior_donation_count }} earlier gift(s){% endif %}
+          {% if dm.email %} · {{ dm.email }}{% endif %}
+          {% if dm.phone %} · {{ dm.phone }}{% endif %}
+        {% else %}
+          <strong>New guest</strong> — no member or prior email/phone on file
+        {% endif %}
+      </span>
+    </div>
+  </div>
 </div>
 
-<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem;">
-  <div class="glass-panel" style="padding:1rem;">
-    <h3 style="margin:0 0 0.65rem; font-size:1rem;">Parsed gift</h3>
+<p class="help-text" style="margin:0 0 0.85rem;">
+  <strong>How to use this screen:</strong>
+  Compare the email body with the gift fields side by side.
+  Fix anything wrong on the right, then <strong>Approve &amp; save donation</strong>.
+</p>
+
+{# Side-by-side: email | donation record #}
+<div class="eg-compare">
+  {# LEFT — original email #}
+  <section class="settings-card eg-compare-pane">
+    <div class="settings-card-header">
+      <div>
+        <h2 class="section-subtitle" style="margin:0;">Original email</h2>
+        <p class="help-text" style="margin:0.35rem 0 0;">What the payment provider (or sender) wrote. Use this to verify amount, name, and confirmation #.</p>
+      </div>
+    </div>
+
+    <dl class="eg-email-meta">
+      <div>
+        <dt>Subject</dt>
+        <dd>{{ msg.subject or '—' }}</dd>
+      </div>
+      <div>
+        <dt>From</dt>
+        <dd>{{ msg.from_address or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Received</dt>
+        <dd>{{ msg.received_at or msg.created_at or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Message ID</dt>
+        <dd class="eg-mono">{{ msg.message_id_header or msg.message_uid or '—' }}</dd>
+      </div>
+    </dl>
+
+    <div class="eg-email-body">
+      {% if msg.body_text %}
+      <pre class="eg-email-pre">{{ msg.body_text }}</pre>
+      {% elif msg.body_html_safe %}
+      <div class="eg-email-html">{{ msg.body_html_safe }}</div>
+      <p class="help-text" style="margin:0.5rem 0 0;">Showing sanitized HTML (no plain-text body on this message).</p>
+      {% elif msg.body_html %}
+      <pre class="eg-email-pre">{{ msg.body_html }}</pre>
+      {% else %}
+      <p class="help-text" style="margin:0;">(empty body)</p>
+      {% endif %}
+    </div>
+  </section>
+
+  {# RIGHT — proposed donation #}
+  <section class="settings-card eg-compare-pane">
+    <div class="settings-card-header">
+      <div>
+        <h2 class="section-subtitle" style="margin:0;">Donation record (from parse)</h2>
+        <p class="help-text" style="margin:0.35rem 0 0;">
+          Fields the software filled. Edit to match the email, then save as a donation.
+        </p>
+      </div>
+    </div>
+
+    {# Quick field comparison chips #}
+    <div class="eg-field-chips">
+      <div class="eg-chip">
+        <span class="eg-chip-label">Amount</span>
+        <span class="eg-chip-value">{% if p.amount %}${{ p.amount }}{% else %}— not found{% endif %}</span>
+      </div>
+      <div class="eg-chip">
+        <span class="eg-chip-label">Donor</span>
+        <span class="eg-chip-value">{{ p.donor_name or '— not found' }}</span>
+      </div>
+      <div class="eg-chip">
+        <span class="eg-chip-label">Method</span>
+        <span class="eg-chip-value">{{ p.method or msg.processor or '—' }}</span>
+      </div>
+      <div class="eg-chip">
+        <span class="eg-chip-label">Confirm #</span>
+        <span class="eg-chip-value">{{ p.confirmation_number or p.external_id or '—' }}</span>
+      </div>
+      <div class="eg-chip" style="grid-column: 1 / -1;">
+        <span class="eg-chip-label">Where this will file</span>
+        <span class="eg-chip-value">
+          {% set dm = msg.donor_match or {} %}
+          {% if dm.kind == 'member' %}
+            With <strong>registered</strong> donations · {{ dm.label or dm.name }}
+          {% elif dm.kind == 'prior_guest' %}
+            With <strong>guest</strong> donations already on file · {{ dm.label or dm.name }}
+          {% else %}
+            As a <strong>new guest</strong> donation (same as Add Donation non-member)
+          {% endif %}
+        </span>
+      </div>
+    </div>
+
     <form method="post" action="{{ url_for('donations.email_import_post', message_id=msg.id) }}" class="styled-form">
       {% include 'partials/csrf_field.html' %}
-      {% set p = msg.parsed or {} %}
-      <label>Donor name <input type="text" name="donor_name" value="{{ p.donor_name or '' }}" class="form-input"></label>
-      <label>Donor email <input type="email" name="donor_email" value="{{ p.donor_email or '' }}" class="form-input"></label>
-      <label>Amount <input type="text" name="amount" value="{{ p.amount or '' }}" class="form-input" required></label>
-      <label>Date <input type="date" name="date" value="{{ p.date or '' }}" class="form-input"></label>
-      <label>Method <input type="text" name="method" value="{{ p.method or '' }}" class="form-input"></label>
-      <label>Confirmation # <input type="text" name="confirmation_number" value="{{ p.confirmation_number or '' }}" class="form-input"></label>
-      <label>Fund <input type="text" name="fund_label" value="{{ p.fund_label or '' }}" class="form-input"></label>
-      <label>Notes <textarea name="notes" class="form-input" rows="2">{{ p.notes or '' }}</textarea></label>
-      <label style="display:flex; align-items:center; gap:0.4rem; margin-top:0.5rem;">
-        <input type="checkbox" name="send_receipt" value="1" checked>
-        Process receipt (uses current receipt mode: test/live/off)
-      </label>
-      <div class="form-actions" style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.4rem;">
-        {% if not msg.donation_id %}
-        <button type="submit" class="btn btn-primary">Post donation record</button>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="donor_name">Donor name</label>
+          <input type="text" id="donor_name" name="donor_name" value="{{ p.donor_name or '' }}">
+        </div>
+        <div class="form-group">
+          <label for="donor_email">Donor email</label>
+          <input type="email" id="donor_email" name="donor_email" value="{{ p.donor_email or '' }}">
+        </div>
+        <div class="form-group">
+          <label for="amount">Amount <span class="required">*</span></label>
+          <input type="text" id="amount" name="amount" value="{{ p.amount or '' }}" required>
+        </div>
+        <div class="form-group">
+          <label for="date">Date</label>
+          <input type="date" id="date" name="date" value="{{ p.date or '' }}">
+        </div>
+        <div class="form-group">
+          <label for="method">Method (from email)</label>
+          <input type="text" id="method" name="method" value="{{ p.method or msg.processor or '' }}"
+                 readonly title="Filled by the software from the email">
+        </div>
+        <div class="form-group">
+          <label for="confirmation_number">Confirmation #</label>
+          <input type="text" id="confirmation_number" name="confirmation_number"
+                 value="{{ p.confirmation_number or '' }}">
+        </div>
+        <div class="form-group full-width">
+          <label for="fund_label">Fund / designation</label>
+          <input type="text" id="fund_label" name="fund_label" value="{{ p.fund_label or '' }}">
+        </div>
+        <div class="form-group full-width">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes" rows="3">{{ p.notes or '' }}</textarea>
+        </div>
+        <div class="form-group full-width">
+          <label class="eg-toggle" style="margin:0;">
+            <input type="checkbox" name="send_receipt" value="1" checked>
+            <span>
+              <span class="eg-toggle-title">Process receipt</span>
+              <span class="help-text" style="margin:0.2rem 0 0;">Uses receipt mode from automation (test / live / off).</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions" style="margin-top:0.5rem;">
+        {% if not msg.donation_id and msg.parse_status not in ('posted','already_recorded') %}
+        <button type="submit" class="btn-primary">Approve &amp; save donation</button>
+        <span class="help-text" style="margin:0; align-self:center;">Then opens the next gift automatically.</span>
         {% else %}
-        <span class="help-text">Already posted.</span>
+        <span class="help-text" style="margin:0;">Already recorded as a donation — no need to approve again.</span>
         {% endif %}
       </div>
     </form>
-    <form method="post" action="{{ url_for('donations.email_import_reparse', message_id=msg.id) }}" style="margin-top:0.75rem;" class="styled-form">
-      {% include 'partials/csrf_field.html' %}
-      <label class="control-label" style="font-size:0.85rem;">Re-parse with</label>
-      <div style="display:flex; flex-wrap:wrap; gap:0.5rem 0.9rem; margin:0.35rem 0 0.55rem; font-size:0.85rem;">
-        <label style="display:flex; align-items:center; gap:0.3rem;"><input type="radio" name="parse_mode" value="rules"> Rules only</label>
-        <label style="display:flex; align-items:center; gap:0.3rem;"><input type="radio" name="parse_mode" value="auto" checked> Auto</label>
-        <label style="display:flex; align-items:center; gap:0.3rem;"><input type="radio" name="parse_mode" value="ai"> AI assist</label>
-      </div>
-      {% set pe = (msg.parsed or {}).extras or {} %}
-      {% if pe.ai_used or pe.parse_mode %}
-      <p class="help-text" style="margin:0 0 0.4rem; font-size:0.8rem;">
-        Last parse: <code>{{ pe.parse_mode or 'rules' }}</code>
-        {% if pe.ai_used %} · AI assisted{% endif %}
-      </p>
-      {% endif %}
-      <button type="submit" class="btn btn-secondary">Re-run parser</button>
-    </form>
-  </div>
 
-  <div class="glass-panel" style="padding:1rem;">
-    <h3 style="margin:0 0 0.65rem; font-size:1rem;">Raw email body</h3>
-    <pre style="white-space:pre-wrap; font-size:0.8rem; max-height:420px; overflow:auto; margin:0;">{{ msg.body_text or msg.body_html or '(empty)' }}</pre>
-  </div>
+    {% if not msg.donation_id and msg.parse_status not in ('posted','already_recorded') %}
+    <form method="post" action="{{ url_for('donations.email_import_dismiss', message_id=msg.id) }}"
+          class="styled-form" style="margin-top:0.85rem;"
+          onsubmit="return confirm('Skip this email? It is not a gift and will leave the main queue.');">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="reason" value="staff_not_a_gift">
+      <div class="form-actions">
+        <button type="submit" class="btn-secondary">Not a gift — skip</button>
+        <a href="{{ url_for('donations.email_import_queue', status='inbox') }}" class="btn-secondary">Back to inbox list</a>
+      </div>
+      <p class="help-text" style="margin:0.45rem 0 0;">
+        Use when amount is “— not found” or the email is marketing/bounce. Goes to
+        <strong>Manually check other emails</strong> if you need it later.
+      </p>
+    </form>
+    {% endif %}
+
+    <hr class="section-divider" style="margin:1.25rem 0;">
+
+    <h3 class="section-subtitle" style="margin:0 0 0.5rem; font-size:1rem;">Re-parse if fields look wrong</h3>
+    <form method="post" action="{{ url_for('donations.email_import_reparse', message_id=msg.id) }}" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <div class="eg-choice-grid eg-choice-grid-2" style="margin-bottom:0.75rem;">
+        <label class="eg-choice">
+          <input type="radio" name="parse_mode" value="rules">
+          <span class="eg-choice-body">
+            <span class="eg-choice-title">Software only</span>
+            <span class="eg-choice-desc">No AI API call.</span>
+          </span>
+        </label>
+        <label class="eg-choice is-selected">
+          <input type="radio" name="parse_mode" value="auto" checked>
+          <span class="eg-choice-body">
+            <span class="eg-choice-title">Use AI to help</span>
+            <span class="eg-choice-desc">Software first; AI if unsure.</span>
+          </span>
+        </label>
+      </div>
+      <button type="submit" class="btn-secondary">Re-run parse</button>
+    </form>
+  </section>
 </div>
+
+<style>
+  .eg-compare {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+  }
+  @media (min-width: 960px) {
+    .eg-compare {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .eg-compare-pane {
+    margin-bottom: 0;
+    min-width: 0;
+  }
+  .eg-email-meta {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0 0 1rem;
+    padding: 0;
+  }
+  .eg-email-meta dt {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--primary, #00e5ff);
+  }
+  .eg-email-meta dd {
+    margin: 0.15rem 0 0;
+    color: var(--text-primary, #eee);
+    font-size: 0.92rem;
+    word-break: break-word;
+  }
+  .eg-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.78rem !important;
+    opacity: 0.85;
+  }
+  .eg-email-body {
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.14));
+    border-radius: var(--radius-medium, 12px);
+    background: rgba(0, 0, 0, 0.28);
+    max-height: min(70vh, 640px);
+    overflow: auto;
+    padding: 0.85rem;
+  }
+  .eg-email-pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--text-primary, #eee);
+  }
+  .eg-email-html {
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--text-primary, #eee);
+  }
+  .eg-email-html img { max-width: 100%; height: auto; }
+  .eg-field-chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .eg-chip {
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.16));
+    background: rgba(0, 229, 255, 0.06);
+  }
+  .eg-chip-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--primary, #00e5ff);
+    margin-bottom: 0.2rem;
+  }
+  .eg-chip-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary, #eee);
+    word-break: break-word;
+  }
+  .eg-choice-grid {
+    display: grid;
+    gap: 0.65rem;
+  }
+  @media (min-width: 640px) {
+    .eg-choice-grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .eg-choice {
+    display: flex;
+    gap: 0.55rem;
+    align-items: flex-start;
+    cursor: pointer;
+    margin: 0;
+    padding: 0.7rem 0.8rem;
+    border-radius: 12px;
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.18));
+    background: rgba(0, 0, 0, 0.22);
+  }
+  .eg-choice.is-selected,
+  .eg-choice:has(input:checked) {
+    border-color: var(--primary, #00e5ff);
+    box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.12);
+    background: rgba(0, 229, 255, 0.08);
+  }
+  .eg-choice input {
+    width: auto !important;
+    min-height: auto !important;
+    margin-top: 0.15rem;
+  }
+  .eg-choice-title {
+    display: block;
+    color: var(--primary, #00e5ff);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .eg-choice-desc {
+    display: block;
+    color: var(--text-muted, #aaa);
+    font-size: 0.8rem;
+    font-weight: 400;
+  }
+  .eg-toggle {
+    display: flex !important;
+    gap: 0.65rem;
+    align-items: flex-start;
+    cursor: pointer;
+    padding: 0.7rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.14));
+    background: rgba(0, 0, 0, 0.18);
+  }
+  .eg-toggle input {
+    width: auto !important;
+    min-height: auto !important;
+    margin-top: 0.2rem;
+  }
+  .eg-toggle-title {
+    display: block;
+    color: var(--primary, #00e5ff);
+    font-weight: 700;
+  }
+</style>
 {% endblock %}

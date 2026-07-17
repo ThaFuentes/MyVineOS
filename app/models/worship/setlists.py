@@ -238,12 +238,29 @@ def delete_setlist(setlist_id: int):
     return cur.rowcount > 0
 
 
+def plan_is_active_schedule(plan) -> bool:
+    """
+    True only when worship leadership has set something up:
+    at least one song and/or one role assignment.
+    Empty weekly defaults must not invent a "next service" every weekday.
+    """
+    if not plan:
+        return False
+    songs = plan.get('songs') or []
+    assignments = plan.get('assignments') or []
+    return bool(songs) or bool(assignments)
+
+
 def get_upcoming_setlist():
+    """
+    Next service that is actually scheduled (songs or people assigned).
+    Does not advertise blank weekly defaults for every matching weekday.
+    """
     from app.models.worship import templates as tmpl
     today = date.today()
-    for offset in range(0, 21):
+    for offset in range(0, 60):
         check = today + timedelta(days=offset)
         plan = tmpl.get_setlist_for_date(check.strftime('%Y-%m-%d'))
-        if plan:
+        if plan_is_active_schedule(plan):
             return plan
     return None
