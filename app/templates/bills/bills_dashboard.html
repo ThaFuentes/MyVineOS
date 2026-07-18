@@ -62,7 +62,7 @@ Secure billing vault and payment reminder hub - track due dates, payment history
   <div style="font-size:0.8rem; opacity:0.65; margin-bottom:0.3rem;">ALL ACCESSIBLE BILLS</div>
 
     <!-- Add New Bill Button (top) -->
-    {% if user_has_permission('manage_bills') or session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+    {% if user_has_permission('manage_bills') %}
     <div style="margin-bottom:0.5rem;">
         <a href="{{ url_for('bills.add_bill') }}" class="btn btn-primary" style="padding:0.35rem 0.8rem; font-size:0.85rem;">+ Add New Bill</a>
     </div>

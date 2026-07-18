@@ -44,8 +44,15 @@ SECTION_PERMISSIONS = {
 }
 
 def has_section_permission(section: str) -> bool:
+    """Admin/Owner always. Others need manage_settings or legacy per-section session grants."""
     if session.get('user_role') in ['Admin', 'Owner']:
         return True
+    try:
+        from app.utils.permissions import user_has_permission
+        if user_has_permission('manage_settings'):
+            return True
+    except Exception:
+        pass
     try:
         perms = json.loads(session.get('settings_permissions', '[]'))
     except (json.JSONDecodeError, TypeError):
@@ -53,8 +60,17 @@ def has_section_permission(section: str) -> bool:
     return SECTION_PERMISSIONS.get(section) in perms
 
 def can_view_settings() -> bool:
+    """Settings shell: Admin/Owner, manage_settings group key, or legacy session section grants.
+    Staff without grants do not see settings configuration.
+    """
     if session.get('user_role') in ['Admin', 'Owner']:
         return True
+    try:
+        from app.utils.permissions import user_has_permission
+        if user_has_permission('manage_settings'):
+            return True
+    except Exception:
+        pass
     try:
         perms = json.loads(session.get('settings_permissions', '[]'))
     except (json.JSONDecodeError, TypeError):

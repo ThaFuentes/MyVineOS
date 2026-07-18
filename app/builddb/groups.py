@@ -69,48 +69,70 @@ def create_tables(cursor):
     # ----- SEED ESSENTIAL SYSTEM GROUPS -----
     # Using INSERT IGNORE - safe to run repeatedly (name is UNIQUE).
     # All new Ticket groups added here. Pastoral and Worship left untouched.
+    # Permission Groups for enterprise RBAC.
+    # Admins put Staff/Members into these groups to grant capabilities.
+    # INSERT IGNORE is name-unique; UPDATE below refreshes keys for known system groups.
     essential_groups = [
         (
             "Ticket Managers",
-            "Dedicated group for users who can fully manage the support ticket/helpdesk system (see ALL tickets, assign to anyone, full stats).",
+            "Full ticket/helpdesk managers (see ALL tickets, assign, stats).",
             "private",
-            '[]'   # We now use group name matching instead of permissions JSON
+            '["manage_tickets"]',
         ),
         (
             "Ticket IT Group",
-            "Handles all IT/Support tickets (computers, software, app issues). Members see and manage only IT tickets.",
+            "IT/Support tickets only (computers, software, app issues).",
             "private",
-            '[]'
+            '["submit_tickets"]',
         ),
         (
             "Ticket Maintenance Group",
-            "Handles all Building/Property tickets (repairs, cleaning, facility requests). Members see and manage only maintenance tickets.",
+            "Building/property tickets (repairs, cleaning, facility requests).",
             "private",
-            '[]'
+            '["submit_tickets"]',
         ),
         (
             "Ticket Memberships Group",
-            "Handles all Membership tickets (new members, profile updates, family linking). Members see and manage only membership tickets.",
+            "Membership tickets (new members, profile updates, family linking).",
             "private",
-            '[]'
+            '["submit_tickets"]',
         ),
         (
             "Ticket General Group",
-            "Basic/limited group for volunteers. Can see unassigned General tickets and their own assigned tickets only. Cannot assign to others.",
+            "Volunteers: unassigned General tickets and own assignments only.",
             "private",
-            '[]'
+            '["submit_tickets"]',
+        ),
+        (
+            "Finance Team",
+            "Full financials: accounting ledger, bills, and donation management. "
+            "Add only trusted finance staff.",
+            "private",
+            '["manage_accounting", "manage_bills", "manage_donations", "view_donations"]',
+        ),
+        (
+            "Donations Clerks",
+            "Record and view donations only — no full accounting suite.",
+            "private",
+            '["manage_donations", "view_donations"]',
+        ),
+        (
+            "Bills Managers",
+            "Recurring bills only (no donations management / full ledger).",
+            "private",
+            '["manage_bills"]',
         ),
         (
             "Pastoral Group",
-            "Highly sensitive group for pastoral care, counseling notes, and leadership oversight.",
+            "Pastoral care area (sensitive). Membership grants access_pastoral.",
             "private",
-            '["view_pastoral_notes", "manage_membership", "access_sensitive_data"]'
+            '["access_pastoral"]',
         ),
         (
             "Worship Team Group",
-            "Planning for services, song lists, and team rehearsals.",
+            "Worship songs, setlists, plans, and music studio.",
             "private",
-            '["view_setlists", "upload_chord_charts", "manage_rehearsals"]'
+            '["access_worship", "manage_worship"]',
         ),
         (
             "Gathering Place Managers",
@@ -118,7 +140,7 @@ def create_tables(cursor):
             "Only the Owner may add members; Admins already in this group may also add members. "
             "Regular group members cannot add others.",
             "private",
-            '["moderate_announcements", "moderate_events", "moderate_sermons", "moderate_prayers", "moderate_dreams", "moderate_prophecies"]'
+            '["moderate_announcements", "moderate_events", "moderate_sermons", "moderate_prayers", "moderate_dreams", "moderate_prophecies"]',
         ),
     ]
     for name, desc, visibility, perms in essential_groups:
@@ -126,20 +148,43 @@ def create_tables(cursor):
             INSERT IGNORE INTO groups (name, description, visibility, permissions)
             VALUES (%s, %s, %s, %s)
         """, (name, desc, visibility, perms))
-    print("Groups seeded/updated (if not already present): Ticket Managers, Ticket IT Group, Ticket Maintenance Group, Ticket Memberships Group, Ticket General Group, Pastoral Group, Worship Team Group, Gathering Place Managers.")
+    print(
+        "Groups seeded (if not already present): Ticket*, Finance Team, Donations Clerks, "
+        "Bills Managers, Pastoral Group, Worship Team Group, Gathering Place Managers."
+    )
 
-    # Stable system identifier - survives group renames in the UI
+    # Stable system keys + refresh permission JSON for known enterprise groups
+    # (does not remove members; only upgrades capability keys / system_key).
+    system_group_updates = [
+        ("Finance Team", "finance_team",
+         '["manage_accounting", "manage_bills", "manage_donations", "view_donations"]'),
+        ("Donations Clerks", "donations_clerks",
+         '["manage_donations", "view_donations"]'),
+        ("Bills Managers", "bills_managers", '["manage_bills"]'),
+        ("Pastoral Group", "pastoral", '["access_pastoral"]'),
+        ("Worship Team Group", "worship_team", '["access_worship", "manage_worship"]'),
+        ("Gathering Place Managers", "gathering_place",
+         '["moderate_announcements", "moderate_events", "moderate_sermons", "moderate_prayers", "moderate_dreams", "moderate_prophecies"]'),
+        ("Ticket Managers", "ticket_managers", '["manage_tickets"]'),
+    ]
     try:
-        cursor.execute("""
-            UPDATE groups SET system_key = 'gathering_place'
-            WHERE name = %s AND (system_key IS NULL OR system_key = '')
-        """, ("Gathering Place Managers",))
+        for name, skey, perms in system_group_updates:
+            cursor.execute(
+                """
+                UPDATE groups
+                SET system_key = COALESCE(NULLIF(system_key, ''), %s),
+                    permissions = %s,
+                    description = COALESCE(NULLIF(description, ''), description)
+                WHERE name = %s
+                """,
+                (skey, perms, name),
+            )
         cursor.execute("""
             UPDATE groups SET system_key = 'gathering_place'
             WHERE system_key IS NULL AND description LIKE %s
         """, ('%Protected system group - access to The Gathering Place Manager%',))
     except Exception as e:
-        print(f"Gathering Place system_key note: {e}")
+        print(f"System group keys/permissions update note: {e}")
 
     # Ensure Owner is in Gathering Place Managers (Owner always has access; membership keeps roster accurate)
     try:

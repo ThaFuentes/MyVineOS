@@ -54,9 +54,7 @@ REPORTS = [
 
 
 def can_use_ai_insights() -> bool:
-    role = session.get('user_role')
-    if role in ('Owner', 'Admin', 'Staff'):
-        return True
+    """Admin/Owner full access; Staff need use_ai_insights (or report-specific keys)."""
     return user_has_permission('use_ai_insights')
 
 
@@ -69,8 +67,7 @@ def _can_run_report(report_id: str) -> bool:
     perm = rep.get('permission')
     if not perm:
         return True
-    if session.get('user_role') in ('Owner', 'Admin', 'Staff'):
-        return True
+    # Report-specific data keys (Admin/Owner pass via user_has_permission full access)
     return user_has_permission(perm)
 
 

@@ -6,8 +6,8 @@
 {% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond') %}
 {% set more_active = ep.startswith(('pastoral.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) %}
 {% set show_security = can_access_security_console|default(false) %}
-{% set show_pastoral = in_pastoral_group|default(false) or session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
-{% set show_ticket_mgr = can_manage_tickets() if can_manage_tickets is defined else (session.get('user_role') in ['Admin', 'Owner']) %}
+{% set show_pastoral = in_pastoral_group|default(false) or user_has_permission('access_pastoral') %}
+{% set show_ticket_mgr = can_manage_tickets() if can_manage_tickets is defined else false %}
 
 <nav class="bottom-nav bottom-nav--sheets" aria-label="Primary mobile navigation" id="private-bottom-nav">
   <a href="{{ url_for('dashboard.dashboard') }}"
@@ -233,7 +233,7 @@
       <i class="fa-solid fa-people-roof" aria-hidden="true"></i> Gathering Manager
     </a>
     {% endif %}
-    {% if module_on('ai_insights') and endpoint_exists('ai_insights.index') and session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+    {% if module_on('ai_insights') and endpoint_exists('ai_insights.index') and (user_has_permission('view_audit_logs') or session.get('user_role') in ['Admin', 'Owner']) %}
     <a href="{{ url_for('ai_insights.index') }}" class="nav-sheet-link {{ 'active' if ep.startswith('ai_insights.') else '' }}">
       <i class="fa-solid fa-lightbulb" aria-hidden="true"></i> AI Insights
     </a>
@@ -243,7 +243,7 @@
       <i class="fa-solid fa-headset" aria-hidden="true"></i> Ticket Manager
     </a>
     {% endif %}
-    {% if module_on('change_log') and session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+    {% if module_on('change_log') and (user_has_permission('view_audit_logs') or session.get('user_role') in ['Admin', 'Owner']) %}
     <a href="{{ url_for('log.change_records') }}" class="nav-sheet-link {{ 'active' if ep.startswith('log.') else '' }}">
       <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Change Log
     </a>

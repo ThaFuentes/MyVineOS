@@ -27,14 +27,14 @@ def _uid():
 
 
 def _can_manage():
-    """Staff station managers: global roles or manage_attendance permission."""
-    role = (session.get('user_role') or '').strip()
-    if role in ('Staff', 'Admin', 'Owner'):
-        return True
+    """Station managers: Admin/Owner full access, or manage_attendance / manage_child_checkin keys."""
     try:
         from app.utils.permissions import user_has_permission as _has_perm
-        return bool(_has_perm('manage_attendance'))
-    except TypeError:
+        return bool(
+            _has_perm('manage_attendance')
+            or _has_perm('manage_child_checkin')
+        )
+    except Exception:
         # Defensive: never blow up parent portal if permission helper signature drifts
         return False
 
