@@ -6,9 +6,9 @@
 {% set church_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.', 'worship.', 'custom_modules.', 'child_checkin.', 'accounting.', 'volunteers.', 'communications.')) %}
 {% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule') %}
 {% set ministry_active = ep.startswith(('pastoral.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) %}
-{% set show_gathering = can_access_gathering_place|default(false) %}
+{% set show_gathering = session.user_role in ['Staff', 'Admin', 'Owner'] or user_has_permission('settings.ticket_managers') %}
 {% set show_security = can_access_security_console|default(false) %}
-{% set is_site_operator = session.get('user_role') in ['Admin', 'Owner'] %}
+{% set is_staff = session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
 
 <a href="{{ url_for('dashboard.dashboard') }}"
    class="{{ 'active' if ep == 'dashboard.dashboard' else '' }}">Home</a>
@@ -75,7 +75,7 @@
     {% if user_has_permission('manage_groups') %}
     <a href="{{ url_for('groups.list_groups') }}" role="menuitem" class="{{ 'active' if ep.startswith('groups.') else '' }}">Permission Groups</a>
     {% endif %}
-    {% if module_on('worship') and endpoint_exists('worship.dashboard') and can_access_worship is defined and can_access_worship %}
+    {% if module_on('worship') and can_access_worship is defined and can_access_worship %}
     <a href="{{ url_for('worship.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('worship.') else '' }}">Worship Team</a>
     {% endif %}
     {% for cm in dashboard_custom_modules or [] %}
@@ -89,7 +89,7 @@
     Ministry <span class="nav-caret" aria-hidden="true">▾</span>
   </button>
   <div class="nav-group-menu" role="menu">
-    {% if in_pastoral_group or user_has_permission('access_pastoral') %}
+    {% if in_pastoral_group or is_staff %}
     <a href="{{ url_for('pastoral.dashboard_pastoral') }}" role="menuitem" class="{{ 'active' if ep.startswith('pastoral.') else '' }}">Pastoral</a>
     <a href="{{ url_for('pastoral.sermons.list') }}" role="menuitem" class="{{ 'active' if 'pastoral.sermons' in ep else '' }}">Sermon Library</a>
     <a href="{{ url_for('pastoral.bible.bible_study') }}" role="menuitem" class="{{ 'active' if 'pastoral.bible' in ep else '' }}">Bible Study (pastoral)</a>
@@ -97,13 +97,13 @@
     {% if module_on('gathering_manager') and show_gathering %}
     <a href="{{ url_for('the_gathering.index') }}" role="menuitem" class="{{ 'active' if ep.startswith('the_gathering.') else '' }}">Gathering Manager</a>
     {% endif %}
-    {% if module_on('ai_insights') and endpoint_exists('ai_insights.index') and user_has_permission('use_ai_insights') %}
+    {% if module_on('ai_insights') and endpoint_exists('ai_insights.index') and is_staff %}
     <a href="{{ url_for('ai_insights.index') }}" role="menuitem" class="{{ 'active' if ep.startswith('ai_insights.') else '' }}">AI Insights</a>
     {% endif %}
-    {% if module_on('ticket_manager') and can_manage_tickets is defined and can_manage_tickets() %}
+    {% if module_on('ticket_manager') and (is_staff or (can_manage_tickets is defined and can_manage_tickets())) %}
     <a href="{{ url_for('tickets.manager_dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('tickets.') else '' }}">Ticket Manager</a>
     {% endif %}
-    {% if module_on('change_log') and (user_has_permission('view_audit_logs') or is_site_operator) %}
+    {% if module_on('change_log') and is_staff %}
     <a href="{{ url_for('log.change_records') }}" role="menuitem" class="{{ 'active' if ep.startswith('log.') else '' }}">Change Log</a>
     {% endif %}
     {% if show_security %}

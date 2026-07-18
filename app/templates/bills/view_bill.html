@@ -196,7 +196,7 @@ Billing record and secure credential vault for {{ bill.bill_name }} - payment sc
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn-primary">Record Payment</button>
-                {% if expense_accounts and user_has_permission('manage_accounting') %}
+                {% if expense_accounts and (user_has_permission('manage_accounting')) %}
                 <a href="{{ url_for('accounting.expenses') }}" class="btn-secondary">View expenses ledger</a>
                 {% endif %}
             </div>

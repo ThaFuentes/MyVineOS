@@ -54,7 +54,7 @@ REPORTS = [
 
 
 def can_use_ai_insights() -> bool:
-    """Admin/Owner full access; Staff need use_ai_insights (or report-specific keys)."""
+    # Admin/Owner full access via user_has_permission; Staff needs use_ai_insights group key
     return user_has_permission('use_ai_insights')
 
 
@@ -67,7 +67,7 @@ def _can_run_report(report_id: str) -> bool:
     perm = rep.get('permission')
     if not perm:
         return True
-    # Report-specific data keys (Admin/Owner pass via user_has_permission full access)
+    # Report-specific keys; Admin/Owner pass via full access in user_has_permission
     return user_has_permission(perm)
 
 

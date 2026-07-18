@@ -45,7 +45,7 @@ def can_manage_members() -> bool:
 
 
 def can_manage_users() -> bool:
-    """Owner always; Admin via full access; Staff only with manage_users group key."""
+    """Owner/Admin/Staff always True via permission layer; Owner is absolute."""
     if session.get('user_role') == 'Owner':
         return True
     return user_has_permission('manage_users')
@@ -110,11 +110,9 @@ def can_moderate_account(target, actor_id, actor_role) -> bool:
         return False
     if target['role'] == 'Admin':
         return actor_role == 'Owner'
-    # Staff targets: Admin/Owner or anyone with manage_users (not bare Staff role)
     if target['role'] == 'Staff':
-        return actor_role in ('Admin', 'Owner') or can_manage_users()
-    # Members etc.: need manage_users (Admin/Owner pass via full access)
-    return can_manage_users()
+        return actor_role in ('Staff', 'Admin', 'Owner')
+    return actor_role in ('Staff', 'Admin', 'Owner')
 
 
 def get_assignable_groups(cur, user_id, user_role):
@@ -122,9 +120,21 @@ def get_assignable_groups(cur, user_id, user_role):
     cur.execute("SELECT id, name, description, permissions FROM groups ORDER BY name")
     all_groups = cur.fetchall()
 
-    # Admin/Owner or manage_users / manage_groups: full roster assignment
-    if user_role in ('Admin', 'Owner') or can_manage_users() or user_has_permission('manage_groups'):
-        return list(all_groups)
+    if user_role in ('Staff', 'Admin', 'Owner') or can_manage_users():
+        available = []
+        for g in all_groups:
+            try:
+                perms = json.loads(g['permissions'] or '[]')
+            except (TypeError, json.JSONDecodeError):
+                perms = []
+            if (
+                user_role == 'Owner'
+                or user_role in perms
+                or (not perms and user_role in ('Staff', 'Admin', 'Owner'))
+                or can_manage_users()
+            ):
+                available.append(g)
+        return available
 
     if can_manage_members():
         from app.routes.groups.gathering_place import can_manage_group_members
@@ -140,11 +150,9 @@ def get_assignable_groups(cur, user_id, user_role):
 # Role Permission Helpers
 # ----------------------------------------------------------------------
 def get_allowed_roles(current_role):
-    """Return list of roles the current user is allowed to assign to new members.
-    Promoting to Staff requires manage_users (or Admin/Owner). Bare Staff role alone is not enough.
-    """
+    """Return list of roles the current user is allowed to assign to new members."""
     allowed = ['Member']
-    if current_role in ['Admin', 'Owner'] or can_manage_users():
+    if current_role in ['Staff', 'Admin', 'Owner']:
         allowed.append('Staff')
     if current_role in ['Admin', 'Owner']:
         allowed.append('Admin')
