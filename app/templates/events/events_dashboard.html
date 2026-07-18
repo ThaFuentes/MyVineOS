@@ -42,7 +42,7 @@ Overview of all church events.<br>
   </div>
 </div>
 
-{% if user_has_permission('manage_events') or user_has_permission('create_events') or user_has_permission('moderate_events') %}
+{% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
 <div class="form-actions add-event-top">
     <a href="{{ url_for('events.add_event') }}" class="btn-primary">+ Add New Event</a>
 </div>
@@ -86,7 +86,7 @@ Overview of all church events.<br>
                     <th>Location</th>
                     <th>Visibility</th>
                     <th>Potluck?</th>
-                    {% if user_has_permission('manage_events') or user_has_permission('create_events') or user_has_permission('moderate_events') %}
+                    {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
                     <th>Actions</th>
                     {% endif %}
                 </tr>
@@ -109,11 +109,13 @@ Overview of all church events.<br>
                         <td>{{ event.location or 'TBD' }}</td>
                         <td>{{ event.visibility|capitalize }}</td>
                         <td>{{ 'Yes' if event.potluck_enabled else 'No' }}</td>
-                        {% if user_has_permission('manage_events') or user_has_permission('create_events') or user_has_permission('moderate_events') %}
+                        {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
                         <td class="actions-cell">
                             <div class="actions-buttons" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:nowrap;">
                                 <a href="{{ url_for('events.edit_event', event_id=event.id) }}" class="btn-primary btn-small">Edit</a>
                                 <form action="{{ url_for('events.delete_event', event_id=event.id) }}" method="post" class="inline-form" style="display:inline;">
+    {% include 'partials/csrf_field.html' %}
+
                                     <button type="submit" class="btn-danger btn-small"
                                             onclick="return confirm('Are you sure you want to delete this event? This action cannot be undone.');">
                                         Delete
@@ -126,7 +128,7 @@ Overview of all church events.<br>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="{{ 5 if not user_has_permission('manage_events') or user_has_permission('create_events') or user_has_permission('moderate_events') else 6 }}" class="no-data">
+                        <td colspan="{{ 5 if not session.user_role in ['Staff', 'Admin', 'Owner'] else 6 }}" class="no-data">
                             {% if not is_logged_in %}
                                 No public events scheduled at this time.<br>
                                 <a href="{{ url_for('auth.login') }}">Log in</a> to view private events.

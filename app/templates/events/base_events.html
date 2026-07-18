@@ -29,7 +29,7 @@
     <a {% if request.endpoint == 'events.events' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
        href="{{ url_for('events.events') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Events Dashboard</a>
 
-    {% if user_has_permission('manage_events') or user_has_permission('create_events') or user_has_permission('moderate_events') %}
+    {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
         <a {% if request.endpoint in ['events.add_event', 'events.edit_event'] %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
            href="{{ url_for('events.add_event') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Event</a>
     {% endif %}
