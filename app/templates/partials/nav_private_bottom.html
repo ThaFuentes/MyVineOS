@@ -156,7 +156,7 @@
       <i class="fa-solid fa-people-group" aria-hidden="true"></i> Permission Groups
     </a>
     {% endif %}
-    {% if module_on('worship') and can_access_worship %}
+    {% if module_on('worship') and endpoint_exists('worship.dashboard') and can_access_worship %}
     <a href="{{ url_for('worship.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('worship.') else '' }}">
       <i class="fa-solid fa-music" aria-hidden="true"></i> Worship Team
     </a>
