@@ -134,7 +134,7 @@
     <span class="dash-tile-label">Pastoral</span>
   </a>
   {% endif %}
-  {% if module_on('worship') and can_access_worship %}
+  {% if module_on('worship') and endpoint_exists('worship.dashboard') and can_access_worship %}
   <a href="{{ url_for('worship.dashboard') }}" class="glass-panel dash-tile dash-tile-worship">
     <span class="dash-tile-icon"><i class="fa-solid fa-music" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Worship</span>
