@@ -200,7 +200,7 @@ def group_role_label(role: str) -> str:
 
 
 def can_assign_group_manager_role() -> bool:
-    """Only site Owner, Admin, or Staff may promote someone to Group Manager."""
+    """Only site Owner/Admin (full operators) may promote someone to Group Manager."""
     return is_global_manager()
 
 
@@ -208,8 +208,12 @@ def can_assign_group_manager_role() -> bool:
 # Permission Helpers
 # ----------------------------------------------------------------------
 def is_global_manager():
-    """True if user has global management rights (Staff/Admin/Owner)."""
-    return session.get('user_role') in ['Staff', 'Admin', 'Owner']
+    """
+    Full site operators (Owner + Admin) who can edit any permission group matrix.
+    Staff never auto-qualifies — Admins assign Staff capabilities via groups.
+    """
+    from app.utils.permissions import role_has_full_access
+    return role_has_full_access(session.get('user_role'))
 
 
 def is_group_leader(group_id: int, user_id: int) -> bool:
@@ -332,9 +336,10 @@ def build_group_permissions_context(cur, user_id: int, user_role: str, current_p
     Template context for the enterprise permission editor with delegation rules.
     Group managers see only grantable permissions as editable; higher perms stay locked.
     """
-    from app.utils.permissions import get_grantable_permissions, get_all_app_permission_keys
+    from app.utils.permissions import get_grantable_permissions, get_all_app_permission_keys, role_has_full_access
 
-    global_manager = (user_role or '') in ['Staff', 'Admin', 'Owner']
+    # Admin/Owner may grant any key; Staff only keys they already hold
+    global_manager = role_has_full_access(user_role)
     grantable = get_grantable_permissions(cur, user_id, user_role)
     current = [p for p in (current_permissions or []) if p]
     locked = [] if global_manager else [p for p in current if p not in grantable]
@@ -386,9 +391,9 @@ def resolve_group_permissions(
     submitted_permissions: list,
 ) -> list:
     """Validate and sanitize submitted group permissions for the acting user."""
-    from app.utils.permissions import get_grantable_permissions, sanitize_group_permissions
+    from app.utils.permissions import get_grantable_permissions, sanitize_group_permissions, role_has_full_access
 
-    global_manager = (user_role or '') in ['Staff', 'Admin', 'Owner']
+    global_manager = role_has_full_access(user_role)
     grantable = get_grantable_permissions(cur, user_id, user_role)
     return sanitize_group_permissions(
         existing_permissions,

@@ -1,10 +1,18 @@
-# myvinechurchonline/app/utils/permissions.py
-# Full path: myvinechurchonline/app/utils/permissions.py
-# File name: permissions.py
-# Brief, detailed purpose: Central helper to check if current user has a specific permission.
-# Checks global high roles first (Staff/Admin/Owner always have all permissions), then user's groups.
-# Fully compatible with current MariaDB/pymysql setup (%s placeholders, DictCursor via get_db).
-# Used both in routes (guards) and templates (via context processor inject_permissions in __init__.py).
+# app/utils/permissions.py
+# Enterprise capability checks for MyVine.
+#
+# MODEL (how it is supposed to work)
+# ----------------------------------
+# 1) Site ROLE (Member / Staff / Admin / Owner) = account tier, not a free buffet of features.
+# 2) GROUPS hold capability keys (manage_bills, manage_accounting, access_worship, …).
+# 3) Effective permissions = union of all group permission lists for that user.
+# 4) FULL ACCESS bypass: Owner (and Admin) only — they can always fix the site.
+# 5) Staff and Member: ONLY what their groups grant. No automatic “Staff sees everything.”
+#
+# Example:
+#   Put Alice (Staff) in group "Finance Team" with manage_accounting + manage_bills.
+#   Put Bob (Staff) in "Worship Team" with access_worship + manage_worship.
+#   Bob does not see Accounting. Alice does not see Worship management.
 
 import json
 import re
@@ -13,7 +21,11 @@ from flask import session
 from app.models.db import get_db
 import pymysql
 
-GLOBAL_MANAGER_ROLES = frozenset(['Staff', 'Admin', 'Owner'])
+# Full bypass of permission keys (site operators who must never be locked out).
+FULL_ACCESS_ROLES = frozenset(['Owner', 'Admin'])
+
+# Legacy name kept for imports; do NOT put Staff here.
+GLOBAL_MANAGER_ROLES = FULL_ACCESS_ROLES
 
 APP_ACCESS_KEY_RE = re.compile(r'^access_app_[a-z0-9_]{1,48}$')
 APP_MANAGE_KEY_RE = re.compile(r'^manage_app_[a-z0-9_]{1,48}$')
@@ -65,9 +77,14 @@ def _union_group_permissions(cur, user_id: int) -> set[str]:
     return effective
 
 
+def role_has_full_access(user_role: str | None) -> bool:
+    """Owner/Admin only — not Staff."""
+    return (user_role or '') in FULL_ACCESS_ROLES
+
+
 def get_user_effective_permissions(cur, user_id: int, user_role: str | None = None) -> set[str]:
     role = user_role if user_role is not None else session.get('user_role')
-    if role in GLOBAL_MANAGER_ROLES:
+    if role_has_full_access(role):
         return set(_known_permission_keys()) | set(get_all_app_permission_keys(cur))
     if not user_id:
         return set()
@@ -105,7 +122,7 @@ def sanitize_group_permissions(
 def user_has_permission_for_user(cur, user_id: int, user_role: str | None, permission_key: str) -> bool:
     if not user_id:
         return False
-    if (user_role or '') in GLOBAL_MANAGER_ROLES:
+    if role_has_full_access(user_role):
         return True
     if not is_valid_permission_key(permission_key):
         return False
@@ -115,16 +132,15 @@ def user_has_permission_for_user(cur, user_id: int, user_role: str | None, permi
 def user_has_permission(permission_key: str) -> bool:
     """
     Return True if the current user has the specified permission.
-    - Owner: always True (full reign)
-    - Staff/Admin: always True (global manager override)
-    - Otherwise: check group permissions JSON arrays
+    - Owner / Admin: always True (full site operators)
+    - Staff / Member: only keys granted via Permission Groups
     """
     user_id = session.get('user_id')
     if not user_id:
         return False
 
     role = session.get('user_role')
-    if role == 'Owner' or role in GLOBAL_MANAGER_ROLES:
+    if role_has_full_access(role):
         return True
 
     try:
@@ -137,7 +153,7 @@ def user_has_permission(permission_key: str) -> bool:
             role = (row or {}).get('role')
             if role:
                 session['user_role'] = role
-            if role == 'Owner' or role in GLOBAL_MANAGER_ROLES:
+            if role_has_full_access(role):
                 return True
         return user_has_permission_for_user(cur, user_id, role, permission_key)
     except Exception as e:

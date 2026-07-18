@@ -34,20 +34,28 @@ pastoral_bp = Blueprint(
 # --------------------------------------------------------------------------
 def has_pastoral_permission(user_id: Optional[int], required_permission: Optional[str] = None) -> bool:
     """
-    Core check: user must be in the Pastoral Group.
-    Future-proof for granular permissions.
+    Pastoral area gate:
+    - Owner/Admin: always
+    - access_pastoral group permission
+    - membership in Pastoral Group (system_key / name)
+    Staff do NOT auto-enter pastoral without a group or key.
     """
     if not user_id:
         return False
 
-    if not is_in_pastoral_group(user_id):
-        return False
+    from app.utils.permissions import role_has_full_access, user_has_permission
 
-    if required_permission:
-        # TODO: future granular check when permissions table exists
-        pass
+    if role_has_full_access(session.get('user_role')):
+        return True
+    if user_has_permission('access_pastoral'):
+        return True
+    if is_in_pastoral_group(user_id):
+        return True
 
-    return True
+    if required_permission and user_has_permission(required_permission):
+        return True
+
+    return False
 
 
 def pastoral_required(permission: Optional[str] = None) -> Callable:
@@ -159,7 +167,6 @@ try:
 except (ImportError, AttributeError):
     pass
 
-# Curriculum studio (pastoral course builder → member /study catalog)
 try:
     from .curriculum import curriculum_bp
     pastoral_bp.register_blueprint(curriculum_bp)

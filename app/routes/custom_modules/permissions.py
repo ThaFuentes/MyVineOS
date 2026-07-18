@@ -18,7 +18,8 @@ def _is_in_group(user_id: int, group_id: int) -> bool:
 def can_view_module(module: dict, user_id: int, user_role: str, is_logged_in: bool) -> bool:
     if not module or not module.get('is_enabled'):
         return False
-    if (user_role or '') in ('Owner', 'Admin', 'Staff'):
+    # Owner/Admin full access; Staff must match visibility / group like members
+    if (user_role or '') in ('Owner', 'Admin'):
         return True
 
     visibility = module.get('visibility', 'members')
@@ -37,7 +38,7 @@ def can_view_module(module: dict, user_id: int, user_role: str, is_logged_in: bo
 def can_manage_module(module: dict, user_id: int, user_role: str) -> bool:
     if not module or not module.get('is_enabled'):
         return False
-    if (user_role or '') in ('Owner', 'Admin', 'Staff'):
+    if (user_role or '') in ('Owner', 'Admin'):
         return True
     if not user_id:
         return False

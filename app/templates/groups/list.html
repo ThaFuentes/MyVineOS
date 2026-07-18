@@ -31,7 +31,7 @@
             <h2 class="section-title">All Permission Groups</h2>
 
             <!-- Top Add Button -->
-            {% if session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+            {% if user_has_permission('manage_groups') %}
             <div class="form-actions add-event-top">
                 <a href="{{ url_for('groups.create_group') }}" class="btn-primary">+ Create New Permission Group</a>
             </div>

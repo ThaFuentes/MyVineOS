@@ -34,7 +34,7 @@ Staff and above can upload new sermons.
   </div>
 </div>
 
-{% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
+{% if user_has_permission('upload_sermons') or user_has_permission('moderate_sermons') %}
 <div class="form-actions add-event-top">
     <a href="{{ url_for('sermons.upload_sermon') }}" class="btn-primary">+ Upload New Sermon</a>
 </div>
@@ -109,7 +109,7 @@ Staff and above can upload new sermons.
                         <!-- View + Edit + Delete -->
                         <a href="{{ url_for('sermons.view_sermon', sermon_id=s.id) }}" class="btn-small btn-secondary">View</a>
 
-                        {% if session.user_role in ['Staff', 'Admin', 'Owner'] or session.user_id == s.uploaded_by %}
+                        {% if user_has_permission('upload_sermons') or user_has_permission('moderate_sermons') or session.user_id == s.uploaded_by %}
                         <a href="{{ url_for('sermons.edit_sermon', sermon_id=s.id) }}" class="btn-small btn-primary">Edit</a>
                         <form action="{{ url_for('sermons.delete_sermon', sermon_id=s.id) }}" method="post" style="display:inline;">
     {% include 'partials/csrf_field.html' %}

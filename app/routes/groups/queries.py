@@ -17,8 +17,8 @@ from .utils import KNOWN_PERMISSIONS
 # Permission Helpers (exact same as original)
 # ----------------------------------------------------------------------
 def is_global_manager():
-    """True if user has global management rights (Staff/Admin/Owner)."""
-    return session.get('user_role') in ['Staff', 'Admin', 'Owner']
+    """Owner/Admin only — Staff uses Permission Groups, not automatic full access."""
+    return session.get('user_role') in ['Admin', 'Owner']
 
 
 def is_group_leader(group_id: int, user_id: int) -> bool:

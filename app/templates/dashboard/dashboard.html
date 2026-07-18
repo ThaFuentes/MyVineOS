@@ -128,7 +128,7 @@
     <span class="dash-tile-label">Permission Groups</span>
   </a>
   {% endif %}
-  {% if in_pastoral_group or session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+  {% if in_pastoral_group or user_has_permission('access_pastoral') %}
   <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="glass-panel dash-tile dash-tile-gathering">
     <span class="dash-tile-icon"><i class="fa-solid fa-cross" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Pastoral</span>
@@ -146,7 +146,7 @@
     <span class="dash-tile-label">Gathering</span>
   </a>
   {% endif %}
-  {% if module_on('ai_insights') and endpoint_exists('ai_insights.index') and session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+  {% if module_on('ai_insights') and endpoint_exists('ai_insights.index') and user_has_permission('use_ai_insights') %}
   <a href="{{ url_for('ai_insights.index') }}" class="glass-panel dash-tile dash-tile-settings">
     <span class="dash-tile-icon"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></span>
     <span class="dash-tile-label">AI Insights</span>
