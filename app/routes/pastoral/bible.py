@@ -30,6 +30,7 @@ from app.models.pastoral.bible import (
     import_strongs_lexicon,
     import_strongs_occurrences,
     normalize_book_name,
+    book_to_slug,
     get_default_translation_code,
 )
 from app.models.pastoral.bible_online import (
@@ -341,19 +342,27 @@ def online_translations():
         return jsonify({'translations': [], 'ok': False, 'error': str(e)}), 502
 
 
+@bible_bp.route('/chapter/<path:book>/<int:chapter>')
 @bible_bp.route('/chapter/<book>/<int:chapter>')
 @pastoral_required()
 def bible_chapter(book, chapter):
-    """Local install if available; otherwise stream from online Bible API (no bulk download)."""
+    """Local install if available; otherwise stream from online Bible API (no bulk download).
+
+    Book may be a display name ('1 Samuel'), slug ('1-samuel'), or USFM ('1SA').
+    Path converter accepts encoded spaces and hyphenated numbered books.
+    """
     user_id = session.get('user_id')
     translation = request.args.get('translation')
-    book = normalize_book_name(book)
+    # Prefer explicit query override (most reliable for numbered books)
+    book = normalize_book_name(request.args.get('book') or book)
     try:
         data = get_unified_chapter(book, chapter, translation=translation, user_id=user_id)
     except Exception as e:
         return jsonify({'error': str(e), 'book': book, 'chapter': chapter}), 404
     if not data or not data.get('verses'):
         abort(404)
+    if data.get('book'):
+        data['book_slug'] = book_to_slug(data['book'])
     return jsonify(data)
 
 
@@ -603,12 +612,13 @@ def bible_favorite_delete(favorite_id):
     return jsonify({'ok': delete_favorite(session['user_id'], favorite_id)})
 
 
+@bible_bp.route('/verse/<path:book>/<int:chapter>/<int:verse>')
 @bible_bp.route('/verse/<book>/<int:chapter>/<int:verse>')
 @pastoral_required()
 def bible_verse(book, chapter, verse):
     """Single-verse payload (local install or online stream) for popups / inserts."""
     translation = request.args.get('translation')
-    book = normalize_book_name(book)
+    book = normalize_book_name(request.args.get('book') or book)
     try:
         data = get_unified_chapter(
             book, chapter, translation=translation, user_id=session.get('user_id')

@@ -22,7 +22,21 @@
     {{ request.title or request.request_type|capitalize }}
   </div>
   <div style="display:grid; grid-template-columns: 120px 1fr; gap:0.35rem 0.6rem; font-size:0.92rem;">
-    <div style="opacity:0.65;">Member</div><div>{{ request.member_name }}</div>
+    <div style="opacity:0.65;">Person</div>
+    <div>
+      {{ request.member_name or request.person_display or 'Unknown' }}
+      {% if not request.member_id %}
+        <span style="font-size:0.72rem; padding:0.1rem 0.4rem; border-radius:999px; background:rgba(0,229,255,0.12); color:#7dd3fc; margin-left:0.25rem;">Non-member</span>
+      {% else %}
+        <span style="font-size:0.72rem; padding:0.1rem 0.4rem; border-radius:999px; background:rgba(255,255,255,0.08); margin-left:0.25rem;">Member</span>
+      {% endif %}
+    </div>
+    {% if request.person_phone or request.member_phone %}
+    <div style="opacity:0.65;">Phone</div><div>{{ request.person_phone or request.member_phone }}</div>
+    {% endif %}
+    {% if request.person_email or request.member_email %}
+    <div style="opacity:0.65;">Email</div><div>{{ request.person_email or request.member_email }}</div>
+    {% endif %}
     <div style="opacity:0.65;">Type</div><div>{{ request.request_type|capitalize }}</div>
     <div style="opacity:0.65;">Urgency</div><div><span style="padding:0.1rem 0.4rem; border-radius:999px; background:rgba(255,180,80,0.2); font-size:0.8rem;">{{ request.urgency|capitalize }}</span></div>
     <div style="opacity:0.65;">Status</div><div><span style="padding:0.1rem 0.4rem; border-radius:999px; background:rgba(255,255,255,0.1); font-size:0.8rem;">{{ request.status|replace('_',' ')|capitalize }}</span></div>

@@ -36,6 +36,7 @@ from app.models.pastoral.service_plans import (
     delete_template, get_template_assignments,
     get_default_assignments, save_default_assignments,
     get_plan_for_date, get_template_for_weekday,
+    get_volunteer_team_role_names, cohesive_service_role_names,
     _normalize_time
 )
 from app.models.log import log_change
@@ -463,7 +464,9 @@ def defaults():
     return render_template(
         'pastoral/planning_defaults.html',
         defaults=defaults,
-        assignable_users=assignable_users
+        assignable_users=assignable_users,
+        volunteer_team_roles=get_volunteer_team_role_names(),
+        cohesive_roles=cohesive_service_role_names(),
     )
 
 

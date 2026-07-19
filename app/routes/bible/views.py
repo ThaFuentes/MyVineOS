@@ -14,6 +14,7 @@ from app.models.pastoral.bible import (
     search_strongs_lexicon,
     get_strongs_occurrences,
     normalize_book_name,
+    book_to_slug,
     get_default_translation_code,
 )
 from app.models.pastoral.bible_online import (
@@ -214,12 +215,16 @@ def member_search():
     return jsonify({'verses': bible_search(query, translation, limit)})
 
 
+@bible_bp.route('/chapter/<path:book>/<int:chapter>')
 @bible_bp.route('/chapter/<book>/<int:chapter>')
 def member_chapter(book, chapter):
-    """Public chapter text + Strong's + cross-refs. Annotations only when logged in."""
+    """Public chapter text + Strong's + cross-refs. Annotations only when logged in.
+
+    Numbered books (1 Samuel, 1 John, …) are accepted as slugs ('1-samuel') or names.
+    """
     user_id = session.get('user_id')
     translation = request.args.get('translation')
-    book = normalize_book_name(book)
+    book = normalize_book_name(request.args.get('book') or book)
     try:
         data = get_unified_chapter(
             book,
@@ -232,6 +237,8 @@ def member_chapter(book, chapter):
         return jsonify({'error': str(e), 'book': book, 'chapter': chapter}), 404
     if not data or not data.get('verses'):
         abort(404)
+    if data.get('book'):
+        data['book_slug'] = book_to_slug(data['book'])
     if not user_id:
         # Explicit empty personal data for guests (no DB personalization)
         data.setdefault('highlights', [])
@@ -241,12 +248,13 @@ def member_chapter(book, chapter):
     return jsonify(data)
 
 
+@bible_bp.route('/verse/<path:book>/<int:chapter>/<int:verse>')
 @bible_bp.route('/verse/<book>/<int:chapter>/<int:verse>')
 def member_verse(book, chapter, verse):
     """Public single-verse payload (text + Strong's)."""
     user_id = session.get('user_id')
     translation = request.args.get('translation')
-    book = normalize_book_name(book)
+    book = normalize_book_name(request.args.get('book') or book)
     try:
         data = get_unified_chapter(
             book,

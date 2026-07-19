@@ -60,7 +60,12 @@
   <div class="item-card">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
       <div style="flex:1;">
-        <div style="font-weight:600; font-size:1.02rem;">{{ req.member_name }}</div>
+        <div style="font-weight:600; font-size:1.02rem;">
+          {{ req.member_name or req.person_display or 'Unknown' }}
+          {% if not req.member_id or req.is_member == 0 %}
+            <span style="font-size:0.72rem; padding:0.1rem 0.45rem; border-radius:999px; background:rgba(0,229,255,0.12); color:#7dd3fc; font-weight:500;">Non-member</span>
+          {% endif %}
+        </div>
         <div style="opacity:0.75; font-size:0.82rem;">{{ req.request_type|capitalize }} • {{ req.created_at|relative_time }}</div>
         <div style="margin:0.35rem 0 0.25rem;">
           {% if req.title %}<strong>{{ req.title }}</strong>{% else %}<em style="opacity:0.6;">No title - see details</em>{% endif %}

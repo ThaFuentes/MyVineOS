@@ -75,7 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
         chapterDiv.innerHTML = '<p class="text-muted small">Loading chapter...</p>';
 
         try {
-            const resp = await fetch(`/pastoral/bible/chapter/${encodeURIComponent(book)}/${chapter}${currentTranslation ? '?translation=' + currentTranslation : ''}`);
+            const slug = String(book || '').trim().toLowerCase().replace(/[_\s]+/g, '-').replace(/[^a-z0-9-]/g, '') || 'john';
+            let url = `/pastoral/bible/chapter/${encodeURIComponent(slug)}/${chapter}?book=${encodeURIComponent(book)}`;
+            if (currentTranslation) url += `&translation=${encodeURIComponent(currentTranslation)}`;
+            const resp = await fetch(url);
             if (!resp.ok) throw new Error('Chapter load failed');
 
             const data = await resp.json();

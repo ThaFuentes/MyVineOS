@@ -3,9 +3,32 @@
 <div class="glass-panel" style="padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.88rem;">
   <strong>Public / sanctuary links</strong> (share token links - no login)
   <ul style="margin:0.5rem 0 0; padding-left:1.1rem;">
-    <li><strong>Auditorium screen</strong> (titles only): <a href="{{ url_for('worship.public_screen', token=public_token) }}" target="_blank">{{ url_for('worship.public_screen', token=public_token, _external=True) }}</a></li>
-    <li><strong>Prompter</strong> (full lyrics): <a href="{{ url_for('worship.public_prompter', token=public_token) }}" target="_blank">{{ url_for('worship.public_prompter', token=public_token, _external=True) }}</a></li>
+    <li><strong>Auditorium screen</strong> (titles only):
+      <a href="{{ url_for('worship.public_screen', token=public_token) }}" target="_blank">{{ url_for('worship.public_screen', token=public_token, _external=True) }}</a>
+    </li>
+    <li><strong>Prompter</strong> (full band / lyrics):
+      <a href="{{ url_for('worship.public_prompter', token=public_token) }}" target="_blank">{{ url_for('worship.public_prompter', token=public_token, _external=True) }}</a>
+    </li>
   </ul>
+  <div style="margin-top:0.65rem; opacity:0.9;">
+    <strong>Musician prompters</strong> (each instrument chart):
+    <div style="display:flex; flex-wrap:wrap; gap:0.35rem; margin-top:0.4rem;">
+      {% for ck, label in [
+        ('lead_vocal', 'Lead vocals'),
+        ('harmony_vocal', 'Harmony'),
+        ('lead_guitar', 'Lead guitar'),
+        ('rhythm_guitar', 'Rhythm guitar'),
+        ('bass', 'Bass'),
+        ('keys', 'Keys'),
+        ('drums', 'Drums'),
+        ('lyrics', 'Lyrics only'),
+      ] %}
+      <a class="btn btn-secondary" style="font-size:0.78rem; padding:0.25rem 0.55rem;"
+         href="{{ url_for('worship.public_prompter', token=public_token, chart=ck) }}"
+         target="_blank">{{ label }}</a>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 {% endif %}
 {% endmacro %}

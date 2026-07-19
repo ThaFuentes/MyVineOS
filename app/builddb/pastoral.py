@@ -284,11 +284,14 @@ def create_tables(cursor):
         except Exception as e:
             print(f" Warning: Could not seed default Preacher: {e}")
 
-    # Pastoral Care module tables
+    # Pastoral Care module tables (member OR non-member person)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pastoral_care_requests (
             id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            member_id INT UNSIGNED NOT NULL,
+            member_id INT UNSIGNED NULL,
+            person_name VARCHAR(160) NULL,
+            person_phone VARCHAR(40) NULL,
+            person_email VARCHAR(160) NULL,
             request_type VARCHAR(50) NOT NULL,
             title TEXT,
             description TEXT NOT NULL,
@@ -297,10 +300,41 @@ def create_tables(cursor):
             submitted_by INT UNSIGNED,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE SET NULL,
             FOREIGN KEY (submitted_by) REFERENCES users(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """)
+    # Migrations for existing installs: nullable member_id + non-member contact fields
+    try:
+        cursor.execute("""
+            SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'pastoral_care_requests'
+              AND COLUMN_NAME = 'member_id'
+        """)
+        row = cursor.fetchone()
+        if row and str(row[0] if not isinstance(row, dict) else row.get('IS_NULLABLE')).upper() == 'NO':
+            cursor.execute("ALTER TABLE pastoral_care_requests MODIFY COLUMN member_id INT UNSIGNED NULL")
+            print("Migration: pastoral_care_requests.member_id now nullable (non-members supported)")
+    except Exception as e:
+        print(f"  (skip care member_id nullable: {e})")
+    for col, coldef in (
+        ('person_name', 'VARCHAR(160) NULL'),
+        ('person_phone', 'VARCHAR(40) NULL'),
+        ('person_email', 'VARCHAR(160) NULL'),
+    ):
+        try:
+            cursor.execute("""
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'pastoral_care_requests'
+                  AND COLUMN_NAME = %s
+            """, (col,))
+            if not cursor.fetchone():
+                cursor.execute(f"ALTER TABLE pastoral_care_requests ADD COLUMN {col} {coldef}")
+                print(f"Migration: Added pastoral_care_requests.{col}")
+        except Exception as e:
+            print(f"  (skip care {col}: {e})")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pastoral_care_assignments (
             id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

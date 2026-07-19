@@ -362,39 +362,79 @@ def save_chart(
     user_id: int,
     chart_id: int | None = None,
 ) -> int:
-    """Create or update one role chart."""
+    """Create or update one role chart. Never wipe sections on empty partial posts."""
     ensure_charts_table()
     from app.models.worship.sections import parse_lyrics_to_sections
 
-    sections = normalize_sections(data.get('sections') or [], data.get('lyrics_raw'))
-    if not sections and data.get('lyrics_raw'):
-        sections = parse_lyrics_to_sections(data['lyrics_raw'])
-    for i, sec in enumerate(sections):
-        if not sec.get('id'):
-            sec['id'] = f"s{uuid.uuid4().hex[:8]}"
-        sec['sort'] = i + 1
-    valid_ids = {s.get('id') for s in sections if s.get('id')}
-    play_order = parse_play_order(data.get('play_order'))
-    play_order = [sid for sid in play_order if sid in valid_ids]
-    if not play_order:
-        play_order = default_play_order_from_sections(sections)
+    existing = None
+    if chart_id:
+        existing = get_chart(chart_id)
+    if not existing:
+        existing = get_chart_by_key(song_id, chart_key)
 
-    display_name = (data.get('display_name') or chart_key).strip()[:120]
-    family = (data.get('instrument_family') or 'full').strip()[:32]
-    notation = (data.get('notation') or 'chordpro').strip()[:24]
-    notes = (data.get('notes') or '').strip() or None
-    capo = data.get('capo')
+    sections_in = data.get('sections')
+    lyrics_in = data.get('lyrics_raw')
+    sections_provided = isinstance(sections_in, list) and len(sections_in) > 0
+    lyrics_provided = bool(lyrics_in and str(lyrics_in).strip())
+
+    if existing and not sections_provided and not lyrics_provided:
+        # Metadata-only update: keep existing chart body
+        sections = existing.get('sections') or []
+        play_order = existing.get('play_order') or default_play_order_from_sections(sections)
+    else:
+        sections = normalize_sections(sections_in or [], lyrics_in)
+        if not sections and lyrics_in:
+            sections = parse_lyrics_to_sections(lyrics_in)
+        if existing and not sections:
+            sections = existing.get('sections') or []
+            play_order = existing.get('play_order') or default_play_order_from_sections(sections)
+        else:
+            for i, sec in enumerate(sections):
+                if not sec.get('id'):
+                    sec['id'] = f"s{uuid.uuid4().hex[:8]}"
+                sec['sort'] = i + 1
+            # Preserve layers from existing sections when ids match
+            if existing:
+                by_id = {s.get('id'): s for s in (existing.get('sections') or []) if s.get('id')}
+                for sec in sections:
+                    old = by_id.get(sec.get('id'))
+                    if old and old.get('layers') and not sec.get('layers'):
+                        sec['layers'] = old['layers']
+            valid_ids = {s.get('id') for s in sections if s.get('id')}
+            play_order = parse_play_order(data.get('play_order'))
+            play_order = [sid for sid in play_order if sid in valid_ids]
+            if not play_order:
+                play_order = default_play_order_from_sections(sections)
+
+    display_name = (data.get('display_name') or (existing or {}).get('display_name') or chart_key).strip()[:120]
+    family = (data.get('instrument_family') or (existing or {}).get('instrument_family') or 'full').strip()[:32]
+    notation = (data.get('notation') or (existing or {}).get('notation') or 'chordpro').strip()[:24]
+    if 'notes' in data:
+        notes = (data.get('notes') or '').strip() or None
+    else:
+        notes = (existing or {}).get('notes')
+    capo = data.get('capo') if 'capo' in data else (existing or {}).get('capo')
     try:
         capo = int(capo) if capo not in (None, '') else None
     except (TypeError, ValueError):
         capo = None
-    show_chords = 1 if data.get('show_chords', True) else 0
-    show_lyrics = 1 if data.get('show_lyrics', True) else 0
-    is_primary = 1 if data.get('is_primary') else 0
+    if 'show_chords' in data:
+        show_chords = 1 if data.get('show_chords') else 0
+    else:
+        show_chords = 1 if (existing or {}).get('show_chords', True) else 0
+    if 'show_lyrics' in data:
+        show_lyrics = 1 if data.get('show_lyrics') else 0
+    else:
+        show_lyrics = 1 if (existing or {}).get('show_lyrics', True) else 0
+    if 'is_primary' in data:
+        is_primary = 1 if data.get('is_primary') else 0
+    else:
+        is_primary = 1 if (existing or {}).get('is_primary') else 0
 
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
-    if chart_id:
+    if chart_id or (existing and existing.get('id')):
+        chart_id = int(chart_id or existing['id'])
         cur.execute("SELECT id FROM worship_song_charts WHERE id = %s AND song_id = %s", (chart_id, song_id))
         if not cur.fetchone():
             raise ValueError('Chart not found for this song.')
