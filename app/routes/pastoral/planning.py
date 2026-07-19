@@ -37,7 +37,7 @@ from app.models.pastoral.service_plans import (
     get_default_assignments, save_default_assignments,
     get_plan_for_date, get_template_for_weekday,
     get_volunteer_team_role_names, cohesive_service_role_names,
-    build_full_service_assignments,
+    build_full_service_assignments, assignments_for_display,
     _normalize_time
 )
 from app.models.log import log_change
@@ -54,16 +54,32 @@ planning_bp = Blueprint('planning', __name__, url_prefix='/planning')
 def index():
     today = datetime.today().date()
 
-    # Generate upcoming effective plans (next 365 days)
+    # Generate upcoming effective plans (next 90 days for speed; full roster enrichment)
     upcoming_plans = []
     override_dates = set()
-    for days in range(365):
+    # Live volunteer teams for the overview chips
+    try:
+        from app.models.volunteers import list_teams
+        volunteer_teams = list_teams(active_only=True) or []
+    except Exception:
+        volunteer_teams = []
+
+    for days in range(90):
         check_date = today + timedelta(days=days)
         date_str = check_date.strftime('%Y-%m-%d')
         plan = get_plan_for_date(date_str)
         if plan:
+            plan = dict(plan)
             plan['source_badge'] = 'Override' if plan.get('source') == 'override' else 'Template'
             plan['source_class'] = 'bg-success' if plan.get('source') == 'override' else 'bg-primary'
+            # Full live roster; list only shows filled people (no empty noise)
+            try:
+                full = build_full_service_assignments(plan.get('assignments') or [], date_str=date_str)
+                plan['assignments'] = full
+                plan['roster_filled'] = assignments_for_display(full, only_filled=True)
+            except Exception as exc:
+                print(f'planning.index roster: {exc}')
+                plan['roster_filled'] = []
             upcoming_plans.append(plan)
             if plan.get('source') == 'override':
                 override_dates.add(date_str)
@@ -96,7 +112,8 @@ def index():
         'pastoral/planning_list.html',
         upcoming_plans=upcoming_plans,
         calendar_months=calendar_months,
-        today=today
+        today=today,
+        volunteer_teams=volunteer_teams,
     )
 
 
@@ -195,16 +212,31 @@ def edit(date_str):
                 'assignments': [],
             }
 
-    # ALWAYS expand to full Sunday roster:
-    # all volunteer teams + worship/band roles; fill from plan → worship defaults → pastoral defaults
-    # Unassigned roles stay listed empty — user does not re-add them every time.
+    # ALWAYS expand from LIVE app data:
+    # Volunteer Teams + Worship defaults + date volunteer schedule. Role names locked (not typed).
     try:
-        plan['assignments'] = build_full_service_assignments(plan.get('assignments') or [])
+        plan['assignments'] = build_full_service_assignments(
+            plan.get('assignments') or [],
+            date_str=date_str,
+        )
     except Exception as exc:
         print(f'planning.edit build_full_service_assignments: {exc}')
         plan['assignments'] = plan.get('assignments') or []
 
     assignments = plan['assignments']
+    roster_by_kind = {
+        'pastoral': [a for a in assignments if (a.get('kind') or '') == 'pastoral'],
+        'worship': [a for a in assignments if (a.get('kind') or '') == 'worship'],
+        'volunteer': [a for a in assignments if (a.get('kind') or '') == 'volunteer'],
+    }
+    # Fallback if kind missing (older rows)
+    if not any(roster_by_kind.values()):
+        roster_by_kind = {'pastoral': [], 'worship': [], 'volunteer': assignments}
+    try:
+        from app.models.volunteers import list_teams
+        volunteer_teams = list_teams(active_only=True) or []
+    except Exception:
+        volunteer_teams = []
 
     # Dummy recurrence vars for old template
     future_count = 0
@@ -258,7 +290,9 @@ def edit(date_str):
         today=today,
         linkable_sermons=linkable_sermons,
         assignments=assignments,
+        roster_by_kind=roster_by_kind,
         assignable_users=assignable_users,
+        volunteer_teams=volunteer_teams,
         future_count=future_count,
         last_future_date=last_future_date
     )

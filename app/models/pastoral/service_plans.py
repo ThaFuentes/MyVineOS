@@ -744,24 +744,120 @@ def _assignment_lookup(rows) -> dict:
     return out
 
 
-def build_full_service_assignments(existing=None) -> list[dict]:
+def _uid_ok(uid) -> int | None:
+    if uid in (None, '', 0, '0', 'None'):
+        return None
+    try:
+        return int(uid)
+    except (TypeError, ValueError):
+        return None
+
+
+def volunteer_people_for_date(date_str: str) -> dict[str, dict]:
     """
-    Build the FULL service-day role list for plan edit / defaults.
+    Map team_name_lower -> {user_id, user_full_name, source} from volunteer
+    events scheduled that day (accepted/pending preferred).
+    """
+    out = {}
+    if not date_str:
+        return out
+    try:
+        from app.models import volunteers as vol
+        events = vol.list_events(from_date=date_str, to_date=date_str, limit=50) or []
+        for ev in events:
+            team_name = (ev.get('team_name') or '').strip()
+            if not team_name:
+                continue
+            key = team_name.lower()
+            assigns = vol.list_assignments(int(ev['id'])) or []
+            # Prefer accepted, then pending, then anything with a user
+            ordered = sorted(
+                assigns,
+                key=lambda a: (
+                    0 if (a.get('status') or '') == 'accepted' else
+                    1 if (a.get('status') or '') == 'pending' else 2
+                ),
+            )
+            for a in ordered:
+                uid = _uid_ok(a.get('user_id'))
+                if not uid:
+                    continue
+                name = ' '.join(filter(None, [
+                    (a.get('first_name') or '').strip(),
+                    (a.get('last_name') or '').strip(),
+                ])).strip() or a.get('user_full_name')
+                out[key] = {
+                    'user_id': uid,
+                    'user_full_name': name or None,
+                    'source': 'volunteer',
+                    'status': a.get('status'),
+                }
+                break
+    except Exception as exc:
+        print(f'volunteer_people_for_date: {exc}')
+    return out
 
-    Every role shows up:
+
+def _picker_options_for_role(kind: str, team_id: int | None = None) -> list[dict]:
+    """People you can pick for this role — never free-type the team name."""
+    options = []
+    seen = set()
+
+    def _add(uid, label, note=''):
+        uid = _uid_ok(uid)
+        if not uid or uid in seen:
+            return
+        seen.add(uid)
+        options.append({'id': uid, 'label': label, 'note': note})
+
+    try:
+        if kind == 'volunteer' and team_id:
+            from app.models import volunteers as vol
+            for m in vol.list_team_members(int(team_id)) or []:
+                name = f"{m.get('first_name') or ''} {m.get('last_name') or ''}".strip()
+                pref = (m.get('preferred_role_name') or '').strip()
+                _add(m.get('user_id'), name or f"User #{m.get('user_id')}", pref)
+        elif kind == 'worship':
+            from app.models.worship.shared import get_worship_team_members
+            for m in get_worship_team_members() or []:
+                name = f"{m.get('first_name') or ''} {m.get('last_name') or ''}".strip()
+                _add(m.get('id'), name or m.get('username') or f"User #{m.get('id')}",
+                     'Leader' if (m.get('role_in_group') or '') == 'leader' else '')
+        else:
+            # Preacher / pastoral — pastoral group + staff
+            db = get_db()
+            cur = db.cursor(pymysql.cursors.DictCursor)
+            cur.execute("""
+                SELECT DISTINCT u.id, u.first_name, u.last_name, u.username
+                FROM users u
+                LEFT JOIN user_groups ug ON ug.user_id = u.id
+                LEFT JOIN groups g ON g.id = ug.group_id
+                WHERE COALESCE(u.role,'') NOT IN ('banned','pending')
+                  AND (
+                        g.name = 'Pastoral Group' OR g.system_key = 'pastoral'
+                     OR u.role IN ('Owner','Admin','Staff')
+                  )
+                ORDER BY u.last_name, u.first_name
+            """)
+            for u in cur.fetchall() or []:
+                name = f"{u.get('first_name') or ''} {u.get('last_name') or ''}".strip()
+                _add(u['id'], name or u.get('username') or f"User #{u['id']}")
+    except Exception as exc:
+        print(f'_picker_options_for_role {kind}: {exc}')
+    return options
+
+
+def build_full_service_assignments(existing=None, date_str: str | None = None) -> list[dict]:
+    """
+    Live roster from the app — not free-text roles.
+
+    Sources (locked role labels, never typed):
       - Preacher
-      - Worship Leader, Vocals, Guitar, Bass, Keys, Drums, Sound, Slides (+ custom worship)
-      - Greeters, Ushers, Parking, Kids Check-In, Hospitality, Tech / Media, Prayer Team (+ live vol teams)
+      - Worship → Default Roles + Worship Team members as pickers
+      - Volunteers → Teams (Greeters, Ushers, …) as locked team rows + team-member pickers
+      - Volunteer schedule for that date fills people when already assigned
 
-    Who is filled (first match wins):
-      1) existing plan / template assignment for that role (if person set)
-      2) Worship Team defaults (worship_default_assignments) for band/WL
-      3) Pastoral global defaults
-      4) Worship group leader for "Worship Leader" only
-      5) empty (role still listed, unassigned)
-
-    Never drops a volunteer or worship role just because nobody is assigned.
-    Extra custom roles already on the plan are kept at the end.
+    Role names are ALWAYS from teams/worship — you only pick a person.
     """
     try:
         ensure_default_assignment_schema()
@@ -771,91 +867,113 @@ def build_full_service_assignments(existing=None) -> list[dict]:
 
     existing = existing or []
     existing_by = _assignment_lookup(existing)
-
-    # Pastoral defaults (may already include synced worship people)
     try:
-        pastoral_defaults = get_default_assignments()
+        pastoral_by = _assignment_lookup(get_default_assignments())
     except Exception:
-        pastoral_defaults = []
-    pastoral_by = _assignment_lookup(pastoral_defaults)
-
+        pastoral_by = {}
     worship_by = _assignment_lookup(get_worship_default_assignments())
     wl_fallback = get_primary_worship_leader_user_id()
+    vol_day = volunteer_people_for_date(date_str) if date_str else {}
 
-    def _pick_person(role: str) -> dict:
+    # Live volunteer teams (the real list from /volunteers/)
+    vol_teams = []
+    try:
+        from app.models import volunteers as vol
+        vol_teams = vol.list_teams(active_only=True) or []
+    except Exception as exc:
+        print(f'build_full list_teams: {exc}')
+        for name in get_volunteer_team_role_names():
+            vol_teams.append({'id': None, 'name': name, 'color': '#60a5fa', 'member_count': 0})
+
+    # Worship roles from defaults + standard band list
+    worship_role_names = list(SERVICE_WORSHIP_ROLES)
+    for w in worship_by.values():
+        rn = (w.get('role_name') or '').strip()
+        if rn and rn not in worship_role_names:
+            worship_role_names.append(rn)
+
+    worship_pickers = _picker_options_for_role('worship')
+    pastoral_pickers = _picker_options_for_role('pastoral')
+
+    def _resolve(role: str, kind: str, team_id=None, color=None, pickers=None) -> dict:
         key = role.lower()
-        # 1) Existing plan row — keep explicit guest or user
+        uid = None
+        guest = None
+        full = None
+        source = 'empty'
+
         ex = existing_by.get(key)
         if ex:
-            uid = ex.get('user_id')
+            uid = _uid_ok(ex.get('user_id'))
             guest = (ex.get('guest_name') or '').strip() or None
-            if uid not in (None, '', 0, '0') or guest:
-                return {
-                    'role_name': role,
-                    'user_id': int(uid) if uid not in (None, '', 0, '0') else None,
-                    'guest_name': guest if not uid else None,
-                    'user_full_name': ex.get('user_full_name'),
-                    'source': ex.get('source') or 'plan',
-                }
+            full = ex.get('user_full_name')
+            if uid or guest:
+                source = ex.get('source') or 'plan'
 
-        # 2) Worship defaults (band / WL)
-        w = worship_by.get(key)
-        if w and w.get('user_id'):
-            return {
-                'role_name': role,
-                'user_id': int(w['user_id']),
-                'guest_name': None,
-                'user_full_name': w.get('user_full_name'),
-                'source': 'worship',
-            }
+        if not uid and kind == 'volunteer' and key in vol_day:
+            uid = vol_day[key]['user_id']
+            full = vol_day[key].get('user_full_name')
+            source = 'volunteer'
 
-        # 3) Pastoral defaults
-        p = pastoral_by.get(key)
-        if p and (p.get('user_id') or (p.get('guest_name') or '').strip()):
-            uid = p.get('user_id')
-            guest = (p.get('guest_name') or '').strip() or None
-            return {
-                'role_name': role,
-                'user_id': int(uid) if uid not in (None, '', 0, '0') else None,
-                'guest_name': guest if not uid else None,
-                'user_full_name': p.get('user_full_name'),
-                'source': p.get('source') or 'pastoral',
-            }
+        if not uid and kind == 'worship':
+            w = worship_by.get(key)
+            if w and w.get('user_id'):
+                uid = _uid_ok(w['user_id'])
+                full = w.get('user_full_name')
+                source = 'worship'
+            elif key == 'worship leader' and wl_fallback:
+                uid = int(wl_fallback)
+                source = 'worship'
 
-        # 4) Worship Leader from group if still empty
-        if key == 'worship leader' and wl_fallback:
-            return {
-                'role_name': role,
-                'user_id': int(wl_fallback),
-                'guest_name': None,
-                'user_full_name': None,
-                'source': 'worship',
-            }
+        if not uid:
+            p = pastoral_by.get(key)
+            if p:
+                uid = _uid_ok(p.get('user_id'))
+                guest = guest or ((p.get('guest_name') or '').strip() or None)
+                full = full or p.get('user_full_name')
+                if uid or guest:
+                    source = p.get('source') or 'pastoral'
 
-        # 5) Empty slot — role still present
+        pickers = pickers if pickers is not None else []
+        # Ensure selected person appears in picker even if not on team list
+        if uid and not any(int(o['id']) == int(uid) for o in pickers):
+            pickers = list(pickers) + [{'id': uid, 'label': full or f'User #{uid}', 'note': 'assigned'}]
+
         return {
             'role_name': role,
-            'user_id': None,
-            'guest_name': None,
-            'user_full_name': None,
-            'source': 'empty',
+            'user_id': uid,
+            'guest_name': guest if not uid else None,
+            'user_full_name': full,
+            'source': source,
+            'kind': kind,
+            'team_id': team_id,
+            'team_color': color or ('#00e5ff' if kind == 'worship' else '#a78bfa' if kind == 'pastoral' else '#34d399'),
+            'locked': True,  # role label is not free-text
+            'picker_options': pickers,
+            'is_filled': bool(uid or guest),
         }
 
-    # Resolve names for filled user_ids in one query
-    roles = cohesive_service_role_names()
-    # Keep any extra custom roles already on the plan (not in standard list)
-    standard_keys = {r.lower() for r in roles}
-    extras = []
-    for a in existing:
-        role = (a.get('role_name') or '').strip()
-        if role and role.lower() not in standard_keys:
-            extras.append(role)
-            standard_keys.add(role.lower())
+    built = []
+    # 1) Preacher
+    built.append(_resolve('Preacher', 'pastoral', pickers=pastoral_pickers))
+    # 2) Worship band roles
+    for role in worship_role_names:
+        built.append(_resolve(role, 'worship', pickers=worship_pickers))
+    # 3) Every volunteer team from /volunteers/ — never typed by hand
+    for t in vol_teams:
+        name = (t.get('name') or '').strip()
+        if not name:
+            continue
+        tid = t.get('id')
+        pickers = _picker_options_for_role('volunteer', team_id=tid) if tid else pastoral_pickers
+        built.append(_resolve(
+            name, 'volunteer',
+            team_id=tid,
+            color=t.get('color') or '#34d399',
+            pickers=pickers,
+        ))
 
-    ordered_roles = roles + extras
-    built = [_pick_person(r) for r in ordered_roles]
-
-    # Attach display names for any missing user_full_name
+    # Names for any missing labels
     need_ids = [b['user_id'] for b in built if b.get('user_id') and not (b.get('user_full_name') or '').strip()]
     if need_ids:
         try:
@@ -874,6 +992,14 @@ def build_full_service_assignments(existing=None) -> list[dict]:
             print(f'build_full_service_assignments names: {exc}')
 
     return built
+
+
+def assignments_for_display(assignments: list, *, only_filled: bool = False) -> list[dict]:
+    """Filter for list cards: hide empty roles when only_filled=True."""
+    rows = assignments or []
+    if only_filled:
+        return [a for a in rows if a.get('is_filled') or a.get('user_id') or (a.get('guest_name') or '').strip()]
+    return rows
 
 
 def _upsert_default_role(role_name: str, user_id=None, guest_name=None, *, overwrite_user: bool = False):
