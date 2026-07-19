@@ -973,6 +973,52 @@ def build_full_service_assignments(existing=None, date_str: str | None = None) -
             pickers=pickers,
         ))
 
+    # 4) Custom / one-off roles already saved on this plan (not a standard team/worship slot)
+    standard_keys = {(b.get('role_name') or '').strip().lower() for b in built}
+    # Broad picker for custom rows: pastoral + worship + all team members
+    custom_pickers = list(pastoral_pickers)
+    seen_custom = {p['id'] for p in custom_pickers}
+    for p in worship_pickers:
+        if p['id'] not in seen_custom:
+            custom_pickers.append(p)
+            seen_custom.add(p['id'])
+    for t in vol_teams:
+        tid = t.get('id')
+        if not tid:
+            continue
+        for p in _picker_options_for_role('volunteer', team_id=tid):
+            if p['id'] not in seen_custom:
+                custom_pickers.append(p)
+                seen_custom.add(p['id'])
+
+    for a in existing:
+        role = (a.get('role_name') or '').strip()
+        if not role:
+            continue
+        key = role.lower()
+        if key in standard_keys:
+            continue
+        standard_keys.add(key)
+        uid = _uid_ok(a.get('user_id'))
+        guest = (a.get('guest_name') or '').strip() or None
+        full = a.get('user_full_name')
+        pickers = list(custom_pickers)
+        if uid and not any(int(o['id']) == int(uid) for o in pickers):
+            pickers.append({'id': uid, 'label': full or f'User #{uid}', 'note': 'assigned'})
+        built.append({
+            'role_name': role,
+            'user_id': uid,
+            'guest_name': guest if not uid else None,
+            'user_full_name': full,
+            'source': a.get('source') or 'plan',
+            'kind': 'custom',
+            'team_id': None,
+            'team_color': '#fbbf24',
+            'locked': False,  # custom rows can rename / remove
+            'picker_options': pickers,
+            'is_filled': bool(uid or guest),
+        })
+
     # Names for any missing labels
     need_ids = [b['user_id'] for b in built if b.get('user_id') and not (b.get('user_full_name') or '').strip()]
     if need_ids:

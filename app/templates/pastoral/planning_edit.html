@@ -5,7 +5,7 @@
 
 {% block extra_head %}
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/planning.css') }}?v=20260719plan2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/planning.css') }}?v=20260719plan3">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -17,7 +17,8 @@
           {{ plan.service_date.strftime('%A, %B %d, %Y') if plan.service_date else 'Service plan' }}
         </h1>
         <p class="page-description" style="margin:0; opacity:0.8;">
-          Roles come from <strong>Volunteer Teams</strong> and <strong>Worship defaults</strong> — pick people, don’t retype team names.
+          <strong>Teams &amp; worship roles are always listed</strong> from the app.
+          Need something else for this date? Use <strong>Add extra role</strong> below.
         </p>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
@@ -95,39 +96,56 @@
         <i class="fa-solid fa-users" aria-hidden="true"></i> Who is serving
       </h2>
       <p style="margin:0 0 1rem; font-size:0.9rem; opacity:0.8;">
-        Team names are locked from <a href="{{ url_for('volunteers.teams_list') }}">Volunteers</a>
-        and <a href="{{ url_for('worship.defaults') }}">Worship defaults</a>.
-        Only choose the person. Pre-filled when already set in Worship or volunteer schedule for this date.
+        Standard roles come from <a href="{{ url_for('volunteers.teams_list') }}">Volunteers</a>
+        and <a href="{{ url_for('worship.defaults') }}">Worship</a> — pick the person only.
+        For one-off needs (nursery overflow, guest host, etc.) use <strong>Add extra role</strong>.
       </p>
 
       {% set sections = [
         ('pastoral', 'Pastoral', 'fa-book-bible'),
         ('worship', 'Worship team', 'fa-music'),
         ('volunteer', 'Volunteer teams', 'fa-handshake'),
+        ('custom', 'Extra roles (this date)', 'fa-plus'),
       ] %}
 
       {% for kind, label, icon in sections %}
       {% set rows = roster_by_kind.get(kind, []) if roster_by_kind is defined else [] %}
-      {% if rows %}
-      <div class="plan-roster-section" style="margin-bottom:1.25rem;">
-        <h3 style="margin:0 0 0.65rem; font-size:0.95rem; opacity:0.95;">
-          <i class="fa-solid {{ icon }}" aria-hidden="true"></i> {{ label }}
-        </h3>
-        <div style="display:flex; flex-direction:column; gap:0.55rem;">
+      {% if rows or kind == 'custom' %}
+      <div class="plan-roster-section" style="margin-bottom:1.25rem;" {% if kind == 'custom' %}id="extra-roles-section"{% endif %}>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; justify-content:space-between; margin-bottom:0.65rem;">
+          <h3 style="margin:0; font-size:0.95rem; opacity:0.95;">
+            <i class="fa-solid {{ icon }}" aria-hidden="true"></i> {{ label }}
+          </h3>
+          {% if kind == 'custom' %}
+          <button type="button" id="add-extra-role-btn" class="btn btn-primary" style="font-size:0.85rem; min-height:38px;">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i> Add extra role
+          </button>
+          {% endif %}
+        </div>
+        <div id="{% if kind == 'custom' %}extra-roles-container{% else %}roles-{{ kind }}{% endif %}"
+             style="display:flex; flex-direction:column; gap:0.55rem;">
           {% for assignment in rows %}
-          <div class="plan-role-card glass-panel" style="padding:0.75rem 0.9rem; margin:0; border-left:4px solid {{ assignment.team_color or 'var(--primary)' }};">
+          <div class="plan-role-card glass-panel" style="padding:0.75rem 0.9rem; margin:0; border-left:4px solid {{ assignment.team_color or 'var(--primary)' }};" data-role-row="1">
+            {% if assignment.locked %}
             <input type="hidden" name="role_name" value="{{ assignment.role_name }}">
+            {% endif %}
             <div style="display:flex; flex-wrap:wrap; gap:0.65rem; align-items:center; justify-content:space-between;">
-              <div style="min-width:140px;">
+              <div style="min-width:140px; flex:1 1 140px;">
+                {% if assignment.locked %}
                 <div style="font-weight:700;">{{ assignment.role_name }}</div>
                 <div style="font-size:0.75rem; opacity:0.65;">
-                  {% if assignment.kind == 'volunteer' %}From Volunteers module
+                  {% if assignment.kind == 'volunteer' %}From Volunteers
                   {% elif assignment.kind == 'worship' %}From Worship
                   {% else %}Pastoral{% endif %}
                   {% if assignment.source and assignment.source != 'empty' %}
                     · filled via {{ assignment.source }}
                   {% endif %}
                 </div>
+                {% else %}
+                <label class="control-label" style="margin:0 0 0.25rem;">Role name</label>
+                <input type="text" name="role_name" class="form-input" required
+                       value="{{ assignment.role_name }}" placeholder="e.g. Nursery helper, Guest host">
+                {% endif %}
               </div>
               <div style="flex:1; min-width:200px;">
                 <label class="visually-hidden" for="user-{{ kind }}-{{ loop.index0 }}">Person for {{ assignment.role_name }}</label>
@@ -150,18 +168,51 @@
                   {% endif %}
                 </select>
               </div>
-              <div style="flex:1; min-width:160px;">
+              <div style="flex:1; min-width:140px;">
                 <input type="text" name="guest_name" class="form-input" style="width:100%;"
-                       placeholder="Guest only (not a member)"
+                       placeholder="Guest (not a member)"
                        value="{{ assignment.guest_name or '' }}">
               </div>
+              {% if not assignment.locked %}
+              <button type="button" class="btn btn-secondary remove-extra-role-btn" style="font-size:0.8rem;" title="Remove this extra role">Remove</button>
+              {% endif %}
             </div>
           </div>
+          {% else %}
+            {% if kind == 'custom' %}
+            <p id="extra-roles-empty" class="text-muted" style="margin:0; font-size:0.88rem; opacity:0.7;">
+              No extra roles yet. Click <strong>Add extra role</strong> for something not covered by teams.
+            </p>
+            {% endif %}
           {% endfor %}
         </div>
       </div>
       {% endif %}
       {% endfor %}
+
+      <!-- Template for JS "Add extra role" (not submitted until cloned & filled) -->
+      <template id="extra-role-template">
+        <div class="plan-role-card glass-panel" style="padding:0.75rem 0.9rem; margin:0; border-left:4px solid #fbbf24;" data-role-row="1">
+          <div style="display:flex; flex-wrap:wrap; gap:0.65rem; align-items:center; justify-content:space-between;">
+            <div style="min-width:140px; flex:1 1 140px;">
+              <label class="control-label" style="margin:0 0 0.25rem;">Role name</label>
+              <input type="text" name="role_name" class="form-input" placeholder="e.g. Nursery helper, Guest host">
+            </div>
+            <div style="flex:1; min-width:200px;">
+              <select name="user_id" class="form-input" style="width:100%;">
+                <option value="">— Unassigned —</option>
+                {% for user in assignable_users %}
+                <option value="{{ user.id }}">{{ user.full_name }}{% if user.username %} ({{ user.username }}){% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="flex:1; min-width:140px;">
+              <input type="text" name="guest_name" class="form-input" style="width:100%;" placeholder="Guest (not a member)">
+            </div>
+            <button type="button" class="btn btn-secondary remove-extra-role-btn" style="font-size:0.8rem;">Remove</button>
+          </div>
+        </div>
+      </template>
 
       {% if not plan.assignments %}
       <p class="text-muted">No teams loaded. Create teams under <a href="{{ url_for('volunteers.teams_list') }}">Volunteers</a> first.</p>
@@ -190,6 +241,37 @@
       document.getElementById('notes-hidden').value = quill.root.innerHTML;
     });
   }
+
+  const addBtn = document.getElementById('add-extra-role-btn');
+  const container = document.getElementById('extra-roles-container');
+  const tpl = document.getElementById('extra-role-template');
+  const emptyHint = document.getElementById('extra-roles-empty');
+
+  function addExtraRole() {
+    if (!container || !tpl) return;
+    if (emptyHint) emptyHint.remove();
+    const node = tpl.content.cloneNode(true);
+    container.appendChild(node);
+    const input = container.querySelector('.plan-role-card:last-child input[name="role_name"]');
+    if (input) input.focus();
+  }
+
+  if (addBtn) addBtn.addEventListener('click', addExtraRole);
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.remove-extra-role-btn');
+    if (!btn) return;
+    const row = btn.closest('[data-role-row]');
+    if (row) row.remove();
+    if (container && !container.querySelector('[data-role-row]') && emptyHint === null) {
+      const p = document.createElement('p');
+      p.className = 'text-muted';
+      p.style.cssText = 'margin:0; font-size:0.88rem; opacity:0.7;';
+      p.id = 'extra-roles-empty';
+      p.innerHTML = 'No extra roles yet. Click <strong>Add extra role</strong> for something not covered by teams.';
+      container.appendChild(p);
+    }
+  });
 })();
 </script>
 {% endblock %}

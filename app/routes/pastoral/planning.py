@@ -228,10 +228,11 @@ def edit(date_str):
         'pastoral': [a for a in assignments if (a.get('kind') or '') == 'pastoral'],
         'worship': [a for a in assignments if (a.get('kind') or '') == 'worship'],
         'volunteer': [a for a in assignments if (a.get('kind') or '') == 'volunteer'],
+        'custom': [a for a in assignments if (a.get('kind') or '') == 'custom'],
     }
     # Fallback if kind missing (older rows)
     if not any(roster_by_kind.values()):
-        roster_by_kind = {'pastoral': [], 'worship': [], 'volunteer': assignments}
+        roster_by_kind = {'pastoral': [], 'worship': [], 'volunteer': assignments, 'custom': []}
     try:
         from app.models.volunteers import list_teams
         volunteer_teams = list_teams(active_only=True) or []
