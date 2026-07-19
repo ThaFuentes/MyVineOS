@@ -1,11 +1,14 @@
 {# Single role assignment row - member OR free-text guest speaker (no member required). #}
+{% set _uid = assignment.user_id if assignment else none %}
+{% set _role = assignment.role_name if assignment else '' %}
+{% set _src = assignment.source if assignment and assignment.source is defined else '' %}
 
 <div class="input-group mb-3 assignment-row" role="group" aria-label="Role assignment row" style="flex-wrap:wrap; gap:0.35rem;">
     <input type="text"
            name="role_name"
            class="form-control form-control-dark"
            placeholder="e.g. Preacher, Worship Leader, Sound Tech"
-           value="{{ assignment.role_name if assignment else '' }}"
+           value="{{ _role }}"
            aria-label="Role name"
            style="min-width:140px; flex:1 1 140px;">
 
@@ -15,8 +18,8 @@
         <option value="">Unassigned / use guest name -></option>
         {% for user in assignable_users %}
             <option value="{{ user.id }}"
-                    {% if assignment and assignment.user_id == user.id %}selected{% endif %}>
-                {{ user.full_name }} ({{ user.username }})
+                    {% if _uid is not none and _uid|string == user.id|string %}selected{% endif %}>
+                {{ user.full_name }}{% if user.username %} ({{ user.username }}){% endif %}
             </option>
         {% endfor %}
     </select>
@@ -37,6 +40,11 @@
         <span class="visually-hidden">Remove</span>
     </button>
     <small class="text-muted w-100" style="font-size:0.75rem;">
-        Leave member Unassigned and type a guest name for guest speakers. Notes on the plan also show on the public welcome page.
+        {% if _src == 'worship' %}
+          <span style="color:#7dd3fc;">Worship Team default</span> — synced from Worship → Default Roles.
+          Change the person under Worship for band roles, or set Preacher/volunteers here.
+        {% else %}
+          Leave member Unassigned and type a guest name for guest speakers.
+        {% endif %}
     </small>
 </div>
