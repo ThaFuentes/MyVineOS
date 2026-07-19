@@ -127,33 +127,34 @@
                             </small>
                         </div>
 
-                        <!-- Role Assignments -->
+                        <!-- Role Assignments: full Sunday roster every time -->
                         <div class="mb-5">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                 <h5 class="text-cyan mb-0">Role Assignments</h5>
                                 <button type="button" id="add-role-btn" class="btn btn-outline-cyan">
-                                    <i class="fas fa-plus me-2"></i>Add Role
+                                    <i class="fas fa-plus me-2"></i>Add Extra Role
                                 </button>
                             </div>
 
-                            {% if not plan.id %}
-                            <div class="alert alert-info py-3 mb-4">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>New override:</strong> Roles pre-filled from your
-                                <a href="{{ url_for('pastoral.planning.defaults') }}" class="alert-link">
-                                    Global Default Role Assignments
-                                </a>.
-                                Edit here for this date only.
+                            <div class="alert alert-info py-3 mb-4" style="font-size:0.92rem;">
+                                <strong>Full Sunday roster</strong> — always listed here so you do not rebuild it:
+                                <ul class="mb-1 mt-2" style="padding-left:1.2rem;">
+                                    <li><strong>Worship</strong> (Leader, Vocals, Guitar, Bass, Keys, Drums, Sound, Slides) — filled from <em>Worship → Default Roles</em> when set</li>
+                                    <li><strong>Volunteers</strong> (Greeters, Ushers, Parking, Kids Check-In, Hospitality, Tech / Media, Prayer Team) — empty until you assign</li>
+                                    <li><strong>Preacher</strong> and any custom roles already on this plan</li>
+                                </ul>
+                                Unassigned rows stay blank. Change people for this date only; Save keeps the whole list.
                             </div>
-                            {% endif %}
 
                             <div id="assignments-container">
                                 {% for assignment in plan.assignments %}
                                     {% include "pastoral/planning_assignment_row.html" %}
+                                {% else %}
+                                    <p class="text-muted">No roles loaded. Click Add Extra Role or reopen this page.</p>
                                 {% endfor %}
 
                                 <!-- Hidden row for dynamic add -->
-                                <div class="assignment-row d-none">
+                                <div class="assignment-row d-none" data-template="1" aria-hidden="true">
                                     {% with assignment=none %}
                                         {% include "pastoral/planning_assignment_row.html" %}
                                     {% endwith %}
@@ -192,22 +193,37 @@
 
     document.getElementById('add-role-btn').addEventListener('click', function() {
         const container = document.getElementById('assignments-container');
-        const templateRow = container.querySelector('.assignment-row.d-none').cloneNode(true);
-        templateRow.classList.remove('d-none');
-        templateRow.querySelector('input[name="role_name"]').value = '';
-        templateRow.querySelector('select[name="user_id"]').selectedIndex = 0;
-        container.appendChild(templateRow);
+        const templateRow = container.querySelector('.assignment-row.d-none[data-template="1"]')
+            || container.querySelector('.assignment-row.d-none');
+        if (!templateRow) return;
+        const row = templateRow.cloneNode(true);
+        row.classList.remove('d-none');
+        row.removeAttribute('data-template');
+        row.removeAttribute('aria-hidden');
+        const name = row.querySelector('input[name="role_name"]');
+        if (name) name.value = '';
+        const sel = row.querySelector('select[name="user_id"]');
+        if (sel) sel.selectedIndex = 0;
+        const guest = row.querySelector('input[name="guest_name"]');
+        if (guest) guest.value = '';
+        container.insertBefore(row, templateRow);
     });
 
     document.getElementById('assignments-container').addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-role-btn')) {
-            const row = e.target.closest('.assignment-row');
-            if (document.querySelectorAll('#assignments-container .assignment-row:not(.d-none)').length > 1) {
-                row.remove();
-            } else {
-                row.querySelector('input[name="role_name"]').value = '';
-                row.querySelector('select[name="user_id"]').selectedIndex = 0;
-            }
+        const btn = e.target.closest('.remove-role-btn');
+        if (!btn) return;
+        const row = btn.closest('.assignment-row');
+        if (!row || row.classList.contains('d-none')) return;
+        const visible = document.querySelectorAll('#assignments-container .assignment-row:not(.d-none)');
+        if (visible.length > 1) {
+            row.remove();
+        } else {
+            const name = row.querySelector('input[name="role_name"]');
+            const sel = row.querySelector('select[name="user_id"]');
+            const guest = row.querySelector('input[name="guest_name"]');
+            if (name) name.value = '';
+            if (sel) sel.selectedIndex = 0;
+            if (guest) guest.value = '';
         }
     });
 </script>
