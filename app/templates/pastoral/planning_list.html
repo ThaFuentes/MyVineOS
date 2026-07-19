@@ -102,9 +102,11 @@
     <div class="item-card" style="margin-bottom:0.65rem;">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; flex-wrap:wrap;">
         <div style="flex:1; min-width:200px;">
-          <div style="font-weight:600;">{{ plan.service_date.strftime('%A, %B %d') }}</div>
+          <div style="font-weight:600;">
+            {% if plan.service_date is string %}{{ plan.service_date }}{% else %}{{ plan.service_date.strftime('%A, %B %d') }}{% endif %}
+          </div>
           <div style="font-size:0.8rem; opacity:0.75;">
-            {{ plan.start_time.strftime('%I:%M %p')|lower if plan.start_time else 'Time TBD' }}
+            {% if plan.start_time %}{% if plan.start_time is string %}{{ plan.start_time[:5] }}{% else %}{{ plan.start_time.strftime('%I:%M %p')|lower }}{% endif %}{% else %}Time TBD{% endif %}
             · <span style="padding:0 0.3rem; background:rgba(255,255,255,0.08); border-radius:4px; font-size:0.7rem;">{{ plan.source_badge }}</span>
           </div>
           <div style="margin-top:0.25rem;">{{ plan.title or 'Service' }}</div>
@@ -122,7 +124,7 @@
           <div style="font-size:0.82rem; opacity:0.55; margin-top:0.4rem;">No one assigned yet — open plan to pick from teams.</div>
           {% endif %}
         </div>
-        <a href="{{ url_for('pastoral.planning.edit', date_str=plan.service_date.strftime('%Y-%m-%d')) }}"
+        <a href="{{ url_for('pastoral.planning.edit', date_str=(plan.service_date[:10] if plan.service_date is string else plan.service_date.strftime('%Y-%m-%d'))) }}"
            class="btn btn-primary" style="min-height:40px; font-size:0.85rem; white-space:nowrap;">Edit plan</a>
       </div>
     </div>

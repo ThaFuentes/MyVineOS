@@ -172,14 +172,14 @@ def edit(date_str):
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 
-    # Sermons
+    # Sermons (service_date may be date or str depending on driver/config — template handles both)
     try:
         cur.execute("""
             SELECT id, title, service_date
             FROM pastoral_sermons
             ORDER BY COALESCE(service_date, created_at) DESC
         """)
-        linkable_sermons = cur.fetchall()
+        linkable_sermons = list(cur.fetchall() or [])
     except Exception:
         linkable_sermons = []
 
