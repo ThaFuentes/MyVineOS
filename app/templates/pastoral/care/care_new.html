@@ -1,13 +1,5 @@
 {# app/templates/pastoral/care/care_new.html #}
-{# Full path: WebChurchMan/app/templates/pastoral/care/care_new.html #}
-{# File name: care_new.html #}
-{# Brief, detailed purpose: Form to create a new pastoral care request. #}
-{#   • Select member receiving care (dropdown of active users) #}
-{#   • Choose request type (e.g., hospital visit, counseling, prayer need) #}
-{#   • Set urgency level #}
-{#   • Optional title + required description #}
-{#   • Inherits base_pastoral.html with dark theme, cyan accents #}
-{#   • Simple, clean layout - no bloat #}
+{# New pastoral care request — members OR non-members (visitors, community). #}
 
 {% extends "pastoral/base_pastoral.html" %}
 
@@ -18,21 +10,68 @@
     <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="font-size:0.85rem; min-height:38px;"><- Back to Care</a>
   </div>
 
-  <form method="POST" action="{{ url_for('pastoral.care.care_new') }}">
+  <p style="opacity:0.75; font-size:0.9rem; margin:0 0 1rem;">
+    Care for <strong>church members</strong> and <strong>non-members</strong> (visitors, family, community).
+    All content is confidential to the pastoral team.
+  </p>
+
+  <form method="POST" action="{{ url_for('pastoral.care.care_new') }}" id="care-new-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
     <div class="form-group">
-      <label for="member_id" style="display:block; font-weight:600; margin-bottom:0.3rem;">Member Receiving Care *</label>
-      <select name="member_id" id="member_id" required style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+      <label style="display:block; font-weight:600; margin-bottom:0.4rem;">Who is receiving care? *</label>
+      <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem;">
+        <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+          <input type="radio" name="person_kind" value="member" id="kind-member"
+                 {% if (person_kind or 'member') == 'member' %}checked{% endif %}>
+          Church member
+        </label>
+        <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+          <input type="radio" name="person_kind" value="non_member" id="kind-non-member"
+                 {% if person_kind == 'non_member' %}checked{% endif %}>
+          Non-member / visitor
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group" id="member-fields">
+      <label for="member_id" style="display:block; font-weight:600; margin-bottom:0.3rem;">Member *</label>
+      <select name="member_id" id="member_id" style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
         <option value="">-- Select Member --</option>
         {% for member in members %}
-          <option value="{{ member.id }}">
+          <option value="{{ member.id }}"
+            {% if form_data is defined and form_data.member_id and form_data.member_id|string == member.id|string %}selected{% endif %}>
             {{ member.first_name }} {{ member.last_name }}
             {% if member.email %} ({{ member.email }}){% endif %}
           </option>
         {% endfor %}
       </select>
-      <small style="opacity:0.6;">Start typing to filter in browser</small>
+    </div>
+
+    <div id="non-member-fields" style="display:none;">
+      <div class="form-group">
+        <label for="person_name" style="display:block; font-weight:600; margin-bottom:0.3rem;">Name *</label>
+        <input type="text" name="person_name" id="person_name"
+               value="{{ form_data.person_name if form_data is defined else '' }}"
+               style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);"
+               placeholder="Full name of the person receiving care">
+      </div>
+      <div class="form-group" style="display:flex; flex-wrap:wrap; gap:0.75rem;">
+        <div style="flex:1; min-width:160px;">
+          <label for="person_phone" style="display:block; font-weight:600; margin-bottom:0.3rem;">Phone (optional)</label>
+          <input type="text" name="person_phone" id="person_phone"
+                 value="{{ form_data.person_phone if form_data is defined else '' }}"
+                 style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);"
+                 placeholder="Phone">
+        </div>
+        <div style="flex:1; min-width:160px;">
+          <label for="person_email" style="display:block; font-weight:600; margin-bottom:0.3rem;">Email (optional)</label>
+          <input type="email" name="person_email" id="person_email"
+                 value="{{ form_data.person_email if form_data is defined else '' }}"
+                 style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);"
+                 placeholder="Email">
+        </div>
+      </div>
     </div>
 
     <div class="form-group">
@@ -81,11 +120,30 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Optional: Make member dropdown searchable with Select2 or native browser search -->
 <script>
-  // If you later add Select2 from CDN:
-  // document.addEventListener('DOMContentLoaded', () => {
-  //   $('#member_id').select2({ placeholder: 'Search member name...', allowClear: true });
-  // });
+(function () {
+  const memberFields = document.getElementById('member-fields');
+  const nonMemberFields = document.getElementById('non-member-fields');
+  const memberSelect = document.getElementById('member_id');
+  const personName = document.getElementById('person_name');
+  const radios = document.querySelectorAll('input[name="person_kind"]');
+
+  function sync() {
+    const kind = (document.querySelector('input[name="person_kind"]:checked') || {}).value || 'member';
+    const isMember = kind === 'member';
+    if (memberFields) memberFields.style.display = isMember ? '' : 'none';
+    if (nonMemberFields) nonMemberFields.style.display = isMember ? 'none' : '';
+    if (memberSelect) {
+      memberSelect.required = isMember;
+      if (!isMember) memberSelect.value = '';
+    }
+    if (personName) {
+      personName.required = !isMember;
+      if (isMember) personName.value = personName.value; // keep if toggling
+    }
+  }
+  radios.forEach((r) => r.addEventListener('change', sync));
+  sync();
+})();
 </script>
 {% endblock %}

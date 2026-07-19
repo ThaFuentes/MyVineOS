@@ -131,41 +131,89 @@ def bulk_import_songs(items: list, user_id: int) -> dict:
 
 
 def save_song(data: dict, user_id: int, song_id: int = None):
-    sections = normalize_sections(data.get('sections') or [], data.get('lyrics_raw'))
-    if not sections and data.get('lyrics_raw'):
-        sections = parse_lyrics_to_sections(data['lyrics_raw'])
-    # Preserve musical layers (chords/melody/TAB/drums) from Music Studio
-    raw_sections = data.get('sections') or []
-    layers_by_id = {}
-    for rs in raw_sections:
-        if isinstance(rs, dict) and rs.get('id') and rs.get('layers'):
-            layers_by_id[rs['id']] = rs['layers']
-    for i, sec in enumerate(sections):
-        if not sec.get('id'):
-            sec['id'] = f"s{uuid.uuid4().hex[:8]}"
-        sec['sort'] = i + 1
-        if sec['id'] in layers_by_id:
-            sec['layers'] = layers_by_id[sec['id']]
-        elif isinstance(raw_sections, list) and i < len(raw_sections) and isinstance(raw_sections[i], dict):
-            if raw_sections[i].get('layers'):
-                sec['layers'] = raw_sections[i]['layers']
-    sections_json = json.dumps(sections)
+    """
+    Create or update a song.
 
-    valid_ids = {s.get('id') for s in sections if s.get('id')}
-    play_order = parse_play_order(data.get('play_order'))
-    play_order = [sid for sid in play_order if sid in valid_ids]
-    if not play_order:
-        play_order = default_play_order_from_sections(sections)
-    play_order_json = json.dumps(play_order)
+    On update: never wipe existing sections / lyrics / chords / notes when the
+    caller omits them or sends empty values (partial form posts).
+    """
+    existing = get_song(song_id, with_charts=False) if song_id else None
 
-    # Keep lyrics_raw in sync for export/search when built from sections
-    lyrics_raw = data.get('lyrics_raw')
-    if not lyrics_raw and sections:
-        chunks = []
-        for sec in sections:
-            label = sec.get('label') or sec.get('type') or 'Section'
-            chunks.append(f"[{label}]\n{(sec.get('content') or '').strip()}")
-        lyrics_raw = '\n\n'.join(chunks)
+    sections_in = data.get('sections')
+    lyrics_in = data.get('lyrics_raw')
+    play_in = data.get('play_order')
+
+    # If update and no section content was actually provided, keep existing
+    sections_provided = sections_in is not None and (
+        (isinstance(sections_in, list) and len(sections_in) > 0)
+        or (isinstance(sections_in, str) and sections_in.strip())
+    )
+    lyrics_provided = lyrics_in is not None and str(lyrics_in).strip() != ''
+
+    if song_id and existing and not sections_provided and not lyrics_provided:
+        sections = existing.get('sections') or []
+        lyrics_raw = existing.get('lyrics_raw')
+        play_order = existing.get('play_order') or []
+    else:
+        sections = normalize_sections(sections_in or [], lyrics_in)
+        if not sections and lyrics_in:
+            sections = parse_lyrics_to_sections(lyrics_in)
+        # On update with empty parse result, fall back to existing rather than wipe
+        if song_id and existing and not sections:
+            sections = existing.get('sections') or []
+            lyrics_raw = existing.get('lyrics_raw')
+            play_order = existing.get('play_order') or []
+        else:
+            # Preserve musical layers (chords/melody/TAB/drums) from Music Studio
+            raw_sections = sections_in if isinstance(sections_in, list) else []
+            layers_by_id = {}
+            for rs in raw_sections:
+                if isinstance(rs, dict) and rs.get('id') and rs.get('layers'):
+                    layers_by_id[rs['id']] = rs['layers']
+            # Also keep layers from existing sections when ids match
+            if existing:
+                for es in existing.get('sections') or []:
+                    if es.get('id') and es.get('layers') and es['id'] not in layers_by_id:
+                        layers_by_id[es['id']] = es['layers']
+            for i, sec in enumerate(sections):
+                if not sec.get('id'):
+                    sec['id'] = f"s{uuid.uuid4().hex[:8]}"
+                sec['sort'] = i + 1
+                if sec['id'] in layers_by_id:
+                    sec['layers'] = layers_by_id[sec['id']]
+                elif isinstance(raw_sections, list) and i < len(raw_sections) and isinstance(raw_sections[i], dict):
+                    if raw_sections[i].get('layers'):
+                        sec['layers'] = raw_sections[i]['layers']
+            lyrics_raw = lyrics_in
+            if not lyrics_raw and sections:
+                chunks = []
+                for sec in sections:
+                    label = sec.get('label') or sec.get('type') or 'Section'
+                    chunks.append(f"[{label}]\n{(sec.get('content') or '').strip()}")
+                lyrics_raw = '\n\n'.join(chunks)
+            valid_ids = {s.get('id') for s in sections if s.get('id')}
+            play_order = parse_play_order(play_in)
+            play_order = [sid for sid in play_order if sid in valid_ids]
+            if not play_order:
+                play_order = default_play_order_from_sections(sections)
+
+    sections_json = json.dumps(sections or [])
+    play_order_json = json.dumps(play_order or [])
+
+    # Merge metadata: keep existing values when new payload omits them
+    title = data.get('title') or (existing.get('title') if existing else None)
+    if not title:
+        raise ValueError('Song title is required.')
+
+    artist = data.get('artist') if 'artist' in data else (existing.get('artist') if existing else None)
+    ccli = data.get('ccli_song_number') if 'ccli_song_number' in data else (existing.get('ccli_song_number') if existing else None)
+    copyright_line = data.get('copyright_line') if 'copyright_line' in data else (existing.get('copyright_line') if existing else None)
+    publisher = data.get('publisher') if 'publisher' in data else (existing.get('publisher') if existing else None)
+    copyright_year = data.get('copyright_year') if 'copyright_year' in data else (existing.get('copyright_year') if existing else None)
+    notes_permanent = data.get('notes_permanent') if 'notes_permanent' in data else (existing.get('notes_permanent') if existing else None)
+    chords_filename = data.get('chords_filename') if data.get('chords_filename') else (
+        existing.get('chords_filename') if existing else None
+    )
 
     db = get_db()
     cur = db.cursor()
@@ -176,10 +224,9 @@ def save_song(data: dict, user_id: int, song_id: int = None):
                 notes_permanent=%s, chords_filename=%s, updated_by=%s
             WHERE id=%s
         """, (
-            data['title'], data.get('artist'), data.get('ccli_song_number'),
-            data.get('copyright_line'), data.get('publisher'), data.get('copyright_year'),
-            lyrics_raw, sections_json, play_order_json, data.get('notes_permanent'),
-            data.get('chords_filename'), user_id, song_id,
+            title, artist, ccli, copyright_line, publisher, copyright_year,
+            lyrics_raw, sections_json, play_order_json, notes_permanent,
+            chords_filename, user_id, song_id,
         ))
         db.commit()
         return song_id
@@ -189,10 +236,9 @@ def save_song(data: dict, user_id: int, song_id: int = None):
             chords_filename, created_by, updated_by)
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """, (
-        data['title'], data.get('artist'), data.get('ccli_song_number'),
-        data.get('copyright_line'), data.get('publisher'), data.get('copyright_year'),
-        lyrics_raw, sections_json, play_order_json, data.get('notes_permanent'),
-        data.get('chords_filename'), user_id, user_id,
+        title, artist, ccli, copyright_line, publisher, copyright_year,
+        lyrics_raw, sections_json, play_order_json, notes_permanent,
+        chords_filename, user_id, user_id,
     ))
     db.commit()
     return cur.lastrowid

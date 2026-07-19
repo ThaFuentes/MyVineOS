@@ -71,7 +71,13 @@ def save_assignments(setlist_id: int, rows: list):
     db.commit()
 
 
-def get_setlist_songs(setlist_id: int):
+def get_setlist_songs(setlist_id: int, chart_key: str | None = None):
+    """
+    Songs on a setlist for prompter / plan views.
+
+    chart_key: when set (e.g. 'bass', 'lead_guitar'), overlay that role chart's
+    sections so each musician gets their own prompter content.
+    """
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
@@ -82,6 +88,7 @@ def get_setlist_songs(setlist_id: int):
         WHERE ss.setlist_id = %s ORDER BY ss.sort_order, ss.id
     """, (setlist_id,))
     rows = cur.fetchall()
+    chart_key = (chart_key or '').strip() or None
     for r in rows:
         try:
             r['sections'] = json.loads(r.get('sections_json') or '[]')
@@ -91,8 +98,63 @@ def get_setlist_songs(setlist_id: int):
             r['arrangement'] = json.loads(r.get('arrangement_json') or '[]')
         except json.JSONDecodeError:
             r['arrangement'] = []
+        r['chart_key'] = chart_key or 'full_band'
+        r['chart_display_name'] = 'Full band (default)'
+        if chart_key and chart_key not in ('full_band', 'primary', ''):
+            try:
+                from app.models.worship.charts import get_chart_by_key
+                chart = get_chart_by_key(int(r['song_id']), chart_key)
+                if chart and (chart.get('sections') or chart.get('lyrics_raw')):
+                    if chart.get('sections'):
+                        r['sections'] = chart['sections']
+                    if chart.get('play_order'):
+                        r['play_order'] = chart['play_order']
+                        r['play_order_json'] = json.dumps(chart['play_order'])
+                    r['chart_display_name'] = chart.get('display_name') or chart_key
+            except Exception:
+                pass
         r['display_sections'] = resolve_display_sections(r, r['arrangement'])
     return rows
+
+
+def apply_chart_to_plan(plan: dict, chart_key: str | None = None) -> dict:
+    """Return a shallow copy of a setlist/template plan with role-chart prompter sections."""
+    if not plan:
+        return plan
+    out = dict(plan)
+    chart_key = (chart_key or '').strip() or None
+    out['prompter_chart_key'] = chart_key or 'full_band'
+    songs = out.get('songs') or []
+    if not songs:
+        return out
+    # If this is a setlist with id, reload songs with chart overlay
+    if plan.get('source') != 'template' and plan.get('id') and chart_key:
+        out['songs'] = get_setlist_songs(int(plan['id']), chart_key=chart_key)
+        return out
+    # Template or already-loaded songs: overlay charts in place
+    if chart_key and chart_key not in ('full_band', 'primary', ''):
+        try:
+            from app.models.worship.charts import get_chart_by_key
+        except Exception:
+            get_chart_by_key = None
+        new_songs = []
+        for s in songs:
+            row = dict(s)
+            row['chart_key'] = chart_key
+            if get_chart_by_key and row.get('song_id'):
+                try:
+                    chart = get_chart_by_key(int(row['song_id']), chart_key)
+                    if chart and chart.get('sections'):
+                        row['sections'] = chart['sections']
+                        if chart.get('play_order'):
+                            row['play_order'] = chart['play_order']
+                        row['chart_display_name'] = chart.get('display_name') or chart_key
+                        row['display_sections'] = resolve_display_sections(row, row.get('arrangement'))
+                except Exception:
+                    pass
+            new_songs.append(row)
+        out['songs'] = new_songs
+    return out
 
 
 def ensure_public_token(setlist_id: int):

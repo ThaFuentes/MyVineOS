@@ -25,6 +25,37 @@
   const base = '/bible';
   const main = () => el('member-bible-content');
 
+  /** URL-safe book segment so "1 Samuel" never breaks path routing. */
+  function bookSlug(name) {
+    return String(name || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[_\s]+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'john';
+  }
+
+  function chapterUrl(book, chapter, translation) {
+    const slug = bookSlug(book);
+    let url = `${base}/chapter/${encodeURIComponent(slug)}/${chapter}`;
+    const params = [];
+    if (book) params.push(`book=${encodeURIComponent(book)}`);
+    if (translation) params.push(`translation=${encodeURIComponent(translation)}`);
+    if (params.length) url += `?${params.join('&')}`;
+    return url;
+  }
+
+  function verseUrl(book, chapter, verse, translation) {
+    const slug = bookSlug(book);
+    let url = `${base}/verse/${encodeURIComponent(slug)}/${chapter}/${verse}`;
+    const params = [];
+    if (book) params.push(`book=${encodeURIComponent(book)}`);
+    if (translation) params.push(`translation=${encodeURIComponent(translation)}`);
+    if (params.length) url += `?${params.join('&')}`;
+    return url;
+  }
+
   /**
    * Guests may fully use the Bible (read, search, Strong's, copy).
    * Only personal saves need an account — never force-navigate to login.
@@ -346,8 +377,7 @@
     const tr = translation();
     const startChapter = opts.chapter || 1;
     try {
-      const url = `${base}/chapter/${encodeURIComponent(book)}/${startChapter}` +
-        (tr ? `?translation=${encodeURIComponent(tr)}` : '');
+      const url = chapterUrl(book, startChapter, tr);
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('empty');
       const data = await resp.json();
@@ -455,8 +485,7 @@
     const title = el('member-bible-title');
 
     try {
-      const url = `${base}/chapter/${encodeURIComponent(currentBook)}/${chapter}` +
-        (tr ? `?translation=${encodeURIComponent(tr)}` : '');
+      const url = chapterUrl(currentBook, chapter, tr);
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('404');
       const data = await resp.json();
@@ -1217,8 +1246,7 @@
 
     try {
       const tr = translation();
-      let url = `${base}/verse/${encodeURIComponent(book)}/${chapter}/${verse}`;
-      if (tr) url += `?translation=${encodeURIComponent(tr)}`;
+      const url = verseUrl(book, chapter, verse, tr);
       const resp = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       if (!resp.ok) throw new Error('not found');
       const data = await resp.json();

@@ -320,7 +320,9 @@ def create_or_update_template(data: dict, user_id: int):
               data.get('pastoral_sermon_id'), data['weekday'], user_id))
         template_id = cur.lastrowid
 
-    save_template_assignments(template_id, data.get('assignments', []))
+    # Only replace assignments when explicitly provided (never wipe on partial update)
+    if 'assignments' in data:
+        save_template_assignments(template_id, data.get('assignments') or [])
     db.commit()
     return template_id
 
@@ -437,8 +439,11 @@ def create_or_update_service_plan(data: dict, user_id: int):
               data.get('start_time'), data.get('worship_start_time')))
         plan_id = cur.lastrowid
 
-    save_service_plan_assignments(plan_id, data.get('assignments', []))
+    # Only replace assignments when explicitly provided (never wipe on partial update)
+    if 'assignments' in data:
+        save_service_plan_assignments(plan_id, data.get('assignments') or [])
     db.commit()
+    return plan_id
 
 
 def get_service_plan_assignments(plan_id: int):
@@ -561,10 +566,65 @@ def get_upcoming_service():
     }
 
 
+# Cohesive service roles: pastoral + volunteer Teams module defaults
+# (matches app/builddb/volunteers.py seed names)
+SERVICE_VOLUNTEER_TEAM_ROLES = [
+    'Greeters',
+    'Ushers',
+    'Parking',
+    'Kids Check-In',
+    'Hospitality',
+    'Tech / Media',
+    'Prayer Team',
+]
+
+# Core worship/service roles used with volunteer teams for full Sunday coverage
+SERVICE_CORE_ROLES = [
+    'Preacher',
+    'Worship Leader',
+]
+
+
+def get_volunteer_team_role_names() -> list[str]:
+    """Live team names from Volunteers module when available; else static defaults."""
+    try:
+        db = get_db()
+        cur = db.cursor(pymysql.cursors.DictCursor)
+        cur.execute("""
+            SELECT name FROM vol_teams
+            WHERE COALESCE(active, 1) = 1
+            ORDER BY sort_order, name
+        """)
+        rows = cur.fetchall() or []
+        names = [(r.get('name') or '').strip() for r in rows if (r.get('name') or '').strip()]
+        if names:
+            return names
+    except Exception:
+        pass
+    return list(SERVICE_VOLUNTEER_TEAM_ROLES)
+
+
+def cohesive_service_role_names() -> list[str]:
+    """Pastoral core roles + volunteer teams for unified service planning."""
+    core = list(SERVICE_CORE_ROLES)
+    teams = get_volunteer_team_role_names()
+    seen = set(core)
+    for t in teams:
+        if t not in seen:
+            core.append(t)
+            seen.add(t)
+    return core
+
+
 # ----------------------------------------------------------------------
 # Global Default Role Assignments - pre-fill new templates & overrides
 # ----------------------------------------------------------------------
 def get_default_assignments():
+    """
+    Global default roles for new plans. If empty, seed with Preacher +
+    volunteer Teams (Greeters, Ushers, …) so pastoral + volunteers stay cohesive.
+    """
+    seed_default_assignments_with_volunteer_teams()
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
@@ -572,7 +632,13 @@ def get_default_assignments():
                CONCAT(u.first_name, ' ', u.last_name) AS user_full_name
         FROM default_service_plan_assignments d
         LEFT JOIN users u ON d.user_id = u.id
-        ORDER BY role_name
+        ORDER BY
+          CASE
+            WHEN role_name = 'Preacher' THEN 0
+            WHEN role_name = 'Worship Leader' THEN 1
+            ELSE 10
+          END,
+          role_name
     """)
     rows = cur.fetchall()
     if not rows:
@@ -580,7 +646,51 @@ def get_default_assignments():
     return rows
 
 
+def seed_default_assignments_with_volunteer_teams():
+    """
+    When default_service_plan_assignments is empty, insert cohesive roles:
+    Preacher, Worship Leader, plus all volunteer Teams (Greeters, Ushers, …).
+    Does not overwrite existing custom defaults.
+    Also adds any missing volunteer team roles without removing custom rows.
+    """
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    try:
+        cur.execute("SELECT role_name FROM default_service_plan_assignments")
+        existing = {(r.get('role_name') or '').strip() for r in (cur.fetchall() or []) if r.get('role_name')}
+    except Exception:
+        return
+
+    desired = cohesive_service_role_names()
+    if not existing:
+        # Fresh seed
+        cur2 = db.cursor()
+        for role in desired:
+            cur2.execute("""
+                INSERT INTO default_service_plan_assignments (role_name, user_id, guest_name)
+                VALUES (%s, NULL, NULL)
+            """, (role,))
+        db.commit()
+        print(f"Seeded pastoral default roles with volunteer teams: {', '.join(desired)}")
+        return
+
+    # Additive only: never remove existing roles
+    cur2 = db.cursor()
+    added = []
+    for role in desired:
+        if role not in existing:
+            cur2.execute("""
+                INSERT INTO default_service_plan_assignments (role_name, user_id, guest_name)
+                VALUES (%s, NULL, NULL)
+            """, (role,))
+            added.append(role)
+    if added:
+        db.commit()
+        print(f"Added cohesive volunteer team roles to pastoral defaults: {', '.join(added)}")
+
+
 def save_default_assignments(assignments: list):
+    """Replace defaults only when caller posts a full list (form save)."""
     db = get_db()
     cur = db.cursor()
     cur.execute("DELETE FROM default_service_plan_assignments")
@@ -605,6 +715,7 @@ def save_default_assignments(assignments: list):
 def seed_default_sunday_template():
     """Seed a basic Sunday template if no Sunday master exists yet."""
     dedupe_service_templates()
+    seed_default_assignments_with_volunteer_teams()
     if get_template_for_weekday(6):
         return
 
@@ -617,6 +728,13 @@ def seed_default_sunday_template():
         return
     creator_id = owner['id']
 
+    # Preacher = Owner; volunteer team roles unassigned until scheduled
+    assignments = [{'role_name': 'Preacher', 'user_id': creator_id, 'guest_name': None}]
+    for role in cohesive_service_role_names():
+        if role == 'Preacher':
+            continue
+        assignments.append({'role_name': role, 'user_id': None, 'guest_name': None})
+
     create_or_update_template({
         'title': 'Sunday Morning Worship',
         'notes': None,
@@ -625,6 +743,6 @@ def seed_default_sunday_template():
         'worship_start_time': '10:15',
         'pastoral_sermon_id': None,
         'weekday': 6,  # Sunday
-        'assignments': [{'role_name': 'Preacher', 'user_id': creator_id}]
+        'assignments': assignments,
     }, creator_id)
-    print("Seeded default Sunday Morning template with Preacher = Owner.")
+    print("Seeded default Sunday Morning template with Preacher + volunteer teams.")

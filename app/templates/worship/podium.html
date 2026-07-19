@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ setlist.title }} - Prompter</title>
+  <title>{{ setlist.title }} - {% if chart_key and chart_key != 'full_band' %}{{ chart_key|replace('_',' ')|title }} {% endif %}Prompter</title>
   <style>
     * { box-sizing: border-box; }
     body { margin:0; background:#0a0a0f; color:#f0f0f0; font-family: system-ui, sans-serif; overflow:hidden; }
     #stage { height:100vh; overflow-y:auto; padding:2rem 2.5rem 7rem; scroll-behavior:smooth; }
-    h1.set-title { text-align:center; color:#00e5ff; font-size:clamp(1.2rem,3vw,1.8rem); margin:0 0 1.5rem; }
+    h1.set-title { text-align:center; color:#00e5ff; font-size:clamp(1.2rem,3vw,1.8rem); margin:0 0 0.35rem; }
+    .chart-badge { text-align:center; color:#7dd3fc; font-size:0.9rem; margin:0 0 1.25rem; opacity:0.9; }
     .slide { min-height:75vh; display:flex; flex-direction:column; justify-content:center; padding:1rem 0 3rem; }
     .slide h2 { color:#00e5ff; font-size:clamp(1rem,2.5vw,1.5rem); margin:0 0 0.5rem; text-align:center; }
     .section-label { text-align:center; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.1em; color:#7dd3fc; margin-bottom:0.5rem; }
@@ -19,10 +20,11 @@
       border-top:1px solid #00e5ff44; padding:0.55rem 1rem; display:flex;
       flex-wrap:wrap; gap:0.6rem; align-items:center; justify-content:center; z-index:10;
     }
-    #controls button, #controls a, #controls label {
+    #controls button, #controls a, #controls label, #controls select {
       background:#111; color:#00e5ff; border:1px solid #00e5ff66; padding:0.4rem 0.8rem;
       border-radius:6px; cursor:pointer; text-decoration:none; font-size:0.85rem;
     }
+    #controls select { max-width:200px; }
     #controls input[type=range] { width:100px; vertical-align:middle; }
     .hidden { display:none !important; }
   </style>
@@ -30,6 +32,11 @@
 <body>
   <div id="stage">
     <h1 class="set-title">{{ setlist.title }}</h1>
+    {% if chart_key and chart_key != 'full_band' %}
+    <p class="chart-badge">Musician prompter: {{ chart_key|replace('_',' ')|title }}</p>
+    {% else %}
+    <p class="chart-badge">Full band / lyrics prompter</p>
+    {% endif %}
     {% set slide_idx = namespace(n=0) %}
     {% for item in setlist.songs or [] %}
       {% set secs = item.display_sections if item.display_sections is defined else item.sections %}
@@ -65,6 +72,17 @@
     <button type="button" id="next-btn">></button>
     <label>Size <input type="range" id="size-slider" min="20" max="64" value="36"></label>
     <label>Speed <input type="range" id="speed-slider" min="1" max="10" value="4"></label>
+    {% if chart_options %}
+    <label>Instrument
+      <select id="chart-select" title="Switch musician / instrument chart">
+        {% for opt in chart_options %}
+        <option value="{{ opt.chart_key }}" {% if chart_key == opt.chart_key %}selected{% endif %}>
+          {{ opt.display_name }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
     <button type="button" id="fs-btn">Fullscreen</button>
     {% if not public_mode and setlist.id %}
     <a href="{{ url_for('worship.setlist_edit', setlist_id=setlist.id) }}">Exit</a>
@@ -100,6 +118,14 @@
         timer = setInterval(() => { if (idx < slides.length - 1) next(); else { playing = false; clearInterval(timer); }}, spd());
       }
     };
+    const chartSel = document.getElementById('chart-select');
+    if (chartSel) {
+      chartSel.addEventListener('change', () => {
+        const u = new URL(window.location.href);
+        u.searchParams.set('chart', chartSel.value);
+        window.location.href = u.toString();
+      });
+    }
     document.addEventListener('keydown', e => {
       if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
       if (e.key === 'ArrowLeft') prev();

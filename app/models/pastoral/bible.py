@@ -35,6 +35,11 @@ BOOK_ALIASES = {}
 for name, abbrev, _test, _ord in BIBLE_BOOKS:
     BOOK_ALIASES[name.lower()] = name
     BOOK_ALIASES[abbrev.lower()] = name
+    # Slug forms used in URLs (avoids space issues with "1 Samuel", "1 John", …)
+    BOOK_ALIASES[name.lower().replace(" ", "-")] = name
+    BOOK_ALIASES[name.lower().replace(" ", "_")] = name
+    BOOK_ALIASES[name.lower().replace(" ", "")] = name  # 1samuel, 1john
+    BOOK_ALIASES[abbrev.lower().replace(" ", "")] = name
 BOOK_ALIASES.update({
     "1 sam": "1 Samuel", "2 sam": "2 Samuel", "1 kgs": "1 Kings", "2 kgs": "2 Kings",
     "1 chr": "1 Chronicles", "2 chr": "2 Chronicles", "1 cor": "1 Corinthians",
@@ -51,6 +56,11 @@ BOOK_ALIASES.update({
     "i peter": "1 Peter", "ii peter": "2 Peter",
     "i john": "1 John", "ii john": "2 John", "iii john": "3 John",
     "revelation of john": "Revelation",
+    # Common USFM / HelloAO ids
+    "1sa": "1 Samuel", "2sa": "2 Samuel", "1ki": "1 Kings", "2ki": "2 Kings",
+    "1ch": "1 Chronicles", "2ch": "2 Chronicles", "1co": "1 Corinthians", "2co": "2 Corinthians",
+    "1th": "1 Thessalonians", "2th": "2 Thessalonians", "1ti": "1 Timothy", "2ti": "2 Timothy",
+    "1pe": "1 Peter", "2pe": "2 Peter", "1jn": "1 John", "2jn": "2 John", "3jn": "3 John",
 })
 
 # Public-domain translations available via scripts/import_bible_data.py (scrollmapper/bible_databases)
@@ -61,24 +71,79 @@ PUBLIC_DOMAIN_TRANSLATIONS = {
 }
 
 
+def book_to_slug(book: str) -> str:
+    """URL-safe slug for path segments (e.g. '1 Samuel' → '1-samuel')."""
+    name = normalize_book_name(book) or (book or "")
+    return re.sub(r"\s+", "-", name.strip().lower()).replace("_", "-")
+
+
+def _canonicalize_book_key(book: str) -> str:
+    """
+    Normalize book tokens so numbered books always match aliases.
+
+    Handles: '1 Samuel', '1%20Samuel', '1+Samuel', '1-Samuel', '1_Samuel',
+    '1Samuel', NBSP, and multi-space forms.
+    """
+    if book is None:
+        return ""
+    s = str(book).strip()
+    # Defensive: if a client double-encoded or left percent-escapes
+    if "%" in s:
+        try:
+            from urllib.parse import unquote
+            s = unquote(s)
+        except Exception:
+            pass
+    s = s.replace("+", " ").replace("_", " ").replace("-", " ")
+    s = s.replace("\u00a0", " ").replace("\u2007", " ").replace("\u202f", " ")
+    s = re.sub(r"\s+", " ", s).strip()
+    # Insert space after leading book number if missing: "1Samuel" → "1 Samuel"
+    s = re.sub(r"^([123])([A-Za-z])", r"\1 \2", s)
+    return s.lower().replace(".", "")
+
+
 def normalize_book_name(book: str) -> str | None:
+    """
+    Map any common book token (display name, slug, abbrev, USFM) to canon name.
+
+    Critical for numbered books (1 Samuel, 1 John, …) which often break in
+    path-based URLs when spaces or hyphens are mishandled.
+    """
     if not book:
         return None
-    key = book.strip().lower().replace(".", "")
+    key = _canonicalize_book_key(book)
+    if not key:
+        return None
     if key in BOOK_ALIASES:
         return BOOK_ALIASES[key]
+    # Also try without spaces (1 samuel → 1samuel)
+    compact = key.replace(" ", "")
+    if compact in BOOK_ALIASES:
+        return BOOK_ALIASES[compact]
+    # Hyphen form already collapsed to spaces in canonicalize; try hyphen key
+    hyphen = key.replace(" ", "-")
+    if hyphen in BOOK_ALIASES:
+        return BOOK_ALIASES[hyphen]
+    raw = str(book).strip()
+    raw_l = raw.lower()
     for name, abbrev, _, _ in BIBLE_BOOKS:
-        if book.strip().lower() == name.lower() or book.strip().lower() == abbrev.lower():
+        if raw_l == name.lower() or raw_l == abbrev.lower():
             return name
-    return book.strip()
+    # Last resort: title-case cleaned form if it looks like a known name
+    cleaned = re.sub(r"\s+", " ", raw.replace("+", " ").replace("_", " ").replace("-", " ")).strip()
+    cleaned = re.sub(r"^([123])([A-Za-z])", r"\1 \2", cleaned)
+    for name, _, _, _ in BIBLE_BOOKS:
+        if cleaned.lower() == name.lower():
+            return name
+    return cleaned or raw
 
 
 def parse_reference(ref: str) -> dict | None:
-    """Parse references like John 3:16, Rom 8:28-30, 1 John 3:16."""
+    """Parse references like John 3:16, Rom 8:28-30, 1 John 3:16, 1Samuel 3:1."""
     if not ref:
         return None
     m = re.match(
-        r"^\s*((?:\d\s+)?[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?)\s+(\d+)\s*:\s*(\d+)(?:\s*-\s*(\d+))?\s*$",
+        r"^\s*((?:\d\s*)?[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?)\s+(\d+)\s*:\s*(\d+)(?:\s*-\s*(\d+))?\s*$",
         ref.strip(),
     )
     if not m:

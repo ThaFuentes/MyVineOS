@@ -24,6 +24,38 @@
   const main = () => el('bible-reader-content');
   const api = '/pastoral/bible';
 
+  /** URL-safe book segment so "1 Samuel" never breaks path routing. */
+  function bookSlug(name) {
+    return String(name || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[_\s]+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'john';
+  }
+
+  function chapterUrl(book, chapter, translation) {
+    const slug = bookSlug(book);
+    let url = `${api}/chapter/${encodeURIComponent(slug)}/${chapter}`;
+    const params = [];
+    // Explicit book name for servers that mishandle numbered path segments
+    if (book) params.push(`book=${encodeURIComponent(book)}`);
+    if (translation) params.push(`translation=${encodeURIComponent(translation)}`);
+    if (params.length) url += `?${params.join('&')}`;
+    return url;
+  }
+
+  function verseUrl(book, chapter, verse, translation) {
+    const slug = bookSlug(book);
+    let url = `${api}/verse/${encodeURIComponent(slug)}/${chapter}/${verse}`;
+    const params = [];
+    if (book) params.push(`book=${encodeURIComponent(book)}`);
+    if (translation) params.push(`translation=${encodeURIComponent(translation)}`);
+    if (params.length) url += `?${params.join('&')}`;
+    return url;
+  }
+
   function csrfToken() {
     if (cfg.csrf) return cfg.csrf;
     const m = document.querySelector('meta[name="csrf-token"]');
@@ -725,8 +757,7 @@
     const startChapter = opts.chapter || 1;
     const scrollToVerse = opts.scrollToVerse || null;
     try {
-      const url = `${api}/chapter/${encodeURIComponent(book)}/${startChapter}` +
-        (currentTranslation ? `?translation=${encodeURIComponent(currentTranslation)}` : '');
+      const url = chapterUrl(book, startChapter, currentTranslation);
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('no book');
       const data = await resp.json();
@@ -849,8 +880,7 @@
     const title = el('bible-reader-title');
 
     try {
-      const url = `${api}/chapter/${encodeURIComponent(currentBook)}/${chapter}` +
-        (currentTranslation ? `?translation=${encodeURIComponent(currentTranslation)}` : '');
+      const url = chapterUrl(currentBook, chapter, currentTranslation);
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('not found');
       const data = await resp.json();
@@ -1470,8 +1500,7 @@
       // Reload notes for this chapter without wiping the reader if possible
       const chData = await (async () => {
         const tr = getTranslation();
-        let url = `${api}/chapter/${encodeURIComponent(currentBook)}/${currentChapter}`;
-        if (tr) url += `?translation=${encodeURIComponent(tr)}`;
+        const url = chapterUrl(currentBook, currentChapter, tr);
         const r = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
         return r.ok ? r.json() : null;
       })();
@@ -1683,8 +1712,7 @@
 
     try {
       const tr = getTranslation();
-      let url = `${api}/verse/${encodeURIComponent(book)}/${chapter}/${verse}`;
-      if (tr) url += `?translation=${encodeURIComponent(tr)}`;
+      const url = verseUrl(book, chapter, verse, tr);
       const resp = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       if (!resp.ok) throw new Error('not found');
       const data = await resp.json();

@@ -73,8 +73,12 @@ def care_request_detail(request_id):
 @pastoral_required()
 def care_new():
     if request.method == 'POST':
+        person_kind = (request.form.get('person_kind') or 'member').strip()
         data = {
-            'member_id': request.form.get('member_id'),
+            'member_id': request.form.get('member_id') if person_kind == 'member' else None,
+            'person_name': request.form.get('person_name', '').strip(),
+            'person_phone': request.form.get('person_phone', '').strip(),
+            'person_email': request.form.get('person_email', '').strip(),
             'request_type': request.form.get('request_type'),
             'title': request.form.get('title', '').strip(),
             'description': request.form.get('description', '').strip(),
@@ -82,23 +86,41 @@ def care_new():
             'status': 'open'
         }
 
-        if not data['member_id'] or not data['request_type'] or not data['description']:
-            flash("Member, type, and description are required.", "error")
+        has_person = bool(data['member_id']) or bool(data['person_name'])
+        if not has_person or not data['request_type'] or not data['description']:
+            flash("Person (member or non-member name), type, and description are required.", "error")
             return render_template(
                 'pastoral/care/care_new.html',
                 members=get_active_members_for_care(),
                 page_title="New Pastoral Care Request",
+                form_data=data,
+                person_kind=person_kind,
             )
 
-        if contains_censored_word(data['title'] + " " + data['description']):
+        check_text = " ".join(filter(None, [
+            data.get('title'), data.get('description'), data.get('person_name'),
+        ]))
+        if contains_censored_word(check_text):
             flash("Prohibited content detected.", "error")
             return render_template(
                 'pastoral/care/care_new.html',
                 members=get_active_members_for_care(),
                 page_title="New Pastoral Care Request",
+                form_data=data,
+                person_kind=person_kind,
             )
 
-        request_id = create_care_request(data, session['user_id'])
+        try:
+            request_id = create_care_request(data, session['user_id'])
+        except ValueError as exc:
+            flash(str(exc), "error")
+            return render_template(
+                'pastoral/care/care_new.html',
+                members=get_active_members_for_care(),
+                page_title="New Pastoral Care Request",
+                form_data=data,
+                person_kind=person_kind,
+            )
         log_change(session['user_id'], 'create', request_id, data['title'] or data['request_type'],
                    "Created pastoral care request")
 
@@ -109,6 +131,7 @@ def care_new():
         'pastoral/care/care_new.html',
         members=get_active_members_for_care(),
         page_title="New Pastoral Care Request",
+        person_kind='member',
     )
 
 # ----------------------------------------------------------------------

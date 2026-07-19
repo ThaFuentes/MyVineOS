@@ -33,6 +33,21 @@
                 and enjoy "set it and forget it" - all new plans will start with these filled in automatically.
             </div>
 
+            {% if volunteer_team_roles %}
+            <div class="glass-panel mb-4" style="padding:1rem;">
+                <strong class="text-cyan">Volunteer Teams (shared with Volunteers module)</strong>
+                <p class="text-muted mb-2" style="font-size:0.9rem;">
+                    These roles match your volunteer Teams so pastoral planning and volunteer scheduling stay cohesive.
+                    Click a name to add it as a default role row (if not already listed).
+                </p>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;" id="volunteer-team-chips">
+                    {% for team in volunteer_team_roles %}
+                    <button type="button" class="btn btn-outline-cyan btn-sm vol-team-chip" data-role="{{ team }}">{{ team }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="card glass-card shadow">
                 <div class="card-body p-5">
                     <form method="POST">
@@ -80,17 +95,37 @@
 
 {% block extra_js %}
 <script>
-    document.getElementById('add-role-btn').addEventListener('click', function() {
+    function addRoleRow(roleName) {
         const container = document.getElementById('assignments-container');
-        const templateRow = container.querySelector('.assignment-row.d-none').cloneNode(true);
-        templateRow.classList.remove('d-none');
-        templateRow.querySelector('input[name="role_name"]').value = '';
-        templateRow.querySelector('select[name="user_id"]').selectedIndex = 0;
-        container.insertBefore(templateRow, this);
+        const templateRow = container.querySelector('.assignment-row.d-none');
+        if (!templateRow) return;
+        // Skip if role already present
+        if (roleName) {
+            const existing = [...container.querySelectorAll('.assignment-row:not(.d-none) input[name="role_name"]')]
+                .some((inp) => (inp.value || '').trim().toLowerCase() === roleName.toLowerCase());
+            if (existing) return;
+        }
+        const row = templateRow.cloneNode(true);
+        row.classList.remove('d-none');
+        const nameInp = row.querySelector('input[name="role_name"]');
+        if (nameInp) nameInp.value = roleName || '';
+        const sel = row.querySelector('select[name="user_id"]');
+        if (sel) sel.selectedIndex = 0;
+        const guest = row.querySelector('input[name="guest_name"]');
+        if (guest) guest.value = '';
+        container.insertBefore(row, templateRow);
+    }
+
+    document.getElementById('add-role-btn').addEventListener('click', function() {
+        addRoleRow('');
+    });
+
+    document.querySelectorAll('.vol-team-chip').forEach((btn) => {
+        btn.addEventListener('click', () => addRoleRow(btn.dataset.role || btn.textContent.trim()));
     });
 
     document.getElementById('assignments-container').addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-role-btn')) {
+        if (e.target.classList.contains('remove-role-btn') || e.target.closest('.remove-role-btn')) {
             const row = e.target.closest('.assignment-row');
             if (document.querySelectorAll('#assignments-container .assignment-row:not(.d-none)').length > 1) {
                 row.remove();

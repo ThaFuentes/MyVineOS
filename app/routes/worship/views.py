@@ -1024,13 +1024,32 @@ def defaults():
     )
 
 
+def _prompter_chart_options():
+    """Instrument / role charts available for per-musician prompter."""
+    from app.models.worship.charts import DEFAULT_CHART_DEFS
+    return [
+        {'chart_key': d['chart_key'], 'display_name': d['display_name']}
+        for d in DEFAULT_CHART_DEFS
+    ]
+
+
 @worship_bp.route('/podium/<int:setlist_id>')
 @worship_required
 def podium(setlist_id):
+    """Logged-in prompter; ?chart=bass (etc.) shows that musician's chart."""
     setlist = setlist_model.get_setlist(setlist_id)
     if not setlist:
         abort(404)
-    return render_template('worship/podium.html', setlist=setlist, public_mode=False)
+    chart_key = (request.args.get('chart') or request.args.get('role') or 'full_band').strip()
+    setlist = setlist_model.apply_chart_to_plan(setlist, chart_key)
+    return render_template(
+        'worship/podium.html',
+        setlist=setlist,
+        public_mode=False,
+        chart_key=chart_key,
+        chart_options=_prompter_chart_options(),
+        public_token=setlist.get('public_token'),
+    )
 
 
 @worship_bp.route('/screen/<token>')
@@ -1044,8 +1063,17 @@ def public_screen(token):
 
 @worship_bp.route('/prompter/<token>')
 def public_prompter(token):
-    """Secret-link prompter with full lyrics - for sanctuary PC without login."""
+    """Secret-link prompter — full lyrics, optional per-musician chart via ?chart=."""
     plan = template_model.get_by_public_token(token)
     if not plan:
         abort(404)
-    return render_template('worship/podium.html', setlist=plan, public_mode=True)
+    chart_key = (request.args.get('chart') or request.args.get('role') or 'full_band').strip()
+    plan = setlist_model.apply_chart_to_plan(plan, chart_key)
+    return render_template(
+        'worship/podium.html',
+        setlist=plan,
+        public_mode=True,
+        chart_key=chart_key,
+        chart_options=_prompter_chart_options(),
+        public_token=token,
+    )
