@@ -701,22 +701,179 @@ def get_primary_worship_leader_user_id() -> int | None:
 
 
 def cohesive_service_role_names() -> list[str]:
-    """Preacher + worship default roles + volunteer teams."""
+    """
+    Full Sunday roster role list, always in a stable order:
+      Preacher → Worship Leader + band → Volunteer teams → any extra custom roles later
+    Every volunteer team and every worship default role is included even if unassigned.
+    """
     core = list(SERVICE_CORE_ROLES)
-    seen = set(core)
-    # Prefer live worship default role names, then static worship list
-    worship_roles = [w['role_name'] for w in get_worship_default_assignments()]
-    if not worship_roles:
-        worship_roles = list(SERVICE_WORSHIP_ROLES)
-    for t in worship_roles:
-        if t not in seen:
+    seen = {r.lower() for r in core}
+
+    # Always include ALL standard worship roles (even if worship has no defaults yet)
+    for t in SERVICE_WORSHIP_ROLES:
+        if t.lower() not in seen:
             core.append(t)
-            seen.add(t)
+            seen.add(t.lower())
+    # Plus any extra custom roles saved in worship defaults
+    for w in get_worship_default_assignments():
+        t = (w.get('role_name') or '').strip()
+        if t and t.lower() not in seen:
+            core.append(t)
+            seen.add(t.lower())
+
+    # Always include ALL volunteer teams
     for t in get_volunteer_team_role_names():
-        if t not in seen:
+        if t and t.lower() not in seen:
             core.append(t)
-            seen.add(t)
+            seen.add(t.lower())
     return core
+
+
+def _assignment_lookup(rows) -> dict:
+    """role_name lower -> assignment dict (first wins)."""
+    out = {}
+    for a in rows or []:
+        if not isinstance(a, dict):
+            continue
+        role = (a.get('role_name') or '').strip()
+        if not role:
+            continue
+        key = role.lower()
+        if key not in out:
+            out[key] = a
+    return out
+
+
+def build_full_service_assignments(existing=None) -> list[dict]:
+    """
+    Build the FULL service-day role list for plan edit / defaults.
+
+    Every role shows up:
+      - Preacher
+      - Worship Leader, Vocals, Guitar, Bass, Keys, Drums, Sound, Slides (+ custom worship)
+      - Greeters, Ushers, Parking, Kids Check-In, Hospitality, Tech / Media, Prayer Team (+ live vol teams)
+
+    Who is filled (first match wins):
+      1) existing plan / template assignment for that role (if person set)
+      2) Worship Team defaults (worship_default_assignments) for band/WL
+      3) Pastoral global defaults
+      4) Worship group leader for "Worship Leader" only
+      5) empty (role still listed, unassigned)
+
+    Never drops a volunteer or worship role just because nobody is assigned.
+    Extra custom roles already on the plan are kept at the end.
+    """
+    try:
+        ensure_default_assignment_schema()
+        sync_worship_defaults_into_pastoral()
+    except Exception as exc:
+        print(f'build_full_service_assignments prep: {exc}')
+
+    existing = existing or []
+    existing_by = _assignment_lookup(existing)
+
+    # Pastoral defaults (may already include synced worship people)
+    try:
+        pastoral_defaults = get_default_assignments()
+    except Exception:
+        pastoral_defaults = []
+    pastoral_by = _assignment_lookup(pastoral_defaults)
+
+    worship_by = _assignment_lookup(get_worship_default_assignments())
+    wl_fallback = get_primary_worship_leader_user_id()
+
+    def _pick_person(role: str) -> dict:
+        key = role.lower()
+        # 1) Existing plan row — keep explicit guest or user
+        ex = existing_by.get(key)
+        if ex:
+            uid = ex.get('user_id')
+            guest = (ex.get('guest_name') or '').strip() or None
+            if uid not in (None, '', 0, '0') or guest:
+                return {
+                    'role_name': role,
+                    'user_id': int(uid) if uid not in (None, '', 0, '0') else None,
+                    'guest_name': guest if not uid else None,
+                    'user_full_name': ex.get('user_full_name'),
+                    'source': ex.get('source') or 'plan',
+                }
+
+        # 2) Worship defaults (band / WL)
+        w = worship_by.get(key)
+        if w and w.get('user_id'):
+            return {
+                'role_name': role,
+                'user_id': int(w['user_id']),
+                'guest_name': None,
+                'user_full_name': w.get('user_full_name'),
+                'source': 'worship',
+            }
+
+        # 3) Pastoral defaults
+        p = pastoral_by.get(key)
+        if p and (p.get('user_id') or (p.get('guest_name') or '').strip()):
+            uid = p.get('user_id')
+            guest = (p.get('guest_name') or '').strip() or None
+            return {
+                'role_name': role,
+                'user_id': int(uid) if uid not in (None, '', 0, '0') else None,
+                'guest_name': guest if not uid else None,
+                'user_full_name': p.get('user_full_name'),
+                'source': p.get('source') or 'pastoral',
+            }
+
+        # 4) Worship Leader from group if still empty
+        if key == 'worship leader' and wl_fallback:
+            return {
+                'role_name': role,
+                'user_id': int(wl_fallback),
+                'guest_name': None,
+                'user_full_name': None,
+                'source': 'worship',
+            }
+
+        # 5) Empty slot — role still present
+        return {
+            'role_name': role,
+            'user_id': None,
+            'guest_name': None,
+            'user_full_name': None,
+            'source': 'empty',
+        }
+
+    # Resolve names for filled user_ids in one query
+    roles = cohesive_service_role_names()
+    # Keep any extra custom roles already on the plan (not in standard list)
+    standard_keys = {r.lower() for r in roles}
+    extras = []
+    for a in existing:
+        role = (a.get('role_name') or '').strip()
+        if role and role.lower() not in standard_keys:
+            extras.append(role)
+            standard_keys.add(role.lower())
+
+    ordered_roles = roles + extras
+    built = [_pick_person(r) for r in ordered_roles]
+
+    # Attach display names for any missing user_full_name
+    need_ids = [b['user_id'] for b in built if b.get('user_id') and not (b.get('user_full_name') or '').strip()]
+    if need_ids:
+        try:
+            db = get_db()
+            cur = db.cursor(pymysql.cursors.DictCursor)
+            placeholders = ','.join(['%s'] * len(need_ids))
+            cur.execute(
+                f"SELECT id, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE id IN ({placeholders})",
+                need_ids,
+            )
+            names = {int(r['id']): r['full_name'] for r in (cur.fetchall() or [])}
+            for b in built:
+                if b.get('user_id') and not b.get('user_full_name'):
+                    b['user_full_name'] = names.get(int(b['user_id']))
+        except Exception as exc:
+            print(f'build_full_service_assignments names: {exc}')
+
+    return built
 
 
 def _upsert_default_role(role_name: str, user_id=None, guest_name=None, *, overwrite_user: bool = False):

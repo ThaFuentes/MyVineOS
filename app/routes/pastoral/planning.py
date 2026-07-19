@@ -37,6 +37,7 @@ from app.models.pastoral.service_plans import (
     get_default_assignments, save_default_assignments,
     get_plan_for_date, get_template_for_weekday,
     get_volunteer_team_role_names, cohesive_service_role_names,
+    build_full_service_assignments,
     _normalize_time
 )
 from app.models.log import log_change
@@ -102,6 +103,42 @@ def index():
 # ----------------------------------------------------------------------
 # Dated Override / Special Event Edit
 # ----------------------------------------------------------------------
+def _assignable_users_for_planning(cur):
+    """Pastoral + Worship Team + Owner/Admin/Staff so plan editors can pick anyone serving."""
+    try:
+        cur.execute("""
+            SELECT DISTINCT u.id,
+                   CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+                   u.username
+            FROM users u
+            LEFT JOIN user_groups ug ON u.id = ug.user_id
+            LEFT JOIN groups g ON ug.group_id = g.id
+            WHERE COALESCE(u.role, '') NOT IN ('banned', 'pending')
+              AND (
+                    g.name IN ('Pastoral Group', 'Worship Team')
+                 OR g.system_key IN ('pastoral', 'worship_team')
+                 OR u.role IN ('Owner', 'Admin', 'Staff')
+              )
+            ORDER BY u.first_name, u.last_name
+        """)
+        rows = cur.fetchall() or []
+        if rows:
+            return rows
+    except Exception as exc:
+        print(f'_assignable_users_for_planning: {exc}')
+    try:
+        cur.execute("""
+            SELECT id, CONCAT(first_name, ' ', last_name) AS full_name, username
+            FROM users
+            WHERE COALESCE(role, '') NOT IN ('banned', 'pending')
+            ORDER BY first_name, last_name
+            LIMIT 500
+        """)
+        return cur.fetchall() or []
+    except Exception:
+        return []
+
+
 @planning_bp.route('/edit/<date_str>', methods=['GET', 'POST'])
 @pastoral_required()
 def edit(date_str):
@@ -119,42 +156,34 @@ def edit(date_str):
     cur = db.cursor(pymysql.cursors.DictCursor)
 
     # Sermons
-    cur.execute("""
-        SELECT id, title, service_date
-        FROM pastoral_sermons
-        ORDER BY COALESCE(service_date, created_at) DESC
-    """)
-    linkable_sermons = cur.fetchall()
+    try:
+        cur.execute("""
+            SELECT id, title, service_date
+            FROM pastoral_sermons
+            ORDER BY COALESCE(service_date, created_at) DESC
+        """)
+        linkable_sermons = cur.fetchall()
+    except Exception:
+        linkable_sermons = []
 
-    # Assignable users
-    cur.execute("""
-        SELECT u.id, CONCAT(u.first_name, ' ', u.last_name) AS full_name, u.username
-        FROM users u
-        JOIN user_groups ug ON u.id = ug.user_id
-        JOIN groups g ON ug.group_id = g.id
-        WHERE g.name = 'Pastoral Group'
-        ORDER BY u.first_name, u.last_name
-    """)
-    assignable_users = cur.fetchall()
+    assignable_users = _assignable_users_for_planning(cur)
 
-    # For new dated override: copy from matching master template if exists, else global defaults
-    assignments = get_default_assignments()  # fallback
+    # Base plan shell for this date (override, template copy, or empty)
     if not plan:
         template_plan = get_plan_for_date(date_str)
         if template_plan and template_plan.get('source') == 'template':
-            # Copy from master template
             plan = {
                 'id': None,
                 'service_date': service_date_obj,
-                'title': '',  # optional override - start blank
+                'title': '',
                 'notes': template_plan.get('notes') or '',
                 'start_time': template_plan.get('start_time'),
                 'worship_start_time': template_plan.get('worship_start_time'),
                 'pastoral_sermon_id': template_plan.get('pastoral_sermon_id'),
-                'assignments': [a.copy() for a in template_plan.get('assignments', [])]
+                # Start from template rows; full roster merge below fills missing roles
+                'assignments': [dict(a) for a in (template_plan.get('assignments') or [])],
             }
         else:
-            # Fallback to empty plan with service_date
             plan = {
                 'id': None,
                 'service_date': service_date_obj,
@@ -163,10 +192,19 @@ def edit(date_str):
                 'start_time': None,
                 'worship_start_time': None,
                 'pastoral_sermon_id': None,
-                'assignments': assignments
+                'assignments': [],
             }
-    else:
-        assignments = plan.get('assignments', [])
+
+    # ALWAYS expand to full Sunday roster:
+    # all volunteer teams + worship/band roles; fill from plan → worship defaults → pastoral defaults
+    # Unassigned roles stay listed empty — user does not re-add them every time.
+    try:
+        plan['assignments'] = build_full_service_assignments(plan.get('assignments') or [])
+    except Exception as exc:
+        print(f'planning.edit build_full_service_assignments: {exc}')
+        plan['assignments'] = plan.get('assignments') or []
+
+    assignments = plan['assignments']
 
     # Dummy recurrence vars for old template
     future_count = 0
@@ -186,25 +224,30 @@ def edit(date_str):
         role_names = request.form.getlist('role_name')
         user_ids = request.form.getlist('user_id')
         guest_names = request.form.getlist('guest_name')
-        # zip_longest-style: guest_names may be shorter on older forms
         while len(guest_names) < len(role_names):
             guest_names.append('')
+        while len(user_ids) < len(role_names):
+            user_ids.append('')
         for role, uid, guest in zip(role_names, user_ids, guest_names):
-            if role.strip():
+            if role and role.strip():
                 data['assignments'].append({
                     'role_name': role.strip(),
                     'user_id': uid or None,
                     'guest_name': (guest or '').strip() or None,
                 })
 
+        # Persist every role row shown (including empty people) so next open keeps the full list
         create_or_update_service_plan(data, session['user_id'])
         log_change(session['user_id'], 'plan_save', None, data['title'], f'Saved override plan for {date_str}')
-        flash('Plan saved.', 'success')
+        flash('Plan saved with full role roster (worship + volunteers).', 'success')
         return redirect(url_for('pastoral.planning.edit', date_str=date_str))
 
     # GET - compatibility
     if not plan:
-        plan = {}
+        plan = {'service_date': service_date_obj, 'assignments': []}
+
+    # Ensure service_date always present for template
+    plan.setdefault('service_date', service_date_obj)
 
     service_date = service_date_obj
 
