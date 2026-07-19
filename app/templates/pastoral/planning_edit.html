@@ -21,7 +21,7 @@
         </p>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-        <a href="{{ url_for('volunteers.teams') }}" class="btn btn-secondary" style="font-size:0.85rem;">Volunteer Teams</a>
+        <a href="{{ url_for('volunteers.teams_list') }}" class="btn btn-secondary" style="font-size:0.85rem;">Volunteer Teams</a>
         <a href="{{ url_for('worship.defaults') }}" class="btn btn-secondary" style="font-size:0.85rem;">Worship Defaults</a>
         <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary" style="font-size:0.85rem;">All Plans</a>
       </div>
@@ -95,7 +95,7 @@
         <i class="fa-solid fa-users" aria-hidden="true"></i> Who is serving
       </h2>
       <p style="margin:0 0 1rem; font-size:0.9rem; opacity:0.8;">
-        Team names are locked from <a href="{{ url_for('volunteers.teams') }}">Volunteers</a>
+        Team names are locked from <a href="{{ url_for('volunteers.teams_list') }}">Volunteers</a>
         and <a href="{{ url_for('worship.defaults') }}">Worship defaults</a>.
         Only choose the person. Pre-filled when already set in Worship or volunteer schedule for this date.
       </p>
@@ -164,7 +164,7 @@
       {% endfor %}
 
       {% if not plan.assignments %}
-      <p class="text-muted">No teams loaded. Create teams under <a href="{{ url_for('volunteers.teams') }}">Volunteers</a> first.</p>
+      <p class="text-muted">No teams loaded. Create teams under <a href="{{ url_for('volunteers.teams_list') }}">Volunteers</a> first.</p>
       {% endif %}
     </div>
 
