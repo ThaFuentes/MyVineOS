@@ -1,44 +1,67 @@
-{# app/templates/pastoral/planning_defaults.html #}
-{# Full path: WebChurchMan/app/templates/pastoral/planning_defaults.html #}
-{# File name: planning_defaults.html #}
-{# Brief, detailed purpose:
-#   Dedicated page to manage global default role assignments.
-#   Defaults pre-fill EVERY new service plan (dated overrides, master templates, recurring weeks).
-#   Can be overridden per individual plan/week.
-#   Example: Set Tim as default "Preacher" - he auto-fills in new plans, but edit a specific week to replace him if he's out.
-#   Changes here instantly affect all future new plans (no restart needed).
-#   Dark/cyan theme consistent, responsive.
-#   Uses planning_assignment_row.html partial for dynamic rows. #}
+{# Pastoral global default roles — merges Worship Team defaults + volunteer teams. #}
 
 {% extends "pastoral/base_pastoral.html" %}
 
 {% block title %}Global Default Role Assignments{% endblock %}
 
 {% block pastoral_content %}
-<div class="container-fluid py-5">
+<div class="container-fluid py-4">
     <div class="row justify-content-center">
         <div class="col-lg-10 col-xxl-8">
-            <div class="text-center mb-5">
+            <div class="text-center mb-4">
                 <h1 class="text-cyan">Global Default Role Assignments</h1>
-                <p class="text-muted lead">
-                    These defaults automatically pre-fill <strong>every new service plan</strong> you create - including dated overrides and recurring master templates.<br>
-                    You can always override them on a specific week (perfect for guest speakers or substitutions).
+                <p class="text-muted lead" style="font-size:1rem;">
+                    These pre-fill every <strong>new service plan</strong>. You can still override any week.
                 </p>
             </div>
 
-            <!-- Helpful info alert -->
-            <div class="alert alert-info py-4 mb-5 text-center border border-cyan shadow-sm">
-                <i class="fas fa-lightbulb fa-2x mb-3 text-cyan d-block"></i>
-                <strong>Pro Tip:</strong> Set your main recurring roles here once (e.g., Preacher -> Tim, Worship Leader -> Anna)<br>
-                and enjoy "set it and forget it" - all new plans will start with these filled in automatically.
+            <div class="alert alert-info py-3 mb-4 text-center border border-cyan">
+                <strong>Worship Team defaults are the source for band roles.</strong><br>
+                Whoever is set as <strong>Worship Leader</strong> (and Guitar, Bass, Keys, etc.) under
+                <em>Worship → Default Roles</em> shows here automatically.
+                Pastoral-only roles (Preacher, Greeters, Ushers, …) stay editable here.
             </div>
+
+            {% if worship_defaults %}
+            <div class="glass-panel mb-3" style="padding:1rem;">
+                <strong class="text-cyan">Currently loaded from Worship Team defaults</strong>
+                <ul style="margin:0.5rem 0 0; padding-left:1.2rem; font-size:0.9rem;">
+                    {% for w in worship_defaults %}
+                    <li>
+                        {{ w.role_name }}:
+                        <strong>{{ w.user_full_name or 'Unassigned' }}</strong>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <p class="mb-0 mt-2" style="font-size:0.85rem; opacity:0.75;">
+                    Edit people for these roles in Worship first; reopen this page to refresh.
+                </p>
+            </div>
+            {% else %}
+            <div class="glass-panel mb-3" style="padding:1rem; opacity:0.9;">
+                <strong>No Worship Team defaults yet.</strong>
+                Set them under Worship → Default Roles (Worship Leader, band, etc.).
+                This page will then show those people automatically.
+            </div>
+            {% endif %}
+
+            {% if worship_role_names %}
+            <div class="glass-panel mb-3" style="padding:1rem;">
+                <strong class="text-cyan">Worship roles</strong>
+                <p class="text-muted mb-2" style="font-size:0.9rem;">Click to add a missing worship role row.</p>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                    {% for role in worship_role_names %}
+                    <button type="button" class="btn btn-outline-cyan btn-sm vol-team-chip" data-role="{{ role }}">{{ role }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             {% if volunteer_team_roles %}
             <div class="glass-panel mb-4" style="padding:1rem;">
-                <strong class="text-cyan">Volunteer Teams (shared with Volunteers module)</strong>
+                <strong class="text-cyan">Volunteer Teams</strong>
                 <p class="text-muted mb-2" style="font-size:0.9rem;">
-                    These roles match your volunteer Teams so pastoral planning and volunteer scheduling stay cohesive.
-                    Click a name to add it as a default role row (if not already listed).
+                    Greeters, Ushers, and other volunteer teams for a cohesive Sunday plan.
                 </p>
                 <div style="display:flex; flex-wrap:wrap; gap:0.4rem;" id="volunteer-team-chips">
                     {% for team in volunteer_team_roles %}
@@ -49,8 +72,8 @@
             {% endif %}
 
             <div class="card glass-card shadow">
-                <div class="card-body p-5">
-                    <form method="POST">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('pastoral.planning.defaults') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="text-cyan mb-0">Default Roles</h4>
@@ -64,8 +87,8 @@
                                 {% include "pastoral/planning_assignment_row.html" %}
                             {% endfor %}
 
-                            <!-- Hidden空白 row for dynamic add -->
-                            <div class="assignment-row d-none">
+                            {# Template row for JS — not submitted (no name attrs until clone; inputs keep names but empty role ignored) #}
+                            <div class="assignment-row d-none" data-template="1" aria-hidden="true">
                                 {% with assignment=none %}
                                     {% include "pastoral/planning_assignment_row.html" %}
                                 {% endwith %}
@@ -73,11 +96,10 @@
                         </div>
 
                         <small class="text-muted d-block mb-4">
-                            <strong>Example:</strong> Set "Preacher" -> Tim. He will auto-fill in every new plan.<br>
-                            Empty rows are ignored on save.
+                            Empty role names are ignored. Duplicate role names are merged on save.
                         </small>
 
-                        <div class="d-grid d-md-flex gap-3 justify-content-md-end mt-5">
+                        <div class="d-grid d-md-flex gap-3 justify-content-md-end mt-4">
                             <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-outline-secondary btn-lg order-md-1">
                                 <i class="fas fa-arrow-left me-2"></i>Back to Planning
                             </a>
@@ -95,45 +117,58 @@
 
 {% block extra_js %}
 <script>
-    function addRoleRow(roleName) {
-        const container = document.getElementById('assignments-container');
-        const templateRow = container.querySelector('.assignment-row.d-none');
-        if (!templateRow) return;
-        // Skip if role already present
-        if (roleName) {
-            const existing = [...container.querySelectorAll('.assignment-row:not(.d-none) input[name="role_name"]')]
-                .some((inp) => (inp.value || '').trim().toLowerCase() === roleName.toLowerCase());
-            if (existing) return;
-        }
-        const row = templateRow.cloneNode(true);
-        row.classList.remove('d-none');
-        const nameInp = row.querySelector('input[name="role_name"]');
-        if (nameInp) nameInp.value = roleName || '';
-        const sel = row.querySelector('select[name="user_id"]');
-        if (sel) sel.selectedIndex = 0;
-        const guest = row.querySelector('input[name="guest_name"]');
-        if (guest) guest.value = '';
-        container.insertBefore(row, templateRow);
+(function () {
+  function addRoleRow(roleName) {
+    const container = document.getElementById('assignments-container');
+    if (!container) return;
+    const templateRow = container.querySelector('.assignment-row.d-none[data-template="1"]')
+      || container.querySelector('.assignment-row.d-none');
+    if (!templateRow) return;
+    if (roleName) {
+      const existing = [...container.querySelectorAll('.assignment-row:not(.d-none) input[name="role_name"]')]
+        .some((inp) => (inp.value || '').trim().toLowerCase() === roleName.toLowerCase());
+      if (existing) return;
     }
+    const row = templateRow.cloneNode(true);
+    row.classList.remove('d-none');
+    row.removeAttribute('data-template');
+    row.removeAttribute('aria-hidden');
+    const nameInp = row.querySelector('input[name="role_name"]');
+    if (nameInp) nameInp.value = roleName || '';
+    const sel = row.querySelector('select[name="user_id"]');
+    if (sel) sel.selectedIndex = 0;
+    const guest = row.querySelector('input[name="guest_name"]');
+    if (guest) guest.value = '';
+    container.insertBefore(row, templateRow);
+  }
 
-    document.getElementById('add-role-btn').addEventListener('click', function() {
-        addRoleRow('');
-    });
+  const addBtn = document.getElementById('add-role-btn');
+  if (addBtn) addBtn.addEventListener('click', function () { addRoleRow(''); });
 
-    document.querySelectorAll('.vol-team-chip').forEach((btn) => {
-        btn.addEventListener('click', () => addRoleRow(btn.dataset.role || btn.textContent.trim()));
-    });
+  document.querySelectorAll('.vol-team-chip').forEach((btn) => {
+    btn.addEventListener('click', () => addRoleRow(btn.dataset.role || btn.textContent.trim()));
+  });
 
-    document.getElementById('assignments-container').addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-role-btn') || e.target.closest('.remove-role-btn')) {
-            const row = e.target.closest('.assignment-row');
-            if (document.querySelectorAll('#assignments-container .assignment-row:not(.d-none)').length > 1) {
-                row.remove();
-            } else {
-                row.querySelector('input[name="role_name"]').value = '';
-                row.querySelector('select[name="user_id"]').selectedIndex = 0;
-            }
-        }
+  const container = document.getElementById('assignments-container');
+  if (container) {
+    container.addEventListener('click', function (e) {
+      const btn = e.target.closest('.remove-role-btn');
+      if (!btn) return;
+      const row = btn.closest('.assignment-row');
+      if (!row || row.classList.contains('d-none')) return;
+      const visible = container.querySelectorAll('.assignment-row:not(.d-none)');
+      if (visible.length > 1) {
+        row.remove();
+      } else {
+        const name = row.querySelector('input[name="role_name"]');
+        const sel = row.querySelector('select[name="user_id"]');
+        const guest = row.querySelector('input[name="guest_name"]');
+        if (name) name.value = '';
+        if (sel) sel.selectedIndex = 0;
+        if (guest) guest.value = '';
+      }
     });
+  }
+})();
 </script>
 {% endblock %}

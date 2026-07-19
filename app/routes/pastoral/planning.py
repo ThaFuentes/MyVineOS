@@ -428,45 +428,90 @@ def template_refresh(template_id):
 @planning_bp.route('/defaults', methods=['GET', 'POST'])
 @pastoral_required()
 def defaults():
+    """
+    Pastoral service default roles.
+    Merges Worship Team defaults (Worship Leader, band roles) so they stay in sync.
+    Hardened against schema/migration issues so this page does not 500.
+    """
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 
-    cur.execute("""
-        SELECT u.id, CONCAT(u.first_name, ' ', u.last_name) AS full_name, u.username
-        FROM users u
-        JOIN user_groups ug ON u.id = ug.user_id
-        JOIN groups g ON ug.group_id = g.id
-        WHERE g.name = 'Pastoral Group'
-        ORDER BY u.first_name, u.last_name
-    """)
-    assignable_users = cur.fetchall()
+    # Assignable people: Pastoral Group + Worship Team + Owner/Admin
+    try:
+        cur.execute("""
+            SELECT DISTINCT u.id,
+                   CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+                   u.username
+            FROM users u
+            LEFT JOIN user_groups ug ON u.id = ug.user_id
+            LEFT JOIN groups g ON ug.group_id = g.id
+            WHERE u.role IN ('Owner', 'Admin', 'Staff', 'Member')
+              AND (
+                    g.name = 'Pastoral Group'
+                 OR g.system_key = 'pastoral'
+                 OR g.name = 'Worship Team'
+                 OR g.system_key = 'worship_team'
+                 OR u.role IN ('Owner', 'Admin')
+              )
+            ORDER BY u.first_name, u.last_name
+        """)
+        assignable_users = cur.fetchall() or []
+    except Exception as exc:
+        print(f'planning.defaults assignable_users: {exc}')
+        assignable_users = []
 
     if request.method == 'POST':
-        assignments = []
-        role_names = request.form.getlist('role_name')
-        user_ids = request.form.getlist('user_id')
-        guest_names = request.form.getlist('guest_name')
-        while len(guest_names) < len(role_names):
-            guest_names.append('')
-        for role, uid, guest in zip(role_names, user_ids, guest_names):
-            if role.strip():
-                assignments.append({
-                    'role_name': role.strip(),
-                    'user_id': uid or None,
-                    'guest_name': (guest or '').strip() or None,
-                })
-        save_default_assignments(assignments)
-        log_change(session['user_id'], 'defaults_save', None, None, 'Saved global default role assignments')
-        flash('Global defaults saved.', 'success')
+        try:
+            assignments = []
+            role_names = request.form.getlist('role_name')
+            user_ids = request.form.getlist('user_id')
+            guest_names = request.form.getlist('guest_name')
+            while len(guest_names) < len(role_names):
+                guest_names.append('')
+            while len(user_ids) < len(role_names):
+                user_ids.append('')
+            for role, uid, guest in zip(role_names, user_ids, guest_names):
+                if role and role.strip():
+                    assignments.append({
+                        'role_name': role.strip(),
+                        'user_id': uid or None,
+                        'guest_name': (guest or '').strip() or None,
+                    })
+            save_default_assignments(assignments)
+            log_change(session['user_id'], 'defaults_save', None, None, 'Saved global default role assignments')
+            flash('Global defaults saved. Worship Leader and band roles stay aligned with Worship Team defaults when you reopen this page.', 'success')
+        except Exception as exc:
+            print(f'planning.defaults POST: {exc}')
+            flash(f'Could not save defaults: {exc}', 'error')
         return redirect(url_for('pastoral.planning.defaults'))
 
-    defaults = get_default_assignments()
+    try:
+        defaults = get_default_assignments()
+    except Exception as exc:
+        print(f'planning.defaults GET: {exc}')
+        flash('Defaults loaded with limited data (see server log).', 'warning')
+        defaults = [{'role_name': '', 'user_id': None, 'guest_name': None, 'user_full_name': None}]
+
+    try:
+        volunteer_team_roles = get_volunteer_team_role_names()
+    except Exception:
+        volunteer_team_roles = []
+    try:
+        from app.models.pastoral.service_plans import get_worship_default_assignments, SERVICE_WORSHIP_ROLES
+        worship_defaults = get_worship_default_assignments()
+        worship_role_names = list({*(SERVICE_WORSHIP_ROLES or []), *[w.get('role_name') for w in worship_defaults if w.get('role_name')]})
+    except Exception:
+        worship_defaults = []
+        worship_role_names = []
+
     return render_template(
         'pastoral/planning_defaults.html',
         defaults=defaults,
         assignable_users=assignable_users,
-        volunteer_team_roles=get_volunteer_team_role_names(),
-        cohesive_roles=cohesive_service_role_names(),
+        volunteer_team_roles=volunteer_team_roles,
+        worship_defaults=worship_defaults,
+        worship_role_names=worship_role_names,
+        cohesive_roles=(cohesive_service_role_names() or []),
     )
 
 

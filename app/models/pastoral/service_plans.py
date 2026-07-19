@@ -566,8 +566,7 @@ def get_upcoming_service():
     }
 
 
-# Cohesive service roles: pastoral + volunteer Teams module defaults
-# (matches app/builddb/volunteers.py seed names)
+# Cohesive service roles: pastoral + volunteer Teams + worship defaults
 SERVICE_VOLUNTEER_TEAM_ROLES = [
     'Greeters',
     'Ushers',
@@ -578,11 +577,59 @@ SERVICE_VOLUNTEER_TEAM_ROLES = [
     'Prayer Team',
 ]
 
-# Core worship/service roles used with volunteer teams for full Sunday coverage
+# Worship module default role names (app/routes/worship/utils.py DEFAULT_ROLES)
+SERVICE_WORSHIP_ROLES = [
+    'Worship Leader', 'Vocals', 'Guitar', 'Bass', 'Keys', 'Drums', 'Sound', 'Slides',
+]
+
 SERVICE_CORE_ROLES = [
     'Preacher',
-    'Worship Leader',
 ]
+
+
+def ensure_default_assignment_schema():
+    """
+    Make sure default_service_plan_assignments exists and has guest_name.
+    Prevents 500s on older DBs that never ran the guest_name migration.
+    """
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS default_service_plan_assignments (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                role_name VARCHAR(191) NOT NULL,
+                user_id INT UNSIGNED NULL,
+                guest_name VARCHAR(191) NULL,
+                UNIQUE KEY uniq_default_role (role_name)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+    except Exception as exc:
+        print(f'default_service_plan_assignments create: {exc}')
+        try:
+            db.rollback()
+        except Exception:
+            pass
+    try:
+        cur.execute("""
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'default_service_plan_assignments'
+              AND COLUMN_NAME = 'guest_name'
+        """)
+        if not cur.fetchone():
+            cur.execute(
+                "ALTER TABLE default_service_plan_assignments "
+                "ADD COLUMN guest_name VARCHAR(191) NULL AFTER user_id"
+            )
+            db.commit()
+    except Exception as exc:
+        print(f'default_service_plan_assignments guest_name: {exc}')
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 def get_volunteer_team_role_names() -> list[str]:
@@ -604,16 +651,183 @@ def get_volunteer_team_role_names() -> list[str]:
     return list(SERVICE_VOLUNTEER_TEAM_ROLES)
 
 
+def get_worship_default_assignments() -> list[dict]:
+    """
+    Role assignments from Worship Team → Default Roles
+    (worship_default_assignments). Used so pastoral planning mirrors worship.
+    """
+    try:
+        from app.models.worship import setlists as worship_setlists
+        rows = worship_setlists.get_default_assignments() or []
+        out = []
+        for r in rows:
+            role = (r.get('role_name') or '').strip()
+            if not role:
+                continue
+            uid = r.get('user_id')
+            try:
+                uid = int(uid) if uid not in (None, '', 'None') else None
+            except (TypeError, ValueError):
+                uid = None
+            out.append({
+                'role_name': role,
+                'user_id': uid,
+                'guest_name': None,
+                'user_full_name': r.get('user_full_name'),
+                'source': 'worship',
+            })
+        return out
+    except Exception as exc:
+        print(f'get_worship_default_assignments: {exc}')
+        return []
+
+
+def get_primary_worship_leader_user_id() -> int | None:
+    """Prefer Worship Team group leader; fall back to first worship default WL."""
+    try:
+        from app.models.worship.shared import get_worship_leaders
+        leaders = get_worship_leaders() or []
+        for L in leaders:
+            if (L.get('role_in_group') or '') == 'leader' and L.get('id'):
+                return int(L['id'])
+        if leaders and leaders[0].get('id'):
+            return int(leaders[0]['id'])
+    except Exception as exc:
+        print(f'get_primary_worship_leader_user_id: {exc}')
+    for w in get_worship_default_assignments():
+        if (w.get('role_name') or '').strip().lower() == 'worship leader' and w.get('user_id'):
+            return int(w['user_id'])
+    return None
+
+
 def cohesive_service_role_names() -> list[str]:
-    """Pastoral core roles + volunteer teams for unified service planning."""
+    """Preacher + worship default roles + volunteer teams."""
     core = list(SERVICE_CORE_ROLES)
-    teams = get_volunteer_team_role_names()
     seen = set(core)
-    for t in teams:
+    # Prefer live worship default role names, then static worship list
+    worship_roles = [w['role_name'] for w in get_worship_default_assignments()]
+    if not worship_roles:
+        worship_roles = list(SERVICE_WORSHIP_ROLES)
+    for t in worship_roles:
+        if t not in seen:
+            core.append(t)
+            seen.add(t)
+    for t in get_volunteer_team_role_names():
         if t not in seen:
             core.append(t)
             seen.add(t)
     return core
+
+
+def _upsert_default_role(role_name: str, user_id=None, guest_name=None, *, overwrite_user: bool = False):
+    """Insert role if missing; optionally fill empty user_id from worship."""
+    role_name = (role_name or '').strip()
+    if not role_name:
+        return
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute(
+        "SELECT id, user_id FROM default_service_plan_assignments WHERE role_name = %s LIMIT 1",
+        (role_name,),
+    )
+    row = cur.fetchone()
+    if not row:
+        cur2 = db.cursor()
+        try:
+            cur2.execute(
+                """
+                INSERT INTO default_service_plan_assignments (role_name, user_id, guest_name)
+                VALUES (%s, %s, %s)
+                """,
+                (role_name, user_id, guest_name),
+            )
+            db.commit()
+        except Exception:
+            # Fallback without guest_name for ancient schemas
+            try:
+                db.rollback()
+                cur2.execute(
+                    """
+                    INSERT INTO default_service_plan_assignments (role_name, user_id)
+                    VALUES (%s, %s)
+                    """,
+                    (role_name, user_id),
+                )
+                db.commit()
+            except Exception as exc:
+                print(f'_upsert_default_role insert {role_name}: {exc}')
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+        return
+
+    if user_id and (overwrite_user or not row.get('user_id')):
+        cur2 = db.cursor()
+        try:
+            cur2.execute(
+                "UPDATE default_service_plan_assignments SET user_id = %s WHERE id = %s",
+                (user_id, row['id']),
+            )
+            db.commit()
+        except Exception as exc:
+            print(f'_upsert_default_role update {role_name}: {exc}')
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
+
+def sync_worship_defaults_into_pastoral():
+    """
+    Mirror Worship Team default roles into pastoral service defaults.
+
+    - Every role from worship_default_assignments is present in pastoral defaults
+    - user_id follows worship (source of truth for band roles)
+    - Worship Leader is always present; filled from worship defaults or group leader
+    Never removes pastoral-only roles (Preacher, Greeters, …).
+    """
+    ensure_default_assignment_schema()
+    try:
+        worship_rows = get_worship_default_assignments()
+        worship_by_role = {r['role_name']: r for r in worship_rows}
+
+        # Ensure standard worship role slots exist (even if worship has no defaults yet)
+        for role in SERVICE_WORSHIP_ROLES:
+            w = worship_by_role.get(role)
+            if w:
+                _upsert_default_role(role, w.get('user_id'), overwrite_user=True)
+            else:
+                _upsert_default_role(role, None, overwrite_user=False)
+
+        # Any extra custom roles from worship defaults
+        for role, w in worship_by_role.items():
+            if role not in SERVICE_WORSHIP_ROLES:
+                _upsert_default_role(role, w.get('user_id'), overwrite_user=True)
+
+        # Worship Leader person: worship defaults → group leader
+        wl = worship_by_role.get('Worship Leader')
+        wl_uid = (wl or {}).get('user_id') or get_primary_worship_leader_user_id()
+        if wl_uid:
+            _upsert_default_role('Worship Leader', wl_uid, overwrite_user=True)
+
+        # Volunteer team role slots (unassigned unless already set)
+        for role in get_volunteer_team_role_names():
+            _upsert_default_role(role, None, overwrite_user=False)
+
+        # Ensure Preacher slot exists
+        _upsert_default_role('Preacher', None, overwrite_user=False)
+    except Exception as exc:
+        print(f'sync_worship_defaults_into_pastoral: {exc}')
+
+
+def seed_default_assignments_with_volunteer_teams():
+    """Backward-compatible name: sync worship + volunteer + preacher slots safely."""
+    try:
+        ensure_default_assignment_schema()
+        sync_worship_defaults_into_pastoral()
+    except Exception as exc:
+        print(f'seed_default_assignments_with_volunteer_teams: {exc}')
 
 
 # ----------------------------------------------------------------------
@@ -621,91 +835,109 @@ def cohesive_service_role_names() -> list[str]:
 # ----------------------------------------------------------------------
 def get_default_assignments():
     """
-    Global default roles for new plans. If empty, seed with Preacher +
-    volunteer Teams (Greeters, Ushers, …) so pastoral + volunteers stay cohesive.
+    Global default roles for new plans.
+
+    Pulls Worship Team defaults (band roles + Worship Leader) and volunteer
+    team slots into pastoral defaults. Safe on older schemas (no 500).
     """
-    seed_default_assignments_with_volunteer_teams()
+    try:
+        ensure_default_assignment_schema()
+        sync_worship_defaults_into_pastoral()
+    except Exception as exc:
+        print(f'get_default_assignments prep: {exc}')
+
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
-    cur.execute("""
-        SELECT role_name, user_id, guest_name,
-               CONCAT(u.first_name, ' ', u.last_name) AS user_full_name
-        FROM default_service_plan_assignments d
-        LEFT JOIN users u ON d.user_id = u.id
-        ORDER BY
-          CASE
-            WHEN role_name = 'Preacher' THEN 0
-            WHEN role_name = 'Worship Leader' THEN 1
-            ELSE 10
-          END,
-          role_name
-    """)
-    rows = cur.fetchall()
+    rows = []
+    try:
+        # Prefer selecting guest_name; fall back if column still missing
+        try:
+            cur.execute("""
+                SELECT d.role_name, d.user_id, d.guest_name,
+                       CONCAT(u.first_name, ' ', u.last_name) AS user_full_name
+                FROM default_service_plan_assignments d
+                LEFT JOIN users u ON d.user_id = u.id
+                ORDER BY
+                  CASE
+                    WHEN d.role_name = 'Preacher' THEN 0
+                    WHEN d.role_name = 'Worship Leader' THEN 1
+                    ELSE 10
+                  END,
+                  d.role_name
+            """)
+        except Exception:
+            cur.execute("""
+                SELECT d.role_name, d.user_id, NULL AS guest_name,
+                       CONCAT(u.first_name, ' ', u.last_name) AS user_full_name
+                FROM default_service_plan_assignments d
+                LEFT JOIN users u ON d.user_id = u.id
+                ORDER BY d.role_name
+            """)
+        rows = cur.fetchall() or []
+    except Exception as exc:
+        print(f'get_default_assignments query: {exc}')
+        rows = []
+
+    # Tag worship-sourced roles for UI
+    worship_roles = {w['role_name'] for w in get_worship_default_assignments()}
+    worship_roles.update(SERVICE_WORSHIP_ROLES)
+    for r in rows:
+        r['source'] = 'worship' if (r.get('role_name') or '') in worship_roles else 'pastoral'
+
     if not rows:
-        rows = [{'role_name': '', 'user_id': None, 'guest_name': None, 'user_full_name': None}]
+        rows = [{'role_name': '', 'user_id': None, 'guest_name': None, 'user_full_name': None, 'source': 'pastoral'}]
     return rows
 
 
-def seed_default_assignments_with_volunteer_teams():
-    """
-    When default_service_plan_assignments is empty, insert cohesive roles:
-    Preacher, Worship Leader, plus all volunteer Teams (Greeters, Ushers, …).
-    Does not overwrite existing custom defaults.
-    Also adds any missing volunteer team roles without removing custom rows.
-    """
-    db = get_db()
-    cur = db.cursor(pymysql.cursors.DictCursor)
-    try:
-        cur.execute("SELECT role_name FROM default_service_plan_assignments")
-        existing = {(r.get('role_name') or '').strip() for r in (cur.fetchall() or []) if r.get('role_name')}
-    except Exception:
-        return
-
-    desired = cohesive_service_role_names()
-    if not existing:
-        # Fresh seed
-        cur2 = db.cursor()
-        for role in desired:
-            cur2.execute("""
-                INSERT INTO default_service_plan_assignments (role_name, user_id, guest_name)
-                VALUES (%s, NULL, NULL)
-            """, (role,))
-        db.commit()
-        print(f"Seeded pastoral default roles with volunteer teams: {', '.join(desired)}")
-        return
-
-    # Additive only: never remove existing roles
-    cur2 = db.cursor()
-    added = []
-    for role in desired:
-        if role not in existing:
-            cur2.execute("""
-                INSERT INTO default_service_plan_assignments (role_name, user_id, guest_name)
-                VALUES (%s, NULL, NULL)
-            """, (role,))
-            added.append(role)
-    if added:
-        db.commit()
-        print(f"Added cohesive volunteer team roles to pastoral defaults: {', '.join(added)}")
-
-
 def save_default_assignments(assignments: list):
-    """Replace defaults only when caller posts a full list (form save)."""
+    """
+    Replace pastoral defaults from form save.
+    Dedupes by role_name (table has UNIQUE). Safe without guest_name column.
+    """
+    ensure_default_assignment_schema()
     db = get_db()
     cur = db.cursor()
     cur.execute("DELETE FROM default_service_plan_assignments")
-    for a in assignments:
-        if a['role_name'].strip():
-            uid = a.get('user_id') or None
-            if uid in ('', 'None'):
+
+    # Dedupe: last non-empty row for a role wins (avoids UNIQUE 500)
+    by_role = {}
+    for a in assignments or []:
+        role = (a.get('role_name') or '').strip()
+        if not role:
+            continue
+        uid = a.get('user_id')
+        if uid in ('', 'None', None):
+            uid = None
+        else:
+            try:
+                uid = int(uid)
+            except (TypeError, ValueError):
                 uid = None
-            guest = (a.get('guest_name') or '').strip() or None
-            if uid:
-                guest = None
-            cur.execute("""
+        guest = (a.get('guest_name') or '').strip() or None
+        if uid:
+            guest = None
+        by_role[role] = {'role_name': role, 'user_id': uid, 'guest_name': guest}
+
+    for role, a in by_role.items():
+        try:
+            cur.execute(
+                """
                 INSERT INTO default_service_plan_assignments (role_name, user_id, guest_name)
                 VALUES (%s, %s, %s)
-            """, (a['role_name'], uid, guest))
+                """,
+                (a['role_name'], a['user_id'], a['guest_name']),
+            )
+        except Exception:
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO default_service_plan_assignments (role_name, user_id)
+                    VALUES (%s, %s)
+                    """,
+                    (a['role_name'], a['user_id']),
+                )
+            except Exception as exc:
+                print(f'save_default_assignments skip {role}: {exc}')
     db.commit()
 
 
@@ -715,7 +947,10 @@ def save_default_assignments(assignments: list):
 def seed_default_sunday_template():
     """Seed a basic Sunday template if no Sunday master exists yet."""
     dedupe_service_templates()
-    seed_default_assignments_with_volunteer_teams()
+    try:
+        seed_default_assignments_with_volunteer_teams()
+    except Exception as exc:
+        print(f'seed_default_sunday_template defaults: {exc}')
     if get_template_for_weekday(6):
         return
 
@@ -724,14 +959,15 @@ def seed_default_sunday_template():
     cur.execute("SELECT id FROM users WHERE role = 'Owner' LIMIT 1")
     owner = cur.fetchone()
     if not owner:
-#        print("Warning: No Owner - cannot seed default template.")
         return
     creator_id = owner['id']
 
-    # Preacher = Owner; volunteer team roles unassigned until scheduled
+    wl_uid = get_primary_worship_leader_user_id()
     assignments = [{'role_name': 'Preacher', 'user_id': creator_id, 'guest_name': None}]
+    if wl_uid:
+        assignments.append({'role_name': 'Worship Leader', 'user_id': wl_uid, 'guest_name': None})
     for role in cohesive_service_role_names():
-        if role == 'Preacher':
+        if role in ('Preacher', 'Worship Leader'):
             continue
         assignments.append({'role_name': role, 'user_id': None, 'guest_name': None})
 
@@ -745,4 +981,4 @@ def seed_default_sunday_template():
         'weekday': 6,  # Sunday
         'assignments': assignments,
     }, creator_id)
-    print("Seeded default Sunday Morning template with Preacher + volunteer teams.")
+    print("Seeded default Sunday Morning template with Preacher + worship/volunteer roles.")
