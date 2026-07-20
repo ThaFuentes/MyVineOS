@@ -1,10 +1,10 @@
-{# Global defaults — same roster panel as day plan edit. #}
+{# Overall default plan — same form UI as day plan edit; applies when a week is NOT customized. #}
 {% extends "pastoral/base_pastoral.html" %}
 
-{% block title %}Service Plan Defaults{% endblock %}
+{% block title %}Overall Default Plan{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/planning.css') }}?v=20260720defaults1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/planning.css') }}?v=20260720defaults2">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -12,10 +12,10 @@
   <div class="glass-panel" style="margin-bottom:0.85rem;">
     <div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:flex-start;">
       <div>
-        <h1 class="page-title" style="margin:0 0 0.25rem;">Service Plan Defaults</h1>
+        <h1 class="page-title" style="margin:0 0 0.25rem;">Overall default plan</h1>
         <p class="page-description" style="margin:0; opacity:0.8;">
-          Same layout as a <strong>one-day plan</strong>. Who you set here is the starting roster for every new date
-          (teams + worship + extras). You can still change people on a specific day.
+          This is your <strong>standing Sunday roster</strong> (teams, worship, extras).
+          Weeks you never open use this. To change one week only (guest, special notes), open that date under Planning.
         </p>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
@@ -26,22 +26,23 @@
     </div>
   </div>
 
-  <form method="POST" action="{{ url_for('pastoral.planning.defaults') }}" id="defaults-form" class="styled-form">
+  <form method="POST" action="{{ url_for('pastoral.planning.defaults') }}" id="planning-form" class="styled-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
     <div class="form-actions" style="margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
-      <button type="submit" class="btn btn-primary">Save defaults</button>
+      <button type="submit" class="btn btn-primary">Save default plan</button>
       <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Cancel</a>
     </div>
 
-    {% set roster_heading = 'Default who is serving' %}
-    {% set roster_intro = 'Same form as a day plan. Teams and worship roles are locked from the app — pick people (or guests). Extras apply to every new plan.' %}
-    {% set custom_section_label = 'Extra default roles' %}
-    {% set empty_extra_msg = 'No extra default roles. Click <strong>Add extra role</strong> for roles that should appear on every new plan.' %}
+    {# Exact same Who is serving panel as day plan edit #}
+    {% set roster_heading = 'Who is serving' %}
+    {% set roster_intro = 'Standard roles come from <a href="' ~ url_for('volunteers.teams_list') ~ '">Volunteers</a> and <a href="' ~ url_for('worship.defaults') ~ '">Worship</a> — pick a member or enter a guest name. Use <strong>Add extra role</strong> for one-offs.' %}
+    {% set custom_section_label = 'Extra roles' %}
+    {% set empty_extra_msg = 'No extra roles yet. Click <strong>Add extra role</strong> for something not covered by teams.' %}
     {% include 'pastoral/_roster_panel.html' %}
 
     <div class="form-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
-      <button type="submit" class="btn btn-primary btn-lg">Save defaults</button>
+      <button type="submit" class="btn btn-primary btn-lg">Save default plan</button>
       <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Back to planning</a>
     </div>
   </form>
@@ -75,7 +76,7 @@
       p.id = 'extra-roles-empty';
       p.className = 'text-muted';
       p.style.cssText = 'margin:0; font-size:0.88rem; opacity:0.7;';
-      p.innerHTML = 'No extra default roles. Click <strong>Add extra role</strong> for roles that should appear on every new plan.';
+      p.innerHTML = 'No extra roles yet. Click <strong>Add extra role</strong> for something not covered by teams.';
       container.appendChild(p);
     }
   });

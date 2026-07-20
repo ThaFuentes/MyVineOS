@@ -507,9 +507,10 @@ def template_refresh(template_id):
 @pastoral_required()
 def defaults():
     """
-    Global service defaults — same roster model as plan edit:
-    locked Volunteer Teams + Worship roles + optional extra custom roles.
-    Pre-fills every new dated plan via build_full_service_assignments.
+    Overall default plan (standing roster).
+
+    Same Who is serving form as /planning/edit/<date>.
+    Used when a week has no dated override. Per-week changes stay on edit/<date>.
     """
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
@@ -533,10 +534,9 @@ def defaults():
                         'guest_name': (guest or '').strip() or None,
                     })
             save_default_assignments(assignments)
-            log_change(session['user_id'], 'defaults_save', None, None, 'Saved global default role assignments')
+            log_change(session['user_id'], 'defaults_save', None, None, 'Saved overall default plan roster')
             flash(
-                'Defaults saved. New service plans use this roster '
-                '(teams + worship + extras). You can still change people per date.',
+                'Overall default plan saved. Weeks you do not customize use this roster.',
                 'success',
             )
         except Exception as exc:
@@ -544,7 +544,7 @@ def defaults():
             flash(f'Could not save defaults: {exc}', 'error')
         return redirect(url_for('pastoral.planning.defaults'))
 
-    # Same full roster as plan edit so defaults ↔ plans stay cohesive
+    # Same roster builder + layout data as day plan edit
     try:
         stored = get_default_assignments()
     except Exception as exc:
@@ -565,24 +565,11 @@ def defaults():
     if not any(roster_by_kind.values()):
         roster_by_kind = {'pastoral': [], 'worship': [], 'volunteer': defaults, 'custom': []}
 
-    try:
-        from app.models.volunteers import list_teams
-        volunteer_teams = list_teams(active_only=True) or []
-    except Exception:
-        volunteer_teams = []
-    try:
-        from app.models.pastoral.service_plans import get_worship_default_assignments
-        worship_defaults = get_worship_default_assignments()
-    except Exception:
-        worship_defaults = []
-
     return render_template(
         'pastoral/planning_defaults.html',
         defaults=defaults,
         roster_by_kind=roster_by_kind,
         assignable_users=assignable_users,
-        volunteer_teams=volunteer_teams,
-        worship_defaults=worship_defaults,
     )
 
 
