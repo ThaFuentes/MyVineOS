@@ -27,11 +27,40 @@ def create_tables(cursor):
         CREATE TABLE IF NOT EXISTS worship_default_assignments (
             id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
             role_name VARCHAR(120) NOT NULL,
-            user_id INT UNSIGNED NOT NULL,
+            user_id INT UNSIGNED NULL,
+            guest_name VARCHAR(160) NULL,
             UNIQUE KEY uq_worship_default_role (role_name),
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
         ) ENGINE=InnoDB;
     """)
+    # Migration: non-member guests on worship defaults / setlist assignments
+    for table in (
+        'worship_default_assignments',
+        'worship_setlist_assignments',
+        'worship_weekly_template_assignments',
+        'worship_template_assignments',
+    ):
+        try:
+            cursor.execute(f"""
+                SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'user_id'
+            """, (table,))
+            row = cursor.fetchone()
+            if row and str(row[0] if not isinstance(row, dict) else row.get('IS_NULLABLE')).upper() == 'NO':
+                cursor.execute(f"ALTER TABLE {table} MODIFY COLUMN user_id INT UNSIGNED NULL")
+                print(f"Migration: {table}.user_id nullable (guest support)")
+        except Exception as e:
+            print(f"  (skip {table} user_id nullable: {e})")
+        try:
+            cursor.execute(f"""
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'guest_name'
+            """, (table,))
+            if not cursor.fetchone():
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN guest_name VARCHAR(160) NULL")
+                print(f"Migration: {table}.guest_name added")
+        except Exception as e:
+            print(f"  (skip {table} guest_name: {e})")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS worship_rehearsal_templates (

@@ -669,11 +669,13 @@ def get_worship_default_assignments() -> list[dict]:
                 uid = int(uid) if uid not in (None, '', 'None') else None
             except (TypeError, ValueError):
                 uid = None
+            guest = (r.get('guest_name') or '').strip() or None
+            full = r.get('user_full_name') or guest
             out.append({
                 'role_name': role,
                 'user_id': uid,
-                'guest_name': None,
-                'user_full_name': r.get('user_full_name'),
+                'guest_name': guest if not uid else None,
+                'user_full_name': full,
                 'source': 'worship',
             })
         return out
@@ -915,11 +917,15 @@ def build_full_service_assignments(existing=None, date_str: str | None = None) -
             full = vol_day[key].get('user_full_name')
             source = 'volunteer'
 
-        if not uid and kind == 'worship':
+        if not uid and not guest and kind == 'worship':
             w = worship_by.get(key)
             if w and w.get('user_id'):
                 uid = _uid_ok(w['user_id'])
                 full = w.get('user_full_name')
+                source = 'worship'
+            elif w and (w.get('guest_name') or '').strip():
+                guest = (w.get('guest_name') or '').strip()
+                full = w.get('user_full_name') or guest
                 source = 'worship'
             elif key == 'worship leader' and wl_fallback:
                 uid = int(wl_fallback)
