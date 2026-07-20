@@ -201,13 +201,35 @@ def dashboard():
 @worship_bp.route('/songs')
 @worship_required
 def songs_list():
+    """Song library — always render; destination lists fail soft if DB hiccups."""
+    songs = []
+    setlists = []
+    weekly_templates = []
+    play_stats = []
+    try:
+        songs = list(song_model.list_songs() or [])
+    except Exception as exc:
+        print(f'worship songs_list list_songs: {exc}')
+    try:
+        setlists = list(setlist_model.list_setlists(40) or [])
+    except Exception as exc:
+        print(f'worship songs_list list_setlists: {exc}')
+    try:
+        weekly_templates = list(template_model.list_templates() or [])
+    except Exception as exc:
+        print(f'worship songs_list list_templates: {exc}')
+    try:
+        play_stats = list(plays_model.get_song_play_counts() or [])
+    except Exception as exc:
+        print(f'worship songs_list play_counts: {exc}')
+
     return render_template(
         'worship/songs_list.html',
-        songs=song_model.list_songs(),
-        can_manage=can_manage_worship(),
-        play_stats=plays_model.get_song_play_counts(),
-        setlists=setlist_model.list_setlists(40),
-        weekly_templates=template_model.list_templates(),
+        songs=songs,
+        can_manage=bool(can_manage_worship()),
+        play_stats=play_stats,
+        setlists=setlists,
+        weekly_templates=weekly_templates,
     )
 
 
@@ -1155,21 +1177,35 @@ def _prompter_context(plan, *, public_mode: bool, chart_key: str, public_token=N
     """Build podium template context: chart overlay, slide timings, user prefs."""
     from app.models.worship import prefs as prefs_model
 
-    plan = setlist_model.apply_chart_to_plan(plan, chart_key)
+    try:
+        plan = setlist_model.apply_chart_to_plan(plan, chart_key)
+    except Exception as exc:
+        print(f'worship apply_chart_to_plan: {exc}')
     timings = {}
-    for item in (plan.get('songs') or []):
-        sid = item.get('song_id') or item.get('id')
-        if not sid:
-            continue
-        try:
-            sid = int(sid)
-        except (TypeError, ValueError):
-            continue
-        if sid not in timings:
-            timings[str(sid)] = prefs_model.get_song_slide_timings(sid)
+    try:
+        for item in (plan.get('songs') or []):
+            sid = item.get('song_id') or item.get('id')
+            if not sid:
+                continue
+            try:
+                sid = int(sid)
+            except (TypeError, ValueError):
+                continue
+            if str(sid) not in timings:
+                try:
+                    timings[str(sid)] = prefs_model.get_song_slide_timings(sid)
+                except Exception:
+                    timings[str(sid)] = []
+    except Exception as exc:
+        print(f'worship prompter timings load: {exc}')
 
     user_id = session.get('user_id') if not public_mode else None
-    user_prefs = prefs_model.get_user_prefs(user_id)
+    try:
+        user_prefs = prefs_model.get_user_prefs(user_id)
+    except Exception as exc:
+        print(f'worship prompter prefs load: {exc}')
+        from app.models.worship.prefs import DEFAULTS
+        user_prefs = dict(DEFAULTS)
     return {
         'setlist': plan,
         'public_mode': public_mode,
