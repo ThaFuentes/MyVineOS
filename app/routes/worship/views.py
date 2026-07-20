@@ -206,7 +206,85 @@ def songs_list():
         songs=song_model.list_songs(),
         can_manage=can_manage_worship(),
         play_stats=plays_model.get_song_play_counts(),
+        setlists=setlist_model.list_setlists(40),
+        weekly_templates=template_model.list_templates(),
     )
+
+
+@worship_bp.route('/songs/send-to-setlist', methods=['POST'])
+@worship_required
+def songs_send_to_setlist():
+    """Bulk-add checked library songs to a setlist, weekly day default, or entire week."""
+    if not can_manage_worship():
+        flash('Only worship managers can send songs to setlists.', 'error')
+        return redirect(url_for('worship.songs_list'))
+
+    raw_ids = request.form.getlist('song_ids')
+    song_ids = []
+    for r in raw_ids:
+        try:
+            song_ids.append(int(r))
+        except (TypeError, ValueError):
+            continue
+    # de-dupe preserve order
+    seen = set()
+    song_ids = [i for i in song_ids if not (i in seen or seen.add(i))]
+    target = (request.form.get('target') or '').strip()
+
+    if not song_ids:
+        flash('Select at least one song.', 'error')
+        return redirect(url_for('worship.songs_list'))
+    if not target:
+        flash('Choose a destination setlist or weekly default.', 'error')
+        return redirect(url_for('worship.songs_list'))
+
+    uid = session.get('user_id')
+    added = 0
+    destinations = 0
+
+    try:
+        if target == 'week_all':
+            # All weekly defaults (practice week) — ensure each weekday template exists
+            for weekday in range(7):
+                tid = template_model.ensure_template(weekday, uid)
+                destinations += 1
+                for sid in song_ids:
+                    template_model.add_song_to_template(tid, sid)
+                    added += 1
+            flash(
+                f'Added {len(song_ids)} song(s) to all weekly defaults '
+                f'({destinations} days × {len(song_ids)} songs).',
+                'success',
+            )
+        elif target.startswith('setlist:'):
+            setlist_id = int(target.split(':', 1)[1])
+            if not setlist_model.get_setlist(setlist_id):
+                flash('Setlist not found.', 'error')
+                return redirect(url_for('worship.songs_list'))
+            for sid in song_ids:
+                setlist_model.add_song_to_setlist(setlist_id, sid)
+                added += 1
+            flash(f'Added {added} song(s) to the setlist.', 'success')
+            return redirect(url_for('worship.setlist_edit', setlist_id=setlist_id))
+        elif target.startswith('template:'):
+            weekday = int(target.split(':', 1)[1])
+            if weekday < 0 or weekday > 6:
+                flash('Invalid weekday.', 'error')
+                return redirect(url_for('worship.songs_list'))
+            tid = template_model.ensure_template(weekday, uid)
+            for sid in song_ids:
+                template_model.add_song_to_template(tid, sid)
+                added += 1
+            flash(f'Added {added} song(s) to that day\'s weekly default.', 'success')
+            return redirect(url_for('worship.template_edit', weekday=weekday))
+        else:
+            flash('Unknown destination.', 'error')
+            return redirect(url_for('worship.songs_list'))
+    except Exception as exc:
+        flash(f'Could not send songs: {exc}', 'error')
+        return redirect(url_for('worship.songs_list'))
+
+    return redirect(url_for('worship.songs_list'))
 
 
 @worship_bp.route('/songs/import', methods=['GET', 'POST'])
@@ -1073,6 +1151,38 @@ def _prompter_chart_options():
     ]
 
 
+def _prompter_context(plan, *, public_mode: bool, chart_key: str, public_token=None):
+    """Build podium template context: chart overlay, slide timings, user prefs."""
+    from app.models.worship import prefs as prefs_model
+
+    plan = setlist_model.apply_chart_to_plan(plan, chart_key)
+    timings = {}
+    for item in (plan.get('songs') or []):
+        sid = item.get('song_id') or item.get('id')
+        if not sid:
+            continue
+        try:
+            sid = int(sid)
+        except (TypeError, ValueError):
+            continue
+        if sid not in timings:
+            timings[str(sid)] = prefs_model.get_song_slide_timings(sid)
+
+    user_id = session.get('user_id') if not public_mode else None
+    user_prefs = prefs_model.get_user_prefs(user_id)
+    return {
+        'setlist': plan,
+        'public_mode': public_mode,
+        'chart_key': chart_key,
+        'chart_options': _prompter_chart_options(),
+        'public_token': public_token,
+        'song_timings': timings,
+        'user_prefs': user_prefs,
+        'can_save_timings': (not public_mode) and bool(user_id),
+        'can_save_prefs': (not public_mode) and bool(user_id),
+    }
+
+
 @worship_bp.route('/podium/<int:setlist_id>')
 @worship_required
 def podium(setlist_id):
@@ -1081,14 +1191,14 @@ def podium(setlist_id):
     if not setlist:
         abort(404)
     chart_key = (request.args.get('chart') or request.args.get('role') or 'full_band').strip()
-    setlist = setlist_model.apply_chart_to_plan(setlist, chart_key)
     return render_template(
         'worship/podium.html',
-        setlist=setlist,
-        public_mode=False,
-        chart_key=chart_key,
-        chart_options=_prompter_chart_options(),
-        public_token=setlist.get('public_token'),
+        **_prompter_context(
+            setlist,
+            public_mode=False,
+            chart_key=chart_key,
+            public_token=setlist.get('public_token'),
+        ),
     )
 
 
@@ -1108,12 +1218,48 @@ def public_prompter(token):
     if not plan:
         abort(404)
     chart_key = (request.args.get('chart') or request.args.get('role') or 'full_band').strip()
-    plan = setlist_model.apply_chart_to_plan(plan, chart_key)
     return render_template(
         'worship/podium.html',
-        setlist=plan,
-        public_mode=True,
-        chart_key=chart_key,
-        chart_options=_prompter_chart_options(),
-        public_token=token,
+        **_prompter_context(
+            plan,
+            public_mode=True,
+            chart_key=chart_key,
+            public_token=token,
+        ),
     )
+
+
+@worship_bp.route('/api/prompter-prefs', methods=['POST'])
+@worship_required
+def prompter_prefs_save():
+    """Save logged-in user's prompter display/advance prefs (JSON)."""
+    from app.models.worship import prefs as prefs_model
+
+    data = request.get_json(silent=True) or {}
+    prefs = prefs_model.save_user_prefs(session.get('user_id'), data)
+    return jsonify({'ok': True, 'prefs': prefs})
+
+
+@worship_bp.route('/api/song-timings/<int:song_id>', methods=['POST'])
+@worship_required
+def song_timings_save(song_id):
+    """
+    Save continuous slide timing recording for a song.
+    Body: { "offsets_ms": [0, 15200, 30400, ...] } absolute ms from song start.
+    """
+    from app.models.worship import prefs as prefs_model
+
+    if not can_view_worship():
+        return jsonify({'ok': False, 'error': 'denied'}), 403
+    try:
+        exists = song_model.get_song(song_id)
+    except TypeError:
+        exists = song_model.get_song(song_id)
+    if not exists:
+        return jsonify({'ok': False, 'error': 'not_found'}), 404
+    data = request.get_json(silent=True) or {}
+    offsets = data.get('offsets_ms') or data.get('timings') or []
+    if not isinstance(offsets, list):
+        return jsonify({'ok': False, 'error': 'bad_payload'}), 400
+    saved = prefs_model.save_song_slide_timings(song_id, offsets)
+    return jsonify({'ok': True, 'offsets_ms': saved})
