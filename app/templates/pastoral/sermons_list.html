@@ -95,7 +95,13 @@
                                     <div><strong>Passage:</strong> {{ sermon.primary_passage }}</div>
                                 {% endif %}
                                 {% if sermon.service_date %}
-                                    <div><strong>Date:</strong> {{ sermon.service_date.strftime('%b %d, %Y') }}</div>
+                                    <div><strong>Date:</strong>
+                                      {% if sermon.service_date is string %}
+                                        {{ sermon.service_date[:10] }}
+                                      {% else %}
+                                        {{ sermon.service_date.strftime('%b %d, %Y') }}
+                                      {% endif %}
+                                    </div>
                                 {% endif %}
                                 <div><strong>Last edited:</strong> {{ sermon.updated_at|relative_time }}</div>
                             </div>
