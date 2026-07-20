@@ -109,6 +109,11 @@
     {% endfor %}
   </div>
 
+  {% set prefs = user_prefs if user_prefs is defined and user_prefs else {} %}
+  {% set timings_map = song_timings if song_timings is defined and song_timings else {} %}
+  {% set save_timings = can_save_timings if can_save_timings is defined else false %}
+  {% set save_prefs = can_save_prefs if can_save_prefs is defined else false %}
+  {% set is_public = public_mode if public_mode is defined else true %}
   <div id="controls">
     <button type="button" id="prev-btn">&lt;</button>
     <button type="button" id="play-btn">&gt; Play</button>
@@ -118,30 +123,30 @@
 
     <label>Advance
       <select id="advance-mode" title="How slides advance">
-        <option value="manual">Manual only</option>
-        <option value="fixed">Fixed timer</option>
-        <option value="speed">Speed slider</option>
-        <option value="recorded">Recorded timings</option>
+        <option value="manual" {% if prefs.get('advance_mode', 'manual') == 'manual' %}selected{% endif %}>Manual only</option>
+        <option value="fixed" {% if prefs.get('advance_mode') == 'fixed' %}selected{% endif %}>Fixed timer</option>
+        <option value="speed" {% if prefs.get('advance_mode') == 'speed' %}selected{% endif %}>Speed slider</option>
+        <option value="recorded" {% if prefs.get('advance_mode') == 'recorded' %}selected{% endif %}>Recorded timings</option>
       </select>
     </label>
-    <label>Sec <input type="number" id="fixed-seconds" min="1" max="120" step="0.5" value="{{ user_prefs.fixed_seconds|default(8) }}" title="Seconds per slide (fixed mode)"></label>
-    <label>Speed <input type="range" id="speed-slider" min="1" max="10" value="{{ user_prefs.speed_value|default(4) }}" title="Faster = shorter slides"></label>
+    <label>Sec <input type="number" id="fixed-seconds" min="1" max="120" step="0.5" value="{{ prefs.get('fixed_seconds', 8) }}" title="Seconds per slide (fixed mode)"></label>
+    <label>Speed <input type="range" id="speed-slider" min="1" max="10" value="{{ prefs.get('speed_value', 4) }}" title="Faster = shorter slides"></label>
 
     <label>Layout
       <select id="display-mode" title="How chords and lyrics appear">
-        <option value="stacked">Chords above lyrics</option>
-        <option value="inline">[Chord] in lyrics</option>
-        <option value="lyrics">Lyrics only</option>
+        <option value="stacked" {% if prefs.get('display_mode', 'stacked') == 'stacked' %}selected{% endif %}>Chords above lyrics</option>
+        <option value="inline" {% if prefs.get('display_mode') == 'inline' %}selected{% endif %}>[Chord] in lyrics</option>
+        <option value="lyrics" {% if prefs.get('display_mode') == 'lyrics' %}selected{% endif %}>Lyrics only</option>
       </select>
     </label>
-    <label>Notes <input type="range" id="chord-size" min="12" max="72" value="{{ user_prefs.chord_size|default(28) }}" title="Chord / note size only"></label>
-    <label>Lyrics <input type="range" id="lyric-size" min="14" max="72" value="{{ user_prefs.lyric_size|default(36) }}" title="Lyrics size only"></label>
+    <label>Notes <input type="range" id="chord-size" min="12" max="72" value="{{ prefs.get('chord_size', 28) }}" title="Chord / note size only"></label>
+    <label>Lyrics <input type="range" id="lyric-size" min="14" max="72" value="{{ prefs.get('lyric_size', 36) }}" title="Lyrics size only"></label>
 
-    {% if chart_options %}
+    {% if chart_options is defined and chart_options %}
     <label>Instrument
       <select id="chart-select" title="Switch musician / instrument chart">
         {% for opt in chart_options %}
-        <option value="{{ opt.chart_key }}" {% if chart_key == opt.chart_key %}selected{% endif %}>
+        <option value="{{ opt.chart_key }}" {% if chart_key is defined and chart_key == opt.chart_key %}selected{% endif %}>
           {{ opt.display_name }}
         </option>
         {% endfor %}
@@ -149,19 +154,21 @@
     </label>
     {% endif %}
     <button type="button" id="fs-btn">Fullscreen</button>
-    {% if not public_mode and setlist.id %}
+    {% if not is_public and setlist is defined and setlist.id is defined and setlist.source is not defined %}
     <a href="{{ url_for('worship.setlist_edit', setlist_id=setlist.id) }}">Exit</a>
+    {% elif not is_public %}
+    <a href="{{ url_for('worship.dashboard') }}">Exit</a>
     {% endif %}
   </div>
 
   <script>
   (function () {
-    const songTimings = {{ song_timings|default({})|tojson }};
-    const initialPrefs = {{ user_prefs|default({})|tojson }};
-    const canSaveTimings = {{ (can_save_timings|default(false))|tojson }};
-    const canSavePrefs = {{ (can_save_prefs|default(false))|tojson }};
-    const prefsUrl = {% if can_save_prefs %}{{ url_for('worship.prompter_prefs_save')|tojson }}{% else %}null{% endif %};
-    const timingsUrlTpl = {% if can_save_timings %}{{ url_for('worship.song_timings_save', song_id=999999001)|tojson }}{% else %}null{% endif %};
+    const songTimings = {{ timings_map|tojson }};
+    const initialPrefs = {{ prefs|tojson }};
+    const canSaveTimings = {{ save_timings|tojson }};
+    const canSavePrefs = {{ save_prefs|tojson }};
+    const prefsUrl = {% if save_prefs %}{{ url_for('worship.prompter_prefs_save')|tojson }}{% else %}null{% endif %};
+    const timingsUrlTpl = {% if save_timings %}{{ url_for('worship.song_timings_save', song_id=999999001)|tojson }}{% else %}null{% endif %};
     const csrfToken = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
     function apiHeaders() {
       const h = {
