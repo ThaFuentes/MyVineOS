@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined and csrf_token else '' }}">
   <title>{{ setlist.title }} - {% if chart_key and chart_key != 'full_band' %}{{ chart_key|replace('_',' ')|title }} {% endif %}Prompter</title>
   <style>
     * { box-sizing: border-box; }
@@ -161,6 +162,18 @@
     const canSavePrefs = {{ (can_save_prefs|default(false))|tojson }};
     const prefsUrl = {% if can_save_prefs %}{{ url_for('worship.prompter_prefs_save')|tojson }}{% else %}null{% endif %};
     const timingsUrlTpl = {% if can_save_timings %}{{ url_for('worship.song_timings_save', song_id=999999001)|tojson }}{% else %}null{% endif %};
+    const csrfToken = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+    function apiHeaders() {
+      const h = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      };
+      if (csrfToken) {
+        h['X-CSRF-Token'] = csrfToken;
+        h['X-CSRFToken'] = csrfToken;
+      }
+      return h;
+    }
 
     const slides = [...document.querySelectorAll('.slide')];
     let idx = 0;
@@ -359,12 +372,12 @@
         const url = timingsUrlTpl.replace('999999001', String(recSongId));
         fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          headers: apiHeaders(),
           body: JSON.stringify({ offsets_ms: arr }),
           credentials: 'same-origin',
-        }).then(r => r.json()).then(j => {
-          status(j.ok ? ('Saved ' + arr.length + ' timings') : 'Save failed');
-        }).catch(() => status('Save failed (offline?)'));
+        }).then(function (r) { return r.json(); }).then(function (j) {
+          status(j && j.ok ? ('Saved ' + arr.length + ' timings') : 'Save failed');
+        }).catch(function () { status('Save failed (offline?)'); });
       } else {
         try { localStorage.setItem('wv_timings_' + recSongId, JSON.stringify(arr)); } catch (e) {}
         status('Timings stored locally');
@@ -492,10 +505,10 @@
       if (canSavePrefs && prefsUrl) {
         fetch(prefsUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          headers: apiHeaders(),
           body: JSON.stringify(p),
           credentials: 'same-origin',
-        }).catch(() => {});
+        }).catch(function () {});
       }
     }
     function loadPrefs() {
