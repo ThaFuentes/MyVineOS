@@ -7,25 +7,56 @@
   <style>
     * { box-sizing: border-box; }
     body { margin:0; background:#0a0a0f; color:#f0f0f0; font-family: system-ui, sans-serif; overflow:hidden; }
-    #stage { height:100vh; overflow-y:auto; padding:2rem 2.5rem 7rem; scroll-behavior:smooth; }
+    #stage { height:100vh; overflow-y:auto; padding:2rem 2.5rem 8.5rem; scroll-behavior:smooth; }
     h1.set-title { text-align:center; color:#00e5ff; font-size:clamp(1.2rem,3vw,1.8rem); margin:0 0 0.35rem; }
     .chart-badge { text-align:center; color:#7dd3fc; font-size:0.9rem; margin:0 0 1.25rem; opacity:0.9; }
     .slide { min-height:75vh; display:flex; flex-direction:column; justify-content:center; padding:1rem 0 3rem; }
     .slide h2 { color:#00e5ff; font-size:clamp(1rem,2.5vw,1.5rem); margin:0 0 0.5rem; text-align:center; }
     .section-label { text-align:center; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.1em; color:#7dd3fc; margin-bottom:0.5rem; }
-    .section-body { font-size:var(--lyric-size, clamp(1.6rem,5vw,3.2rem)); line-height:1.5; white-space:pre-wrap; text-align:center; }
+    .section-body { line-height:1.45; text-align:center; }
+    .chord-line {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: var(--chord-size, 28px);
+      color: #7dd3fc;
+      white-space: pre;
+      line-height: 1.2;
+      margin: 0.15rem 0 0;
+    }
+    .lyric-line {
+      font-size: var(--lyric-size, clamp(1.6rem,5vw,3.2rem));
+      white-space: pre-wrap;
+      line-height: 1.35;
+      margin: 0 0 0.35rem;
+    }
+    .inline-chord {
+      color: #7dd3fc;
+      font-weight: 600;
+      font-size: var(--chord-size, 28px);
+      vertical-align: super;
+      line-height: 0;
+      margin: 0 0.05em;
+    }
+    .lyrics-only-body {
+      font-size: var(--lyric-size, clamp(1.6rem,5vw,3.2rem));
+      white-space: pre-wrap;
+      text-align: center;
+    }
     .copyright { text-align:center; font-size:0.7rem; opacity:0.4; margin-top:1rem; }
     #controls {
-      position:fixed; bottom:0; left:0; right:0; background:rgba(0,0,0,0.94);
-      border-top:1px solid #00e5ff44; padding:0.55rem 1rem; display:flex;
-      flex-wrap:wrap; gap:0.6rem; align-items:center; justify-content:center; z-index:10;
+      position:fixed; bottom:0; left:0; right:0; background:rgba(0,0,0,0.96);
+      border-top:1px solid #00e5ff44; padding:0.5rem 0.75rem; display:flex;
+      flex-wrap:wrap; gap:0.45rem; align-items:center; justify-content:center; z-index:10;
+      max-height:42vh; overflow-y:auto;
     }
     #controls button, #controls a, #controls label, #controls select {
-      background:#111; color:#00e5ff; border:1px solid #00e5ff66; padding:0.4rem 0.8rem;
-      border-radius:6px; cursor:pointer; text-decoration:none; font-size:0.85rem;
+      background:#111; color:#00e5ff; border:1px solid #00e5ff66; padding:0.35rem 0.65rem;
+      border-radius:6px; cursor:pointer; text-decoration:none; font-size:0.8rem;
     }
-    #controls select { max-width:200px; }
-    #controls input[type=range] { width:100px; vertical-align:middle; }
+    #controls select { max-width:180px; }
+    #controls input[type=range] { width:90px; vertical-align:middle; }
+    #controls input[type=number] { width:4rem; background:#111; color:#00e5ff; border:1px solid #00e5ff66; border-radius:4px; padding:0.25rem; }
+    #controls .rec-on { border-color:#f87171; color:#fca5a5; }
+    #status-pill { font-size:0.75rem; opacity:0.8; min-width:8rem; text-align:center; }
     .hidden { display:none !important; }
   </style>
 </head>
@@ -39,25 +70,36 @@
     {% endif %}
     {% set slide_idx = namespace(n=0) %}
     {% for item in setlist.songs or [] %}
+      {% set song_id = item.song_id if item.song_id is defined else item.id %}
       {% set secs = item.display_sections if item.display_sections is defined else item.sections %}
+      {% set song_slide = namespace(n=0) %}
       {% if secs %}
         {% for sec in secs %}
           {% if sec.content %}
-          <div class="slide" data-index="{{ slide_idx.n }}">
+          <div class="slide"
+               data-index="{{ slide_idx.n }}"
+               data-song-id="{{ song_id or '' }}"
+               data-song-slide="{{ song_slide.n }}"
+               data-raw={{ sec.content|tojson }}>
             <h2>{{ item.title }}{% if item.artist %} - {{ item.artist }}{% endif %}</h2>
             {% if sec.label %}<div class="section-label">{{ sec.label }}</div>{% endif %}
-            <div class="section-body">{{ sec.content }}</div>
+            <div class="section-body" data-render></div>
             {% if loop.last and (item.copyright_line or item.ccli_song_number) %}
             <div class="copyright">{{ item.copyright_line or '' }}{% if item.ccli_song_number %} - CCLI {{ item.ccli_song_number }}{% endif %}</div>
             {% endif %}
           </div>
           {% set slide_idx.n = slide_idx.n + 1 %}
+          {% set song_slide.n = song_slide.n + 1 %}
           {% endif %}
         {% endfor %}
       {% elif item.lyrics_raw %}
-      <div class="slide" data-index="{{ slide_idx.n }}">
+      <div class="slide"
+           data-index="{{ slide_idx.n }}"
+           data-song-id="{{ song_id or '' }}"
+           data-song-slide="0"
+           data-raw={{ item.lyrics_raw|tojson }}>
         <h2>{{ item.title }}</h2>
-        <div class="section-body">{{ item.lyrics_raw }}</div>
+        <div class="section-body" data-render></div>
       </div>
       {% set slide_idx.n = slide_idx.n + 1 %}
       {% endif %}
@@ -67,11 +109,33 @@
   </div>
 
   <div id="controls">
-    <button type="button" id="prev-btn"><</button>
-    <button type="button" id="play-btn">> Auto</button>
-    <button type="button" id="next-btn">></button>
-    <label>Size <input type="range" id="size-slider" min="20" max="64" value="36"></label>
-    <label>Speed <input type="range" id="speed-slider" min="1" max="10" value="4"></label>
+    <button type="button" id="prev-btn">&lt;</button>
+    <button type="button" id="play-btn">&gt; Play</button>
+    <button type="button" id="next-btn">&gt;</button>
+    <button type="button" id="rec-btn" title="Record one continuous timing for the current song">● Record</button>
+    <span id="status-pill">Ready</span>
+
+    <label>Advance
+      <select id="advance-mode" title="How slides advance">
+        <option value="manual">Manual only</option>
+        <option value="fixed">Fixed timer</option>
+        <option value="speed">Speed slider</option>
+        <option value="recorded">Recorded timings</option>
+      </select>
+    </label>
+    <label>Sec <input type="number" id="fixed-seconds" min="1" max="120" step="0.5" value="{{ user_prefs.fixed_seconds|default(8) }}" title="Seconds per slide (fixed mode)"></label>
+    <label>Speed <input type="range" id="speed-slider" min="1" max="10" value="{{ user_prefs.speed_value|default(4) }}" title="Faster = shorter slides"></label>
+
+    <label>Layout
+      <select id="display-mode" title="How chords and lyrics appear">
+        <option value="stacked">Chords above lyrics</option>
+        <option value="inline">[Chord] in lyrics</option>
+        <option value="lyrics">Lyrics only</option>
+      </select>
+    </label>
+    <label>Notes <input type="range" id="chord-size" min="12" max="72" value="{{ user_prefs.chord_size|default(28) }}" title="Chord / note size only"></label>
+    <label>Lyrics <input type="range" id="lyric-size" min="14" max="72" value="{{ user_prefs.lyric_size|default(36) }}" title="Lyrics size only"></label>
+
     {% if chart_options %}
     <label>Instrument
       <select id="chart-select" title="Switch musician / instrument chart">
@@ -90,35 +154,391 @@
   </div>
 
   <script>
+  (function () {
+    const songTimings = {{ song_timings|default({})|tojson }};
+    const initialPrefs = {{ user_prefs|default({})|tojson }};
+    const canSaveTimings = {{ (can_save_timings|default(false))|tojson }};
+    const canSavePrefs = {{ (can_save_prefs|default(false))|tojson }};
+    const prefsUrl = {% if can_save_prefs %}{{ url_for('worship.prompter_prefs_save')|tojson }}{% else %}null{% endif %};
+    const timingsUrlTpl = {% if can_save_timings %}{{ url_for('worship.song_timings_save', song_id=999999001)|tojson }}{% else %}null{% endif %};
+
     const slides = [...document.querySelectorAll('.slide')];
-    let idx = 0, playing = false, timer = null;
+    let idx = 0;
+    let playing = false;
+    let recording = false;
+    let recStart = 0;
+    let recSongId = null;
+    let recOffsets = []; // absolute ms for each song_slide of current song
+    let playStart = 0;
+    let playRaf = null;
+    let fixedTimer = null;
+    let speedTimer = null;
+    let prefsTimer = null;
+
+    const $ = (id) => document.getElementById(id);
+    const status = (t) => { const el = $('status-pill'); if (el) el.textContent = t; };
+
+    /* ---------- ChordPro display modes ---------- */
+    function parseChordProLine(line) {
+      // Returns { chords: string (aligned), lyrics: string, inlineHtml }
+      const chordSlots = [];
+      let lyrics = '';
+      let i = 0;
+      while (i < line.length) {
+        if (line[i] === '[') {
+          const end = line.indexOf(']', i);
+          if (end === -1) { lyrics += line[i]; i++; continue; }
+          const chord = line.slice(i + 1, end);
+          chordSlots.push({ at: lyrics.length, chord });
+          i = end + 1;
+        } else {
+          lyrics += line[i];
+          i++;
+        }
+      }
+      // Build spaced chord line above lyrics
+      let chordLine = '';
+      let cursor = 0;
+      for (const slot of chordSlots) {
+        while (chordLine.length < slot.at) chordLine += ' ';
+        // avoid overlap: if next chord would collide, squeeze
+        if (chordLine.length > slot.at) {
+          // already past — append with space
+          chordLine += ' ' + slot.chord;
+        } else {
+          chordLine += slot.chord;
+        }
+        cursor = chordLine.length;
+      }
+      let inline = '';
+      let li = 0;
+      for (const slot of chordSlots) {
+        while (li < slot.at && li < lyrics.length) {
+          inline += escapeHtml(lyrics[li]);
+          li++;
+        }
+        inline += '<span class="inline-chord">[' + escapeHtml(slot.chord) + ']</span>';
+      }
+      while (li < lyrics.length) {
+        inline += escapeHtml(lyrics[li]);
+        li++;
+      }
+      return { chordLine, lyrics, inlineHtml: inline, hasChords: chordSlots.length > 0 };
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function stripChords(text) {
+      return String(text || '').replace(/\[[^\]]*\]/g, '');
+    }
+
+    function renderSlideBody(slide, mode) {
+      const raw = slide.getAttribute('data-raw') || '';
+      const host = slide.querySelector('[data-render]');
+      if (!host) return;
+      const lines = raw.replace(/\r\n/g, '\n').split('\n');
+      if (mode === 'lyrics') {
+        host.innerHTML = '<div class="lyrics-only-body">' + escapeHtml(stripChords(raw)) + '</div>';
+        return;
+      }
+      let html = '';
+      for (const line of lines) {
+        if (!line.trim() && !line.includes('[')) {
+          html += '<div class="lyric-line">&nbsp;</div>';
+          continue;
+        }
+        const p = parseChordProLine(line);
+        if (mode === 'stacked') {
+          if (p.hasChords) html += '<div class="chord-line">' + escapeHtml(p.chordLine) + '</div>';
+          html += '<div class="lyric-line">' + escapeHtml(p.lyrics || ' ') + '</div>';
+        } else {
+          // inline
+          html += '<div class="lyric-line">' + (p.hasChords ? p.inlineHtml : escapeHtml(line)) + '</div>';
+        }
+      }
+      host.innerHTML = html || '<div class="lyric-line"></div>';
+    }
+
+    function applyDisplayMode() {
+      const mode = $('display-mode').value || 'stacked';
+      slides.forEach(s => renderSlideBody(s, mode));
+    }
+
+    function applySizes() {
+      document.documentElement.style.setProperty('--chord-size', ($('chord-size').value || 28) + 'px');
+      document.documentElement.style.setProperty('--lyric-size', ($('lyric-size').value || 36) + 'px');
+    }
+
+    /* ---------- Navigation ---------- */
     function show(i) {
       if (!slides.length) return;
       idx = Math.max(0, Math.min(slides.length - 1, i));
       slides.forEach((s, n) => s.classList.toggle('hidden', n !== idx));
       slides[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-    function next() { show(idx + 1); }
+    function currentSongId() {
+      if (!slides[idx]) return null;
+      const v = slides[idx].getAttribute('data-song-id');
+      return v ? String(v) : null;
+    }
+    function songSlideIndex() {
+      if (!slides[idx]) return 0;
+      return parseInt(slides[idx].getAttribute('data-song-slide') || '0', 10) || 0;
+    }
+    function slidesForSong(songId) {
+      return slides.filter(s => String(s.getAttribute('data-song-id') || '') === String(songId));
+    }
+
+    function next() {
+      if (recording) captureRecAdvance();
+      show(idx + 1);
+    }
     function prev() { show(idx - 1); }
-    document.getElementById('prev-btn').onclick = prev;
-    document.getElementById('next-btn').onclick = next;
-    document.getElementById('size-slider').oninput = e => {
-      document.documentElement.style.setProperty('--lyric-size', e.target.value + 'px');
+
+    /* ---------- Continuous record (whole song, not per-slide pause) ---------- */
+    function startRecord() {
+      const sid = currentSongId();
+      if (!sid) { status('No song on this slide'); return; }
+      // Jump to first slide of this song
+      const first = slides.findIndex(s => String(s.getAttribute('data-song-id')) === sid &&
+        (parseInt(s.getAttribute('data-song-slide') || '0', 10) === 0));
+      if (first >= 0) show(first);
+      recording = true;
+      recSongId = sid;
+      recStart = performance.now();
+      recOffsets = [0]; // slide 0 starts at 0
+      $('rec-btn').classList.add('rec-on');
+      $('rec-btn').textContent = '■ Stop';
+      status('Recording song ' + sid + '… advance with Next');
+      stopPlay();
+    }
+
+    function captureRecAdvance() {
+      if (!recording || !recSongId) return;
+      const elapsed = Math.round(performance.now() - recStart);
+      // We're about to leave current song-slide; next() will move.
+      // Capture time for the *next* slide within the same song if still same song after advance.
+      // Called before show(idx+1), so current is about to leave — store offset for upcoming song_slide.
+      const nextIdx = idx + 1;
+      if (nextIdx >= slides.length) return;
+      const nextSlide = slides[nextIdx];
+      if (String(nextSlide.getAttribute('data-song-id')) !== String(recSongId)) {
+        // leaving song — stop record after save
+        return;
+      }
+      const n = parseInt(nextSlide.getAttribute('data-song-slide') || '0', 10) || 0;
+      recOffsets[n] = elapsed;
+    }
+
+    function stopRecord(save) {
+      if (!recording) return;
+      recording = false;
+      $('rec-btn').classList.remove('rec-on');
+      $('rec-btn').textContent = '● Record';
+      if (!save || !recSongId) {
+        status('Record canceled');
+        recSongId = null;
+        recOffsets = [];
+        return;
+      }
+      // Compact array by max index
+      let max = 0;
+      recOffsets.forEach((_, i) => { if (i > max) max = i; });
+      const arr = [];
+      for (let i = 0; i <= max; i++) arr.push(recOffsets[i] != null ? recOffsets[i] : (arr[i - 1] || 0) + 5000);
+      if (arr[0] !== 0) arr[0] = 0;
+      songTimings[String(recSongId)] = arr;
+      status('Saving timings…');
+      if (canSaveTimings && timingsUrlTpl) {
+        const url = timingsUrlTpl.replace('999999001', String(recSongId));
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ offsets_ms: arr }),
+          credentials: 'same-origin',
+        }).then(r => r.json()).then(j => {
+          status(j.ok ? ('Saved ' + arr.length + ' timings') : 'Save failed');
+        }).catch(() => status('Save failed (offline?)'));
+      } else {
+        try { localStorage.setItem('wv_timings_' + recSongId, JSON.stringify(arr)); } catch (e) {}
+        status('Timings stored locally');
+      }
+      recSongId = null;
+      recOffsets = [];
+      $('advance-mode').value = 'recorded';
+      schedulePrefsSave();
+    }
+
+    /* ---------- Playback modes (absolute timeline when recorded) ---------- */
+    function stopPlay() {
+      playing = false;
+      $('play-btn').textContent = '> Play';
+      if (playRaf) cancelAnimationFrame(playRaf);
+      playRaf = null;
+      clearInterval(fixedTimer); fixedTimer = null;
+      clearInterval(speedTimer); speedTimer = null;
+    }
+
+    function speedMs() {
+      const v = parseInt($('speed-slider').value || '4', 10);
+      return Math.max(1500, 12000 - v * 1000);
+    }
+    function fixedMs() {
+      const v = parseFloat($('fixed-seconds').value || '8');
+      return Math.max(1000, Math.min(120000, v * 1000));
+    }
+
+    function startPlay() {
+      stopPlay();
+      playing = true;
+      $('play-btn').textContent = '⏸ Pause';
+      const mode = $('advance-mode').value;
+
+      if (mode === 'manual') {
+        status('Manual — use arrows');
+        playing = false;
+        $('play-btn').textContent = '> Play';
+        return;
+      }
+
+      if (mode === 'fixed') {
+        status('Fixed timer ' + (fixedMs() / 1000) + 's');
+        fixedTimer = setInterval(() => {
+          if (idx < slides.length - 1) show(idx + 1);
+          else stopPlay();
+        }, fixedMs());
+        return;
+      }
+
+      if (mode === 'speed') {
+        status('Speed auto');
+        const tick = () => {
+          speedTimer = setTimeout(() => {
+            if (!playing) return;
+            if (idx < slides.length - 1) { show(idx + 1); tick(); }
+            else stopPlay();
+          }, speedMs());
+        };
+        tick();
+        return;
+      }
+
+      // recorded: absolute offsets from song start — schedule via rAF using performance.now()
+      const sid = currentSongId();
+      let offsets = (sid && songTimings[String(sid)]) || [];
+      if ((!offsets || !offsets.length) && sid) {
+        try {
+          offsets = JSON.parse(localStorage.getItem('wv_timings_' + sid) || '[]');
+        } catch (e) { offsets = []; }
+      }
+      if (!offsets || offsets.length < 2) {
+        status('No recording for this song — use Record or Fixed');
+        stopPlay();
+        return;
+      }
+      // Jump to first slide of song
+      const first = slides.findIndex(s => String(s.getAttribute('data-song-id')) === String(sid) &&
+        parseInt(s.getAttribute('data-song-slide') || '0', 10) === 0);
+      if (first >= 0) show(first);
+      playStart = performance.now();
+      status('Playing recorded');
+      const songSlides = slidesForSong(sid);
+      const loop = () => {
+        if (!playing) return;
+        const elapsed = performance.now() - playStart;
+        // Find highest song_slide whose offset <= elapsed
+        let targetLocal = 0;
+        for (let i = 0; i < offsets.length; i++) {
+          if (elapsed >= offsets[i]) targetLocal = i;
+        }
+        const globalIdx = slides.indexOf(songSlides[targetLocal]);
+        if (globalIdx >= 0 && globalIdx !== idx) show(globalIdx);
+        const lastOffset = offsets[offsets.length - 1] || 0;
+        if (elapsed > lastOffset + 500 && targetLocal >= songSlides.length - 1) {
+          // end of song — stop or continue to next song in manual fashion
+          stopPlay();
+          status('Song timings finished');
+          return;
+        }
+        playRaf = requestAnimationFrame(loop);
+      };
+      playRaf = requestAnimationFrame(loop);
+    }
+
+    /* ---------- Prefs persist ---------- */
+    function schedulePrefsSave() {
+      clearTimeout(prefsTimer);
+      prefsTimer = setTimeout(savePrefs, 400);
+    }
+    function collectPrefs() {
+      return {
+        display_mode: $('display-mode').value,
+        chord_size: parseInt($('chord-size').value, 10),
+        lyric_size: parseInt($('lyric-size').value, 10),
+        advance_mode: $('advance-mode').value,
+        fixed_seconds: parseFloat($('fixed-seconds').value),
+        speed_value: parseInt($('speed-slider').value, 10),
+      };
+    }
+    function savePrefs() {
+      const p = collectPrefs();
+      try { localStorage.setItem('wv_prompter_prefs', JSON.stringify(p)); } catch (e) {}
+      if (canSavePrefs && prefsUrl) {
+        fetch(prefsUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify(p),
+          credentials: 'same-origin',
+        }).catch(() => {});
+      }
+    }
+    function loadPrefs() {
+      let p = Object.assign({}, initialPrefs || {});
+      try {
+        const local = JSON.parse(localStorage.getItem('wv_prompter_prefs') || 'null');
+        if (local && typeof local === 'object') {
+          // DB prefs win when logged in; local fills gaps for public links
+          if (!canSavePrefs) p = Object.assign(p, local);
+        }
+      } catch (e) {}
+      if (p.display_mode) $('display-mode').value = p.display_mode;
+      if (p.chord_size) $('chord-size').value = p.chord_size;
+      if (p.lyric_size) $('lyric-size').value = p.lyric_size;
+      if (p.advance_mode) $('advance-mode').value = p.advance_mode;
+      if (p.fixed_seconds) $('fixed-seconds').value = p.fixed_seconds;
+      if (p.speed_value) $('speed-slider').value = p.speed_value;
+      applySizes();
+      applyDisplayMode();
+    }
+
+    /* ---------- Wire UI ---------- */
+    $('prev-btn').onclick = prev;
+    $('next-btn').onclick = next;
+    $('play-btn').onclick = () => {
+      if (playing) { stopPlay(); status('Paused'); }
+      else startPlay();
     };
-    document.getElementById('fs-btn').onclick = () => {
+    $('rec-btn').onclick = () => {
+      if (recording) stopRecord(true);
+      else startRecord();
+    };
+    $('chord-size').oninput = () => { applySizes(); schedulePrefsSave(); };
+    $('lyric-size').oninput = () => { applySizes(); schedulePrefsSave(); };
+    $('display-mode').onchange = () => { applyDisplayMode(); schedulePrefsSave(); };
+    $('advance-mode').onchange = () => { stopPlay(); schedulePrefsSave(); };
+    $('fixed-seconds').onchange = schedulePrefsSave;
+    $('speed-slider').oninput = schedulePrefsSave;
+    $('fs-btn').onclick = () => {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen();
       else document.exitFullscreen();
     };
-    document.getElementById('play-btn').onclick = () => {
-      playing = !playing;
-      document.getElementById('play-btn').textContent = playing ? '⏸ Pause' : '> Auto';
-      clearInterval(timer);
-      if (playing) {
-        const spd = () => 12000 - document.getElementById('speed-slider').value * 1000;
-        timer = setInterval(() => { if (idx < slides.length - 1) next(); else { playing = false; clearInterval(timer); }}, spd());
-      }
-    };
-    const chartSel = document.getElementById('chart-select');
+    const chartSel = $('chart-select');
     if (chartSel) {
       chartSel.addEventListener('change', () => {
         const u = new URL(window.location.href);
@@ -129,8 +549,14 @@
     document.addEventListener('keydown', e => {
       if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
       if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'r' || e.key === 'R') { e.preventDefault(); if (recording) stopRecord(true); else startRecord(); }
     });
-    if (slides.length) { slides.forEach((s,i) => { if (i) s.classList.add('hidden'); }); }
+
+    if (slides.length) {
+      slides.forEach((s, i) => { if (i) s.classList.add('hidden'); });
+    }
+    loadPrefs();
+  })();
   </script>
 </body>
 </html>

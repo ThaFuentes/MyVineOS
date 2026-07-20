@@ -15,15 +15,74 @@
 </div>
 
 {% if songs %}
-<div style="display:grid; gap:0.6rem;">
+<form method="post" action="{{ url_for('worship.songs_send_to_setlist') }}" id="send-setlist-form" class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:0.85rem;">
+  {% include 'partials/csrf_field.html' ignore missing %}
+  <div style="display:flex; flex-wrap:wrap; gap:0.65rem; align-items:flex-end;">
+    <div style="flex:1 1 220px;">
+      <label style="display:block; font-size:0.8rem; opacity:0.75; margin-bottom:0.25rem;">Send selected songs to</label>
+      <select name="target" id="send-target" class="form-input" style="width:100%;" required>
+        <option value="">— choose destination —</option>
+        <optgroup label="Date setlists">
+          {% for sl in setlists or [] %}
+          <option value="setlist:{{ sl.id }}">
+            {{ sl.title }}{% if sl.service_date %} ({{ sl.service_date }}){% endif %}
+          </option>
+          {% else %}
+          <option value="" disabled>No date setlists yet</option>
+          {% endfor %}
+        </optgroup>
+        <optgroup label="Weekly default (that day)">
+          {% for t in weekly_templates or [] %}
+          <option value="template:{{ t.weekday }}">{{ t.weekday_name or ('Day ' ~ t.weekday) }} default — {{ t.title }}</option>
+          {% else %}
+          <option value="" disabled>No weekly defaults yet</option>
+          {% endfor %}
+        </optgroup>
+        <option value="week_all">Entire week — all weekly defaults (practice week)</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary" id="send-btn" disabled>Send to list</button>
+    <button type="button" class="btn btn-secondary" id="select-all-btn">Select all</button>
+    <button type="button" class="btn btn-secondary" id="select-none-btn">Clear</button>
+  </div>
+  <p style="margin:0.55rem 0 0; font-size:0.8rem; opacity:0.65;">
+    Check one or more songs, pick a setlist or weekly default day (or entire week), then send.
+  </p>
+</form>
+
+<div style="display:grid; gap:0.6rem;" id="song-rows">
   {% for s in songs %}
-  <a href="{{ url_for('worship.song_edit', song_id=s.id) }}" class="glass-panel" style="padding:0.85rem 1rem; text-decoration:none; display:block;">
-    <strong>{{ s.title }}</strong>
-    {% if s.artist %}<span style="opacity:0.7;"> - {{ s.artist }}</span>{% endif %}
-    {% if s.ccli_song_number %}<div style="font-size:0.8rem; opacity:0.55; margin-top:0.2rem;">CCLI {{ s.ccli_song_number }}</div>{% endif %}
-  </a>
+  <div class="glass-panel song-row" style="padding:0.75rem 1rem; display:flex; gap:0.75rem; align-items:center;">
+    <label style="display:flex; align-items:center; gap:0.45rem; cursor:pointer; flex-shrink:0;">
+      <input type="checkbox" name="song_ids" value="{{ s.id }}" form="send-setlist-form" class="song-check">
+      <span style="font-size:0.75rem; opacity:0.55;">Select</span>
+    </label>
+    <a href="{{ url_for('worship.song_edit', song_id=s.id) }}" style="text-decoration:none; flex:1; min-width:0;">
+      <strong>{{ s.title }}</strong>
+      {% if s.artist %}<span style="opacity:0.7;"> - {{ s.artist }}</span>{% endif %}
+      {% if s.ccli_song_number %}<div style="font-size:0.8rem; opacity:0.55; margin-top:0.2rem;">CCLI {{ s.ccli_song_number }}</div>{% endif %}
+    </a>
+  </div>
   {% endfor %}
 </div>
+
+<script>
+(function () {
+  const checks = () => [...document.querySelectorAll('.song-check')];
+  const btn = document.getElementById('send-btn');
+  const target = document.getElementById('send-target');
+  function sync() {
+    const n = checks().filter(c => c.checked).length;
+    btn.disabled = !(n > 0 && target.value);
+    btn.textContent = n ? `Send ${n} song${n === 1 ? '' : 's'} to list` : 'Send to list';
+  }
+  document.getElementById('song-rows').addEventListener('change', sync);
+  target.addEventListener('change', sync);
+  document.getElementById('select-all-btn').onclick = () => { checks().forEach(c => c.checked = true); sync(); };
+  document.getElementById('select-none-btn').onclick = () => { checks().forEach(c => c.checked = false); sync(); };
+  sync();
+})();
+</script>
 {% else %}
 <div class="glass-panel" style="padding:1.5rem; text-align:center; opacity:0.75;">
   No songs in the library yet.

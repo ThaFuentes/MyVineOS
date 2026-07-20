@@ -217,11 +217,28 @@ def create_tables(cursor):
         "ALTER TABLE worship_songs ADD COLUMN play_order_json LONGTEXT NULL",
         "ALTER TABLE worship_songs ADD COLUMN default_key VARCHAR(16) NULL",
         "ALTER TABLE worship_songs ADD COLUMN rights_notes TEXT NULL",
+        # Prompter: absolute ms offsets from song start when each slide appears [0, 12000, ...]
+        "ALTER TABLE worship_songs ADD COLUMN slide_timings_json LONGTEXT NULL",
     ):
         try:
             cursor.execute(col_sql)
         except Exception:
             pass
+
+    # Per-user prompter display prefs (chord layout + independent chord/lyric sizes)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS worship_user_prefs (
+            user_id INT UNSIGNED PRIMARY KEY,
+            display_mode VARCHAR(24) NOT NULL DEFAULT 'stacked',
+            chord_size SMALLINT UNSIGNED NOT NULL DEFAULT 28,
+            lyric_size SMALLINT UNSIGNED NOT NULL DEFAULT 36,
+            advance_mode VARCHAR(24) NOT NULL DEFAULT 'manual',
+            fixed_seconds DECIMAL(6,2) NOT NULL DEFAULT 8.00,
+            speed_value SMALLINT UNSIGNED NOT NULL DEFAULT 4,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB;
+    """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS worship_song_charts (
