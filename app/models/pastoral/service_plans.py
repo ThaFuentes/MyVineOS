@@ -207,16 +207,28 @@ def get_weekly_schedule_display():
 def get_upcoming_services_display(limit: int = 2, days_ahead: int = 90):
     """
     Guest-facing upcoming service dates using effective plans (override + template fallback).
+    Includes filled roles (members + guests) and order-of-service notes — same as homepage.
     """
     today = datetime.today().date()
     services = []
     for offset in range(days_ahead):
         check_date = today + timedelta(days=offset)
-        plan = get_plan_for_date(check_date.strftime('%Y-%m-%d'))
+        date_str = check_date.strftime('%Y-%m-%d')
+        plan = get_plan_for_date(date_str)
         if not plan:
             continue
+        plan = dict(plan)
+        # Enrich with full roster so public sees teams/worship people when assigned
+        try:
+            plan['assignments'] = build_full_service_assignments(
+                plan.get('assignments') or [],
+                date_str=date_str,
+            )
+        except Exception as exc:
+            print(f'get_upcoming_services_display enrich: {exc}')
         entry = _plan_to_public_service(plan)
         entry['date_label'] = check_date.strftime('%A, %B %d, %Y')
+        entry['date_str'] = date_str
         services.append(entry)
         if len(services) >= limit:
             break
