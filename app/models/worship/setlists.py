@@ -45,29 +45,64 @@ def get_setlist(setlist_id: int):
 
 
 def get_assignments(setlist_id: int):
+    ensure_assignment_guest_columns()
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
-    cur.execute("""
-        SELECT a.*, CONCAT(u.first_name,' ',u.last_name) AS user_full_name, u.username, u.email
-        FROM worship_setlist_assignments a
-        JOIN users u ON u.id = a.user_id
-        WHERE a.setlist_id = %s ORDER BY a.role_name
-    """, (setlist_id,))
-    return cur.fetchall()
+    try:
+        cur.execute("""
+            SELECT a.*,
+                   COALESCE(
+                     NULLIF(TRIM(CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,''))), ''),
+                     NULLIF(TRIM(a.guest_name), '')
+                   ) AS user_full_name,
+                   u.username, u.email
+            FROM worship_setlist_assignments a
+            LEFT JOIN users u ON u.id = a.user_id
+            WHERE a.setlist_id = %s ORDER BY a.role_name
+        """, (setlist_id,))
+    except Exception:
+        cur.execute("""
+            SELECT a.*, CONCAT(u.first_name,' ',u.last_name) AS user_full_name, u.username, u.email
+            FROM worship_setlist_assignments a
+            LEFT JOIN users u ON u.id = a.user_id
+            WHERE a.setlist_id = %s ORDER BY a.role_name
+        """, (setlist_id,))
+    return cur.fetchall() or []
 
 
 def save_assignments(setlist_id: int, rows: list):
+    ensure_assignment_guest_columns()
     db = get_db()
     cur = db.cursor()
     cur.execute("DELETE FROM worship_setlist_assignments WHERE setlist_id = %s", (setlist_id,))
     for row in rows:
         role = (row.get('role_name') or '').strip()
+        if not role:
+            continue
         uid = row.get('user_id')
-        if role and uid:
+        if uid in ('', 'None', None, 0, '0'):
+            uid = None
+        else:
+            try:
+                uid = int(uid)
+            except (TypeError, ValueError):
+                uid = None
+        guest = (row.get('guest_name') or '').strip() or None
+        if uid:
+            guest = None
+        if not uid and not guest:
+            continue
+        try:
             cur.execute("""
-                INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id)
-                VALUES (%s, %s, %s)
-            """, (setlist_id, role, uid))
+                INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id, guest_name)
+                VALUES (%s, %s, %s, %s)
+            """, (setlist_id, role, uid, guest))
+        except Exception:
+            if uid:
+                cur.execute("""
+                    INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id)
+                    VALUES (%s, %s, %s)
+                """, (setlist_id, role, uid))
     db.commit()
 
 
@@ -254,40 +289,150 @@ def remove_setlist_song(item_id: int, setlist_id: int):
     db.commit()
 
 
+def ensure_assignment_guest_columns():
+    """Allow non-members (guest_name) on worship defaults and setlist assignments."""
+    db = get_db()
+    cur = db.cursor()
+    for table in (
+        'worship_default_assignments',
+        'worship_setlist_assignments',
+        'worship_weekly_template_assignments',
+        'worship_template_assignments',
+    ):
+        try:
+            cur.execute(f"""
+                SELECT COLUMN_NAME, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'user_id'
+            """, (table,))
+            row = cur.fetchone()
+            if row:
+                nullable = row[1] if not isinstance(row, dict) else row.get('IS_NULLABLE')
+                if str(nullable).upper() == 'NO':
+                    cur.execute(f"ALTER TABLE {table} MODIFY COLUMN user_id INT UNSIGNED NULL")
+                    db.commit()
+        except Exception as exc:
+            print(f'worship guest migrate user_id {table}: {exc}')
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        try:
+            cur.execute("""
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'guest_name'
+            """, (table,))
+            if not cur.fetchone():
+                cur.execute(f"ALTER TABLE {table} ADD COLUMN guest_name VARCHAR(160) NULL")
+                db.commit()
+        except Exception as exc:
+            print(f'worship guest migrate guest_name {table}: {exc}')
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
+
 def get_default_assignments():
+    """Defaults for worship roles — members and/or non-member guest names."""
+    ensure_assignment_guest_columns()
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
-    cur.execute("""
-        SELECT d.*, CONCAT(u.first_name,' ',u.last_name) AS user_full_name
-        FROM worship_default_assignments d JOIN users u ON u.id = d.user_id
-    """)
-    return cur.fetchall()
+    try:
+        cur.execute("""
+            SELECT d.*,
+                   COALESCE(
+                     NULLIF(TRIM(CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,''))), ''),
+                     NULLIF(TRIM(d.guest_name), ''),
+                     NULL
+                   ) AS user_full_name
+            FROM worship_default_assignments d
+            LEFT JOIN users u ON u.id = d.user_id
+            ORDER BY d.role_name
+        """)
+    except Exception:
+        cur.execute("""
+            SELECT d.*, CONCAT(u.first_name,' ',u.last_name) AS user_full_name
+            FROM worship_default_assignments d
+            LEFT JOIN users u ON u.id = d.user_id
+        """)
+    return cur.fetchall() or []
 
 
 def save_default_assignments(rows: list):
+    """Save role → member and/or guest_name (non-member)."""
+    ensure_assignment_guest_columns()
     db = get_db()
     cur = db.cursor()
     cur.execute("DELETE FROM worship_default_assignments")
     for row in rows:
         role = (row.get('role_name') or '').strip()
+        if not role:
+            continue
         uid = row.get('user_id')
-        if role and uid:
-            cur.execute("INSERT INTO worship_default_assignments (role_name, user_id) VALUES (%s, %s)", (role, uid))
+        if uid in ('', 'None', None, 0, '0'):
+            uid = None
+        else:
+            try:
+                uid = int(uid)
+            except (TypeError, ValueError):
+                uid = None
+        guest = (row.get('guest_name') or '').strip() or None
+        if uid:
+            guest = None
+        if not uid and not guest:
+            # Keep role shell empty so defaults still list standard roles
+            try:
+                cur.execute(
+                    "INSERT INTO worship_default_assignments (role_name, user_id, guest_name) VALUES (%s, NULL, NULL)",
+                    (role,),
+                )
+            except Exception:
+                pass
+            continue
+        try:
+            cur.execute(
+                "INSERT INTO worship_default_assignments (role_name, user_id, guest_name) VALUES (%s, %s, %s)",
+                (role, uid, guest),
+            )
+        except Exception:
+            if uid:
+                cur.execute(
+                    "INSERT INTO worship_default_assignments (role_name, user_id) VALUES (%s, %s)",
+                    (role, uid),
+                )
     db.commit()
 
 
 def apply_defaults_to_setlist(setlist_id: int):
+    ensure_assignment_guest_columns()
     for d in get_default_assignments():
+        role = (d.get('role_name') or '').strip()
+        if not role:
+            continue
+        uid = d.get('user_id')
+        guest = (d.get('guest_name') or '').strip() or None
+        if not uid and not guest:
+            continue
         db = get_db()
         cur = db.cursor()
         try:
             cur.execute("""
-                INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id)
-                VALUES (%s, %s, %s)
-            """, (setlist_id, d['role_name'], d['user_id']))
+                INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id, guest_name)
+                VALUES (%s, %s, %s, %s)
+            """, (setlist_id, role, uid, guest if not uid else None))
             db.commit()
         except Exception:
-            db.rollback()
+            try:
+                if uid:
+                    cur.execute("""
+                        INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id)
+                        VALUES (%s, %s, %s)
+                    """, (setlist_id, role, uid))
+                    db.commit()
+                else:
+                    db.rollback()
+            except Exception:
+                db.rollback()
 
 
 def delete_setlist(setlist_id: int):

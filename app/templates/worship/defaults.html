@@ -5,12 +5,17 @@
 
 {% block worship_content %}
 <h1 style="margin:0 0 0.5rem; font-size:1.35rem; color:var(--primary);">Default Role Assignments</h1>
-<p style="margin:0 0 1rem; opacity:0.75; font-size:0.9rem;">These auto-fill when you create a new setlist.</p>
+<p style="margin:0 0 1rem; opacity:0.8; font-size:0.9rem;">
+  These auto-fill new setlists and feed <strong>Pastoral → Service Plan</strong> worship roles.
+  Use a <strong>registered member</strong> when you can, or type a <strong>guest name</strong> for non-members
+  (contract players, visiting musicians, etc.).
+</p>
 
 <form method="post" class="glass-panel" style="padding:1rem;">
-    {% include 'partials/csrf_field.html' %}
+  {% include 'partials/csrf_field.html' %}
 
   {{ assignment_rows(defaults, members, default_roles) }}
   <button type="submit" class="btn btn-primary" style="margin-top:1rem;">Save Defaults</button>
+  <a href="{{ url_for('worship.dashboard') }}" class="btn btn-secondary" style="margin-top:1rem;">Back</a>
 </form>
 {% endblock %}

@@ -124,12 +124,31 @@ def _setlist_form_data():
 
 
 def _assignment_rows_from_form():
+    """Parse worship assignment rows: member and/or non-member guest_name."""
     roles = request.form.getlist('assign_role[]')
     users = request.form.getlist('assign_user[]')
+    guests = request.form.getlist('assign_guest[]')
+    while len(users) < len(roles):
+        users.append('')
+    while len(guests) < len(roles):
+        guests.append('')
     rows = []
-    for role, uid in zip(roles, users):
-        if role.strip() and uid:
-            rows.append({'role_name': role.strip(), 'user_id': int(uid)})
+    for role, uid, guest in zip(roles, users, guests):
+        role = (role or '').strip()
+        if not role:
+            continue
+        guest = (guest or '').strip() or None
+        if uid in ('', 'None', None):
+            uid = None
+        else:
+            try:
+                uid = int(uid)
+            except (TypeError, ValueError):
+                uid = None
+        if uid:
+            guest = None
+        # Allow empty person (role shell) or member or guest
+        rows.append({'role_name': role, 'user_id': uid, 'guest_name': guest})
     return rows
 
 
@@ -1013,12 +1032,33 @@ def defaults():
 
     if request.method == 'POST':
         setlist_model.save_default_assignments(_assignment_rows_from_form())
-        flash('Default role assignments saved.', 'success')
+        flash('Default role assignments saved (members and guests).', 'success')
         return redirect(url_for('worship.defaults'))
+
+    # Always show standard roles; fill people/guests when saved; keep any custom extras
+    stored = setlist_model.get_default_assignments() or []
+    by_role = {}
+    for d in stored:
+        rn = (d.get('role_name') or '').strip()
+        if rn:
+            by_role[rn] = d
+    defaults = []
+    for role in DEFAULT_ROLES:
+        if role in by_role:
+            defaults.append(by_role.pop(role))
+        else:
+            defaults.append({
+                'role_name': role,
+                'user_id': None,
+                'guest_name': None,
+                'user_full_name': None,
+            })
+    for extra in by_role.values():
+        defaults.append(extra)
 
     return render_template(
         'worship/defaults.html',
-        defaults=setlist_model.get_default_assignments(),
+        defaults=defaults,
         members=get_worship_team_members(),
         default_roles=DEFAULT_ROLES,
     )

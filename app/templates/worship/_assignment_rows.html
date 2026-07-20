@@ -1,30 +1,55 @@
 {% macro assignment_rows(assignments, members, default_roles) %}
-<div id="assignment-rows" style="display:grid; gap:0.5rem;">
+{# Worship role rows: registered members OR non-member guest names. #}
+<div id="assignment-rows" style="display:grid; gap:0.65rem;">
   {% set rows = assignments if assignments else [] %}
   {% if rows %}
     {% for a in rows %}
-    <div class="assignment-row" style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem; align-items:center;">
-      <input type="text" name="assign_role[]" value="{{ a.role_name }}" list="role-suggestions" placeholder="Role">
-      <select name="assign_user[]">
-        <option value="">- Select -</option>
-        {% for m in members %}
-        <option value="{{ m.id }}" {% if m.id == a.user_id %}selected{% endif %}>{{ m.first_name }} {{ m.last_name }}</option>
-        {% endfor %}
-      </select>
-      <button type="button" class="btn btn-secondary" onclick="this.closest('.assignment-row').remove()" style="font-size:0.8rem;">✕</button>
+    <div class="assignment-row glass-panel" style="padding:0.75rem; margin:0; display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:0.5rem; align-items:end;">
+      <div>
+        <label class="control-label" style="font-size:0.8rem;">Role</label>
+        <input type="text" name="assign_role[]" class="form-input" value="{{ a.role_name }}" list="role-suggestions" placeholder="e.g. Worship Leader">
+      </div>
+      <div>
+        <label class="control-label" style="font-size:0.8rem;">Member</label>
+        <select name="assign_user[]" class="form-input">
+          <option value="">— Unassigned / use guest —</option>
+          {% for m in members %}
+          <option value="{{ m.id }}" {% if a.user_id and m.id == a.user_id %}selected{% endif %}>
+            {{ m.first_name }} {{ m.last_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="control-label" style="font-size:0.8rem;">Guest (not a member)</label>
+        <input type="text" name="assign_guest[]" class="form-input"
+               value="{{ a.guest_name or '' }}"
+               placeholder="Name if not registered">
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="this.closest('.assignment-row').remove()" style="font-size:0.8rem;">Remove</button>
     </div>
     {% endfor %}
   {% else %}
-    {% for role in default_roles[:4] %}
-    <div class="assignment-row" style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem; align-items:center;">
-      <input type="text" name="assign_role[]" value="{{ role }}" list="role-suggestions">
-      <select name="assign_user[]">
-        <option value="">- Select -</option>
-        {% for m in members %}
-        <option value="{{ m.id }}">{{ m.first_name }} {{ m.last_name }}</option>
-        {% endfor %}
-      </select>
-      <button type="button" class="btn btn-secondary" onclick="this.closest('.assignment-row').remove()" style="font-size:0.8rem;">✕</button>
+    {% for role in default_roles %}
+    <div class="assignment-row glass-panel" style="padding:0.75rem; margin:0; display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:0.5rem; align-items:end;">
+      <div>
+        <label class="control-label" style="font-size:0.8rem;">Role</label>
+        <input type="text" name="assign_role[]" class="form-input" value="{{ role }}" list="role-suggestions">
+      </div>
+      <div>
+        <label class="control-label" style="font-size:0.8rem;">Member</label>
+        <select name="assign_user[]" class="form-input">
+          <option value="">— Unassigned / use guest —</option>
+          {% for m in members %}
+          <option value="{{ m.id }}">{{ m.first_name }} {{ m.last_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="control-label" style="font-size:0.8rem;">Guest (not a member)</label>
+        <input type="text" name="assign_guest[]" class="form-input" value="" placeholder="Name if not registered">
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="this.closest('.assignment-row').remove()" style="font-size:0.8rem;">Remove</button>
     </div>
     {% endfor %}
   {% endif %}
@@ -32,15 +57,19 @@
 <datalist id="role-suggestions">
   {% for role in default_roles %}<option value="{{ role }}">{% endfor %}
 </datalist>
-<button type="button" class="btn btn-secondary" style="margin-top:0.5rem;" onclick="addAssignmentRow()">+ Add role</button>
+<p style="margin:0.65rem 0 0; font-size:0.85rem; opacity:0.75;">
+  Prefer registered members when possible. Guests still appear on setlists and plans so the band list stays complete.
+</p>
+<button type="button" class="btn btn-secondary" style="margin-top:0.65rem;" onclick="addAssignmentRow()">+ Add role</button>
 <script>
 function addAssignmentRow() {
-  const tpl = document.querySelector('.assignment-row');
+  const wrap = document.getElementById('assignment-rows');
+  const tpl = wrap && wrap.querySelector('.assignment-row');
   if (!tpl) return;
   const clone = tpl.cloneNode(true);
-  clone.querySelectorAll('input').forEach(i => { if (i.type === 'text') i.value = ''; });
-  clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
-  document.getElementById('assignment-rows').appendChild(clone);
+  clone.querySelectorAll('input[type="text"]').forEach(function (i) { i.value = ''; });
+  clone.querySelectorAll('select').forEach(function (s) { s.selectedIndex = 0; });
+  wrap.appendChild(clone);
 }
 </script>
 {% endmacro %}
