@@ -1,174 +1,237 @@
-{# Pastoral global default roles — merges Worship Team defaults + volunteer teams. #}
-
+{# Global defaults — same roster UX as plan edit: locked teams + worship + extras. #}
 {% extends "pastoral/base_pastoral.html" %}
 
-{% block title %}Global Default Role Assignments{% endblock %}
+{% block title %}Service Plan Defaults{% endblock %}
 
 {% block pastoral_content %}
-<div class="container-fluid py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-10 col-xxl-8">
-            <div class="text-center mb-4">
-                <h1 class="text-cyan">Global Default Role Assignments</h1>
-                <p class="text-muted lead" style="font-size:1rem;">
-                    These pre-fill every <strong>new service plan</strong>. You can still override any week.
-                </p>
-            </div>
-
-            <div class="alert alert-info py-3 mb-4 text-center border border-cyan">
-                <strong>Worship Team defaults are the source for band roles.</strong><br>
-                Whoever is set as <strong>Worship Leader</strong> (and Guitar, Bass, Keys, etc.) under
-                <em>Worship → Default Roles</em> shows here automatically.
-                Pastoral-only roles (Preacher, Greeters, Ushers, …) stay editable here.
-            </div>
-
-            {% if worship_defaults %}
-            <div class="glass-panel mb-3" style="padding:1rem;">
-                <strong class="text-cyan">Currently loaded from Worship Team defaults</strong>
-                <ul style="margin:0.5rem 0 0; padding-left:1.2rem; font-size:0.9rem;">
-                    {% for w in worship_defaults %}
-                    <li>
-                        {{ w.role_name }}:
-                        <strong>{{ w.user_full_name or 'Unassigned' }}</strong>
-                    </li>
-                    {% endfor %}
-                </ul>
-                <p class="mb-0 mt-2" style="font-size:0.85rem; opacity:0.75;">
-                    Edit people for these roles in Worship first; reopen this page to refresh.
-                </p>
-            </div>
-            {% else %}
-            <div class="glass-panel mb-3" style="padding:1rem; opacity:0.9;">
-                <strong>No Worship Team defaults yet.</strong>
-                Set them under Worship → Default Roles (Worship Leader, band, etc.).
-                This page will then show those people automatically.
-            </div>
-            {% endif %}
-
-            {% if worship_role_names %}
-            <div class="glass-panel mb-3" style="padding:1rem;">
-                <strong class="text-cyan">Worship roles</strong>
-                <p class="text-muted mb-2" style="font-size:0.9rem;">Click to add a missing worship role row.</p>
-                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-                    {% for role in worship_role_names %}
-                    <button type="button" class="btn btn-outline-cyan btn-sm vol-team-chip" data-role="{{ role }}">{{ role }}</button>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if volunteer_team_roles %}
-            <div class="glass-panel mb-4" style="padding:1rem;">
-                <strong class="text-cyan">Volunteer Teams</strong>
-                <p class="text-muted mb-2" style="font-size:0.9rem;">
-                    Greeters, Ushers, and other volunteer teams for a cohesive Sunday plan.
-                </p>
-                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;" id="volunteer-team-chips">
-                    {% for team in volunteer_team_roles %}
-                    <button type="button" class="btn btn-outline-cyan btn-sm vol-team-chip" data-role="{{ team }}">{{ team }}</button>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="card glass-card shadow">
-                <div class="card-body p-4">
-                    <form method="POST" action="{{ url_for('pastoral.planning.defaults') }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="text-cyan mb-0">Default Roles</h4>
-                            <button type="button" id="add-role-btn" class="btn btn-outline-cyan">
-                                <i class="fas fa-plus me-2"></i>Add Role
-                            </button>
-                        </div>
-
-                        <div id="assignments-container">
-                            {% for assignment in defaults %}
-                                {% include "pastoral/planning_assignment_row.html" %}
-                            {% endfor %}
-
-                            {# Template row for JS — not submitted (no name attrs until clone; inputs keep names but empty role ignored) #}
-                            <div class="assignment-row d-none" data-template="1" aria-hidden="true">
-                                {% with assignment=none %}
-                                    {% include "pastoral/planning_assignment_row.html" %}
-                                {% endwith %}
-                            </div>
-                        </div>
-
-                        <small class="text-muted d-block mb-4">
-                            Empty role names are ignored. Duplicate role names are merged on save.
-                        </small>
-
-                        <div class="d-grid d-md-flex gap-3 justify-content-md-end mt-4">
-                            <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-outline-secondary btn-lg order-md-1">
-                                <i class="fas fa-arrow-left me-2"></i>Back to Planning
-                            </a>
-                            <button type="submit" class="btn btn-success btn-lg order-md-2">
-                                <i class="fas fa-save me-2"></i>Save Global Defaults
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+<section class="content-section">
+  <div class="glass-panel" style="margin-bottom:0.85rem;">
+    <div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <h1 class="page-title" style="margin:0 0 0.25rem;">Service Plan Defaults</h1>
+        <p class="page-description" style="margin:0; opacity:0.85;">
+          Pre-fills <strong>every new dated plan</strong> with the same roster as plan edit:
+          Volunteer Teams, Worship roles, and any extras you add here.
+          Per-date plans can still override people.
+        </p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+        <a href="{{ url_for('volunteers.teams_list') }}" class="btn btn-secondary" style="font-size:0.85rem;">Volunteer Teams</a>
+        <a href="{{ url_for('worship.defaults') }}" class="btn btn-secondary" style="font-size:0.85rem;">Worship Defaults</a>
+        <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary" style="font-size:0.85rem;">All Plans</a>
+      </div>
     </div>
-</div>
+  </div>
+
+  <div class="glass-panel" style="margin-bottom:0.85rem; font-size:0.9rem; opacity:0.9;">
+    <strong>How it flows</strong>
+    <ol style="margin:0.4rem 0 0; padding-left:1.2rem;">
+      <li><strong>Teams</strong> come from <a href="{{ url_for('volunteers.teams_list') }}">Volunteers</a> (never retyped).</li>
+      <li><strong>Worship</strong> roles / people come from <a href="{{ url_for('worship.defaults') }}">Worship → Default Roles</a> when set.</li>
+      <li>Save here → new plans open with this full roster already listed.</li>
+      <li>Edit a date → change people for that week only (or add more extras).</li>
+    </ol>
+  </div>
+
+  {% if volunteer_teams %}
+  <div class="glass-panel" style="margin-bottom:0.85rem;">
+    <div style="font-weight:600; margin-bottom:0.45rem;">
+      <i class="fa-solid fa-handshake" aria-hidden="true"></i> Live Volunteer Teams
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:0.45rem;">
+      {% for t in volunteer_teams %}
+      <a href="{{ url_for('volunteers.team_detail', team_id=t.id) }}" class="glass-panel"
+         style="padding:0.55rem 0.65rem; margin:0; text-decoration:none; color:inherit; border-left:4px solid {{ t.color or '#34d399' }};">
+        <strong style="font-size:0.9rem;">{{ t.name }}</strong>
+        <div style="font-size:0.75rem; opacity:0.7;">{{ t.member_count or 0 }} people</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if worship_defaults %}
+  <div class="glass-panel" style="margin-bottom:0.85rem; font-size:0.9rem;">
+    <strong class="text-cyan">From Worship → Default Roles</strong>
+    <div style="display:flex; flex-wrap:wrap; gap:0.35rem; margin-top:0.45rem;">
+      {% for w in worship_defaults %}
+      <span style="padding:0.2rem 0.5rem; border-radius:999px; background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.25); font-size:0.8rem;">
+        {{ w.role_name }}: <strong>{{ w.user_full_name or 'Unassigned' }}</strong>
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="POST" action="{{ url_for('pastoral.planning.defaults') }}" id="defaults-form" class="styled-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+    <div class="form-actions" style="margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+      <button type="submit" class="btn btn-primary">Save defaults</button>
+      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+
+    <div class="glass-panel" style="padding:1rem; margin-bottom:0.85rem;">
+      <h2 style="margin:0 0 0.35rem; font-size:1.1rem; color:var(--primary);">
+        <i class="fa-solid fa-users" aria-hidden="true"></i> Default who is serving
+      </h2>
+      <p style="margin:0 0 1rem; font-size:0.9rem; opacity:0.8;">
+        Standard roles are locked from the app. Pick people here.
+        Use <strong>Add extra role</strong> for one-offs that should appear on every new plan.
+      </p>
+
+      {% set sections = [
+        ('pastoral', 'Pastoral', 'fa-book-bible'),
+        ('worship', 'Worship team', 'fa-music'),
+        ('volunteer', 'Volunteer teams', 'fa-handshake'),
+        ('custom', 'Extra default roles', 'fa-plus'),
+      ] %}
+
+      {% for kind, label, icon in sections %}
+      {% set rows = roster_by_kind.get(kind, []) if roster_by_kind is defined else [] %}
+      {% if rows or kind == 'custom' %}
+      <div class="plan-roster-section" style="margin-bottom:1.25rem;">
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; justify-content:space-between; margin-bottom:0.65rem;">
+          <h3 style="margin:0; font-size:0.95rem; opacity:0.95;">
+            <i class="fa-solid {{ icon }}" aria-hidden="true"></i> {{ label }}
+          </h3>
+          {% if kind == 'custom' %}
+          <button type="button" id="add-extra-role-btn" class="btn btn-primary" style="font-size:0.85rem; min-height:38px;">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i> Add extra role
+          </button>
+          {% endif %}
+        </div>
+        <div id="{% if kind == 'custom' %}extra-roles-container{% else %}roles-{{ kind }}{% endif %}"
+             style="display:flex; flex-direction:column; gap:0.55rem;">
+          {% for assignment in rows %}
+          <div class="plan-role-card glass-panel" style="padding:0.75rem 0.9rem; margin:0; border-left:4px solid {{ assignment.team_color or 'var(--primary)' }};" data-role-row="1">
+            {% if assignment.locked %}
+            <input type="hidden" name="role_name" value="{{ assignment.role_name }}">
+            {% endif %}
+            <div style="display:flex; flex-wrap:wrap; gap:0.65rem; align-items:center; justify-content:space-between;">
+              <div style="min-width:140px; flex:1 1 140px;">
+                {% if assignment.locked %}
+                <div style="font-weight:700;">{{ assignment.role_name }}</div>
+                <div style="font-size:0.75rem; opacity:0.65;">
+                  {% if assignment.kind == 'volunteer' %}From Volunteers
+                  {% elif assignment.kind == 'worship' %}From Worship
+                  {% else %}Pastoral{% endif %}
+                  {% if assignment.source and assignment.source != 'empty' %}
+                    · via {{ assignment.source }}
+                  {% endif %}
+                </div>
+                {% else %}
+                <label class="control-label" style="margin:0 0 0.25rem;">Role name</label>
+                <input type="text" name="role_name" class="form-input"
+                       value="{{ assignment.role_name }}" placeholder="e.g. Nursery helper">
+                {% endif %}
+              </div>
+              <div style="flex:1; min-width:200px;">
+                <select name="user_id" class="form-input" style="width:100%;">
+                  <option value="">— Unassigned —</option>
+                  {% if assignment.picker_options %}
+                    {% for p in assignment.picker_options %}
+                    <option value="{{ p.id }}"
+                      {% if assignment.user_id is not none and assignment.user_id|string == p.id|string %}selected{% endif %}>
+                      {{ p.label }}{% if p.note %} ({{ p.note }}){% endif %}
+                    </option>
+                    {% endfor %}
+                  {% else %}
+                    {% for user in assignable_users %}
+                    <option value="{{ user.id }}"
+                      {% if assignment.user_id is not none and assignment.user_id|string == user.id|string %}selected{% endif %}>
+                      {{ user.full_name }}{% if user.username %} ({{ user.username }}){% endif %}
+                    </option>
+                    {% endfor %}
+                  {% endif %}
+                </select>
+              </div>
+              <div style="flex:1; min-width:140px;">
+                <input type="text" name="guest_name" class="form-input" style="width:100%;"
+                       placeholder="Guest (not a member)"
+                       value="{{ assignment.guest_name or '' }}">
+              </div>
+              {% if not assignment.locked %}
+              <button type="button" class="btn btn-secondary remove-extra-role-btn" style="font-size:0.8rem;">Remove</button>
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+            {% if kind == 'custom' %}
+            <p id="extra-roles-empty" class="text-muted" style="margin:0; font-size:0.88rem; opacity:0.7;">
+              No extra default roles. Click <strong>Add extra role</strong> for roles that should appear on every new plan.
+            </p>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+
+      <template id="extra-role-template">
+        <div class="plan-role-card glass-panel" style="padding:0.75rem 0.9rem; margin:0; border-left:4px solid #fbbf24;" data-role-row="1">
+          <div style="display:flex; flex-wrap:wrap; gap:0.65rem; align-items:center; justify-content:space-between;">
+            <div style="min-width:140px; flex:1 1 140px;">
+              <label class="control-label" style="margin:0 0 0.25rem;">Role name</label>
+              <input type="text" name="role_name" class="form-input" placeholder="e.g. Nursery helper, Guest host">
+            </div>
+            <div style="flex:1; min-width:200px;">
+              <select name="user_id" class="form-input" style="width:100%;">
+                <option value="">— Unassigned —</option>
+                {% for user in assignable_users %}
+                <option value="{{ user.id }}">{{ user.full_name }}{% if user.username %} ({{ user.username }}){% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="flex:1; min-width:140px;">
+              <input type="text" name="guest_name" class="form-input" style="width:100%;" placeholder="Guest (not a member)">
+            </div>
+            <button type="button" class="btn btn-secondary remove-extra-role-btn" style="font-size:0.8rem;">Remove</button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <div class="form-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+      <button type="submit" class="btn btn-primary btn-lg">Save defaults</button>
+      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Back to planning</a>
+    </div>
+  </form>
+</section>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 (function () {
-  function addRoleRow(roleName) {
-    const container = document.getElementById('assignments-container');
-    if (!container) return;
-    const templateRow = container.querySelector('.assignment-row.d-none[data-template="1"]')
-      || container.querySelector('.assignment-row.d-none');
-    if (!templateRow) return;
-    if (roleName) {
-      const existing = [...container.querySelectorAll('.assignment-row:not(.d-none) input[name="role_name"]')]
-        .some((inp) => (inp.value || '').trim().toLowerCase() === roleName.toLowerCase());
-      if (existing) return;
+  const addBtn = document.getElementById('add-extra-role-btn');
+  const container = document.getElementById('extra-roles-container');
+  const tpl = document.getElementById('extra-role-template');
+
+  function addExtraRole() {
+    if (!container || !tpl) return;
+    const empty = document.getElementById('extra-roles-empty');
+    if (empty) empty.remove();
+    container.appendChild(tpl.content.cloneNode(true));
+    const input = container.querySelector('.plan-role-card:last-child input[name="role_name"]');
+    if (input) input.focus();
+  }
+
+  if (addBtn) addBtn.addEventListener('click', addExtraRole);
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.remove-extra-role-btn');
+    if (!btn) return;
+    const row = btn.closest('[data-role-row]');
+    if (row) row.remove();
+    if (container && !container.querySelector('[data-role-row]')) {
+      const p = document.createElement('p');
+      p.id = 'extra-roles-empty';
+      p.className = 'text-muted';
+      p.style.cssText = 'margin:0; font-size:0.88rem; opacity:0.7;';
+      p.innerHTML = 'No extra default roles. Click <strong>Add extra role</strong> for roles that should appear on every new plan.';
+      container.appendChild(p);
     }
-    const row = templateRow.cloneNode(true);
-    row.classList.remove('d-none');
-    row.removeAttribute('data-template');
-    row.removeAttribute('aria-hidden');
-    const nameInp = row.querySelector('input[name="role_name"]');
-    if (nameInp) nameInp.value = roleName || '';
-    const sel = row.querySelector('select[name="user_id"]');
-    if (sel) sel.selectedIndex = 0;
-    const guest = row.querySelector('input[name="guest_name"]');
-    if (guest) guest.value = '';
-    container.insertBefore(row, templateRow);
-  }
-
-  const addBtn = document.getElementById('add-role-btn');
-  if (addBtn) addBtn.addEventListener('click', function () { addRoleRow(''); });
-
-  document.querySelectorAll('.vol-team-chip').forEach((btn) => {
-    btn.addEventListener('click', () => addRoleRow(btn.dataset.role || btn.textContent.trim()));
   });
-
-  const container = document.getElementById('assignments-container');
-  if (container) {
-    container.addEventListener('click', function (e) {
-      const btn = e.target.closest('.remove-role-btn');
-      if (!btn) return;
-      const row = btn.closest('.assignment-row');
-      if (!row || row.classList.contains('d-none')) return;
-      const visible = container.querySelectorAll('.assignment-row:not(.d-none)');
-      if (visible.length > 1) {
-        row.remove();
-      } else {
-        const name = row.querySelector('input[name="role_name"]');
-        const sel = row.querySelector('select[name="user_id"]');
-        const guest = row.querySelector('input[name="guest_name"]');
-        if (name) name.value = '';
-        if (sel) sel.selectedIndex = 0;
-        if (guest) guest.value = '';
-      }
-    });
-  }
 })();
 </script>
 {% endblock %}
