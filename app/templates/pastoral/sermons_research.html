@@ -1,0 +1,181 @@
+{# Search + AI over the pastoral sermon library. #}
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Sermon Research{% endblock %}
+
+{% block pastoral_content %}
+<section class="content-section">
+  <div class="glass-panel" style="margin-bottom:0.85rem;">
+    <div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <h1 class="page-title" style="margin:0 0 0.25rem;">Sermon research</h1>
+        <p class="page-description" style="margin:0; opacity:0.85; max-width:40rem;">
+          Search and ask AI about <strong>your own sermons only</strong>
+          (titles, passages, full body text) — never other pastors’ content.
+          You have <strong>{{ library_count }}</strong> sermon{{ 's' if library_count != 1 else '' }} in your library.
+        </p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+        <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="font-size:0.85rem;">Library</a>
+        <a href="{{ url_for('pastoral.sermons.import_sermons') }}" class="btn btn-secondary" style="font-size:0.85rem;">Upload</a>
+        {% if endpoint_exists('ai_insights.index') %}
+        <a href="{{ url_for('ai_insights.index') }}" class="btn btn-secondary" style="font-size:0.85rem;">AI Insights</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Mode tabs #}
+  <div style="display:flex; flex-wrap:wrap; gap:0.45rem; margin-bottom:0.85rem;">
+    <a href="{{ url_for('pastoral.sermons.research', mode='search', q=query) }}"
+       class="btn {% if mode == 'search' %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="font-size:0.9rem;">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Keyword search
+    </a>
+    <a href="{{ url_for('pastoral.sermons.research', mode='ask') }}"
+       class="btn {% if mode == 'ask' %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="font-size:0.9rem;">
+      <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Ask AI about my sermons
+    </a>
+  </div>
+
+  {% if mode == 'search' %}
+  <div class="glass-panel" style="margin-bottom:0.85rem;">
+    <form method="GET" action="{{ url_for('pastoral.sermons.research') }}" class="styled-form">
+      <input type="hidden" name="mode" value="search">
+      <label class="control-label" for="q">Find a word or phrase across all sermons</label>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:stretch;">
+        <input type="search" name="q" id="q" class="form-input" style="flex:1 1 220px;"
+               value="{{ query }}" placeholder="e.g. love, grace, John 3, discipleship" autofocus>
+        <button type="submit" class="btn btn-primary">Search</button>
+      </div>
+      <p class="help-text" style="margin-top:0.45rem;">
+        Looks in titles, passages, tags, and every section body. Open a hit to read the full sermon.
+      </p>
+    </form>
+  </div>
+
+  {% if query %}
+  <div class="glass-panel">
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem; color:var(--primary);">
+      Results for “{{ query }}”
+      <span style="opacity:0.7; font-weight:500; font-size:0.9rem;">· {{ hits|length }} hit{{ 's' if hits|length != 1 else '' }}</span>
+    </h2>
+    {% if hits %}
+    <div style="display:grid; gap:0.65rem;">
+      {% for h in hits %}
+      <article class="item-card" style="margin:0; padding:0.85rem 1rem;">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.4rem; align-items:baseline;">
+          <strong style="font-size:1rem;">
+            <a href="{{ url_for('pastoral.sermons.edit', sermon_id=h.sermon_id) }}"
+               style="color:var(--primary); text-decoration:underline;">
+              {{ h.sermon_title }}
+            </a>
+          </strong>
+          <span style="font-size:0.8rem; opacity:0.65;">
+            {% if h.service_date %}{{ h.service_date }} · {% endif %}
+            match: {{ h.match_field }}
+          </span>
+        </div>
+        {% if h.primary_passage %}
+        <p style="margin:0.25rem 0 0; font-size:0.88rem; opacity:0.8;">{{ h.primary_passage }}</p>
+        {% endif %}
+        {% if h.section_title %}
+        <p style="margin:0.35rem 0 0; font-size:0.85rem; opacity:0.75;">
+          Section: <em>{{ h.section_title }}</em>{% if h.section_type %} ({{ h.section_type }}){% endif %}
+        </p>
+        {% endif %}
+        {% if h.snippet %}
+        <p style="margin:0.45rem 0 0; font-size:0.92rem; line-height:1.5; opacity:0.92;">
+          {{ h.snippet }}
+        </p>
+        {% endif %}
+        <div style="margin-top:0.55rem;">
+          <a href="{{ url_for('pastoral.sermons.edit', sermon_id=h.sermon_id) }}" class="btn btn-secondary" style="font-size:0.82rem; min-height:34px;">
+            Open sermon
+          </a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="margin:0; opacity:0.7; font-style:italic;">No matches. Try a shorter word or a different phrase.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  {# Ask AI mode #}
+  <div class="glass-panel" style="margin-bottom:0.85rem;">
+    <form method="POST" action="{{ url_for('pastoral.sermons.research') }}" class="styled-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+      <input type="hidden" name="mode" value="ask">
+      <label class="control-label" for="question">Ask about your sermon library</label>
+      <textarea name="question" id="question" class="form-input" rows="4"
+                placeholder="e.g. Where have I taught on love? What have I said about grace in my last few sermons?">{{ question }}</textarea>
+      <p class="help-text" style="margin:0.4rem 0 0.75rem;">
+        AI only sees sermons <strong>you created</strong>. Shared or other pastors’ sermons are never sent.
+        Answers stay in plain language and should point to your titles.
+      </p>
+      {% if not status.configured %}
+      <p style="margin:0 0 0.75rem; color:#ffc85a;">
+        AI provider not ready.
+        {% if session.get('user_role') in ['Owner', 'Admin'] %}
+        <a href="{{ url_for('settings.ai') }}">Configure under Settings → AI</a>.
+        {% else %}
+        Ask an Admin to configure AI Providers.
+        {% endif %}
+      </p>
+      {% endif %}
+      <button type="submit" class="btn btn-primary" {% if not status.configured %}disabled{% endif %}>
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Ask AI
+      </button>
+    </form>
+  </div>
+
+  {% if answer_error %}
+  <div class="flash error" style="margin-bottom:0.85rem;">{{ answer_error }}</div>
+  {% endif %}
+
+  {% if answer_html %}
+  <div class="glass-panel" style="margin-bottom:0.85rem; border-left:4px solid #4dffc8;">
+    <h2 style="margin:0 0 0.75rem; font-size:1.05rem; color:#4dffc8;">Answer</h2>
+    <div class="ai-prose">{{ answer_html | safe }}</div>
+    {% if used_sermons %}
+    <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:0.8rem; opacity:0.7; margin-bottom:0.45rem; font-weight:600;">Sermons used as context</div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+        {% for s in used_sermons %}
+        <a href="{{ url_for('pastoral.sermons.edit', sermon_id=s.id) }}" class="btn btn-secondary" style="font-size:0.8rem; min-height:32px;">
+          {{ s.title }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if catalog %}
+  <div class="glass-panel">
+    <h2 style="margin:0 0 0.5rem; font-size:1rem; opacity:0.9;">Recent library (sample)</h2>
+    <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem; line-height:1.55; opacity:0.85;">
+      {% for c in catalog %}
+      <li>
+        <a href="{{ url_for('pastoral.sermons.edit', sermon_id=c.id) }}" style="color:var(--primary);">{{ c.title }}</a>
+        {% if c.passage %} · {{ c.passage }}{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% endif %}
+</section>
+
+<style>
+  .ai-prose p.ai-prose-p { margin: 0 0 0.85rem; line-height: 1.65; }
+  .ai-prose p.ai-prose-p:last-child { margin-bottom: 0; }
+  .ai-prose ul.ai-prose-list { margin: 0 0 0.85rem; padding-left: 1.25rem; line-height: 1.55; }
+  .ai-prose ul.ai-prose-list li { margin-bottom: 0.35rem; }
+</style>
+{% endblock %}

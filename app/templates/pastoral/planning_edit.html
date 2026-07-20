@@ -20,8 +20,9 @@
         </h1>
         <p class="page-description" style="margin:0; opacity:0.8;">
           <strong>This date only.</strong> Guests, special notes, and one-week changes go here.
-          Your standing roster is under <a href="{{ url_for('pastoral.planning.defaults') }}">Overall default plan</a>
-          (used when a week is not customized).
+          Without a custom save, this day uses its
+          <a href="{{ url_for('pastoral.planning.templates_list') }}">recurring plan</a>
+          (not Overall defaults). Overall defaults are a starter roster only.
         </p>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
@@ -45,9 +46,13 @@
   <form method="POST" id="planning-form" class="styled-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
-    <div class="form-actions" style="margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+    <div class="form-actions" style="margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; align-items:center;">
       <button type="submit" class="btn btn-primary">Save plan</button>
       <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" form="revert-defaults-form" class="btn btn-secondary"
+              onclick="return confirm('Remove this week custom plan and go back to the recurring plan for that day?');">
+        Revert to recurring plan
+      </button>
     </div>
 
     <!-- Basics -->
@@ -103,10 +108,16 @@
     <p class="text-muted">No teams loaded. Create teams under <a href="{{ url_for('volunteers.teams_list') }}">Volunteers</a> first.</p>
     {% endif %}
 
-    <div class="form-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+    <div class="form-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; align-items:center;">
       <button type="submit" class="btn btn-primary btn-lg">Save plan</button>
       <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Back to planning</a>
     </div>
+  </form>
+
+  <form id="revert-defaults-form" method="POST"
+        action="{{ url_for('pastoral.planning.delete', date_str=date_str) }}"
+        style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
   </form>
 </section>
 {% endblock %}

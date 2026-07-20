@@ -9,15 +9,16 @@
     <div>
       <h2 style="margin:0 0 0.2rem;"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Service Planning</h2>
       <div style="opacity:0.75; font-size:0.9rem;">
-        Built from your real <a href="{{ url_for('volunteers.teams_list') }}">Volunteer Teams</a>
-        and <a href="{{ url_for('worship.defaults') }}">Worship defaults</a> — not retyped roles.
+        <strong>Recurring plans</strong> = which days + standing roster ·
+        <strong>Edit a date</strong> = one week only ·
+        <strong>Overall defaults</strong> = starter roster (does not override recurring plans).
       </div>
     </div>
     <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+      <a href="{{ url_for('pastoral.planning.templates_list') }}" class="btn btn-primary" style="font-size:0.85rem;">Recurring plans</a>
+      <a href="{{ url_for('pastoral.planning.defaults') }}" class="btn btn-secondary" style="font-size:0.85rem;">Overall defaults</a>
       <a href="{{ url_for('volunteers.teams_list') }}" class="btn btn-secondary" style="font-size:0.85rem;">Teams</a>
       <a href="{{ url_for('worship.defaults') }}" class="btn btn-secondary" style="font-size:0.85rem;">Worship Defaults</a>
-      <a href="{{ url_for('pastoral.planning.templates_list') }}" class="btn btn-secondary" style="font-size:0.85rem;">Templates</a>
-      <a href="{{ url_for('pastoral.planning.defaults') }}" class="btn btn-primary" style="font-size:0.85rem;">Defaults</a>
     </div>
   </div>
 </div>

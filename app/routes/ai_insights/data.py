@@ -274,30 +274,34 @@ def dataset_for(report_type: str) -> dict:
 
 
 def prompt_for(report_type: str, dataset: dict, extra_question: str = '') -> tuple[str, str]:
+    from app.utils.ai_format import PASTOR_VOICE_SYSTEM
+
     system = (
-        'You are an assistant for church administrators. '
-        'Use only the provided JSON aggregates. Do not invent names, emails, or exact people. '
-        'Be practical, concise, and pastoral in tone. Use short bullet sections. '
-        'If data is sparse or missing, say so clearly instead of guessing. '
-        'Keep the whole answer under ~400 words.'
+        PASTOR_VOICE_SYSTEM
+        + ' Use only the provided JSON aggregates. '
+        'Do not invent names, emails, or exact people. '
+        'Keep the whole answer under about 350 words.'
     )
     titles = {
-        'donations': 'Giving / donations report',
-        'attendance': 'Attendance trends report',
-        'security': 'Security operations brief',
-        'tickets': 'Support tickets workload brief',
-        'overview': 'Church operations overview',
+        'donations': 'giving numbers',
+        'attendance': 'attendance numbers',
+        'security': 'security stats',
+        'tickets': 'support ticket workload',
+        'overview': 'church operations snapshot',
     }
-    title = titles.get(report_type, 'Church report')
-    # Compact JSON (no indent) — smaller payload, faster for overloaded providers
+    title = titles.get(report_type, 'church data')
     payload = json.dumps(dataset, default=str, separators=(',', ':'))[:10000]
     user = (
-        f'Write a clear {title} for leadership from this aggregate JSON only:\n'
-        f'{payload}\n\n'
-        'Sections: 1) Snapshot 2) Trends 3) Risks/gaps 4) 3–5 next actions. '
-        'If counts are very low, note that the sample is small and avoid overclaiming trends.'
+        f'Talk through this {title} with me like we are in a staff meeting. '
+        f'Here is the aggregate JSON (only source of truth):\n{payload}\n\n'
+        'Cover, in plain prose (no markdown headings):\n'
+        '- What stands out right now\n'
+        '- Any trend or pattern worth noticing\n'
+        '- Risks or gaps, if any\n'
+        '- A few concrete next steps I could take this month\n'
+        'If the numbers are sparse, say the sample is small and do not overclaim.'
     )
     q = (extra_question or '').strip()
     if q:
-        user += f'\n\nAdditional focus from the administrator: {q[:500]}'
+        user += f'\n\nMy extra question: {q[:500]}'
     return system, user

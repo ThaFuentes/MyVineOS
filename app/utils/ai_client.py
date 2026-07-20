@@ -898,6 +898,8 @@ def run_insight(
     user_prompt: str,
     *,
     preferred_provider: str | None = None,
+    timeout: int = 70,
+    max_prompt_chars: int = 14000,
 ) -> tuple[Optional[str], Optional[str], dict]:
     """Rate-limit + call + usage log. Returns (text, error, meta)."""
     meta = {'provider': None, 'model': None}
@@ -912,11 +914,13 @@ def run_insight(
         meta['model'] = config.get('model')
 
     # Insights: allow a bit more time; retries/fallback handle 503 overload
+    # Sermon library packs may need a larger prompt window
     text, error = call_ai(
         user_prompt,
         preferred_provider=preferred_provider,
         system=system,
-        timeout=70,
+        timeout=timeout,
+        max_prompt_chars=max_prompt_chars,
     )
     if error:
         log_ai_usage(

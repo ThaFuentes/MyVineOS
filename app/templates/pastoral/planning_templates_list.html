@@ -12,20 +12,29 @@
 
 {% extends "pastoral/base_pastoral.html" %}
 
-{% block title %}Recurring Master Templates{% endblock %}
+{% block title %}Recurring Service Plans{% endblock %}
 
 {% block pastoral_content %}
 <div class="container-fluid py-5">
     <div class="text-center mb-5">
-        <h1 class="text-cyan">Recurring Master Templates</h1>
-        <p class="text-muted lead">
-            <strong>One master template per weekday</strong> sets your standard service time (shown on the public welcome page).<br>
-            Edit a template once -> instantly affects <strong>every future week</strong> unless you create a <strong>dated override</strong> for a specific Sunday/week.<br>
-            Use <a href="{{ url_for('pastoral.planning.index') }}">Service Planning</a> -> Edit on a date to customize that week only.
+        <h1 class="text-cyan">Recurring service plans</h1>
+        <p class="text-muted lead" style="max-width:40rem; margin-left:auto; margin-right:auto;">
+            <strong>Which days have service</strong> and who serves each of those days by default.<br>
+            One plan per weekday. Edits apply to <strong>every future week of that day</strong>
+            unless you customize a single date under Planning.<br>
+            <span style="opacity:0.9;">Overall defaults do not override these people — open a plan to edit them, or copy defaults in from the plan editor.</span>
         </p>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
         <a href="{{ url_for('pastoral.planning.template_edit') }}" class="btn btn-success btn-lg shadow">
-            <i class="fas fa-plus me-2"></i>New Master Template
+            <i class="fas fa-plus me-2"></i>New recurring plan
         </a>
+        <a href="{{ url_for('pastoral.planning.defaults') }}" class="btn btn-outline-secondary btn-lg">
+            Overall defaults
+        </a>
+        <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-outline-secondary btn-lg">
+            Planning hub
+        </a>
+        </div>
     </div>
 
     {% if templates %}

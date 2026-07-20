@@ -56,7 +56,7 @@
 {% if insight %}
 <div class="glass-panel ai-insight-panel">
   <h2 class="section-subtitle" style="margin:0 0 0.85rem; color:#4dffc8;">AI summary</h2>
-  <div class="ai-insight-body">{{ insight }}</div>
+  <div class="ai-insight-body ai-prose">{{ insight | safe }}</div>
 </div>
 {% endif %}
 
@@ -85,9 +85,21 @@
     max-width: 48rem;
   }
   .ai-insight-body {
-    white-space: pre-wrap;
     line-height: 1.65;
     font-size: 1rem;
+  }
+  .ai-prose p.ai-prose-p { margin: 0 0 0.85rem; }
+  .ai-prose p.ai-prose-p:last-child { margin-bottom: 0; }
+  .ai-prose ul.ai-prose-list {
+    margin: 0 0 0.85rem;
+    padding-left: 1.25rem;
+  }
+  .ai-prose ul.ai-prose-list li { margin-bottom: 0.35rem; }
+  .ai-prose code {
+    font-size: 0.9em;
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.25);
   }
   .ai-payload-panel {
     padding: 1.15rem 1.25rem 1.25rem;

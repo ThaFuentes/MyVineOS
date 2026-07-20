@@ -1,10 +1,10 @@
-{# Overall default plan — same form UI as day plan edit; applies when a week is NOT customized. #}
+{# Overall defaults — starter roster only; does not override recurring plans. #}
 {% extends "pastoral/base_pastoral.html" %}
 
-{% block title %}Overall Default Plan{% endblock %}
+{% block title %}Overall Defaults{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/planning.css') }}?v=20260720defaults2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/planning.css') }}?v=20260720defaults3">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -12,13 +12,15 @@
   <div class="glass-panel" style="margin-bottom:0.85rem;">
     <div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:flex-start;">
       <div>
-        <h1 class="page-title" style="margin:0 0 0.25rem;">Overall default plan</h1>
-        <p class="page-description" style="margin:0; opacity:0.8;">
-          This is your <strong>standing Sunday roster</strong> (teams, worship, extras).
-          Weeks you never open use this. To change one week only (guest, special notes), open that date under Planning.
+        <h1 class="page-title" style="margin:0 0 0.25rem;">Overall defaults</h1>
+        <p class="page-description" style="margin:0; opacity:0.85; max-width:40rem;">
+          Starter roster you can <strong>copy into</strong> a recurring plan when you want.
+          <strong>Saving here does not change who is set on a recurring service plan</strong>
+          (e.g. every Sunday). Edit those under Recurring plans.
         </p>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+        <a href="{{ url_for('pastoral.planning.templates_list') }}" class="btn btn-primary" style="font-size:0.85rem;">Recurring plans</a>
         <a href="{{ url_for('volunteers.teams_list') }}" class="btn btn-secondary" style="font-size:0.85rem;">Volunteer Teams</a>
         <a href="{{ url_for('worship.defaults') }}" class="btn btn-secondary" style="font-size:0.85rem;">Worship Defaults</a>
         <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary" style="font-size:0.85rem;">All Plans</a>
@@ -26,23 +28,48 @@
     </div>
   </div>
 
+  {% if recurring_plans %}
+  <div class="glass-panel" style="margin-bottom:0.85rem; border-color:rgba(251,191,36,0.35);">
+    <p style="margin:0 0 0.55rem; font-size:0.95rem;">
+      <strong style="color:#fbbf24;">Recurring plans are separate.</strong>
+      You have {{ recurring_plans|length }} recurring plan{{ 's' if recurring_plans|length != 1 else '' }}.
+      Saving overall defaults does <strong>not</strong> update their preacher or roles.
+    </p>
+    <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+      {% for t in recurring_plans %}
+      <a href="{{ url_for('pastoral.planning.template_edit', template_id=t.id) }}" class="btn btn-secondary" style="font-size:0.85rem;">
+        Edit {{ weekday_names[t.weekday] if t.weekday is not none else 'plan' }}{% if t.title %} · {{ t.title }}{% endif %}
+      </a>
+      {% endfor %}
+      <a href="{{ url_for('pastoral.planning.templates_list') }}" class="btn btn-secondary" style="font-size:0.85rem;">All recurring plans</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="glass-panel" style="margin-bottom:0.85rem;">
+    <p style="margin:0; font-size:0.92rem; opacity:0.85;">
+      No recurring service days yet.
+      <a href="{{ url_for('pastoral.planning.template_edit') }}">Create a recurring plan</a>
+      (e.g. Sunday) so the homepage and pastoral area know which days have service.
+    </p>
+  </div>
+  {% endif %}
+
   <form method="POST" action="{{ url_for('pastoral.planning.defaults') }}" id="planning-form" class="styled-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
     <div class="form-actions" style="margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
-      <button type="submit" class="btn btn-primary">Save default plan</button>
+      <button type="submit" class="btn btn-primary">Save overall defaults</button>
       <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Cancel</a>
     </div>
 
-    {# Exact same Who is serving panel as day plan edit #}
-    {% set roster_heading = 'Who is serving' %}
-    {% set roster_intro = 'Standard roles come from <a href="' ~ url_for('volunteers.teams_list') ~ '">Volunteers</a> and <a href="' ~ url_for('worship.defaults') ~ '">Worship</a> — pick a member or enter a guest name. Use <strong>Add extra role</strong> for one-offs.' %}
+    {% set roster_heading = 'Starter who is serving' %}
+    {% set roster_intro = 'Used only when you copy into a recurring plan, or as a reference. Standard roles from <a href="' ~ url_for('volunteers.teams_list') ~ '">Volunteers</a> and <a href="' ~ url_for('worship.defaults') ~ '">Worship</a>.' %}
     {% set custom_section_label = 'Extra roles' %}
     {% set empty_extra_msg = 'No extra roles yet. Click <strong>Add extra role</strong> for something not covered by teams.' %}
     {% include 'pastoral/_roster_panel.html' %}
 
     <div class="form-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
-      <button type="submit" class="btn btn-primary btn-lg">Save default plan</button>
+      <button type="submit" class="btn btn-primary btn-lg">Save overall defaults</button>
       <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Back to planning</a>
     </div>
   </form>

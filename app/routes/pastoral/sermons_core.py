@@ -101,6 +101,105 @@ def list():
     return render_template('pastoral/sermons_list.html', sermons=sermons)
 
 
+@sermons_bp.route('/research', methods=['GET', 'POST'])
+@pastoral_required()
+def research():
+    """
+    Sermon library research: full-text keyword search + AI Q&A over sermons you can see.
+    """
+    from app.models.pastoral.sermon_search import (
+        search_sermons_library, pack_sermons_for_ai, sermon_catalog,
+    )
+    from app.utils.ai_client import ai_status, run_insight
+    from app.utils.ai_format import PASTOR_VOICE_SYSTEM, format_ai_prose
+
+    user_id = session['user_id']
+    mode = (request.values.get('mode') or 'search').strip().lower()
+    if mode not in ('search', 'ask'):
+        mode = 'search'
+
+    query = (request.values.get('q') or '').strip()
+    question = (request.values.get('question') or '').strip()
+    hits = []
+    answer_html = None
+    answer_error = None
+    used_sermons = []
+    status = ai_status()
+    catalog = sermon_catalog(user_id, limit=80)
+    library_count = len(catalog)
+
+    if request.method == 'POST' or (request.method == 'GET' and query and mode == 'search'):
+        if mode == 'search':
+            if len(query) < 2:
+                if request.method == 'POST':
+                    flash('Enter at least 2 characters to search.', 'error')
+            else:
+                try:
+                    hits = search_sermons_library(user_id, query, limit=50)
+                except Exception as exc:
+                    print(f'sermons.research search: {exc}')
+                    flash(f'Search failed: {exc}', 'error')
+        elif mode == 'ask' and request.method == 'POST':
+            if not question:
+                flash('Type a question about your sermons.', 'error')
+            elif contains_censored_word(question):
+                flash('Prohibited content in question.', 'error')
+            elif not status.get('configured'):
+                answer_error = (
+                    'AI is not configured. Add a provider under Settings → AI Providers.'
+                )
+            else:
+                try:
+                    context, used_sermons = pack_sermons_for_ai(user_id, question)
+                    system = (
+                        PASTOR_VOICE_SYSTEM
+                        + ' Answer only from the sermon library material provided. '
+                        'That material is ONLY sermons this pastor created — never anyone else. '
+                        'Cite sermon titles (and id numbers when helpful). '
+                        'If the library does not cover the question, say so plainly. '
+                        'No markdown headings.'
+                    )
+                    user_prompt = (
+                        f"My question: {question[:800]}\n\n"
+                        f"Here is MY sermon library only (I wrote these):\n{context}\n\n"
+                        "Answer like a ministry teammate who has read my notes. "
+                        "Point me to specific sermons of mine when you can. "
+                        "Do not invent sermons that are not listed."
+                    )
+                    text, err, run_meta = run_insight(
+                        'sermon_library_ask',
+                        system,
+                        user_prompt,
+                        timeout=90,
+                        max_prompt_chars=28000,
+                    )
+                    if err:
+                        answer_error = err
+                    else:
+                        answer_html = format_ai_prose(text)
+                        log_change(
+                            user_id, 'ai', None, question[:80],
+                            f"Sermon library AI via {run_meta.get('provider') or '?'}",
+                        )
+                except Exception as exc:
+                    print(f'sermons.research ask: {exc}')
+                    answer_error = str(exc)
+
+    return render_template(
+        'pastoral/sermons_research.html',
+        mode=mode,
+        query=query,
+        question=question,
+        hits=hits,
+        answer_html=answer_html,
+        answer_error=answer_error,
+        used_sermons=used_sermons,
+        status=status,
+        library_count=library_count,
+        catalog=catalog[:12],
+    )
+
+
 @sermons_bp.route('/import', methods=['GET', 'POST'])
 @pastoral_required()
 def import_sermons():
