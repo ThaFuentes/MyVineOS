@@ -25,6 +25,9 @@
             <p style="margin:0; opacity:0.7; font-size:0.9rem;">{{ sermons|length }} sermon{{ 's' if sermons|length != 1 else '' }} visible to you — your content, always downloadable</p>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:0.45rem;">
+            <a href="{{ url_for('pastoral.sermons.research') }}" class="btn btn-secondary" title="Search all sermons or ask AI about your library">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Search &amp; AI
+            </a>
             <a href="{{ url_for('pastoral.sermons.import_sermons') }}" class="btn btn-secondary" title="Upload Word / text sermons you already wrote">
                 <i class="fa-solid fa-file-import" aria-hidden="true"></i> Upload sermons
             </a>

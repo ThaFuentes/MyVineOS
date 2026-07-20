@@ -11,107 +11,64 @@
   <p style="margin:0; opacity:0.7; font-size:0.9rem;">Tools for planning, preaching, care &amp; study</p>
 </div>
 
-{# Guest-facing service plan preview — same content non-members see on the homepage #}
-<section class="glass-panel" style="margin-bottom:1rem;">
-  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.75rem;">
-    <div>
-      <h2 style="margin:0; font-size:1.15rem; color:var(--primary);">
-        <i class="fa-solid fa-church" aria-hidden="true"></i> Public service plan
-      </h2>
-      <p style="margin:0.25rem 0 0; font-size:0.85rem; opacity:0.75;">
-        What visitors see on the homepage under Upcoming services
-      </p>
-    </div>
-    <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary" style="font-size:0.85rem;">Service Planning</a>
-  </div>
-
-  {% if public_services %}
-  <div style="display:grid; gap:0.65rem;">
-    {% for service in public_services %}
-    <article class="item-card" style="margin:0; border-color:{% if service.is_override %}rgba(77,255,200,0.35){% else %}var(--primary-border, rgba(0,255,255,0.15)){% endif %};">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.4rem;">
-        <strong style="font-size:1.05rem;">{{ service.title }}</strong>
-        <span style="color:var(--primary); font-weight:600; font-size:0.9rem;">{{ service.date_label }}</span>
-      </div>
-      <p style="margin:0.4rem 0 0; opacity:0.85; font-size:0.92rem;">
-        {% if service.start_time %}Service: {{ service.start_time }}{% endif %}
-        {% if service.worship_start_time %}{% if service.start_time %} · {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
-        {% if service.preacher %} · <strong>{{ service.preacher }}</strong>{% endif %}
-        {% if service.is_override %} · <span style="color:var(--primary);">Custom week</span>{% endif %}
-      </p>
-      {% if service.roles %}
-      <div style="display:flex; flex-wrap:wrap; gap:0.35rem; margin-top:0.55rem;">
-        {% for r in service.roles %}
-        <span style="font-size:0.78rem; padding:0.2rem 0.5rem; border-radius:999px; background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.25);">
-          <strong>{{ r.role_name }}</strong>: {{ r.name }}
-        </span>
-        {% endfor %}
-      </div>
+<!-- Next Upcoming Service - same card as before, plus who is serving -->
+{% set us = upcoming_service or {} %}
+{% set us_date = us.get('service_date') %}
+{% set us_date_str = us.get('date_str') or (us_date.strftime('%Y-%m-%d') if us_date is not string and us_date else (us_date[:10] if us_date else '')) %}
+<div class="glass-panel pastoral-upcoming" style="margin-bottom:1.25rem;">
+  <div style="text-align:center; padding:0.25rem 0;">
+    <div style="font-size:0.8rem; opacity:0.7; margin-bottom:0.25rem; letter-spacing:0.04em;">NEXT UPCOMING SERVICE</div>
+    <h2 style="margin:0.25rem 0; font-size:1.35rem; color:var(--primary);">
+      {% if us_date is not string and us_date %}
+        {{ us_date.strftime('%A, %B %d, %Y') }}
+      {% elif us_date %}
+        {{ us_date }}
       {% else %}
-      <p style="margin:0.45rem 0 0; font-size:0.85rem; opacity:0.55;">No filled roles yet for this service.</p>
+        —
       {% endif %}
-      {% if service.notes %}
-      <div style="margin-top:0.65rem; padding-top:0.65rem; border-top:1px solid rgba(255,255,255,0.08); font-size:0.9rem; line-height:1.5; opacity:0.9;">
-        <div style="color:var(--primary); font-size:0.75rem; font-weight:700; margin-bottom:0.3rem; letter-spacing:0.04em;">ORDER OF SERVICE / NOTES</div>
-        <div class="service-notes-body">{{ service.notes | safe }}</div>
-      </div>
-      {% endif %}
-      {% if service.date_str %}
-      <div style="margin-top:0.65rem;">
-        <a href="{{ url_for('pastoral.planning.edit', date_str=service.date_str) }}" class="btn btn-primary" style="font-size:0.85rem; min-height:38px;">
-          Edit this week
-        </a>
-      </div>
-      {% endif %}
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}
-  <p style="margin:0; opacity:0.7; font-style:italic;">No upcoming services yet. Set your overall default plan or create a dated plan.</p>
-  <div style="margin-top:0.65rem; display:flex; flex-wrap:wrap; gap:0.4rem;">
-    <a href="{{ url_for('pastoral.planning.defaults') }}" class="btn btn-primary" style="font-size:0.85rem;">Overall default plan</a>
-    {% if upcoming_service and upcoming_service.service_date %}
-    <a href="{{ url_for('pastoral.planning.edit', date_str=(upcoming_service.service_date[:10] if upcoming_service.service_date is string else upcoming_service.service_date.strftime('%Y-%m-%d'))) }}" class="btn btn-secondary" style="font-size:0.85rem;">Edit next date</a>
+    </h2>
+
+    {% if us.get('start_time') or us.get('worship_start_time') %}
+      <p style="margin:0.5rem 0; font-size:0.95rem;">
+        {% if us.get('start_time') %}
+          Service: {% if us.start_time is not string and us.start_time.strftime is defined %}{{ us.start_time.strftime('%I:%M %p') }}{% else %}{{ us.start_time }}{% endif %}<br>
+        {% endif %}
+        {% if us.get('worship_start_time') %}
+          Worship: {% if us.worship_start_time is not string and us.worship_start_time.strftime is defined %}{{ us.worship_start_time.strftime('%I:%M %p') }}{% else %}{{ us.worship_start_time }}{% endif %}
+        {% endif %}
+      </p>
+    {% endif %}
+
+    <p style="margin:0.4rem 0 0.6rem; font-size:1.05rem; font-weight:600;">
+      {{ us.get('title') or 'Regular Sunday Service' }}
+    </p>
+
+    {% if us.get('filled_roles') %}
+    <p style="margin:0.35rem 0 0.55rem; font-size:0.88rem; opacity:0.9; line-height:1.55;">
+      {% for r in us.filled_roles %}
+        <span style="margin:0 0.45rem; white-space:nowrap;"><strong>{{ r.role_name }}:</strong> {{ r.name }}</span>
+      {% endfor %}
+    </p>
+    {% endif %}
+
+    {% if us.get('linked_sermon_title') %}
+      <p style="margin:0.25rem 0 0.5rem; opacity:0.85;">
+        Sermon: <a href="{{ url_for('pastoral.sermons.edit', sermon_id=us.pastoral_sermon_id) }}" style="color:var(--primary); text-decoration:underline;">{{ us.linked_sermon_title }}</a>
+      </p>
+    {% endif %}
+
+    {% if us.get('is_recurring_default') %}
+      <small style="opacity:0.6; display:block; margin-bottom:0.5rem;">Recurring default - customize in a plan</small>
+    {% endif %}
+
+    {% if us_date_str %}
+    <a href="{{ url_for('pastoral.planning.edit', date_str=us_date_str) }}"
+       class="btn btn-primary" style="min-height:44px; padding:0.6rem 1.25rem; font-size:1rem;">
+      {% if us.get('id') %}<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit Plan{% else %}<i class="fa-solid fa-plus" aria-hidden="true"></i> Create Plan{% endif %}
+    </a>
     {% endif %}
   </div>
-  {% endif %}
-</section>
-
-{# Service announcements — public posts visitors also see #}
-<section class="glass-panel" style="margin-bottom:1.25rem;">
-  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:0.65rem;">
-    <h2 style="margin:0; font-size:1.1rem; color:var(--primary);">
-      <i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Service announcements
-    </h2>
-    <a href="{{ url_for('announcements.announcements') }}" class="btn btn-secondary" style="font-size:0.8rem;">Manage</a>
-  </div>
-  {% if service_announcements %}
-  <div style="display:grid; gap:0.5rem;">
-    {% for ann in service_announcements %}
-    <div class="item-card" style="margin:0; padding:0.75rem 0.9rem;">
-      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.35rem; align-items:baseline;">
-        <strong style="font-size:0.98rem;">{{ ann.title }}</strong>
-        <span style="font-size:0.75rem; opacity:0.6;">
-          {% if ann.created_at %}
-            {% if ann.created_at is string %}{{ ann.created_at[:10] }}{% else %}{{ ann.created_at.strftime('%b %d, %Y') }}{% endif %}
-          {% endif %}
-        </span>
-      </div>
-      {% if ann.creator_name %}
-      <div style="font-size:0.8rem; opacity:0.65; margin-top:0.15rem;">{{ ann.creator_name }}</div>
-      {% endif %}
-      {% if ann.content or ann.body or ann.description %}
-      <div style="margin-top:0.4rem; font-size:0.88rem; opacity:0.88; line-height:1.45; max-height:4.5em; overflow:hidden;">
-        {{ (ann.content or ann.body or ann.description)|striptags|truncate(180) }}
-      </div>
-      {% endif %}
-    </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <p style="margin:0; font-size:0.9rem; opacity:0.65;">No public announcements right now. Post one under Announcements for the whole church to see.</p>
-  {% endif %}
-</section>
+</div>
 
 <!-- Quick access — full set matching top pastoral nav + related tools -->
 <div class="pastoral-tile-grid">
@@ -125,6 +82,12 @@
     <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
     <span class="pastoral-tile-title">Sermon Builder</span>
     <span class="pastoral-tile-sub">Create, edit &amp; export</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.sermons.research') }}" class="glass-panel pastoral-tile pastoral-tile-sermons">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+    <span class="pastoral-tile-title">Sermon Research</span>
+    <span class="pastoral-tile-sub">Search library · ask AI</span>
   </a>
 
   <a href="{{ url_for('pastoral.planning.index') }}" class="glass-panel pastoral-tile pastoral-tile-planning">

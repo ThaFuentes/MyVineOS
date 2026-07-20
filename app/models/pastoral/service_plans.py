@@ -208,6 +208,9 @@ def get_upcoming_services_display(limit: int = 2, days_ahead: int = 90):
     """
     Guest-facing upcoming service dates using effective plans (override + template fallback).
     Includes filled roles (members + guests) and order-of-service notes — same as homepage.
+
+    Weekly overrides (Edit Plan) are authoritative: only people saved on that week show.
+    Non-override weeks soft-fill from overall defaults / worship.
     """
     today = datetime.today().date()
     services = []
@@ -218,11 +221,12 @@ def get_upcoming_services_display(limit: int = 2, days_ahead: int = 90):
         if not plan:
             continue
         plan = dict(plan)
-        # Enrich with full roster so public sees teams/worship people when assigned
+        # Strict: only people on this plan (override or recurring template) — never overall defaults
         try:
             plan['assignments'] = build_full_service_assignments(
                 plan.get('assignments') or [],
                 date_str=date_str,
+                apply_fallbacks=False,
             )
         except Exception as exc:
             print(f'get_upcoming_services_display enrich: {exc}')
@@ -498,46 +502,54 @@ def save_service_plan_assignments(plan_id: int, assignments: list):
 def get_plan_for_date(date_str: str):
     """
     Return the effective plan for a date.
-    1. Dated override if exists
-    2. Matching weekday template (forced_notes prepended to notes)
-    3. None
+
+    Hierarchy (strict):
+      1. Dated week override — full authority for that date
+      2. Recurring weekday template — people + times + notes for that day
+         (template people only; overall defaults never auto-fill)
+      3. None — no service that day (service days = templates only)
     """
     # 1. Dated override
     plan = get_service_plan_by_date(date_str)
     if plan:
         return plan
 
-    # 2. Template fallback
+    # 2. Only days that have a weekday template (e.g. Sunday only)
     date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
     weekday = date_obj.weekday()  # 0=Monday ... 6=Sunday
 
     template = get_template_for_weekday(weekday)
-    if template:
-        template = dict(template)
-        template['source'] = 'template'
-        template['service_date'] = date_obj
+    if not template:
+        return None
 
-        # Prepend forced_notes as highlighted block
-        forced = template.get('forced_notes', '').strip()
-        regular = template.get('notes') or ''
-        if forced:
-            forced_html = '<div class="forced-notes bg-danger text-white p-3 mb-4 rounded"><strong>CRITICAL NOTES:</strong><br>' + \
-                          forced.replace('\n', '<br>') + '</div>'
-            template['notes'] = forced_html + regular
-        else:
-            template['notes'] = regular
+    template = dict(template)
+    template['source'] = 'template'
+    template['service_date'] = date_obj
+    # Keep template['assignments'] as loaded by get_template_for_weekday /
+    # get_template_by_id — overall defaults must NOT replace them.
 
-        return template
+    forced = template.get('forced_notes', '').strip()
+    regular = template.get('notes') or ''
+    if forced:
+        forced_html = '<div class="forced-notes bg-danger text-white p-3 mb-4 rounded"><strong>CRITICAL NOTES:</strong><br>' + \
+                      forced.replace('\n', '<br>') + '</div>'
+        template['notes'] = forced_html + regular
+    else:
+        template['notes'] = regular
 
-    return None
+    return template
 
 
 # ----------------------------------------------------------------------
 # get_upcoming_service - Safe for migration
 # ----------------------------------------------------------------------
 def get_upcoming_service():
-    """Return the next upcoming service (plan or template fallback). Safe during schema migration."""
+    """Return the next upcoming service (plan or template fallback). Safe during schema migration.
+    Includes filled_roles (role_name + name) for dashboard display.
+    """
     today = datetime.today().date()
+    plan = None
+    date_str = None
 
     # First: next dated plan >= today
     try:
@@ -552,7 +564,9 @@ def get_upcoming_service():
         """, (today,))
         row = cur.fetchone()
         if row:
-            return get_plan_for_date(row['service_date'].strftime('%Y-%m-%d'))
+            sd = row['service_date']
+            date_str = sd.strftime('%Y-%m-%d') if hasattr(sd, 'strftime') else str(sd)[:10]
+            plan = get_plan_for_date(date_str)
     except pymysql.err.ProgrammingError as e:
         if "doesn't exist" in str(e):
             print("service_plans table not created yet - using template fallback only.")
@@ -560,22 +574,51 @@ def get_upcoming_service():
             raise
 
     # No dated plan - find next date with template
-    for days_ahead in range(0, 30):
-        check_date = today + timedelta(days=days_ahead)
-        plan = get_plan_for_date(check_date.strftime('%Y-%m-%d'))
-        if plan:
-            return plan
+    if not plan:
+        for days_ahead in range(0, 30):
+            check_date = today + timedelta(days=days_ahead)
+            date_str = check_date.strftime('%Y-%m-%d')
+            plan = get_plan_for_date(date_str)
+            if plan:
+                break
 
-    # Ultimate fallback (no templates yet)
-    return {
-        'service_date': today + timedelta(days=((6 - today.weekday()) % 7) or 7),  # next Sunday
-        'title': 'Regular Service',
-        'notes': '',
-        'start_time': time(10, 0),
-        'worship_start_time': time(10, 15),
-        'assignments': [],
-        'source': 'fallback'
-    }
+    if not plan:
+        # Ultimate fallback (no templates yet)
+        plan = {
+            'service_date': today + timedelta(days=((6 - today.weekday()) % 7) or 7),  # next Sunday
+            'title': 'Regular Service',
+            'notes': '',
+            'start_time': time(10, 0),
+            'worship_start_time': time(10, 15),
+            'assignments': [],
+            'source': 'fallback',
+            'filled_roles': [],
+            'date_str': (today + timedelta(days=((6 - today.weekday()) % 7) or 7)).strftime('%Y-%m-%d'),
+        }
+        return plan
+
+    plan = dict(plan)
+    if not date_str:
+        sd = plan.get('service_date')
+        date_str = sd.strftime('%Y-%m-%d') if hasattr(sd, 'strftime') else str(sd or '')[:10]
+    plan['date_str'] = date_str
+    # Strict: only people on this plan (override or recurring template)
+    try:
+        plan['assignments'] = build_full_service_assignments(
+            plan.get('assignments') or [],
+            date_str=date_str,
+            apply_fallbacks=False,
+        )
+    except Exception as exc:
+        print(f'get_upcoming_service enrich: {exc}')
+    filled = []
+    for a in plan.get('assignments') or []:
+        name = _assignment_display_name(a)
+        role = (a.get('role_name') or '').strip()
+        if name and role:
+            filled.append({'role_name': role, 'name': name})
+    plan['filled_roles'] = filled
+    return plan
 
 
 # Cohesive service roles: pastoral + volunteer Teams + worship defaults
@@ -861,7 +904,7 @@ def _picker_options_for_role(kind: str, team_id: int | None = None) -> list[dict
     return options
 
 
-def build_full_service_assignments(existing=None, date_str: str | None = None) -> list[dict]:
+def build_full_service_assignments(existing=None, date_str: str | None = None, *, apply_fallbacks: bool = True) -> list[dict]:
     """
     Live roster from the app — not free-text roles.
 
@@ -872,6 +915,12 @@ def build_full_service_assignments(existing=None, date_str: str | None = None) -
       - Volunteer schedule for that date fills people when already assigned
 
     Role names are ALWAYS from teams/worship — you only pick a person.
+
+    apply_fallbacks=False: use only `existing` people — no soft-fill from overall
+    defaults, worship defaults, or volunteer schedule. Required for:
+      - Overall Defaults form (cleared slots stay empty)
+      - Weekly Edit Plan overrides (that week's save fully replaces defaults)
+    apply_fallbacks=True: only for weeks with NO dated override (standing roster).
     """
     try:
         ensure_default_assignment_schema()
@@ -882,12 +931,12 @@ def build_full_service_assignments(existing=None, date_str: str | None = None) -
     existing = existing or []
     existing_by = _assignment_lookup(existing)
     try:
-        pastoral_by = _assignment_lookup(get_default_assignments())
+        pastoral_by = _assignment_lookup(get_default_assignments()) if apply_fallbacks else {}
     except Exception:
         pastoral_by = {}
-    worship_by = _assignment_lookup(get_worship_default_assignments())
-    wl_fallback = get_primary_worship_leader_user_id()
-    vol_day = volunteer_people_for_date(date_str) if date_str else {}
+    worship_by = _assignment_lookup(get_worship_default_assignments()) if apply_fallbacks else {}
+    # Never force a person into empty roles (esp. Worship Leader).
+    vol_day = volunteer_people_for_date(date_str) if (date_str and apply_fallbacks) else {}
 
     # Live volunteer teams (the real list from /volunteers/)
     vol_teams = []
@@ -939,9 +988,7 @@ def build_full_service_assignments(existing=None, date_str: str | None = None) -
                 guest = (w.get('guest_name') or '').strip()
                 full = w.get('user_full_name') or guest
                 source = 'worship'
-            elif key == 'worship leader' and wl_fallback:
-                uid = int(wl_fallback)
-                source = 'worship'
+            # Do not auto-fill Worship Leader (or any role) from group membership.
 
         if not uid:
             p = pastoral_by.get(key)
@@ -1127,42 +1174,27 @@ def _upsert_default_role(role_name: str, user_id=None, guest_name=None, *, overw
 
 def sync_worship_defaults_into_pastoral():
     """
-    Mirror Worship Team default roles into pastoral service defaults.
+    Ensure pastoral default role SLOTS exist for worship + volunteer teams.
 
-    - Every role from worship_default_assignments is present in pastoral defaults
-    - user_id follows worship (source of truth for band roles)
-    - Worship Leader is always present; filled from worship defaults or group leader
-    Never removes pastoral-only roles (Preacher, Greeters, …).
+    Never forces a person into any role (including Worship Leader).
+    Only creates empty rows when a slot is missing — does not overwrite
+    user_id if the pastor cleared an assignment.
     """
     ensure_default_assignment_schema()
     try:
-        worship_rows = get_worship_default_assignments()
-        worship_by_role = {r['role_name']: r for r in worship_rows}
-
-        # Ensure standard worship role slots exist (even if worship has no defaults yet)
+        # Empty slots only — never assign people automatically
         for role in SERVICE_WORSHIP_ROLES:
-            w = worship_by_role.get(role)
-            if w:
-                _upsert_default_role(role, w.get('user_id'), overwrite_user=True)
-            else:
+            _upsert_default_role(role, None, overwrite_user=False)
+
+        # Extra role names that exist in worship defaults (slots only)
+        for w in get_worship_default_assignments():
+            role = (w.get('role_name') or '').strip()
+            if role and role not in SERVICE_WORSHIP_ROLES:
                 _upsert_default_role(role, None, overwrite_user=False)
 
-        # Any extra custom roles from worship defaults
-        for role, w in worship_by_role.items():
-            if role not in SERVICE_WORSHIP_ROLES:
-                _upsert_default_role(role, w.get('user_id'), overwrite_user=True)
-
-        # Worship Leader person: worship defaults → group leader
-        wl = worship_by_role.get('Worship Leader')
-        wl_uid = (wl or {}).get('user_id') or get_primary_worship_leader_user_id()
-        if wl_uid:
-            _upsert_default_role('Worship Leader', wl_uid, overwrite_user=True)
-
-        # Volunteer team role slots (unassigned unless already set)
         for role in get_volunteer_team_role_names():
             _upsert_default_role(role, None, overwrite_user=False)
 
-        # Ensure Preacher slot exists
         _upsert_default_role('Preacher', None, overwrite_user=False)
     except Exception as exc:
         print(f'sync_worship_defaults_into_pastoral: {exc}')
@@ -1309,12 +1341,10 @@ def seed_default_sunday_template():
         return
     creator_id = owner['id']
 
-    wl_uid = get_primary_worship_leader_user_id()
+    # Seed empty slots only — do not force Worship Leader or anyone else
     assignments = [{'role_name': 'Preacher', 'user_id': creator_id, 'guest_name': None}]
-    if wl_uid:
-        assignments.append({'role_name': 'Worship Leader', 'user_id': wl_uid, 'guest_name': None})
     for role in cohesive_service_role_names():
-        if role in ('Preacher', 'Worship Leader'):
+        if role == 'Preacher':
             continue
         assignments.append({'role_name': role, 'user_id': None, 'guest_name': None})
 

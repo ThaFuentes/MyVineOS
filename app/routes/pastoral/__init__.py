@@ -17,10 +17,7 @@ from typing import Callable, Optional
 
 from app.utils.decorators import login_required
 from app.models.pastoral.shared import is_in_pastoral_group
-from app.models.pastoral.service_plans import (
-    get_upcoming_service,
-    get_upcoming_services_display,
-)
+from app.models.pastoral.service_plans import get_upcoming_service  # NEW: for Next Upcoming Service card
 
 # Create main pastoral blueprint
 pastoral_bp = Blueprint(
@@ -81,30 +78,15 @@ def pastoral_required(permission: Optional[str] = None) -> Callable:
 @pastoral_required()
 def dashboard_pastoral():
     """
-    Pastoral Command Center: tool tiles + public-facing service preview
-    (same plan cards guests see on the homepage) and recent announcements.
+    Main entry point for Pastoral Command Center.
+    Renders the command-center style dashboard with quick-access cards
+    and a prominent "Next Upcoming Service" card (real plan or recurring default).
     """
     upcoming_service = get_upcoming_service()
-    # Full guest-facing plan cards (roles, notes) — what non-members see
-    try:
-        public_services = get_upcoming_services_display(limit=2, days_ahead=90)
-    except Exception as exc:
-        print(f'pastoral dashboard public_services: {exc}')
-        public_services = []
-
-    announcements = []
-    try:
-        from app.routes.public.announcements.queries import get_public_announcements
-        announcements = get_public_announcements(limit=5) or []
-    except Exception as exc:
-        print(f'pastoral dashboard announcements: {exc}')
-
     return render_template(
         'pastoral/dashboard_pastoral.html',
         upcoming_service=upcoming_service,
-        public_services=public_services,
-        service_announcements=announcements,
-        page_title="Pastoral Command Center",
+        page_title="Pastoral Command Center"
     )
 
 

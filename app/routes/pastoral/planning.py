@@ -72,16 +72,21 @@ def index():
             plan = dict(plan)
             plan['source_badge'] = 'Override' if plan.get('source') == 'override' else 'Template'
             plan['source_class'] = 'bg-success' if plan.get('source') == 'override' else 'bg-primary'
-            # Full live roster; list only shows filled people (no empty noise)
+            # Strict: only people on override or recurring template (no overall-defaults soft-fill)
+            is_override = plan.get('source') == 'override'
             try:
-                full = build_full_service_assignments(plan.get('assignments') or [], date_str=date_str)
+                full = build_full_service_assignments(
+                    plan.get('assignments') or [],
+                    date_str=date_str,
+                    apply_fallbacks=False,
+                )
                 plan['assignments'] = full
                 plan['roster_filled'] = assignments_for_display(full, only_filled=True)
             except Exception as exc:
                 print(f'planning.index roster: {exc}')
                 plan['roster_filled'] = []
             upcoming_plans.append(plan)
-            if plan.get('source') == 'override':
+            if is_override:
                 override_dates.add(date_str)
 
     # Calendar strip (12 months)
@@ -185,20 +190,20 @@ def edit(date_str):
 
     assignable_users = _assignable_users_for_planning(cur)
 
-    # Base plan shell for this date (override, template copy, or empty)
+    # Base plan shell for this date (override, or overall defaults + template times)
     if not plan:
-        template_plan = get_plan_for_date(date_str)
-        if template_plan and template_plan.get('source') == 'template':
+        base = get_plan_for_date(date_str)  # no override → overall default people
+        if base:
             plan = {
                 'id': None,
                 'service_date': service_date_obj,
-                'title': '',
-                'notes': template_plan.get('notes') or '',
-                'start_time': template_plan.get('start_time'),
-                'worship_start_time': template_plan.get('worship_start_time'),
-                'pastoral_sermon_id': template_plan.get('pastoral_sermon_id'),
-                # Start from template rows; full roster merge below fills missing roles
-                'assignments': [dict(a) for a in (template_plan.get('assignments') or [])],
+                'title': base.get('title') or '',
+                'notes': base.get('notes') or '',
+                'start_time': base.get('start_time'),
+                'worship_start_time': base.get('worship_start_time'),
+                'pastoral_sermon_id': base.get('pastoral_sermon_id'),
+                # Overall default plan roster (guest Tim, etc.) — not stale template users
+                'assignments': [dict(a) for a in (base.get('assignments') or [])],
             }
         else:
             plan = {
@@ -212,12 +217,13 @@ def edit(date_str):
                 'assignments': [],
             }
 
-    # ALWAYS expand from LIVE app data:
-    # Volunteer Teams + Worship defaults + date volunteer schedule. Role names locked (not typed).
+    # Hierarchy: dated override people OR recurring template people only (strict — no overall defaults).
+    is_override = bool(plan.get('id')) or plan.get('source') == 'override'
     try:
         plan['assignments'] = build_full_service_assignments(
             plan.get('assignments') or [],
             date_str=date_str,
+            apply_fallbacks=False,
         )
     except Exception as exc:
         print(f'planning.edit build_full_service_assignments: {exc}')
@@ -269,10 +275,13 @@ def edit(date_str):
                     'guest_name': (guest or '').strip() or None,
                 })
 
-        # Persist every role row shown (including empty people) so next open keeps the full list
+        # Save exactly what was posted — this week fully overrides the recurring plan
         create_or_update_service_plan(data, session['user_id'])
         log_change(session['user_id'], 'plan_save', None, data['title'], f'Saved override plan for {date_str}')
-        flash('Plan saved with full role roster (worship + volunteers).', 'success')
+        flash(
+            "This week's plan saved. It fully overrides the recurring plan for this date only.",
+            'success',
+        )
         return redirect(url_for('pastoral.planning.edit', date_str=date_str))
 
     # GET - compatibility
@@ -295,7 +304,9 @@ def edit(date_str):
         assignable_users=assignable_users,
         volunteer_teams=volunteer_teams,
         future_count=future_count,
-        last_future_date=last_future_date
+        last_future_date=last_future_date,
+        is_override=bool(plan.get('id')) or plan.get('source') == 'override',
+        date_str=date_str,
     )
 
 
@@ -317,6 +328,46 @@ def templates_list():
 # ----------------------------------------------------------------------
 # Recurring Template - Create / Edit (with forced_notes)
 # ----------------------------------------------------------------------
+def _roster_by_kind_from_assignments(assignments):
+    """Split built roster rows into kind buckets for _roster_panel.html."""
+    roster_by_kind = {
+        'pastoral': [a for a in assignments if (a.get('kind') or '') == 'pastoral'],
+        'worship': [a for a in assignments if (a.get('kind') or '') == 'worship'],
+        'volunteer': [a for a in assignments if (a.get('kind') or '') == 'volunteer'],
+        'custom': [a for a in assignments if (a.get('kind') or '') == 'custom'],
+    }
+    if not any(roster_by_kind.values()):
+        roster_by_kind = {'pastoral': [], 'worship': [], 'volunteer': assignments or [], 'custom': []}
+    return roster_by_kind
+
+
+def _assignments_from_form():
+    """Parse role_name / user_id / guest_name lists from the roster form."""
+    assignments = []
+    role_names = request.form.getlist('role_name')
+    user_ids = request.form.getlist('user_id')
+    guest_names = request.form.getlist('guest_name')
+    while len(guest_names) < len(role_names):
+        guest_names.append('')
+    while len(user_ids) < len(role_names):
+        user_ids.append('')
+    for role, uid, guest in zip(role_names, user_ids, guest_names):
+        if role and str(role).strip():
+            raw_uid = uid or None
+            if raw_uid in ('', 'None'):
+                raw_uid = None
+            try:
+                raw_uid = int(raw_uid) if raw_uid is not None else None
+            except (TypeError, ValueError):
+                raw_uid = None
+            assignments.append({
+                'role_name': str(role).strip(),
+                'user_id': raw_uid,
+                'guest_name': (guest or '').strip() or None,
+            })
+    return assignments
+
+
 @planning_bp.route('/templates/new', methods=['GET', 'POST'])
 @planning_bp.route('/templates/edit/<int:template_id>', methods=['GET', 'POST'])
 @pastoral_required()
@@ -324,33 +375,26 @@ def template_edit(template_id=None):
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 
-    # Sermons dropdown
-    cur.execute("""
-        SELECT id, title, service_date
-        FROM pastoral_sermons
-        ORDER BY COALESCE(service_date, created_at) DESC
-    """)
-    sermons = cur.fetchall()
+    try:
+        cur.execute("""
+            SELECT id, title, service_date
+            FROM pastoral_sermons
+            ORDER BY COALESCE(service_date, created_at) DESC
+        """)
+        sermons = list(cur.fetchall() or [])
+    except Exception:
+        sermons = []
 
-    # Assignable users
-    cur.execute("""
-        SELECT u.id, CONCAT(u.first_name, ' ', u.last_name) AS full_name, u.username
-        FROM users u
-        JOIN user_groups ug ON u.id = ug.user_id
-        JOIN groups g ON ug.group_id = g.id
-        WHERE g.name = 'Pastoral Group'
-        ORDER BY u.first_name, u.last_name
-    """)
-    assignable_users = cur.fetchall()
-
+    assignable_users = _assignable_users_for_planning(cur)
     is_new = template_id is None
+    weekday_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
     if not is_new:
         template = get_template_by_id(template_id)
         if not template:
             flash('Template not found.', 'error')
             return redirect(url_for('pastoral.planning.templates_list'))
-        assignments = template.get('assignments', [])
+        stored_assignments = template.get('assignments') or []
     else:
         template = {
             'id': None,
@@ -360,9 +404,47 @@ def template_edit(template_id=None):
             'start_time': None,
             'worship_start_time': None,
             'pastoral_sermon_id': None,
-            'weekday': None
+            'weekday': None,
         }
-        assignments = []  # Start empty - precise control
+        stored_assignments = []
+
+    # Explicit copy of overall defaults into this recurring plan (never automatic)
+    if request.method == 'POST' and request.form.get('action') == 'copy_overall_defaults':
+        if is_new:
+            flash('Save the recurring plan first, then copy overall defaults into it.', 'error')
+            return redirect(url_for('pastoral.planning.template_edit'))
+        try:
+            overall = get_default_assignments() or []
+            people = [
+                {
+                    'role_name': (a.get('role_name') or '').strip(),
+                    'user_id': a.get('user_id'),
+                    'guest_name': (a.get('guest_name') or '').strip() or None,
+                }
+                for a in overall
+                if (a.get('role_name') or '').strip()
+            ]
+            data = {
+                'id': template_id,
+                'title': template.get('title') or 'Service',
+                'notes': template.get('notes'),
+                'forced_notes': template.get('forced_notes') or '',
+                'start_time': template.get('start_time'),
+                'worship_start_time': template.get('worship_start_time'),
+                'pastoral_sermon_id': template.get('pastoral_sermon_id'),
+                'weekday': template.get('weekday'),
+                'assignments': people,
+            }
+            create_or_update_template(data, session['user_id'])
+            log_change(
+                session['user_id'], 'template_copy_defaults', template_id,
+                template.get('title'), 'Copied overall defaults into recurring plan',
+            )
+            flash('Overall defaults copied into this recurring plan. Review and save if you need further edits.', 'success')
+        except Exception as exc:
+            print(f'template_edit copy_overall_defaults: {exc}')
+            flash(f'Could not copy overall defaults: {exc}', 'error')
+        return redirect(url_for('pastoral.planning.template_edit', template_id=template_id))
 
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
@@ -371,34 +453,25 @@ def template_edit(template_id=None):
         if not title:
             flash('Title is required.', 'error')
         else:
-            data = {
-                'id': template_id,
-                'title': title,
-                'notes': request.form.get('notes'),
-                'forced_notes': forced_notes,
-                'start_time': request.form.get('start_time') or None,
-                'worship_start_time': request.form.get('worship_start_time') or None,
-                'pastoral_sermon_id': request.form.get('sermon_id') or None,
-                'weekday': template['weekday'] if not is_new else int(request.form['weekday']),
-                'assignments': []
-            }
+            try:
+                weekday_val = template['weekday'] if not is_new else int(request.form.get('weekday'))
+            except (TypeError, ValueError):
+                weekday_val = None
 
-            if is_new and data['weekday'] is None:
-                flash('Weekday is required for new templates.', 'error')
+            if is_new and weekday_val is None:
+                flash('Weekday is required for a new recurring plan.', 'error')
             else:
-                role_names = request.form.getlist('role_name')
-                user_ids = request.form.getlist('user_id')
-                guest_names = request.form.getlist('guest_name')
-                while len(guest_names) < len(role_names):
-                    guest_names.append('')
-                for role, uid, guest in zip(role_names, user_ids, guest_names):
-                    if role.strip():
-                        data['assignments'].append({
-                            'role_name': role.strip(),
-                            'user_id': int(uid) if uid else None,
-                            'guest_name': (guest or '').strip() or None,
-                        })
-
+                data = {
+                    'id': template_id,
+                    'title': title,
+                    'notes': request.form.get('notes'),
+                    'forced_notes': forced_notes,
+                    'start_time': request.form.get('start_time') or None,
+                    'worship_start_time': request.form.get('worship_start_time') or None,
+                    'pastoral_sermon_id': request.form.get('sermon_id') or None,
+                    'weekday': weekday_val,
+                    'assignments': _assignments_from_form(),
+                }
                 try:
                     new_id = create_or_update_template(data, session['user_id'])
                 except ValueError as exc:
@@ -410,20 +483,44 @@ def template_edit(template_id=None):
                         ))
                     return redirect(url_for('pastoral.planning.templates_list'))
 
-                log_change(session['user_id'], 'template_save', template_id or new_id, title, 'Saved master recurring template')
-                flash('Master template saved - affects all future weeks.', 'success')
-                return redirect(url_for('pastoral.planning.templates_list'))
+                log_change(
+                    session['user_id'], 'template_save', template_id or new_id,
+                    title, 'Saved recurring service plan',
+                )
+                flash(
+                    'Recurring plan saved — applies to every future week of that day '
+                    '(unless a single week is customized).',
+                    'success',
+                )
+                return redirect(url_for(
+                    'pastoral.planning.template_edit',
+                    template_id=template_id or new_id,
+                ))
 
-    weekday_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        # Reload after validation error
+        if not is_new:
+            template = get_template_by_id(template_id) or template
+            stored_assignments = (template or {}).get('assignments') or stored_assignments
+
+    try:
+        built = build_full_service_assignments(
+            stored_assignments, date_str=None, apply_fallbacks=False,
+        )
+    except Exception as exc:
+        print(f'template_edit build_full: {exc}')
+        built = stored_assignments or []
+
+    roster_by_kind = _roster_by_kind_from_assignments(built)
 
     return render_template(
         'pastoral/planning_template_edit.html',
         template=template,
-        assignments=assignments,
+        assignments=built,
+        roster_by_kind=roster_by_kind,
         sermons=sermons,
         assignable_users=assignable_users,
         is_new=is_new,
-        weekday_names=weekday_names
+        weekday_names=weekday_names,
     )
 
 
@@ -536,7 +633,8 @@ def defaults():
             save_default_assignments(assignments)
             log_change(session['user_id'], 'defaults_save', None, None, 'Saved overall default plan roster')
             flash(
-                'Overall default plan saved. Weeks you do not customize use this roster.',
+                'Starter defaults saved. Recurring service plans were not changed — '
+                'edit those under Recurring plans if you want Sundays (etc.) updated.',
                 'success',
             )
         except Exception as exc:
@@ -544,32 +642,31 @@ def defaults():
             flash(f'Could not save defaults: {exc}', 'error')
         return redirect(url_for('pastoral.planning.defaults'))
 
-    # Same roster builder + layout data as day plan edit
     try:
         stored = get_default_assignments()
     except Exception as exc:
         print(f'planning.defaults GET stored: {exc}')
         stored = []
     try:
-        defaults = build_full_service_assignments(stored, date_str=None)
+        defaults = build_full_service_assignments(stored, date_str=None, apply_fallbacks=False)
     except Exception as exc:
         print(f'planning.defaults build_full: {exc}')
         defaults = stored or []
 
-    roster_by_kind = {
-        'pastoral': [a for a in defaults if (a.get('kind') or '') == 'pastoral'],
-        'worship': [a for a in defaults if (a.get('kind') or '') == 'worship'],
-        'volunteer': [a for a in defaults if (a.get('kind') or '') == 'volunteer'],
-        'custom': [a for a in defaults if (a.get('kind') or '') == 'custom'],
-    }
-    if not any(roster_by_kind.values()):
-        roster_by_kind = {'pastoral': [], 'worship': [], 'volunteer': defaults, 'custom': []}
+    roster_by_kind = _roster_by_kind_from_assignments(defaults)
+    weekday_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    try:
+        recurring_plans = get_all_templates() or []
+    except Exception:
+        recurring_plans = []
 
     return render_template(
         'pastoral/planning_defaults.html',
         defaults=defaults,
         roster_by_kind=roster_by_kind,
         assignable_users=assignable_users,
+        recurring_plans=recurring_plans,
+        weekday_names=weekday_names,
     )
 
 
@@ -589,6 +686,7 @@ def assignments(plan_id: int):
 @planning_bp.route('/delete/<date_str>', methods=['POST'])
 @pastoral_required()
 def delete(date_str):
+    """Remove this week's override so the date falls back to the recurring weekday plan."""
     plan = get_service_plan_by_date(date_str)
     if plan:
         save_service_plan_assignments(plan['id'], [])  # clear assignments first
@@ -596,8 +694,17 @@ def delete(date_str):
         cur = db.cursor()
         cur.execute("DELETE FROM service_plans WHERE service_date = %s", (date_str,))
         db.commit()
-        log_change(session['user_id'], 'plan_delete', None, plan.get('title') or 'Service Plan', f'Deleted override plan for {date_str}')
-        flash('Override plan deleted.', 'success')
+        log_change(
+            session['user_id'],
+            'plan_delete',
+            None,
+            plan.get('title') or 'Service Plan',
+            f'Reverted override for {date_str} to recurring plan',
+        )
+        flash(
+            "This week's custom plan was removed. It now uses the recurring plan for that day again.",
+            'success',
+        )
     else:
-        flash('Plan not found.', 'error')
-    return redirect(url_for('pastoral.planning.index'))
+        flash('No custom plan for this date — already using the recurring plan.', 'info')
+    return redirect(url_for('pastoral.planning.edit', date_str=date_str))

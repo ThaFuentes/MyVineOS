@@ -49,7 +49,8 @@ def ai_generate_outline(sermon_id):
         return jsonify({'status': 'error', 'message': 'Prohibited content in prompt'}), 400
 
     prompt = f"""
-    You are a biblical preaching assistant for a church pastor.
+    You are a practical preaching teammate helping a modern pastor prepare.
+    Use clear everyday English (not King James style). Keep content warm and usable.
     Generate a clear, structured sermon outline based on the following:
     {prompt_text}
 
@@ -99,11 +100,12 @@ def ai_suggest_questions(sermon_id):
         return jsonify({'status': 'error', 'message': 'Prohibited content in context'}), 400
 
     prompt = f"""
-    You are a biblical preaching assistant.
+    You are a practical preaching teammate helping a modern pastor.
+    Use clear everyday English (not formal or King James style).
     Based on this sermon content: {context}
 
     Suggest 5-8 thoughtful small-group discussion/application questions.
-    Return ONLY a numbered list.
+    Return ONLY a numbered list. No markdown headings.
     """
 
     output, error = call_ai(prompt)
@@ -134,11 +136,11 @@ def ai_expand_point(sermon_id):
         return jsonify({'status': 'error', 'message': 'Prohibited content'}), 400
 
     prompt = f"""
-    You are a biblical preaching assistant.
-    Expand this sermon point into 3-5 supporting explanatory paragraphs with biblical insight:
+    You are a practical preaching teammate helping a modern pastor.
+    Expand this sermon point into 3-5 short paragraphs a pastor could adapt:
     {point}
 
-    Keep tone pastoral and encouraging.
+    Everyday English, warm and clear — not King James, not academic. No markdown headings.
     """
 
     output, error = call_ai(prompt)

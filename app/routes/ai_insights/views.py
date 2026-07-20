@@ -7,6 +7,7 @@ from flask import (
 
 from app.models.log import log_change
 from app.utils.ai_client import ai_status, run_insight
+from app.utils.ai_format import format_ai_prose
 from app.utils.decorators import login_required, permission_required
 from app.utils.helpers import contains_censored_word
 from app.utils.permissions import user_has_permission
@@ -128,7 +129,7 @@ def report(report_type):
             if err:
                 error = err
             else:
-                insight = text
+                insight = format_ai_prose(text)
                 log_change(
                     session['user_id'],
                     'ai',
@@ -192,7 +193,8 @@ def api_generate():
     )
     return jsonify({
         'ok': True,
-        'insight': text,
+        'insight': format_ai_prose(text),
+        'insight_raw': text,
         'meta': run_meta,
         'dataset_preview': {
             'keys': list(dataset.keys())[:20],

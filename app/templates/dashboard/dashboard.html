@@ -205,6 +205,39 @@
 {# Content feed — same cards as before #}
 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.85rem; margin-top:0.85rem;">
 
+  {# Current service plan (who is serving) #}
+  <div class="glass-panel dash-feed-card dash-feed-services" style="grid-column: 1 / -1;">
+    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Upcoming service plan</h3>
+    {% if upcoming_services %}
+    <div style="display:grid; gap:0.65rem;">
+      {% for service in upcoming_services %}
+      <div style="padding:0.55rem 0; {% if not loop.last %}border-bottom:1px solid rgba(255,255,255,0.08);{% endif %}">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.35rem;">
+          <strong style="font-size:0.98rem;">{{ service.title }}</strong>
+          <span style="font-size:0.88rem; opacity:0.85; color:var(--primary);">{{ service.date_label }}</span>
+        </div>
+        <p style="margin:0.3rem 0 0; font-size:0.88rem; opacity:0.85;">
+          {% if service.start_time %}Service: {{ service.start_time }}{% endif %}
+          {% if service.worship_start_time %}{% if service.start_time %} · {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
+          {% if service.is_override %} · Custom week{% endif %}
+        </p>
+        {% if service.roles %}
+        <p style="margin:0.35rem 0 0; font-size:0.85rem; opacity:0.8; line-height:1.5;">
+          {% for r in service.roles %}
+            <span style="margin-right:0.7rem; white-space:nowrap;"><strong>{{ r.role_name }}:</strong> {{ r.name }}</span>
+          {% endfor %}
+        </p>
+        {% else %}
+        <p style="margin:0.3rem 0 0; font-size:0.85rem; opacity:0.55;">No assignments listed yet.</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No upcoming services scheduled yet.</p>
+    {% endif %}
+  </div>
+
   <div class="glass-panel dash-feed-card dash-feed-birthdays">
     <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Today's Birthdays</h3>
     {% if birthdays %}

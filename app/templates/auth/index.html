@@ -34,7 +34,7 @@
           {% if service.preacher %} · <strong>{{ service.preacher }}</strong>{% endif %}
           {% if service.is_override %} · <span style="color:var(--primary);">Custom week</span>{% endif %}
         </p>
-        {% if service.roles and service.roles|length > 1 %}
+        {% if service.roles %}
         <p style="margin:0.4rem 0 0; opacity:0.7; font-size:0.85rem;">
           {% for r in service.roles %}
             <span style="margin-right:0.75rem;">{{ r.role_name }}: {{ r.name }}</span>

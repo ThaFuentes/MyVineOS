@@ -60,13 +60,24 @@
   {% endfor %}
 </div>
 
+<div class="glass-panel" style="margin-bottom:1.15rem; border-left:3px solid var(--primary);">
+  <h2 class="section-subtitle" style="margin:0 0 0.5rem;">Sermon library AI &amp; search</h2>
+  <p style="margin:0 0 0.75rem; opacity:0.85; line-height:1.5;">
+    Search <strong>your own</strong> sermons for a word or phrase, or ask AI about your library
+    (e.g. “where have I taught on love?”). Other pastors’ sermons are never included.
+  </p>
+  <a href="{{ url_for('pastoral.sermons.research') }}" class="btn btn-primary">
+    <i class="fa-solid fa-book-bible" aria-hidden="true"></i> Open sermon research
+  </a>
+</div>
+
 <div class="glass-panel ai-security-notes">
   <h2 class="section-subtitle" style="margin:0 0 0.75rem;">Security model</h2>
   <ul>
     <li>API keys stay encrypted at rest; never shown again after save.</li>
     <li>Report payloads are aggregates only (privacy-first for giving &amp; security).</li>
     <li>Prompts and outputs pass censored-word checks; usage is rate-limited and audit-logged.</li>
-    <li>Pastoral sermon AI uses the same shared client under Pastoral → Sermon tools.</li>
+    <li>Pastoral sermon AI uses the same shared client under Pastoral → Sermon research.</li>
   </ul>
 </div>
 

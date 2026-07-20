@@ -260,6 +260,16 @@ def dashboard():
             print(f"Widgets load failed: {e}")
             flash('Failed to load widgets.', 'error')
 
+    # Upcoming service plan (roles + times) for members dashboard
+    upcoming_services = []
+    if is_logged_in:
+        try:
+            from app.models.pastoral.service_plans import get_upcoming_services_display
+            upcoming_services = get_upcoming_services_display(limit=2, days_ahead=90) or []
+        except Exception as e:
+            print(f"Upcoming services load failed: {e}")
+            upcoming_services = []
+
     # Template selection
     template = 'dashboard/dashboard.html' if is_logged_in else 'public/public_dashboard.html'
 
@@ -274,5 +284,6 @@ def dashboard():
         prophecies=prophecies,
         sermons=sermons,
         announcements=announcements,
-        widgets=widgets
+        widgets=widgets,
+        upcoming_services=upcoming_services,
     )
