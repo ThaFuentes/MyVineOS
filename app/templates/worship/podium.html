@@ -31,22 +31,39 @@
       text-align: left; /* align chords to lyric columns within the pair */
     }
     .chord-line {
+      position: relative;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: var(--chord-size, 28px);
       color: #7dd3fc;
-      white-space: pre; /* never wrap chords alone */
-      line-height: 1.15;
-      margin: 0;
+      white-space: pre;
+      line-height: 1.35;
+      min-height: 1.35em;
+      margin: 0 0 0.1rem;
+      letter-spacing: 0;
+    }
+    .chord-tok {
+      display: inline-block;
+      color: #7dd3fc;
+      font-weight: 700;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: var(--chord-size, 28px);
+      line-height: 1.1;
+      padding: 0 0.12em;
+      margin: 0 0.05em 0 0;
+      border-radius: 0.25em;
+      background: rgba(125, 211, 252, 0.12);
+      vertical-align: baseline;
     }
     .lyric-line {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: var(--lyric-size, clamp(1.6rem,5vw,3.2rem));
-      white-space: pre; /* wrap is done by splitting into new pairs, not CSS wrap */
-      line-height: 1.25;
+      white-space: pre;
+      line-height: 1.3;
       margin: 0;
+      color: #f5f5f5;
     }
     .lyric-line.plain {
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
       white-space: pre-wrap;
       text-align: center;
       margin: 0 0 0.35rem;
@@ -220,53 +237,9 @@
     const $ = (id) => document.getElementById(id);
     const status = (t) => { const el = $('status-pill'); if (el) el.textContent = t; };
 
-    /* ---------- ChordPro display modes ---------- */
-    function parseChordProLine(line) {
-      // Returns lyrics + chord slots at lyric char indices + inline HTML
-      const chordSlots = [];
-      let lyrics = '';
-      let i = 0;
-      while (i < line.length) {
-        if (line[i] === '[') {
-          const end = line.indexOf(']', i);
-          if (end === -1) { lyrics += line[i]; i++; continue; }
-          const chord = line.slice(i + 1, end);
-          chordSlots.push({ at: lyrics.length, chord });
-          i = end + 1;
-        } else {
-          lyrics += line[i];
-          i++;
-        }
-      }
-      let chordLine = buildChordLine(lyrics.length, chordSlots, 0);
-      let inline = '';
-      let li = 0;
-      for (const slot of chordSlots) {
-        while (li < slot.at && li < lyrics.length) {
-          inline += escapeHtml(lyrics[li]);
-          li++;
-        }
-        inline += '<span class="inline-chord">[' + escapeHtml(slot.chord) + ']</span>';
-      }
-      while (li < lyrics.length) {
-        inline += escapeHtml(lyrics[li]);
-        li++;
-      }
-      return { chordLine, lyrics, chordSlots, inlineHtml: inline, hasChords: chordSlots.length > 0 };
-    }
-
-    function buildChordLine(len, slots, offset) {
-      // slots with absolute `at`; only those in [offset, offset+len)
-      let chordLine = '';
-      for (const slot of slots) {
-        if (slot.at < offset || slot.at >= offset + len) continue;
-        const rel = slot.at - offset;
-        while (chordLine.length < rel) chordLine += ' ';
-        if (chordLine.length > rel) chordLine += ' ' + slot.chord;
-        else chordLine += slot.chord;
-      }
-      return chordLine;
-    }
+    /* ---------- Chord chart display (ChordPro + classic spaced chords) ---------- */
+    // Matches G, G7, Am, F#m, Bbmaj7, Csus4, D/F#, etc.
+    const CHORD_TOKEN_RE = /^[A-G](?:#|b)?(?:maj|min|m|dim|aug|sus|add|M)?[0-9]*(?:\/[A-G](?:#|b)?)?$/i;
 
     function escapeHtml(s) {
       return String(s)
@@ -280,24 +253,115 @@
       return String(text || '').replace(/\[[^\]]*\]/g, '');
     }
 
-    /** How many monospace lyric characters fit in the slide body width. */
+    /** True if line is only chord symbols + spaces (Ultimate Guitar style). */
+    function isClassicChordLine(line) {
+      const t = (line || '').trim();
+      if (!t || t.indexOf('[') >= 0) return false;
+      // Mostly letters/spaces/#b/digits/slashes — not normal prose
+      if (/[a-z]{3,}/i.test(t) && !CHORD_TOKEN_RE.test(t.split(/\s+/)[0] || '')) {
+        // long lowercase words → likely lyrics (e.g. "the", "and" are short)
+        const words = t.split(/\s+/).filter(Boolean);
+        const chordish = words.filter(function (w) { return CHORD_TOKEN_RE.test(w); });
+        return chordish.length >= words.length && words.length > 0;
+      }
+      const parts = t.split(/\s+/).filter(Boolean);
+      if (!parts.length) return false;
+      const hits = parts.filter(function (p) { return CHORD_TOKEN_RE.test(p); });
+      return hits.length === parts.length && hits.length >= 1;
+    }
+
+    /** ChordPro: [G]Amazing [G7]grace → slots + plain lyrics */
+    function parseChordProLine(line) {
+      const chordSlots = [];
+      let lyrics = '';
+      let i = 0;
+      while (i < line.length) {
+        if (line[i] === '[') {
+          const end = line.indexOf(']', i);
+          if (end === -1) { lyrics += line[i]; i++; continue; }
+          const chord = line.slice(i + 1, end).trim();
+          if (chord) chordSlots.push({ at: lyrics.length, chord: chord });
+          i = end + 1;
+        } else {
+          lyrics += line[i];
+          i++;
+        }
+      }
+      return { lyrics: lyrics, chordSlots: chordSlots, hasChords: chordSlots.length > 0 };
+    }
+
+    /**
+     * Classic chart: chords on their own line, aligned by column to the lyric line below.
+     *   D                 G       G7      C
+     *   We've no less days to sing God's praise
+     */
+    function parseClassicChordLine(chordLine, lyricLine) {
+      const slots = [];
+      const re = /\S+/g;
+      let m;
+      while ((m = re.exec(chordLine)) !== null) {
+        const tok = m[0];
+        if (!CHORD_TOKEN_RE.test(tok)) continue;
+        slots.push({ at: m.index, chord: tok });
+      }
+      // Clamp to lyric length for wrapping math
+      const lyrics = lyricLine || '';
+      slots.forEach(function (s) {
+        if (s.at > lyrics.length) s.at = lyrics.length;
+      });
+      return { lyrics: lyrics, chordSlots: slots, hasChords: slots.length > 0 };
+    }
+
+    /** Build HTML chord row: tokens as pills, spaced with non-breaking spaces for alignment. */
+    function chordRowHtml(len, slots, offset) {
+      // Place each chord at character column; pad with spaces (monospace under lyrics)
+      let out = '';
+      let col = 0;
+      const inRange = slots
+        .filter(function (s) { return s.at >= offset && s.at < offset + len; })
+        .sort(function (a, b) { return a.at - b.at; });
+      for (let i = 0; i < inRange.length; i++) {
+        const s = inRange[i];
+        const rel = s.at - offset;
+        while (col < rel) { out += ' '; col++; }
+        out += '<span class="chord-tok">' + escapeHtml(s.chord) + '</span>';
+        // Advance col by visual chord length so next pad is roughly right
+        col += s.chord.length;
+      }
+      if (!out.trim()) return '&nbsp;';
+      return out;
+    }
+
+    function inlineChordHtml(lyrics, slots) {
+      let html = '';
+      let li = 0;
+      for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i];
+        while (li < slot.at && li < lyrics.length) {
+          html += escapeHtml(lyrics[li]);
+          li++;
+        }
+        html += '<span class="chord-tok inline-chord">' + escapeHtml(slot.chord) + '</span>';
+      }
+      while (li < lyrics.length) {
+        html += escapeHtml(lyrics[li]);
+        li++;
+      }
+      return html;
+    }
+
     function maxStackedChars(host) {
       const el = host || document.querySelector('.section-body') || document.getElementById('stage');
       const w = (el && el.clientWidth) ? el.clientWidth : Math.floor(window.innerWidth * 0.85);
       const lyricPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lyric-size')) || 36;
-      // monospace ~0.6em; leave a little margin
       const charW = Math.max(8, lyricPx * 0.58);
-      return Math.max(16, Math.floor((w - 16) / charW));
+      return Math.max(16, Math.floor((w - 24) / charW));
     }
 
-    /**
-     * Split a long lyric line into visual rows so each row has its own chord line.
-     * Breaks on spaces when possible so wrap never leaves lyrics without notes above.
-     */
     function wrapStackedRows(lyrics, chordSlots, maxChars) {
       const rows = [];
       if (!lyrics) {
-        rows.push({ chordLine: '', lyrics: ' ' });
+        rows.push({ offset: 0, lyrics: ' ' });
         return rows;
       }
       let start = 0;
@@ -305,73 +369,126 @@
       while (start < n) {
         let end = Math.min(start + maxChars, n);
         if (end < n) {
-          // Prefer break at last space in the window (keep words intact)
           let breakAt = -1;
           for (let j = end; j > start; j--) {
             if (lyrics[j - 1] === ' ') { breakAt = j; break; }
           }
-          // If no space, hard-break; else break after the space
-          if (breakAt > start + Math.floor(maxChars * 0.35)) {
-            end = breakAt;
-          }
+          if (breakAt > start + Math.floor(maxChars * 0.35)) end = breakAt;
         }
         const part = lyrics.slice(start, end);
-        const cl = buildChordLine(part.length, chordSlots, start);
-        rows.push({ chordLine: cl, lyrics: part.length ? part : ' ' });
+        rows.push({ offset: start, lyrics: part.length ? part : ' ' });
         start = end;
-        // Skip pure leading spaces on next row only if entire remainder is spaces? keep as-is for alignment
       }
       return rows;
+    }
+
+    function pairHtml(lyricsPart, slots, offset, mode) {
+      let html = '<div class="chord-lyric-pair">';
+      if (mode === 'stacked') {
+        const has = slots.some(function (s) {
+          return s.at >= offset && s.at < offset + lyricsPart.length;
+        });
+        html += '<div class="chord-line">' +
+          (has ? chordRowHtml(lyricsPart.length, slots, offset) : '&nbsp;') +
+          '</div>';
+        html += '<div class="lyric-line">' + escapeHtml(lyricsPart || ' ') + '</div>';
+      } else {
+        // inline for this slice
+        const sliceSlots = slots
+          .filter(function (s) { return s.at >= offset && s.at < offset + lyricsPart.length; })
+          .map(function (s) { return { at: s.at - offset, chord: s.chord }; });
+        html += '<div class="lyric-line plain" style="white-space:pre-wrap;">' +
+          inlineChordHtml(lyricsPart, sliceSlots) + '</div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function renderParsed(lyrics, slots, mode, maxChars) {
+      let html = '';
+      if (!slots.length) {
+        const plain = lyrics || ' ';
+        const rows = wrapStackedRows(plain, [], maxChars);
+        for (let r = 0; r < rows.length; r++) {
+          html += '<div class="chord-lyric-pair"><div class="lyric-line plain">' +
+            escapeHtml(rows[r].lyrics) + '</div></div>';
+        }
+        return html;
+      }
+      const rows = wrapStackedRows(lyrics, slots, maxChars);
+      for (let r = 0; r < rows.length; r++) {
+        html += pairHtml(rows[r].lyrics, slots, rows[r].offset, mode);
+      }
+      return html;
+    }
+
+    /**
+     * Normalize raw chart text into {lyrics, chordSlots} pairs per logical line.
+     * Supports ChordPro [G]lyric and classic spaced chord lines above lyrics.
+     */
+    function normalizeChartLines(raw) {
+      const lines = String(raw || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+      const out = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) {
+          out.push({ lyrics: '', chordSlots: [], empty: true });
+          continue;
+        }
+        // Classic: this line chords, next line lyrics
+        if (isClassicChordLine(line) && i + 1 < lines.length && !isClassicChordLine(lines[i + 1]) && lines[i + 1].indexOf('[') < 0) {
+          const p = parseClassicChordLine(line, lines[i + 1]);
+          out.push(p);
+          i += 1; // consume lyric line
+          continue;
+        }
+        // Classic: previous was lyrics, this is chords under (rare) — skip if already handled
+        if (isClassicChordLine(line)) {
+          // Orphan chord line — show as chord tokens only, no fake "code" lyric
+          const p = parseClassicChordLine(line, ' '.repeat(Math.max(line.length, 8)));
+          out.push({ lyrics: '', chordSlots: p.chordSlots, chordsOnly: true });
+          continue;
+        }
+        // ChordPro or plain lyrics
+        if (line.indexOf('[') >= 0) {
+          out.push(parseChordProLine(line));
+        } else {
+          out.push({ lyrics: line, chordSlots: [], hasChords: false });
+        }
+      }
+      return out;
     }
 
     function renderSlideBody(slide, mode) {
       const raw = slide.getAttribute('data-raw') || '';
       const host = slide.querySelector('[data-render]');
       if (!host) return;
-      const lines = raw.replace(/\r\n/g, '\n').split('\n');
       if (mode === 'lyrics') {
-        host.innerHTML = '<div class="lyrics-only-body">' + escapeHtml(stripChords(raw)) + '</div>';
+        // Strip ChordPro brackets and drop classic chord-only lines
+        const lines = String(raw).replace(/\r\n/g, '\n').split('\n');
+        const kept = [];
+        for (let i = 0; i < lines.length; i++) {
+          if (isClassicChordLine(lines[i])) continue;
+          kept.push(stripChords(lines[i]));
+        }
+        host.innerHTML = '<div class="lyrics-only-body">' + escapeHtml(kept.join('\n')) + '</div>';
         return;
       }
       const maxChars = maxStackedChars(host);
+      const normalized = normalizeChartLines(raw);
       let html = '';
-      for (const line of lines) {
-        if (!line.trim() && !line.includes('[')) {
+      for (let i = 0; i < normalized.length; i++) {
+        const row = normalized[i];
+        if (row.empty) {
           html += '<div class="chord-lyric-pair"><div class="lyric-line plain">&nbsp;</div></div>';
           continue;
         }
-        const p = parseChordProLine(line);
-        if (mode === 'stacked') {
-          if (!p.hasChords) {
-            // No chords — still wrap long lyrics into plain rows
-            const plain = p.lyrics || ' ';
-            if (plain.length <= maxChars) {
-              html += '<div class="chord-lyric-pair"><div class="lyric-line plain">' + escapeHtml(plain) + '</div></div>';
-            } else {
-              const rows = wrapStackedRows(plain, [], maxChars);
-              for (const row of rows) {
-                html += '<div class="chord-lyric-pair"><div class="lyric-line plain">' + escapeHtml(row.lyrics) + '</div></div>';
-              }
-            }
-          } else {
-            const rows = wrapStackedRows(p.lyrics, p.chordSlots, maxChars);
-            for (const row of rows) {
-              html += '<div class="chord-lyric-pair">';
-              if (row.chordLine && row.chordLine.trim()) {
-                html += '<div class="chord-line">' + escapeHtml(row.chordLine) + '</div>';
-              } else {
-                // Keep vertical rhythm when a wrap row has no chord in that slice
-                html += '<div class="chord-line">&nbsp;</div>';
-              }
-              html += '<div class="lyric-line">' + escapeHtml(row.lyrics || ' ') + '</div>';
-              html += '</div>';
-            }
-          }
-        } else {
-          // inline — CSS wrap is OK; chords travel with the text as spans
-          html += '<div class="lyric-line plain" style="white-space:pre-wrap;">' +
-            (p.hasChords ? p.inlineHtml : escapeHtml(line)) + '</div>';
+        if (row.chordsOnly) {
+          html += '<div class="chord-lyric-pair"><div class="chord-line">' +
+            chordRowHtml(32, row.chordSlots, 0) + '</div></div>';
+          continue;
         }
+        html += renderParsed(row.lyrics || ' ', row.chordSlots || [], mode, maxChars);
       }
       host.innerHTML = html || '<div class="lyric-line plain"></div>';
     }
