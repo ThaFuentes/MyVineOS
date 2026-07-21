@@ -405,3 +405,7 @@ Please **never** commit secrets (`.env`, production keys, real member data dumps
 You do not need a Silicon Valley budget to run a serious church platform. MyVineOS is written to be **downloadable, runnable, and ownable** — a full operating system for ministry work and public presence, with security controls you can read in the source. Host it carefully, keep your keys safe, and use it to serve people.
 
 *Built for churches. Free to download. Yours to run.*
+
+## Worship Team (recent)
+
+See [`WORSHIP_PROMPTER_UPDATE.txt`](WORSHIP_PROMPTER_UPDATE.txt) for the prompter / song-list send features on `main`.
