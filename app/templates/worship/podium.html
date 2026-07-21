@@ -14,19 +14,41 @@
     .slide { min-height:75vh; display:flex; flex-direction:column; justify-content:center; padding:1rem 0 3rem; }
     .slide h2 { color:#00e5ff; font-size:clamp(1rem,2.5vw,1.5rem); margin:0 0 0.5rem; text-align:center; }
     .section-label { text-align:center; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.1em; color:#7dd3fc; margin-bottom:0.5rem; }
-    .section-body { line-height:1.45; text-align:center; }
+    .section-body { line-height:1.45; text-align:center; max-width:100%; }
+    /* One visual row: chords always sit directly above the lyrics they belong to */
+    .chord-lyric-pair {
+      display: block;
+      margin: 0 0 0.45rem;
+      text-align: center;
+    }
+    .chord-lyric-pair .chord-line,
+    .chord-lyric-pair .lyric-line {
+      display: block;
+      width: max-content;
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left; /* align chords to lyric columns within the pair */
+    }
     .chord-line {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: var(--chord-size, 28px);
       color: #7dd3fc;
-      white-space: pre;
-      line-height: 1.2;
-      margin: 0.15rem 0 0;
+      white-space: pre; /* never wrap chords alone */
+      line-height: 1.15;
+      margin: 0;
     }
     .lyric-line {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: var(--lyric-size, clamp(1.6rem,5vw,3.2rem));
+      white-space: pre; /* wrap is done by splitting into new pairs, not CSS wrap */
+      line-height: 1.25;
+      margin: 0;
+    }
+    .lyric-line.plain {
+      font-family: system-ui, sans-serif;
       white-space: pre-wrap;
-      line-height: 1.35;
+      text-align: center;
       margin: 0 0 0.35rem;
     }
     .inline-chord {
@@ -200,7 +222,7 @@
 
     /* ---------- ChordPro display modes ---------- */
     function parseChordProLine(line) {
-      // Returns { chords: string (aligned), lyrics: string, inlineHtml }
+      // Returns lyrics + chord slots at lyric char indices + inline HTML
       const chordSlots = [];
       let lyrics = '';
       let i = 0;
@@ -216,20 +238,7 @@
           i++;
         }
       }
-      // Build spaced chord line above lyrics
-      let chordLine = '';
-      let cursor = 0;
-      for (const slot of chordSlots) {
-        while (chordLine.length < slot.at) chordLine += ' ';
-        // avoid overlap: if next chord would collide, squeeze
-        if (chordLine.length > slot.at) {
-          // already past — append with space
-          chordLine += ' ' + slot.chord;
-        } else {
-          chordLine += slot.chord;
-        }
-        cursor = chordLine.length;
-      }
+      let chordLine = buildChordLine(lyrics.length, chordSlots, 0);
       let inline = '';
       let li = 0;
       for (const slot of chordSlots) {
@@ -243,7 +252,20 @@
         inline += escapeHtml(lyrics[li]);
         li++;
       }
-      return { chordLine, lyrics, inlineHtml: inline, hasChords: chordSlots.length > 0 };
+      return { chordLine, lyrics, chordSlots, inlineHtml: inline, hasChords: chordSlots.length > 0 };
+    }
+
+    function buildChordLine(len, slots, offset) {
+      // slots with absolute `at`; only those in [offset, offset+len)
+      let chordLine = '';
+      for (const slot of slots) {
+        if (slot.at < offset || slot.at >= offset + len) continue;
+        const rel = slot.at - offset;
+        while (chordLine.length < rel) chordLine += ' ';
+        if (chordLine.length > rel) chordLine += ' ' + slot.chord;
+        else chordLine += slot.chord;
+      }
+      return chordLine;
     }
 
     function escapeHtml(s) {
@@ -258,6 +280,50 @@
       return String(text || '').replace(/\[[^\]]*\]/g, '');
     }
 
+    /** How many monospace lyric characters fit in the slide body width. */
+    function maxStackedChars(host) {
+      const el = host || document.querySelector('.section-body') || document.getElementById('stage');
+      const w = (el && el.clientWidth) ? el.clientWidth : Math.floor(window.innerWidth * 0.85);
+      const lyricPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lyric-size')) || 36;
+      // monospace ~0.6em; leave a little margin
+      const charW = Math.max(8, lyricPx * 0.58);
+      return Math.max(16, Math.floor((w - 16) / charW));
+    }
+
+    /**
+     * Split a long lyric line into visual rows so each row has its own chord line.
+     * Breaks on spaces when possible so wrap never leaves lyrics without notes above.
+     */
+    function wrapStackedRows(lyrics, chordSlots, maxChars) {
+      const rows = [];
+      if (!lyrics) {
+        rows.push({ chordLine: '', lyrics: ' ' });
+        return rows;
+      }
+      let start = 0;
+      const n = lyrics.length;
+      while (start < n) {
+        let end = Math.min(start + maxChars, n);
+        if (end < n) {
+          // Prefer break at last space in the window (keep words intact)
+          let breakAt = -1;
+          for (let j = end; j > start; j--) {
+            if (lyrics[j - 1] === ' ') { breakAt = j; break; }
+          }
+          // If no space, hard-break; else break after the space
+          if (breakAt > start + Math.floor(maxChars * 0.35)) {
+            end = breakAt;
+          }
+        }
+        const part = lyrics.slice(start, end);
+        const cl = buildChordLine(part.length, chordSlots, start);
+        rows.push({ chordLine: cl, lyrics: part.length ? part : ' ' });
+        start = end;
+        // Skip pure leading spaces on next row only if entire remainder is spaces? keep as-is for alignment
+      }
+      return rows;
+    }
+
     function renderSlideBody(slide, mode) {
       const raw = slide.getAttribute('data-raw') || '';
       const host = slide.querySelector('[data-render]');
@@ -267,22 +333,47 @@
         host.innerHTML = '<div class="lyrics-only-body">' + escapeHtml(stripChords(raw)) + '</div>';
         return;
       }
+      const maxChars = maxStackedChars(host);
       let html = '';
       for (const line of lines) {
         if (!line.trim() && !line.includes('[')) {
-          html += '<div class="lyric-line">&nbsp;</div>';
+          html += '<div class="chord-lyric-pair"><div class="lyric-line plain">&nbsp;</div></div>';
           continue;
         }
         const p = parseChordProLine(line);
         if (mode === 'stacked') {
-          if (p.hasChords) html += '<div class="chord-line">' + escapeHtml(p.chordLine) + '</div>';
-          html += '<div class="lyric-line">' + escapeHtml(p.lyrics || ' ') + '</div>';
+          if (!p.hasChords) {
+            // No chords — still wrap long lyrics into plain rows
+            const plain = p.lyrics || ' ';
+            if (plain.length <= maxChars) {
+              html += '<div class="chord-lyric-pair"><div class="lyric-line plain">' + escapeHtml(plain) + '</div></div>';
+            } else {
+              const rows = wrapStackedRows(plain, [], maxChars);
+              for (const row of rows) {
+                html += '<div class="chord-lyric-pair"><div class="lyric-line plain">' + escapeHtml(row.lyrics) + '</div></div>';
+              }
+            }
+          } else {
+            const rows = wrapStackedRows(p.lyrics, p.chordSlots, maxChars);
+            for (const row of rows) {
+              html += '<div class="chord-lyric-pair">';
+              if (row.chordLine && row.chordLine.trim()) {
+                html += '<div class="chord-line">' + escapeHtml(row.chordLine) + '</div>';
+              } else {
+                // Keep vertical rhythm when a wrap row has no chord in that slice
+                html += '<div class="chord-line">&nbsp;</div>';
+              }
+              html += '<div class="lyric-line">' + escapeHtml(row.lyrics || ' ') + '</div>';
+              html += '</div>';
+            }
+          }
         } else {
-          // inline
-          html += '<div class="lyric-line">' + (p.hasChords ? p.inlineHtml : escapeHtml(line)) + '</div>';
+          // inline — CSS wrap is OK; chords travel with the text as spans
+          html += '<div class="lyric-line plain" style="white-space:pre-wrap;">' +
+            (p.hasChords ? p.inlineHtml : escapeHtml(line)) + '</div>';
         }
       }
-      host.innerHTML = html || '<div class="lyric-line"></div>';
+      host.innerHTML = html || '<div class="lyric-line plain"></div>';
     }
 
     function applyDisplayMode() {
@@ -293,7 +384,15 @@
     function applySizes() {
       document.documentElement.style.setProperty('--chord-size', ($('chord-size').value || 28) + 'px');
       document.documentElement.style.setProperty('--lyric-size', ($('lyric-size').value || 36) + 'px');
+      // Re-flow wrap rows when font size changes available char count
+      applyDisplayMode();
     }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(applyDisplayMode, 120);
+    });
 
     /* ---------- Navigation ---------- */
     function show(i) {
