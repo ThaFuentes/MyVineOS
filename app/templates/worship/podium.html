@@ -253,6 +253,40 @@
       return String(text || '').replace(/\[[^\]]*\]/g, '');
     }
 
+    /**
+     * Charts sometimes store *literal* escape sequences (\r\n, \u0027) instead of
+     * real newlines/characters. Turn those into clean display text — never show \r\n.
+     */
+    function sanitizeChartText(raw) {
+      let s = String(raw == null ? '' : raw);
+      // Unwrap if the whole field is a JSON-encoded string
+      if (s.length >= 2 && s.charAt(0) === '"' && s.charAt(s.length - 1) === '"') {
+        try {
+          const un = JSON.parse(s);
+          if (typeof un === 'string') s = un;
+        } catch (e) { /* keep s */ }
+      }
+      // Decode \uXXXX sequences (e.g. \u0027 → ')
+      s = s.replace(/\\u([0-9a-fA-F]{4})/g, function (_, hex) {
+        try { return String.fromCharCode(parseInt(hex, 16)); } catch (e) { return _; }
+      });
+      // Literal backslash escapes (must run before collapsing real CRLF)
+      s = s
+        .replace(/\\r\\n/g, '\n')
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\n')
+        .replace(/\\t/g, ' ')
+        .replace(/\\'/g, "'")
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+      // Real CR/LF variants
+      s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      // Any leftover visible escape junk
+      s = s.replace(/\\r\\n|\\n|\\r/g, '\n');
+      s = s.replace(/\u0000/g, '');
+      return s;
+    }
+
     /** True if line is only chord symbols + spaces (Ultimate Guitar style). */
     function isClassicChordLine(line) {
       const t = (line || '').trim();
@@ -427,7 +461,7 @@
      * Supports ChordPro [G]lyric and classic spaced chord lines above lyrics.
      */
     function normalizeChartLines(raw) {
-      const lines = String(raw || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+      const lines = sanitizeChartText(raw).split('\n');
       const out = [];
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -460,12 +494,12 @@
     }
 
     function renderSlideBody(slide, mode) {
-      const raw = slide.getAttribute('data-raw') || '';
+      const raw = sanitizeChartText(slide.getAttribute('data-raw') || '');
       const host = slide.querySelector('[data-render]');
       if (!host) return;
       if (mode === 'lyrics') {
         // Strip ChordPro brackets and drop classic chord-only lines
-        const lines = String(raw).replace(/\r\n/g, '\n').split('\n');
+        const lines = raw.split('\n');
         const kept = [];
         for (let i = 0; i < lines.length; i++) {
           if (isClassicChordLine(lines[i])) continue;
