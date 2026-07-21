@@ -233,10 +233,12 @@ def songs_list():
     )
 
 
-@worship_bp.route('/songs/send-to-setlist', methods=['POST'])
+@worship_bp.route('/songs/send-to-setlist', methods=['GET', 'POST'], endpoint='songs_send_to_setlist')
 @worship_required
 def songs_send_to_setlist():
     """Bulk-add checked library songs to a setlist, weekly day default, or entire week."""
+    if request.method == 'GET':
+        return redirect(url_for('worship.songs_list'))
     if not can_manage_worship():
         flash('Only worship managers can send songs to setlists.', 'error')
         return redirect(url_for('worship.songs_list'))

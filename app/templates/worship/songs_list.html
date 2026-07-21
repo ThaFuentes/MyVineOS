@@ -16,7 +16,8 @@
 
 {% if songs %}
 {% if can_manage %}
-<form method="post" action="{{ url_for('worship.songs_send_to_setlist') }}" id="send-setlist-form" class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:0.85rem;">
+{# Hardcoded path — never url_for this endpoint (avoids 500 if deploy/restart lag leaves route unregistered). #}
+<form method="post" action="/worship/songs/send-to-setlist" id="send-setlist-form" class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:0.85rem;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined and csrf_token else '' }}">
   <div style="display:flex; flex-wrap:wrap; gap:0.65rem; align-items:flex-end;">
     <div style="flex:1 1 220px;">
