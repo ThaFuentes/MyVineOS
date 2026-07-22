@@ -3,8 +3,8 @@
 {% block title %}Bible Study{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260716sticky1">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260717fav1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713f">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260722notes2">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -26,36 +26,35 @@
 <div class="bible-sermon-bar glass-card mb-3">
     <div class="bible-sermon-bar-inner">
         <div class="bible-sermon-field">
-            <label class="form-label small" for="bible-sermon-select">Active sermon</label>
-            <select id="bible-sermon-select" class="form-select form-control-dark" aria-describedby="bible-sermon-hint">
-                <option value="">— Choose a sermon to insert into —</option>
+            <label class="form-label small mb-1" for="bible-sermon-select">Active sermon</label>
+            <select id="bible-sermon-select" class="form-select form-control-dark">
+                <option value="">- Choose a sermon to insert into -</option>
                 {% for s in sermons %}
                 <option value="{{ s.id }}" {% if sermon_id == s.id %}selected{% endif %}>{{ s.title }}{% if s.primary_passage %} ({{ s.primary_passage }}){% endif %}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="bible-sermon-actions" role="group" aria-label="Sermon actions">
-            <button type="button" id="bible-new-sermon-btn" class="btn btn-outline-cyan btn-sm"
-                    title="Create a sermon — choose your own title; chapter is only a suggestion">
-                <i class="fas fa-plus" aria-hidden="true"></i> New
+        <div class="bible-sermon-actions">
+            <button type="button" id="bible-new-sermon-btn" class="btn btn-outline-cyan btn-sm" title="Create a draft sermon and select it">
+                <i class="fas fa-plus me-1"></i>New
             </button>
             <a href="#" id="bible-open-sermon-btn" class="btn btn-cyan btn-sm disabled"
                title="Open the active sermon in this tab">
-                <i class="fas fa-pen" aria-hidden="true"></i> Open
+                <i class="fas fa-pen me-1"></i>Open sermon
             </a>
             <a href="#" id="bible-open-sermon-tab-btn" class="btn btn-outline-cyan btn-sm disabled"
                target="_blank" rel="noopener"
                title="Open the active sermon in a new browser tab">
-                <i class="fas fa-up-right-from-square" aria-hidden="true"></i> New tab
+                <i class="fas fa-up-right-from-square me-1"></i>New tab
             </a>
         </div>
     </div>
     <p id="bible-sermon-hint" class="small text-muted mb-0 mt-2 bible-sermon-hint">
         {% if sermon_id and sermon %}
-        Active sermon: <strong>{{ sermon.title }}</strong>. Use <strong>+ Sermon</strong> on a verse to append it.
-        Use <strong>Open</strong> (this tab) or <strong>New tab</strong> to review.
+        Active sermon: <strong>{{ sermon.title }}</strong>. Use <strong>+ Sermon</strong> on a verse to append it into that sermon’s
+        <em>Bible Study inserts</em> section. Use <strong>Open sermon</strong> (this tab) or <strong>New tab</strong> to review.
         {% else %}
-        Pick a sermon, then <strong>+ Sermon</strong> inserts verses into it. <strong>Note</strong> = Study notes below
+        Pick a sermon, then <strong>+ Sermon</strong> inserts verses into it. <strong>Note</strong> = personal Study notes below
         (not illustrations). <strong>+ Library</strong> = Illustration Library only.
         {% endif %}
     </p>
@@ -79,13 +78,6 @@
                 {% endif %}
             </select>
             <span id="bible-source-badge" class="badge bg-secondary" style="display:none;"></span>
-            <button type="button" id="bible-fav-chapter" class="btn btn-sm btn-outline-secondary" title="Favorite this chapter">♡ Ch</button>
-            <button type="button" id="bible-fav-book" class="btn btn-sm btn-outline-secondary" title="Favorite this book">♡ Book</button>
-            <div class="bible-font-controls" title="Bible text size">
-                <button type="button" id="bible-font-smaller" class="btn btn-sm btn-outline-secondary" aria-label="Smaller">A-</button>
-                <span id="bible-font-label" class="bible-font-label">MD</span>
-                <button type="button" id="bible-font-larger" class="btn btn-sm btn-outline-secondary" aria-label="Larger">A+</button>
-            </div>
             <button type="button" id="bible-back-chapter" class="btn btn-sm btn-outline-secondary" style="display:none;"><- Chapter</button>
             <button type="button" id="bible-prev-chapter" class="btn btn-sm btn-outline-secondary" disabled>Prev</button>
             <button type="button" id="bible-next-chapter" class="btn btn-sm btn-outline-secondary" disabled>Next</button>
@@ -104,7 +96,6 @@
             </select>
             <button type="button" id="bible-hl-btn" class="btn btn-sm btn-warning" title="Highlight selected verses">Highlight</button>
             <button type="button" id="bible-hl-clear-btn" class="btn btn-sm btn-outline-secondary" title="Clear highlight on selection">Clear HL</button>
-            <button type="button" id="bible-fav-verse" class="btn btn-sm btn-outline-secondary" title="Favorite selected verse">♡ Favorite</button>
             <button type="button" id="bible-copy-sel-btn" class="btn btn-sm btn-outline-secondary" title="Copy selected verses to clipboard">Copy selection</button>
             <button type="button" id="bible-copy-chapter-btn" class="btn btn-sm btn-outline-secondary" title="Copy this whole chapter to clipboard">Copy chapter</button>
             <button type="button" id="bible-note-btn" class="btn btn-sm btn-cyan" title="Open a study note with selected verses filled in">Add note</button>
@@ -128,14 +119,18 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
             <h5 class="h6 mb-0"><i class="fas fa-sticky-note me-1"></i> Study notes</h5>
             <div class="d-flex flex-wrap gap-1">
-                <button type="button" id="bible-notes-library-btn" class="btn btn-sm btn-outline-cyan">My notes library</button>
+                <button type="button" id="bible-notes-library-btn" class="btn btn-sm btn-outline-cyan">Tools library</button>
                 <button type="button" id="bible-notes-dl-chapter" class="btn btn-sm btn-outline-secondary">Download chapter</button>
                 <button type="button" id="bible-notes-dl-all" class="btn btn-sm btn-outline-secondary">Download all</button>
                 <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-sm btn-outline-cyan" target="_blank" rel="noopener">Illustrations</a>
             </div>
         </div>
-        <p class="small text-muted mb-2">
-            Notes stay with your account. Send any note to the <strong>Illustration Library</strong> to reuse in sermons, or download as a file.
+        <div class="bible-notes-tabs" role="tablist" aria-label="Notes view">
+            <button type="button" class="bible-notes-tab active" data-notes-tab="passage" role="tab" aria-selected="true">This passage</button>
+            <button type="button" class="bible-notes-tab" data-notes-tab="all" role="tab" aria-selected="false">All my notes</button>
+        </div>
+        <p class="small text-muted mb-2" id="bible-notes-hint">
+            Notes for this chapter. Verses with notes show a <span class="bible-note-dot-demo" title="Note marker">📝</span> marker in the reader — click it (or <strong>Edit / add</strong>) to open.
         </p>
         <div id="bible-notes-list"><p class="small text-muted mb-0">Notes for this chapter will appear here.</p></div>
     </div>
@@ -234,65 +229,24 @@
             <button type="button" id="bible-notes-lib-btn" class="btn btn-outline-cyan">Search</button>
         </div>
         <div id="bible-notes-lib-results" class="bible-online-results"></div>
-        <p class="small text-muted mt-2 mb-2">
+        <p class="small text-muted mt-2 mb-0">
             Reuse notes in sermons via <strong>To illustrations</strong>, or download as Markdown.
         </p>
-
-        <h5 class="text-cyan small mt-3">Favorites ♡</h5>
-        <div class="input-group mb-2">
-            <input type="text" id="bible-favs-lib-q" class="form-control form-control-dark" placeholder="Search favorites…">
-            <button type="button" id="bible-favs-lib-btn" class="btn btn-outline-cyan">Find</button>
-        </div>
-        <select id="bible-favs-scope" class="form-select form-select-sm form-control-dark mb-2">
-            <option value="">All favorites</option>
-            <option value="verse">Verses</option>
-            <option value="chapter">Chapters</option>
-            <option value="book">Books</option>
-        </select>
-        <div id="bible-favs-lib-results" class="bible-online-results"></div>
-        <p class="small text-muted mt-2 mb-0">
-            Same hearts as the member Bible. Also open
-            <a href="{{ url_for('bible.member_study') }}" target="_blank" rel="noopener">community Bible</a>
-            for the member-facing view.
-        </p>
     </div>
 </div>
 
-<!-- New sermon modal (title free — chapter is only a suggestion) -->
-<div id="bible-new-sermon-modal" class="bible-note-modal" style="display:none;" aria-hidden="true">
-    <div class="bible-note-modal-card glass-card" role="dialog" aria-modal="true" aria-labelledby="bible-new-sermon-heading">
-        <h5 id="bible-new-sermon-heading" class="mb-2">New sermon</h5>
-        <p class="small text-muted mb-3">
-            Name it however you want. The passage below is only a suggestion from where you’re reading —
-            you can change or clear it.
-        </p>
-        <label class="form-label small" for="bible-new-sermon-title">Title <span class="text-muted">(required)</span></label>
-        <input type="text" id="bible-new-sermon-title" class="form-control form-control-dark mb-2"
-               placeholder="e.g. The Gift of Grace" autocomplete="off" maxlength="200">
-        <label class="form-label small" for="bible-new-sermon-passage">Primary passage <span class="text-muted">(optional)</span></label>
-        <input type="text" id="bible-new-sermon-passage" class="form-control form-control-dark mb-1"
-               placeholder="e.g. John 3:16–21" autocomplete="off" maxlength="255">
-        <p id="bible-new-sermon-suggest-hint" class="small text-muted mb-2" style="display:none;"></p>
-        <label class="form-label small" for="bible-new-sermon-date">Service date <span class="text-muted">(optional)</span></label>
-        <input type="date" id="bible-new-sermon-date" class="form-control form-control-dark mb-3">
-        <div class="d-flex flex-wrap gap-2 justify-content-end">
-            <button type="button" id="bible-new-sermon-cancel" class="btn btn-sm btn-outline-secondary">Cancel</button>
-            <button type="button" id="bible-new-sermon-create" class="btn btn-sm btn-cyan">Create sermon</button>
-        </div>
-    </div>
-</div>
-
-<!-- Note modal -->
+<!-- Note modal — loads previous note when one exists so you can edit / add to it -->
 <div id="bible-note-modal" class="bible-note-modal" style="display:none;" aria-hidden="true">
     <div class="bible-note-modal-card glass-card">
-        <h5 class="mb-2">Study note</h5>
-        <p id="bible-note-ref" class="small text-muted mb-2"></p>
+        <h5 class="mb-1" id="bible-note-heading">Study note</h5>
+        <p id="bible-note-ref" class="small text-muted mb-1"></p>
+        <p id="bible-note-status" class="small mb-2" style="display:none;"></p>
         <label class="form-label small" for="bible-note-title">Title</label>
         <input type="text" id="bible-note-title" class="form-control form-control-dark mb-2" placeholder="e.g. Grace in John 3:16">
         <label class="form-label small" for="bible-note-scripture">Scripture (auto-filled from selection)</label>
         <textarea id="bible-note-scripture" class="form-control form-control-dark mb-2" rows="2" placeholder="Verse text…"></textarea>
         <label class="form-label small" for="bible-note-body">Your notes</label>
-        <textarea id="bible-note-body" class="form-control form-control-dark mb-2" rows="5" placeholder="Thoughts, cross-refs, applications, sermon ideas…"></textarea>
+        <textarea id="bible-note-body" class="form-control form-control-dark mb-2" rows="6" placeholder="Thoughts, cross-refs, applications… Previous notes load here so you can edit or add more."></textarea>
         <label class="form-label small" for="bible-note-tags">Tags (optional)</label>
         <input type="text" id="bible-note-tags" class="form-control form-control-dark mb-3" placeholder="grace, gospel, illustration">
         <div class="form-check mb-3">
@@ -304,9 +258,12 @@
         <p class="small text-muted mb-2">
             Saving puts this in the <strong>Study notes</strong> panel under the reader (not the Illustration Library).
         </p>
-        <div class="d-flex flex-wrap gap-2 justify-content-end">
-            <button type="button" id="bible-note-cancel" class="btn btn-sm btn-outline-secondary">Cancel</button>
-            <button type="button" id="bible-note-save" class="btn btn-sm btn-cyan">Save to Study notes</button>
+        <div class="d-flex flex-wrap gap-2 justify-content-between">
+            <button type="button" id="bible-note-new" class="btn btn-sm btn-outline-secondary" style="display:none;" title="Keep the previous note and write a separate one">Start new note</button>
+            <div class="d-flex flex-wrap gap-2 ms-auto">
+                <button type="button" id="bible-note-cancel" class="btn btn-sm btn-outline-secondary">Cancel</button>
+                <button type="button" id="bible-note-save" class="btn btn-sm btn-cyan">Save to Study notes</button>
+            </div>
         </div>
     </div>
 </div>
@@ -338,8 +295,6 @@
       note: {{ url_for('pastoral.bible.bible_note_save')|tojson }},
       notesList: {{ url_for('pastoral.bible.bible_notes_list')|tojson }},
       notesDownload: {{ url_for('pastoral.bible.bible_notes_download_bulk')|tojson }},
-      favorite: {{ url_for('pastoral.bible.bible_favorite_toggle')|tojson }},
-      favorites: {{ url_for('pastoral.bible.bible_favorites_list')|tojson }},
       selectionToIllustration: {{ url_for('pastoral.bible.bible_selection_to_illustration')|tojson }},
       illustrationsLibrary: {{ url_for('pastoral.illustrations.library')|tojson }},
       preferred: {{ url_for('pastoral.bible.set_preferred_translation')|tojson }},
@@ -347,5 +302,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260719books1"></script>
+<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260722notes2"></script>
 {% endblock %}

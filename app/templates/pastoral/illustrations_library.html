@@ -67,7 +67,7 @@
           <a href="{{ url_for('pastoral.illustrations.view', item_id=item.id) }}">{{ item.title or 'Untitled' }}</a>
         </h3>
       </div>
-      <span class="illus-badge-vis">{{ 'Private' if item.visibility == 'private' else 'Shared' }}</span>
+      <span class="illus-badge-vis">{{ 'Private' if (item.visibility == 'private' or item.user_id) else 'Shared' }}</span>
     </div>
 
     <div class="illus-card-body">
@@ -223,8 +223,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  function escAttr(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+  function escText(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   function generateEditCard(data = {}, isEdit = false) {
     const isSection = data.type === 'section';
+    // Default new items to private; shared only when explicitly pastoral_group
+    const isPrivate = data.visibility !== 'pastoral_group';
     container.innerHTML = `
       <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
@@ -232,11 +241,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <button type="button" class="btn btn-secondary cancel-edit">Cancel</button>
         </div>
         <form method="POST" id="item-form">
-          ${isEdit ? `<input type="hidden" name="item_id" value="${data.id}">` : ''}
-          <input type="hidden" name="csrf_token" value="${csrf}">
+          ${isEdit ? `<input type="hidden" name="item_id" value="${escAttr(data.id)}">` : ''}
+          <input type="hidden" name="csrf_token" value="${escAttr(csrf)}">
           <input type="hidden" name="content" id="content-hidden">
           <label style="display:block; margin-bottom:0.75rem;">Title *
-            <input type="text" name="title" required value="${(data.title || '').replace(/"/g, '&quot;')}"
+            <input type="text" name="title" required value="${escAttr(data.title || '')}"
                    style="width:100%; margin-top:0.25rem; padding:0.55rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.15); color:inherit;">
           </label>
           ${isSection ? `
@@ -251,20 +260,20 @@ document.addEventListener('DOMContentLoaded', () => {
             </select>
           </label>
           <label style="display:block; margin-bottom:0.75rem;">Scripture
-            <input type="text" name="scripture_reference" value="${(data.scripture_reference || '').replace(/"/g, '&quot;')}"
+            <input type="text" name="scripture_reference" value="${escAttr(data.scripture_reference || '')}"
                    style="width:100%; margin-top:0.25rem; padding:0.55rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.15); color:inherit;">
           </label>` : ''}
           <label style="display:block; margin-bottom:0.75rem;">Tags
-            <input type="text" name="tags" value="${(data.tags_input || '').replace(/"/g, '&quot;')}" placeholder="grace, faith"
+            <input type="text" name="tags" value="${escAttr(data.tags_input || '')}" placeholder="grace, faith"
                    style="width:100%; margin-top:0.25rem; padding:0.55rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.15); color:inherit;">
           </label>
           <label style="display:block; margin-bottom:0.75rem;">Source
-            <textarea name="source" rows="2" style="width:100%; margin-top:0.25rem; padding:0.55rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.15); color:inherit;">${data.source_url || data.source || ''}</textarea>
+            <textarea name="source" rows="2" style="width:100%; margin-top:0.25rem; padding:0.55rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.15); color:inherit;">${escText(data.source_url || data.source || '')}</textarea>
           </label>
           <label style="display:block; margin-bottom:0.75rem;">Visibility
             <select name="visibility" style="width:100%; margin-top:0.25rem; padding:0.55rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.15); color:inherit;">
-              <option value="private" ${data.visibility !== 'pastoral_group' ? 'selected' : ''}>Private (only me)</option>
-              <option value="pastoral_group" ${data.visibility === 'pastoral_group' ? 'selected' : ''}>Shared with Pastoral Group</option>
+              <option value="private" ${isPrivate ? 'selected' : ''}>Private (only me)</option>
+              <option value="pastoral_group" ${!isPrivate ? 'selected' : ''}>Shared with Pastoral Group</option>
             </select>
           </label>
           <div style="margin-bottom:0.75rem;">
@@ -274,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           <label style="display:block; margin-bottom:0.75rem;">Private notes
-            <textarea name="notes" rows="3" style="width:100%; margin-top:0.25rem; padding:0.55rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.15); color:inherit;">${data.notes || ''}</textarea>
+            <textarea name="notes" rows="3" style="width:100%; margin-top:0.25rem; padding:0.55rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.15); color:inherit;">${escText(data.notes || '')}</textarea>
           </label>
           <div style="display:flex; gap:0.5rem; justify-content:flex-end; flex-wrap:wrap;">
             <button type="button" class="btn btn-secondary cancel-edit">Cancel</button>

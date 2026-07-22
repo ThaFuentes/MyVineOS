@@ -24,8 +24,6 @@
 
     <div class="card-body">
         <form method="POST" id="illustration-form">
-    {% include 'partials/csrf_field.html' %}
-
             <!-- Hidden ID for edit mode -->
             {% if illustration %}
                 <input type="hidden" name="illustration_id" value="{{ illustration.id }}">
@@ -70,13 +68,14 @@ Personal journal entry - March 2025">{{ illustration.source if illustration else
             </div>
 
             <!-- Visibility - defaults to Private for new -->
+            {% set is_private = (not illustration) or (illustration.user_id is not none) or (illustration.visibility == 'private') %}
             <div class="mb-3">
                 <label class="form-label text-cyan">Visibility</label>
                 <select name="visibility" class="form-select form-control-dark">
-                    <option value="private" {% if illustration and illustration.user_id is not none or not illustration %}selected{% endif %}>
+                    <option value="private" {% if is_private %}selected{% endif %}>
                         Private (only me)
                     </option>
-                    <option value="pastoral_group" {% if illustration and illustration.user_id is none %}selected{% endif %}>
+                    <option value="pastoral_group" {% if not is_private %}selected{% endif %}>
                         Shared with Pastoral Group
                     </option>
                 </select>
@@ -90,6 +89,16 @@ Personal journal entry - March 2025">{{ illustration.source if illustration else
                         {{ illustration.content|safe if illustration else '' }}
                     </div>
                 </div>
+            </div>
+
+            <!-- Personal / private notes (not shared in sermon body) -->
+            <div class="mb-4">
+                <label class="form-label text-cyan">Private notes</label>
+                <textarea name="notes"
+                          class="form-control form-control-dark"
+                          rows="3"
+                          placeholder="Personal reminders only you see (when viewing as creator)">{{ illustration.notes if illustration else '' }}</textarea>
+                <small class="text-muted">Saved with the illustration; shown on the view page to you (and Admin/Owner).</small>
             </div>
 
             <!-- Buttons -->

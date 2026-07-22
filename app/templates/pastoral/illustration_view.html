@@ -79,21 +79,23 @@
                     </div>
 
                     <!-- Private Notes - only show to creator or Admin/Owner -->
-                    {% if current_user_id == item.user_id or current_user_role in ['Admin', 'Owner'] %}
-                        {% if item.notes %}
+                    {% set uid = current_user_id if current_user_id is defined else session.get('user_id') %}
+                    {% set urole = current_user_role if current_user_role is defined else session.get('user_role') %}
+                    {% set can_see_notes = (item.user_id and uid == item.user_id) or (urole in ['Admin', 'Owner']) %}
+                    {% if can_see_notes and item.notes %}
                             <div class="mb-4 p-4 bg-secondary rounded">
                                 <strong class="text-cyan">Private Notes:</strong>
                                 <div class="mt-2 text-white whitespace-pre-wrap">
                                     {{ item.notes }}
                                 </div>
                             </div>
-                        {% endif %}
                     {% endif %}
 
                     <!-- Visibility badge -->
                     <div class="text-end mt-4">
-                        <span class="badge {% if item.user_id %}bg-secondary{% else %}bg-cyan{% endif %} fs-6">
-                            {% if item.user_id %}Private{% else %}Shared with Pastoral Group{% endif %}
+                        {% set is_private = item.user_id or item.visibility == 'private' %}
+                        <span class="badge {% if is_private %}bg-secondary{% else %}bg-cyan{% endif %} fs-6">
+                            {% if is_private %}Private{% else %}Shared with Pastoral Group{% endif %}
                         </span>
                     </div>
                 </div>

@@ -12,10 +12,10 @@
   let activeSermonId = cfg.sermonId || null;
   let annotationKey = null;
   let chapterData = null;
+  let currentNotes = [];
+  let allNotesCache = [];
+  let notesPanelTab = 'passage'; // 'passage' | 'all'
   let selectedVerses = new Set();
-  let favoriteVerses = new Set();
-  let favChapter = false;
-  let favBook = false;
   let lastSource = null;
   let chapterPage = 0;
   const CHAPTERS_PER_PAGE = 20;
@@ -23,38 +23,6 @@
   const el = (id) => document.getElementById(id);
   const main = () => el('bible-reader-content');
   const api = '/pastoral/bible';
-
-  /** URL-safe book segment so "1 Samuel" never breaks path routing. */
-  function bookSlug(name) {
-    return String(name || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[_\s]+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '') || 'john';
-  }
-
-  function chapterUrl(book, chapter, translation) {
-    const slug = bookSlug(book);
-    let url = `${api}/chapter/${encodeURIComponent(slug)}/${chapter}`;
-    const params = [];
-    // Explicit book name for servers that mishandle numbered path segments
-    if (book) params.push(`book=${encodeURIComponent(book)}`);
-    if (translation) params.push(`translation=${encodeURIComponent(translation)}`);
-    if (params.length) url += `?${params.join('&')}`;
-    return url;
-  }
-
-  function verseUrl(book, chapter, verse, translation) {
-    const slug = bookSlug(book);
-    let url = `${api}/verse/${encodeURIComponent(slug)}/${chapter}/${verse}`;
-    const params = [];
-    if (book) params.push(`book=${encodeURIComponent(book)}`);
-    if (translation) params.push(`translation=${encodeURIComponent(translation)}`);
-    if (params.length) url += `?${params.join('&')}`;
-    return url;
-  }
 
   function csrfToken() {
     if (cfg.csrf) return cfg.csrf;
@@ -163,6 +131,7 @@
       el('bible-open-canon')?.classList.remove('active');
       tools?.classList.add('open');
       el('bible-open-tools')?.classList.add('active');
+      loadNotesLibrary(el('bible-notes-lib-q')?.value || '');
     }
     backdrop?.classList.add('open');
   }
@@ -198,6 +167,7 @@
     const ref = escapeAttr(opts.reference || '');
     const text = escapeAttr(opts.text || '');
     const book = escapeAttr(opts.book || '');
+    const noteLabel = opts.hasNote ? 'Edit note' : 'Note';
     return `
       <div class="content-actions">
         <button type="button" class="btn btn-outline-secondary btn-sm" data-act="copy"
@@ -206,7 +176,7 @@
         <button type="button" class="btn btn-outline-cyan btn-sm" data-act="note"
           data-ref="${ref}" data-text="${text}" data-book="${book}"
           data-chapter="${opts.chapter || ''}" data-verse="${opts.verse || ''}"
-          title="Open a study note with this verse filled in">Note</button>
+          title="Open a study note with this verse filled in">${noteLabel}</button>
         <button type="button" class="btn btn-cyan btn-sm" data-act="sermon"
           data-ref="${ref}" data-text="${text}" data-book="${book}"
           data-chapter="${opts.chapter || ''}" data-verse="${opts.verse || ''}"
@@ -242,12 +212,34 @@
           });
           updateSelectionBar();
         }
+        // Loads previous note for this verse when one exists (edit / add to it)
         openNoteModal({
           verse_start: v || 1,
           verse_end: v || 1,
           reference: btn.dataset.ref || '',
           scripture_text: btn.dataset.text || '',
           title: btn.dataset.ref || '',
+        });
+      });
+    });
+    root.querySelectorAll('[data-open-note-verse]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const v = parseInt(btn.dataset.openNoteVerse, 10);
+        if (v) {
+          selectedVerses.clear();
+          selectedVerses.add(v);
+          main()?.querySelectorAll('.bible-verse-line').forEach((l) => {
+            l.classList.toggle('verse-selected', selectedVerses.has(parseInt(l.dataset.verse, 10)));
+          });
+          updateSelectionBar();
+        }
+        openNoteModal({
+          verse_start: v || 1,
+          verse_end: v || 1,
+          reference: `${currentBook} ${currentChapter}:${v}`,
+          scripture_text: btn.closest('.bible-verse-line')?.dataset.text || '',
+          title: `${currentBook} ${currentChapter}:${v}`,
         });
       });
     });
@@ -447,130 +439,29 @@
     navigator.clipboard.writeText(payload).then(() => toast(label || 'Copied'));
   }
 
-  let _newSermonResolve = null;
-
-  function suggestedPassageFromContext(reference) {
-    if (reference && String(reference).trim()) return String(reference).trim();
-    if (currentBook && currentChapter) return `${currentBook} ${currentChapter}`;
-    return '';
-  }
-
-  function openNewSermonModal(opts) {
-    opts = opts || {};
-    const modal = el('bible-new-sermon-modal');
-    const titleInput = el('bible-new-sermon-title');
-    const passageInput = el('bible-new-sermon-passage');
-    const dateInput = el('bible-new-sermon-date');
-    const hint = el('bible-new-sermon-suggest-hint');
-    if (!modal || !titleInput) {
-      // Fallback if modal missing
-      const t = window.prompt('Sermon title', '') || '';
-      if (!t.trim()) return Promise.resolve(null);
-      return submitQuickSermon({
-        title: t.trim(),
-        reference: suggestedPassageFromContext(opts.reference),
-      });
-    }
-    // Free title — never pre-fill with "Sermon — chapter"
-    titleInput.value = (opts.title || '').trim();
-    titleInput.placeholder = opts.titlePlaceholder || 'e.g. The Gift of Grace';
-    const suggested = suggestedPassageFromContext(opts.reference || opts.suggestedPassage);
-    passageInput.value = (opts.passage != null ? opts.passage : suggested) || '';
-    if (dateInput) dateInput.value = opts.service_date || '';
-    if (hint) {
-      if (suggested && !opts.hideSuggestHint) {
-        hint.style.display = '';
-        hint.textContent = `Suggested from current reading: ${suggested}. Change or clear anytime.`;
-      } else {
-        hint.style.display = 'none';
-        hint.textContent = '';
-      }
-    }
-    modal.style.display = 'flex';
-    modal.setAttribute('aria-hidden', 'false');
-    setTimeout(() => {
-      titleInput.focus();
-      titleInput.select();
-    }, 30);
-    return new Promise((resolve) => {
-      _newSermonResolve = resolve;
-    });
-  }
-
-  function closeNewSermonModal(result) {
-    const modal = el('bible-new-sermon-modal');
-    if (modal) {
-      modal.style.display = 'none';
-      modal.setAttribute('aria-hidden', 'true');
-    }
-    const resolve = _newSermonResolve;
-    _newSermonResolve = null;
-    if (resolve) resolve(result == null ? null : result);
-  }
-
-  async function submitQuickSermon(payload) {
-    const title = (payload.title || '').trim();
-    if (!title) {
-      toast('Enter a sermon title');
-      el('bible-new-sermon-title')?.focus();
-      return null;
-    }
-    const body = {
-      title,
-      reference: (payload.reference || payload.primary_passage || '').trim(),
-      primary_passage: (payload.reference || payload.primary_passage || '').trim(),
-      service_date: (payload.service_date || '').trim() || null,
-    };
-    try {
-      const resp = await fetch(urls.quickSermon, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(cfg.csrf ? { 'X-CSRF-Token': cfg.csrf } : {}),
-        },
-        body: JSON.stringify(body),
-      });
-      const data = await resp.json();
-      if (data.status === 'success') {
-        const sel = el('bible-sermon-select');
-        if (sel) {
-          const opt = document.createElement('option');
-          opt.value = data.sermon_id;
-          const pass = data.primary_passage || body.reference || '';
-          opt.textContent = pass ? `${data.title} (${pass})` : data.title;
-          opt.selected = true;
-          sel.appendChild(opt);
-        }
-        updateSermonBar();
-        toast('New sermon created');
-        return data.sermon_id;
-      }
-      toast((data && data.message) || 'Could not create sermon');
-      return null;
-    } catch (e) {
-      toast('Network error creating sermon');
-      return null;
-    }
-  }
-
-  /** Open create form; chapter/passage is optional suggestion only. */
   async function quickCreateSermon(reference) {
-    return openNewSermonModal({ reference: reference || '' });
-  }
-
-  async function confirmNewSermonFromModal() {
-    const title = (el('bible-new-sermon-title')?.value || '').trim();
-    if (!title) {
-      toast('Enter a sermon title');
-      el('bible-new-sermon-title')?.focus();
-      return;
-    }
-    const id = await submitQuickSermon({
-      title,
-      reference: (el('bible-new-sermon-passage')?.value || '').trim(),
-      service_date: (el('bible-new-sermon-date')?.value || '').trim(),
+    const title = reference ? `Sermon — ${reference}` : 'New Sermon from Bible Study';
+    if (!confirm(`Create "${title}" and use it?`)) return null;
+    const resp = await fetch(urls.quickSermon, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, reference }),
     });
-    closeNewSermonModal(id);
+    const data = await resp.json();
+    if (data.status === 'success') {
+      const sel = el('bible-sermon-select');
+      if (sel) {
+        const opt = document.createElement('option');
+        opt.value = data.sermon_id;
+        opt.textContent = data.title;
+        opt.selected = true;
+        sel.appendChild(opt);
+      }
+      updateSermonBar();
+      toast('New sermon created');
+      return data.sermon_id;
+    }
+    return null;
   }
 
   function renderBooks(testament) {
@@ -757,7 +648,8 @@
     const startChapter = opts.chapter || 1;
     const scrollToVerse = opts.scrollToVerse || null;
     try {
-      const url = chapterUrl(book, startChapter, currentTranslation);
+      const url = `${api}/chapter/${encodeURIComponent(book)}/${startChapter}` +
+        (currentTranslation ? `?translation=${encodeURIComponent(currentTranslation)}` : '');
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('no book');
       const data = await resp.json();
@@ -880,7 +772,8 @@
     const title = el('bible-reader-title');
 
     try {
-      const url = chapterUrl(currentBook, chapter, currentTranslation);
+      const url = `${api}/chapter/${encodeURIComponent(currentBook)}/${chapter}` +
+        (currentTranslation ? `?translation=${encodeURIComponent(currentTranslation)}` : '');
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('not found');
       const data = await resp.json();
@@ -901,8 +794,10 @@
         title.textContent = `${data.book} ${data.chapter}${trLabel ? ' · ' + trLabel : ''}`;
       }
       renderVersePicker(data.verses);
+      currentNotes = data.notes || [];
       renderChapter(data);
-      renderNotesPanel(data.notes || []);
+      if (notesPanelTab === 'all') loadAllNotesPanel();
+      else renderNotesPanel(currentNotes, { mode: 'passage' });
       updateNavButtons();
       if (opts.scrollToVerse) {
         // Wait a tick for layout so scrollIntoView hits the right place
@@ -916,7 +811,8 @@
       main().innerHTML = '<p class="text-muted">Could not load this chapter. Try another version or book.</p>';
       if (title) title.textContent = `${currentBook} ${chapter}`;
       renderVersePicker([]);
-      renderNotesPanel([]);
+      currentNotes = [];
+      renderNotesPanel([], { mode: 'passage' });
       updateNavButtons();
     }
   }
@@ -960,128 +856,50 @@
     return html;
   }
 
-  function updateFavButtons() {
-    const ch = el('bible-fav-chapter');
-    const bk = el('bible-fav-book');
-    if (ch) {
-      ch.textContent = favChapter ? '♥ Ch' : '♡ Ch';
-      ch.classList.toggle('is-faved', favChapter);
-    }
-    if (bk) {
-      bk.textContent = favBook ? '♥ Book' : '♡ Book';
-      bk.classList.toggle('is-faved', favBook);
-    }
-  }
-
-  async function toggleFavorite(scope, extra = {}) {
-    const body = {
-      scope,
-      book: currentBook,
-      chapter: scope === 'book' ? 0 : currentChapter,
-      verse: scope === 'verse' ? (extra.verse || Array.from(selectedVerses)[0] || 0) : 0,
-      translation: annotationKey || getTranslation(),
-      scripture_text: extra.text || '',
-    };
-    if (scope === 'verse' && !body.verse) return toast('Select a verse first');
-    try {
-      const resp = await fetch(urls.favorite || `${api}/favorite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken(),
-          'X-Requested-With': 'XMLHttpRequest',
-          Accept: 'application/json',
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify(body),
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!data.ok) throw new Error(data.error || 'Failed');
-      if (scope === 'verse') {
-        if (data.favorited) favoriteVerses.add(body.verse);
-        else favoriteVerses.delete(body.verse);
-        const line = main()?.querySelector(`.bible-verse-line[data-verse="${body.verse}"]`);
-        const heart = line?.querySelector('.bible-verse-heart');
-        if (line) line.classList.toggle('is-favorite', !!data.favorited);
-        if (heart) {
-          heart.textContent = data.favorited ? '♥' : '♡';
-          heart.classList.toggle('on', !!data.favorited);
-        }
-      } else if (scope === 'chapter') {
-        favChapter = !!data.favorited;
-      } else if (scope === 'book') {
-        favBook = !!data.favorited;
-      }
-      updateFavButtons();
-      toast(data.favorited
-        ? `Favorited ${data.label || scope}`
-        : `Removed ${data.label || scope} from favorites`);
-    } catch (e) {
-      toast(e.message || 'Could not update favorite');
-    }
-  }
-
-  async function loadFavoritesLibrary(q) {
-    const box = el('bible-favs-lib-results');
-    if (!box) return;
-    box.innerHTML = '<p class="small text-muted">Loading…</p>';
-    const scope = el('bible-favs-scope')?.value || '';
-    const params = new URLSearchParams();
-    if (q) params.set('q', q);
-    if (scope) params.set('scope', scope);
-    params.set('limit', '80');
-    try {
-      const resp = await fetch((urls.favorites || `${api}/favorites`) + '?' + params.toString());
-      const data = await resp.json().catch(() => ({}));
-      const rows = data.favorites || [];
-      if (!rows.length) {
-        box.innerHTML = '<p class="small text-muted">No favorites yet. Heart a verse, chapter, or book.</p>';
-        return;
-      }
-      box.innerHTML = rows.map((r) => {
-        const label = escapeHtml(r.label || r.reference || `${r.book || ''} ${r.chapter || ''}`);
-        const scopeLabel = escapeHtml(r.scope || 'verse');
-        return `<button type="button" class="bible-online-result bible-fav-jump" data-book="${escapeAttr(r.book || '')}" data-chapter="${r.chapter || 1}" data-verse="${r.verse || 1}">
-          <strong>${label}</strong>
-          <span class="small text-muted"> · ${scopeLabel}</span>
-        </button>`;
-      }).join('');
-      box.querySelectorAll('.bible-fav-jump').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const book = btn.dataset.book;
-          const ch = parseInt(btn.dataset.chapter, 10) || 1;
-          const v = parseInt(btn.dataset.verse, 10) || 1;
-          if (!book) return;
-          closeFlyouts();
-          prepareBook(book, { chapter: ch, scrollToVerse: v });
-        });
-      });
-    } catch (e) {
-      box.innerHTML = '<p class="small text-muted">Could not load favorites.</p>';
-    }
+  function noteVerseSet(notes) {
+    const set = new Set();
+    (notes || []).forEach((n) => {
+      const scope = (n.scope || 'verse').toLowerCase();
+      if (scope === 'book' || scope === 'chapter') return;
+      const ch = Number(n.chapter) || 0;
+      if (ch && ch !== Number(currentChapter)) return;
+      const a = Number(n.verse_start) || 0;
+      const b = Number(n.verse_end) || a;
+      if (a < 1) return;
+      for (let i = a; i <= b; i += 1) set.add(i);
+    });
+    return set;
   }
 
   function renderChapter(data) {
     const reader = main();
     const highlights = data.highlights || [];
     const crossRefs = data.cross_refs || {};
-    const favs = data.favorites || {};
-    favoriteVerses = new Set(favs.verses || []);
-    favChapter = !!favs.chapter;
-    favBook = !!favs.book;
-    updateFavButtons();
+    const notesForMarkers = (currentNotes && currentNotes.length)
+      ? currentNotes
+      : (data.notes || []);
+    const noted = noteVerseSet(notesForMarkers);
     let html = '';
     (data.verses || []).forEach((v) => {
       const ref = `${data.book} ${data.chapter}:${v.verse}`;
       const strongs = (data.strongs && data.strongs[v.verse]) || [];
       const hl = highlightClassForVerse(v.verse, highlights);
-      const isFav = favoriteVerses.has(v.verse);
-      html += `<div class="bible-verse-line${hl}${isFav ? ' is-favorite' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
-      html += `<button type="button" class="bible-verse-heart${isFav ? ' on' : ''}" data-heart-verse="${v.verse}" title="Favorite verse" aria-label="Favorite">${isFav ? '♥' : '♡'}</button>`;
+      const hasNote = noted.has(v.verse);
+      html += `<div class="bible-verse-line${hl}${hasNote ? ' has-note' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
       html += `<span class="bible-verse-num">${v.verse}</span>`;
+      if (hasNote) {
+        html += `<button type="button" class="bible-note-marker" data-open-note-verse="${v.verse}" title="Open your note on this verse" aria-label="Open note">📝</button>`;
+      }
       html += `<span class="bible-verse-text">${linkStrongsInVerse(v.text, strongs)}</span>`;
       html += xrefHtmlForVerse(v.verse, crossRefs);
-      html += actionButtonsHtml({ reference: ref, text: v.text, book: data.book, chapter: data.chapter, verse: v.verse });
+      html += actionButtonsHtml({
+        reference: ref,
+        text: v.text,
+        book: data.book,
+        chapter: data.chapter,
+        verse: v.verse,
+        hasNote,
+      });
       html += '</div>';
     });
     reader.innerHTML = html || '<p class="text-muted">Empty chapter.</p>';
@@ -1090,11 +908,72 @@
     bindChapterEvents();
   }
 
-  function renderNotesPanel(notes) {
+  function noteIsOnCurrentPassage(n) {
+    if (!n) return false;
+    const scope = (n.scope || 'verse').toLowerCase();
+    const book = (n.book || '').toString();
+    if (book && book !== currentBook) return false;
+    if (scope === 'book') return true;
+    if (scope === 'chapter') return Number(n.chapter) === Number(currentChapter);
+    return Number(n.chapter) === Number(currentChapter);
+  }
+
+  function goToNotePassage(n, opts = {}) {
+    if (!n) return;
+    const book = n.book || currentBook;
+    const ch = Number(n.chapter) || 1;
+    const v = Number(n.verse_start) || 1;
+    const scope = (n.scope || 'verse').toLowerCase();
+    closeFlyouts();
+    const after = () => {
+      if (opts.openEdit && n.id) {
+        setTimeout(() => openNoteModalForEdit(n.id), 150);
+      }
+    };
+    if (book === currentBook && Number(ch) === Number(currentChapter) && scope !== 'book') {
+      if (scope === 'verse' && v) scrollToVerse(v);
+      focusNotesPanel(false);
+      after();
+      return;
+    }
+    currentBook = book;
+    prepareBook(book, {
+      chapter: scope === 'book' ? 1 : ch,
+      scrollToVerse: scope === 'verse' ? v : 1,
+    })
+      .then(() => {
+        after();
+        setNotesPanelTab(notesPanelTab === 'all' ? 'all' : 'passage');
+      })
+      .catch(() => toast('Could not open that passage'));
+  }
+
+  function setNotesPanelTab(tab) {
+    notesPanelTab = tab === 'all' ? 'all' : 'passage';
+    document.querySelectorAll('[data-notes-tab]').forEach((btn) => {
+      const on = btn.dataset.notesTab === notesPanelTab;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    const hint = el('bible-notes-hint');
+    if (hint) {
+      hint.innerHTML = notesPanelTab === 'all'
+        ? 'All notes across books. Click a note (or <strong>Go to verse</strong>) to jump there.'
+        : 'Notes for this chapter. Verses with notes show a <span class="bible-note-dot-demo">📝</span> marker — click it to open.';
+    }
+    if (notesPanelTab === 'all') loadAllNotesPanel();
+    else renderNotesPanel(currentNotes, { mode: 'passage' });
+  }
+
+  function renderNotesPanel(notes, opts = {}) {
     const list = el('bible-notes-list');
     if (!list) return;
+    if (opts.mode !== 'all') currentNotes = notes || [];
+    const mode = opts.mode || notesPanelTab || 'passage';
     if (!notes || !notes.length) {
-      list.innerHTML = '<p class="small text-muted mb-0">No notes on this chapter yet. Select verses → <strong>Add note</strong>.</p>';
+      list.innerHTML = mode === 'all'
+        ? '<p class="small text-muted mb-0">No notes yet. Select verses → <strong>Add note</strong>.</p>'
+        : '<p class="small text-muted mb-0">No notes on this chapter yet. Select verses → <strong>Add note</strong>, or open <strong>All my notes</strong>.</p>';
       return;
     }
     list.innerHTML = notes.map((n) => {
@@ -1104,22 +983,51 @@
           ? `v${n.verse_start}`
           : `v${n.verse_start}–${n.verse_end}`
       );
-      return `<div class="bible-note-item" data-id="${n.id}">
+      const here = noteIsOnCurrentPassage(n);
+      const elsewhere = mode === 'all' && !here;
+      const hereBadge = here && mode === 'all'
+        ? '<span class="bible-note-here-badge">Here</span>'
+        : '';
+      return `<div class="bible-note-item is-clickable${elsewhere ? ' is-elsewhere' : ''}" data-id="${n.id}" data-goto-note-id="${n.id}">
         <div class="d-flex justify-content-between gap-2 flex-wrap">
-          <div class="small text-cyan mb-1"><strong>${escapeHtml(title)}</strong> · ${escapeHtml(range)}</div>
+          <div class="small text-cyan mb-1"><strong>${escapeHtml(title)}</strong> · ${escapeHtml(range)}${hereBadge}</div>
         </div>
         ${n.scripture_text ? `<blockquote class="bible-note-scripture small">${escapeHtml(n.scripture_text)}</blockquote>` : ''}
         <div class="bible-note-body">${escapeHtml(n.body || '')}</div>
         <div class="bible-note-actions mt-1 d-flex flex-wrap gap-1">
-          <button type="button" class="btn btn-sm btn-outline-cyan" data-edit-note="${n.id}">Edit</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-goto-note-id="${n.id}">Go to verse</button>
+          <button type="button" class="btn btn-sm btn-outline-cyan" data-edit-note="${n.id}">Edit / add</button>
           <button type="button" class="btn btn-sm btn-outline-cyan" data-illus-note="${n.id}">To illustrations</button>
           <a class="btn btn-sm btn-outline-secondary" href="${api}/note/${n.id}/download">Download</a>
           <button type="button" class="btn btn-sm btn-outline-danger" data-del-note="${n.id}">Delete</button>
         </div>
       </div>`;
     }).join('');
+
+    const findNote = (id) => {
+      const nid = Number(id);
+      return (notes || []).find((x) => Number(x.id) === nid)
+        || (currentNotes || []).find((x) => Number(x.id) === nid)
+        || (allNotesCache || []).find((x) => Number(x.id) === nid);
+    };
+
+    list.querySelectorAll('[data-goto-note-id]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const n = findNote(btn.dataset.gotoNoteId);
+        if (n) goToNotePassage(n);
+      });
+    });
+    list.querySelectorAll('.bible-note-item[data-goto-note-id]').forEach((card) => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('button, a')) return;
+        const n = findNote(card.dataset.gotoNoteId);
+        if (n) goToNotePassage(n);
+      });
+    });
     list.querySelectorAll('[data-del-note]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         if (!confirm('Delete this note?')) return;
         const resp = await fetch(`${api}/note/${btn.dataset.delNote}`, {
           method: 'DELETE',
@@ -1129,15 +1037,39 @@
         if (data.ok) {
           toast('Note deleted');
           loadChapter(currentChapter);
+          if (notesPanelTab === 'all') loadAllNotesPanel();
         } else toast('Could not delete note');
       });
     });
     list.querySelectorAll('[data-illus-note]').forEach((btn) => {
-      btn.addEventListener('click', () => sendNoteToIllustration(parseInt(btn.dataset.illusNote, 10)));
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sendNoteToIllustration(parseInt(btn.dataset.illusNote, 10));
+      });
     });
     list.querySelectorAll('[data-edit-note]').forEach((btn) => {
-      btn.addEventListener('click', () => openNoteModalForEdit(parseInt(btn.dataset.editNote, 10)));
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const n = findNote(btn.dataset.editNote);
+        if (n && !noteIsOnCurrentPassage(n)) goToNotePassage(n, { openEdit: true });
+        else openNoteModalForEdit(parseInt(btn.dataset.editNote, 10));
+      });
     });
+  }
+
+  async function loadAllNotesPanel() {
+    const list = el('bible-notes-list');
+    if (!list) return;
+    list.innerHTML = '<p class="small text-muted mb-0">Loading all notes…</p>';
+    try {
+      const url = (urls.notesList || `${api}/notes`) + '?limit=100';
+      const resp = await fetch(url, { headers: { Accept: 'application/json' } });
+      const data = await resp.json().catch(() => ({}));
+      allNotesCache = data.notes || [];
+      renderNotesPanel(allNotesCache, { mode: 'all' });
+    } catch (e) {
+      list.innerHTML = '<p class="small text-warning">Could not load notes.</p>';
+    }
   }
 
   function selectedScriptureBundle() {
@@ -1202,14 +1134,79 @@
     } else toast(data.error || 'Could not save');
   }
 
+  function findExistingNote(scope, verseStart, verseEnd) {
+    const list = currentNotes || [];
+    if (!list.length) return null;
+    const sc = (scope || 'verse').toLowerCase();
+    let matches = [];
+    if (sc === 'book') {
+      matches = list.filter((n) => (n.scope || 'verse').toLowerCase() === 'book');
+    } else if (sc === 'chapter') {
+      matches = list.filter((n) => (n.scope || '').toLowerCase() === 'chapter');
+    } else {
+      const vs = Number(verseStart) || 0;
+      const ve = Number(verseEnd) || vs;
+      matches = list.filter((n) => {
+        const s = (n.scope || 'verse').toLowerCase();
+        if (s !== 'verse') return false;
+        const a = Number(n.verse_start) || 0;
+        const b = Number(n.verse_end) || a;
+        if (!a) return false;
+        return a <= ve && b >= vs;
+      });
+      matches.sort((x, y) => {
+        const xExact = Number(x.verse_start) === vs && Number(x.verse_end || x.verse_start) === ve ? 0 : 1;
+        const yExact = Number(y.verse_start) === vs && Number(y.verse_end || y.verse_start) === ve ? 0 : 1;
+        if (xExact !== yExact) return xExact - yExact;
+        return (Number(y.id) || 0) - (Number(x.id) || 0);
+      });
+      return matches[0] || null;
+    }
+    matches.sort((x, y) => (Number(y.id) || 0) - (Number(x.id) || 0));
+    return matches[0] || null;
+  }
+
+  function setNoteModalEditingState(isEditing) {
+    const heading = el('bible-note-heading');
+    const status = el('bible-note-status');
+    const saveBtn = el('bible-note-save');
+    const newBtn = el('bible-note-new');
+    if (heading) heading.textContent = isEditing ? 'Edit study note' : 'Study note';
+    if (saveBtn) saveBtn.textContent = isEditing ? 'Update study note' : 'Save to Study notes';
+    if (newBtn) newBtn.style.display = isEditing ? '' : 'none';
+    if (status) {
+      if (isEditing) {
+        status.style.display = '';
+        status.className = 'small mb-2 text-cyan';
+        status.textContent = 'Previous note loaded — edit the text or add more at the end, then Update.';
+      } else {
+        status.style.display = 'none';
+        status.textContent = '';
+      }
+    }
+  }
+
+  function focusNoteBodyAtEnd() {
+    const body = el('bible-note-body');
+    if (!body) return;
+    body.focus();
+    try {
+      const len = body.value.length;
+      body.setSelectionRange(len, len);
+    } catch (e) { /* ignore */ }
+  }
+
   async function openNoteModalForEdit(noteId) {
     try {
-      const resp = await fetch(`${api}/note/${noteId}`, {
-        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      });
-      const data = await resp.json();
-      if (!data.ok || !data.note) throw new Error(data.error || 'Not found');
-      const n = data.note;
+      let n = (currentNotes || []).find((x) => Number(x.id) === Number(noteId));
+      if (!n) {
+        const resp = await fetch(`${api}/note/${noteId}`, {
+          headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await resp.json();
+        if (!data.ok || !data.note) throw new Error(data.error || 'Not found');
+        n = data.note;
+      }
       openNoteModal({
         editId: n.id,
         verse_start: n.verse_start,
@@ -1225,6 +1222,23 @@
     }
   }
 
+  function startNewNoteFromModal() {
+    const ref = el('bible-note-ref');
+    if (ref) ref.dataset.editId = '';
+    const body = el('bible-note-body');
+    const tags = el('bible-note-tags');
+    if (body) body.value = '';
+    if (tags) tags.value = 'bible,study-note';
+    setNoteModalEditingState(false);
+    const status = el('bible-note-status');
+    if (status) {
+      status.style.display = '';
+      status.className = 'small mb-2 text-muted';
+      status.textContent = 'Writing a new note (previous note is kept).';
+    }
+    focusNoteBodyAtEnd();
+  }
+
   async function loadNotesLibrary(q) {
     const box = el('bible-notes-lib-results');
     if (!box) return;
@@ -1234,32 +1248,51 @@
       const resp = await fetch(url);
       const data = await resp.json();
       const rows = data.notes || [];
+      allNotesCache = rows;
       if (!rows.length) {
         box.innerHTML = '<p class="small text-muted">No notes found.</p>';
         return;
       }
       box.innerHTML = rows.map((n) => `
-        <div class="bible-lib-note mb-2 p-2 border rounded">
+        <div class="bible-lib-note mb-2 p-2 border rounded" data-lib-note-id="${n.id}" title="Go to ${escapeAttr(n.reference || '')}">
           <div class="small fw-semibold">${escapeHtml(n.display_title || n.title || n.reference)}</div>
           <div class="small text-muted">${escapeHtml(n.reference || '')}</div>
           <div class="small" style="max-height:3.2em;overflow:hidden;">${escapeHtml((n.body || '').slice(0, 160))}</div>
           <div class="d-flex flex-wrap gap-1 mt-1">
-            <button type="button" class="btn btn-sm btn-outline-cyan" data-lib-goto="${escapeAttr(n.book)}|${n.chapter}|${n.verse_start}">Open</button>
+            <button type="button" class="btn btn-sm btn-outline-cyan" data-goto-note-id="${n.id}">Go to verse</button>
+            <button type="button" class="btn btn-sm btn-outline-cyan" data-edit-note="${n.id}">Edit</button>
             <button type="button" class="btn btn-sm btn-outline-cyan" data-lib-illus="${n.id}">To illustrations</button>
             <a class="btn btn-sm btn-outline-secondary" href="${api}/note/${n.id}/download">Download</a>
           </div>
         </div>
       `).join('');
-      box.querySelectorAll('[data-lib-goto]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const [book, ch, v] = btn.dataset.libGoto.split('|');
-          currentBook = book;
-          closeFlyouts();
-          prepareBook(book).then(() => loadChapter(parseInt(ch, 10)).then(() => scrollToVerse(parseInt(v, 10))));
+      const findNote = (id) => rows.find((x) => Number(x.id) === Number(id));
+      box.querySelectorAll('[data-goto-note-id]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const n = findNote(btn.dataset.gotoNoteId);
+          if (n) goToNotePassage(n);
+        });
+      });
+      box.querySelectorAll('[data-edit-note]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const n = findNote(btn.dataset.editNote);
+          if (n) goToNotePassage(n, { openEdit: true });
+        });
+      });
+      box.querySelectorAll('.bible-lib-note[data-lib-note-id]').forEach((item) => {
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('button, a')) return;
+          const n = findNote(item.dataset.libNoteId);
+          if (n) goToNotePassage(n);
         });
       });
       box.querySelectorAll('[data-lib-illus]').forEach((btn) => {
-        btn.addEventListener('click', () => sendNoteToIllustration(parseInt(btn.dataset.libIllus, 10)));
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          sendNoteToIllustration(parseInt(btn.dataset.libIllus, 10));
+        });
       });
     } catch (e) {
       box.innerHTML = '<p class="small text-warning">Could not load notes library.</p>';
@@ -1311,23 +1344,12 @@
         });
       });
     });
-    reader?.querySelectorAll('.bible-verse-heart').forEach((heart) => {
-      heart.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const v = parseInt(heart.dataset.heartVerse, 10);
-        if (!v) return;
-        const line = heart.closest('.bible-verse-line');
-        toggleFavorite('verse', { verse: v, text: line?.dataset.text || '' });
-      });
-    });
     reader?.querySelectorAll('.bible-verse-line').forEach((line) => {
       line.addEventListener('click', (e) => {
-        if (
-          e.target.closest('.content-actions')
+        if (e.target.closest('.content-actions')
           || e.target.closest('.strongs-word')
           || e.target.closest('.bible-xrefs')
-          || e.target.closest('.bible-verse-heart')
-        ) return;
+          || e.target.closest('.bible-note-marker')) return;
         const v = parseInt(line.dataset.verse, 10);
         if (!v) return;
         if (e.shiftKey && selectedVerses.size) {
@@ -1421,24 +1443,72 @@
     }
     if (!bundle) return;
 
-    if (ref) {
-      ref.textContent = bundle.reference || `${currentBook} ${currentChapter}`;
-      ref.dataset.vStart = String(bundle.verse_start || 1);
-      ref.dataset.vEnd = String(bundle.verse_end || bundle.verse_start || 1);
-      ref.dataset.editId = bundle.editId ? String(bundle.editId) : '';
+    // Auto-load previous note for this passage unless starting fresh
+    let existing = null;
+    if (!bundle.forceNew) {
+      if (bundle.editId) {
+        existing = (currentNotes || []).find((n) => Number(n.id) === Number(bundle.editId)) || null;
+      } else {
+        existing = findExistingNote(
+          bundle.scope || 'verse',
+          bundle.verse_start,
+          bundle.verse_end || bundle.verse_start,
+        );
+      }
     }
-    if (title) title.value = bundle.title || bundle.reference || '';
-    if (scripture) scripture.value = bundle.scripture_text || '';
-    if (body) body.value = bundle.body || '';
-    if (tags) tags.value = bundle.tags || 'bible,study-note';
+
+    if (ref) {
+      ref.textContent = (existing && existing.reference)
+        || bundle.reference
+        || `${currentBook} ${currentChapter}`;
+      ref.dataset.vStart = String(
+        existing ? (existing.verse_start || bundle.verse_start || 1) : (bundle.verse_start || 1)
+      );
+      ref.dataset.vEnd = String(
+        existing
+          ? (existing.verse_end || existing.verse_start || bundle.verse_end || 1)
+          : (bundle.verse_end || bundle.verse_start || 1)
+      );
+      ref.dataset.editId = existing
+        ? String(existing.id)
+        : (bundle.editId ? String(bundle.editId) : '');
+    }
+    if (title) {
+      title.value = bundle.title
+        || (existing && (existing.title || existing.display_title))
+        || bundle.reference
+        || '';
+    }
+    if (scripture) {
+      scripture.value = bundle.scripture_text != null && bundle.scripture_text !== ''
+        ? bundle.scripture_text
+        : ((existing && existing.scripture_text) || '');
+    }
+    if (body) {
+      // Prefer explicit prefill body (edit), else existing note, else blank
+      if (bundle.body != null && (bundle.editId || bundle.forceNew)) {
+        body.value = bundle.body || '';
+      } else if (existing) {
+        body.value = existing.body || '';
+      } else {
+        body.value = bundle.body || '';
+      }
+    }
+    if (tags) {
+      tags.value = bundle.tags != null && (bundle.editId || bundle.forceNew)
+        ? (bundle.tags || 'bible,study-note')
+        : (existing ? (existing.tags || 'bible,study-note') : (bundle.tags || 'bible,study-note'));
+    }
     // Notes stay in Study notes by default — illustrations are opt-in
     if (alsoIllus) alsoIllus.checked = false;
+
+    setNoteModalEditingState(!!(existing || bundle.editId));
 
     if (modal) {
       modal.style.display = 'flex';
       modal.setAttribute('aria-hidden', 'false');
     }
-    body?.focus();
+    requestAnimationFrame(() => focusNoteBodyAtEnd());
   }
 
   function focusNotesPanel(flash) {
@@ -1500,25 +1570,31 @@
       // Reload notes for this chapter without wiping the reader if possible
       const chData = await (async () => {
         const tr = getTranslation();
-        const url = chapterUrl(currentBook, currentChapter, tr);
+        let url = `${api}/chapter/${encodeURIComponent(currentBook)}/${currentChapter}`;
+        if (tr) url += `?translation=${encodeURIComponent(tr)}`;
         const r = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
         return r.ok ? r.json() : null;
       })();
       if (chData) {
         annotationKey = chData.annotation_key || annotationKey;
-        renderNotesPanel(chData.notes || []);
-      } else {
-        renderNotesPanel(data.note ? [data.note] : []);
+        currentNotes = chData.notes || [];
+        renderNotesPanel(currentNotes);
+      } else if (data.note) {
+        // Merge into local cache
+        const idx = currentNotes.findIndex((n) => Number(n.id) === Number(data.note.id));
+        if (idx >= 0) currentNotes[idx] = data.note;
+        else currentNotes = [data.note, ...currentNotes];
+        renderNotesPanel(currentNotes);
       }
     } catch (e) {
       /* still focus panel */
     }
     focusNotesPanel(true);
     if (alsoIllus && data.note?.id) {
-      toast('Note saved to Study notes — also copying to Illustration Library…');
+      toast(editId ? 'Note updated — also copying to Illustration Library…' : 'Note saved to Study notes — also copying to Illustration Library…');
       await sendNoteToIllustration(data.note.id);
     } else {
-      toast('Note saved in Study notes (below)');
+      toast(editId ? 'Note updated in Study notes (below)' : 'Note saved in Study notes (below)');
     }
   }
 
@@ -1712,7 +1788,8 @@
 
     try {
       const tr = getTranslation();
-      const url = verseUrl(book, chapter, verse, tr);
+      let url = `${api}/verse/${encodeURIComponent(book)}/${chapter}/${verse}`;
+      if (tr) url += `?translation=${encodeURIComponent(tr)}`;
       const resp = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       if (!resp.ok) throw new Error('not found');
       const data = await resp.json();
@@ -1943,54 +2020,12 @@
     el('bible-translation-toolbar')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
     el('bible-sermon-select')?.addEventListener('change', updateSermonBar);
     el('bible-new-sermon-btn')?.addEventListener('click', async () => {
-      // Title free-form; current book/chapter only pre-fills optional passage field
-      const id = await openNewSermonModal({
-        suggestedPassage: currentBook && currentChapter ? `${currentBook} ${currentChapter}` : '',
-      });
+      const id = await quickCreateSermon(`${currentBook} ${currentChapter}`);
       if (id) updateSermonBar();
-    });
-    el('bible-new-sermon-cancel')?.addEventListener('click', () => closeNewSermonModal(null));
-    el('bible-new-sermon-create')?.addEventListener('click', () => confirmNewSermonFromModal());
-    el('bible-new-sermon-modal')?.addEventListener('click', (e) => {
-      if (e.target === el('bible-new-sermon-modal')) closeNewSermonModal(null);
-    });
-    el('bible-new-sermon-title')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        confirmNewSermonFromModal();
-      }
-    });
-    el('bible-new-sermon-passage')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        confirmNewSermonFromModal();
-      }
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape') return;
-      const modal = el('bible-new-sermon-modal');
-      if (modal && modal.style.display === 'flex') closeNewSermonModal(null);
     });
 
     el('bible-hl-btn')?.addEventListener('click', applyHighlight);
     el('bible-hl-clear-btn')?.addEventListener('click', clearHighlight);
-    el('bible-fav-verse')?.addEventListener('click', () => {
-      const v = Array.from(selectedVerses)[0];
-      if (!v) return toast('Select a verse first');
-      const line = main()?.querySelector(`.bible-verse-line[data-verse="${v}"]`);
-      toggleFavorite('verse', { verse: v, text: line?.dataset.text || '' });
-    });
-    el('bible-fav-chapter')?.addEventListener('click', () => toggleFavorite('chapter'));
-    el('bible-fav-book')?.addEventListener('click', () => toggleFavorite('book'));
-    el('bible-favs-lib-btn')?.addEventListener('click', () => {
-      loadFavoritesLibrary(el('bible-favs-lib-q')?.value || '');
-    });
-    el('bible-favs-lib-q')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') loadFavoritesLibrary(el('bible-favs-lib-q')?.value || '');
-    });
-    el('bible-favs-scope')?.addEventListener('change', () => {
-      loadFavoritesLibrary(el('bible-favs-lib-q')?.value || '');
-    });
     el('bible-note-btn')?.addEventListener('click', () => openNoteModal());
     el('bible-to-illustration-btn')?.addEventListener('click', selectionToIllustration);
     el('bible-copy-sel-btn')?.addEventListener('click', () => {
@@ -2003,6 +2038,7 @@
     el('bible-chapter-note-btn')?.addEventListener('click', () => {
       const ch = chapterScriptureBundle();
       if (!ch) return toast('Load a chapter first');
+      // Match any prior note covering this chapter range (loads for edit/add)
       openNoteModal({
         verse_start: ch.verse_start,
         verse_end: ch.verse_end,
@@ -2024,6 +2060,7 @@
     });
     el('bible-note-cancel')?.addEventListener('click', closeNoteModal);
     el('bible-note-save')?.addEventListener('click', saveNoteFromModal);
+    el('bible-note-new')?.addEventListener('click', startNewNoteFromModal);
     el('bible-note-modal')?.addEventListener('click', (e) => {
       if (e.target === el('bible-note-modal')) closeNoteModal();
     });
@@ -2040,6 +2077,9 @@
     });
     el('bible-notes-lib-q')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') loadNotesLibrary(el('bible-notes-lib-q')?.value || '');
+    });
+    document.querySelectorAll('[data-notes-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => setNotesPanelTab(btn.dataset.notesTab));
     });
     el('bible-notes-dl-chapter')?.addEventListener('click', downloadChapterNotes);
     el('bible-notes-dl-all')?.addEventListener('click', downloadAllNotes);

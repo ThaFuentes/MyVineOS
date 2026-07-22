@@ -139,10 +139,17 @@ def create_tables(cursor):
             content TEXT NOT NULL,
             source TEXT,
             tags TEXT,
+            notes TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """)
+
+    # Safe migration: personal/private notes on illustrations (discussed feature only)
+    cursor.execute("SHOW COLUMNS FROM illustration_library LIKE 'notes'")
+    if not cursor.fetchone():
+        print(" Migration: Adding column 'notes' (TEXT) to illustration_library")
+        safe_exec(cursor, "ALTER TABLE illustration_library ADD COLUMN notes TEXT AFTER tags")
 
     # 4. Sermon sections - WITH source TEXT column
     cursor.execute("""
