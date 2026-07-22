@@ -90,11 +90,26 @@
                             <select name="service_date" id="sermon-service-date" class="form-select form-control-dark">
                                 <option value="">No associated service</option>
                                 {% for plan in service_plans %}
-                                    <option value="{{ plan.service_date.strftime('%Y-%m-%d') }}"
-                                            {% if sermon and sermon.service_date and sermon.service_date.strftime('%Y-%m-%d') == plan.service_date.strftime('%Y-%m-%d') %}selected{% endif %}
-                                            {% if not sermon and plan.service_date.strftime('%Y-%m-%d') == next_upcoming_date %}selected{% endif %}>
-                                        {{ plan.service_date.strftime('%A, %B %d, %Y') }} - {{ plan.title or 'Regular Sunday Service' }}
-                                        {% if plan.start_time %} ({{ plan.start_time.strftime('%I:%M %p') }}{% if plan.worship_start_time %} / {{ plan.worship_start_time.strftime('%I:%M %p') }}{% endif %}){% endif %}
+                                    {# MariaDB may return date/time as str — never call strftime on strings #}
+                                    {% set plan_ymd = plan.service_date[:10] if plan.service_date is string else (plan.service_date.strftime('%Y-%m-%d') if plan.service_date else '') %}
+                                    {% set sermon_ymd = '' %}
+                                    {% if sermon and sermon.service_date %}
+                                        {% set sermon_ymd = sermon.service_date[:10] if sermon.service_date is string else sermon.service_date.strftime('%Y-%m-%d') %}
+                                    {% endif %}
+                                    {% if plan.service_date is string %}
+                                        {% set plan_label = plan_ymd %}
+                                    {% elif plan.service_date %}
+                                        {% set plan_label = plan.service_date.strftime('%A, %B %d, %Y') %}
+                                    {% else %}
+                                        {% set plan_label = '' %}
+                                    {% endif %}
+                                    <option value="{{ plan_ymd }}"
+                                            {% if sermon_ymd and sermon_ymd == plan_ymd %}selected{% endif %}
+                                            {% if not sermon and plan_ymd == next_upcoming_date %}selected{% endif %}>
+                                        {{ plan_label }} - {{ plan.title or 'Regular Sunday Service' }}
+                                        {% if plan.start_time %}
+                                            ({% if plan.start_time is string %}{{ plan.start_time[:5] }}{% else %}{{ plan.start_time.strftime('%I:%M %p') }}{% endif %}{% if plan.worship_start_time %} / {% if plan.worship_start_time is string %}{{ plan.worship_start_time[:5] }}{% else %}{{ plan.worship_start_time.strftime('%I:%M %p') }}{% endif %}{% endif %})
+                                        {% endif %}
                                     </option>
                                 {% endfor %}
                             </select>

@@ -195,6 +195,7 @@ def pack_sermons_for_ai(
     user_id: int,
     question: str,
     *,
+    sermon_ids: list[int] | None = None,
     max_sermons: int = 10,
     max_chars_each: int = 2200,
     max_total_chars: int = 24000,
@@ -202,38 +203,78 @@ def pack_sermons_for_ai(
     """
     Build AI context from THIS user's sermons only.
     Never includes collaborator-only or pastoral-group sermons owned by others.
+
+    If sermon_ids is provided (user-selected), only those sermons are packed
+    (still ownership-checked). Otherwise auto-picks by keyword relevance.
     """
     q = (question or '').strip()
-    hits = search_sermons_library(user_id, q, limit=30) if len(q) >= 2 else []
     ordered_ids: list[int] = []
-    for h in hits:
-        sid = int(h['sermon_id'])
-        if sid not in ordered_ids:
-            ordered_ids.append(sid)
 
-    for r in list_own_sermons(user_id, limit=40):
-        sid = int(r['id'])
-        if sid not in ordered_ids:
+    # Explicit selection from the research UI (preferred)
+    if sermon_ids is not None:
+        seen: set[int] = set()
+        for raw in sermon_ids:
+            try:
+                sid = int(raw)
+            except (TypeError, ValueError):
+                continue
+            if sid <= 0 or sid in seen:
+                continue
+            # Ownership gate — skip anything not created by this user
+            if not _get_own_sermon(sid, user_id):
+                continue
+            seen.add(sid)
             ordered_ids.append(sid)
-        if len(ordered_ids) >= max_sermons * 2:
-            break
+        # Use all selected; expand budget for larger libraries
+        max_sermons = max(1, len(ordered_ids))
+        max_total_chars = max(max_total_chars, min(100_000, max_sermons * 2000 + 4000))
+        # Slightly smaller per-sermon cap when many are selected so more fit
+        if max_sermons > 12:
+            max_chars_each = min(max_chars_each, max(900, 28000 // max(1, max_sermons)))
+    else:
+        hits = search_sermons_library(user_id, q, limit=30) if len(q) >= 2 else []
+        for h in hits:
+            sid = int(h['sermon_id'])
+            if sid not in ordered_ids:
+                ordered_ids.append(sid)
+
+        for r in list_own_sermons(user_id, limit=40):
+            sid = int(r['id'])
+            if sid not in ordered_ids:
+                ordered_ids.append(sid)
+            if len(ordered_ids) >= max_sermons * 2:
+                break
 
     used: list[dict] = []
     chunks: list[str] = []
     total = 0
-    catalog = sermon_catalog(user_id, limit=60)
+    catalog = sermon_catalog(user_id, limit=120)
+    # Catalog in header: if user selected, list only those; else full library index
+    if sermon_ids is not None and ordered_ids:
+        sel_set = set(ordered_ids)
+        catalog_for_header = [c for c in catalog if int(c['id']) in sel_set]
+        if not catalog_for_header:
+            catalog_for_header = [
+                {'id': sid, 'title': f'Sermon #{sid}', 'passage': '', 'service_date': ''}
+                for sid in ordered_ids
+            ]
+    else:
+        catalog_for_header = catalog
     catalog_lines = [
         f"- #{c['id']}: {c['title']}"
         + (f" ({c['passage']})" if c.get('passage') else '')
         + (f" · {c['service_date']}" if c.get('service_date') else '')
-        for c in catalog
+        for c in catalog_for_header
     ]
     header = (
-        f"MY SERMON LIBRARY ONLY ({len(catalog)} sermons I created — never other pastors):\n"
-        + '\n'.join(catalog_lines[:60])
-        + "\n\nDETAILED CONTENT (most relevant first):\n"
+        f"MY SERMON LIBRARY ONLY ({len(catalog_for_header)} sermons selected for this question — never other pastors):\n"
+        + '\n'.join(catalog_lines[:120])
+        + "\n\nDETAILED CONTENT:\n"
     )
     total += len(header)
+
+    if not ordered_ids:
+        return header + "\n(No sermons selected or available.)\n", used
 
     for sid in ordered_ids:
         if len(used) >= max_sermons or total >= max_total_chars:

@@ -149,41 +149,65 @@ def research():
                     'AI is not configured. Add a provider under Settings → AI Providers.'
                 )
             else:
-                try:
-                    context, used_sermons = pack_sermons_for_ai(user_id, question)
-                    system = (
-                        PASTOR_VOICE_SYSTEM
-                        + ' Answer only from the sermon library material provided. '
-                        'That material is ONLY sermons this pastor created — never anyone else. '
-                        'Cite sermon titles (and id numbers when helpful). '
-                        'If the library does not cover the question, say so plainly. '
-                        'No markdown headings.'
-                    )
-                    user_prompt = (
-                        f"My question: {question[:800]}\n\n"
-                        f"Here is MY sermon library only (I wrote these):\n{context}\n\n"
-                        "Answer like a ministry teammate who has read my notes. "
-                        "Point me to specific sermons of mine when you can. "
-                        "Do not invent sermons that are not listed."
-                    )
-                    text, err, run_meta = run_insight(
-                        'sermon_library_ask',
-                        system,
-                        user_prompt,
-                        timeout=90,
-                        max_prompt_chars=28000,
-                    )
-                    if err:
-                        answer_error = err
-                    else:
-                        answer_html = format_ai_prose(text)
-                        log_change(
-                            user_id, 'ai', None, question[:80],
-                            f"Sermon library AI via {run_meta.get('provider') or '?'}",
+                # User picks which of their sermons the model may read
+                selected_raw = request.form.getlist('sermon_ids')
+                selected_ids: list[int] = []
+                for raw in selected_raw:
+                    try:
+                        selected_ids.append(int(raw))
+                    except (TypeError, ValueError):
+                        continue
+                # de-dupe preserve order
+                seen_sel: set[int] = set()
+                selected_ids = [i for i in selected_ids if not (i in seen_sel or seen_sel.add(i))]
+
+                if not selected_ids:
+                    flash('Select at least one of your sermons for the AI to use.', 'error')
+                else:
+                    try:
+                        context, used_sermons = pack_sermons_for_ai(
+                            user_id,
+                            question,
+                            sermon_ids=selected_ids,
                         )
-                except Exception as exc:
-                    print(f'sermons.research ask: {exc}')
-                    answer_error = str(exc)
+                        system = (
+                            PASTOR_VOICE_SYSTEM
+                            + ' Answer only from the sermon library material provided. '
+                            'That material is ONLY sermons this pastor created — never anyone else. '
+                            'Cite sermon titles (and id numbers when helpful). '
+                            'If the library does not cover the question, say so plainly. '
+                            'No markdown headings.'
+                        )
+                        user_prompt = (
+                            f"My question: {question[:800]}\n\n"
+                            f"Here is MY sermon library only (I wrote these):\n{context}\n\n"
+                            "Answer like a ministry teammate who has read my notes. "
+                            "Point me to specific sermons of mine when you can. "
+                            "Do not invent sermons that are not listed."
+                        )
+                        # Larger window when many sermons selected
+                        max_prompt = min(90000, max(28000, 4000 + len(selected_ids) * 2200))
+                        text, err, run_meta = run_insight(
+                            'sermon_library_ask',
+                            system,
+                            user_prompt,
+                            timeout=120,
+                            max_prompt_chars=max_prompt,
+                        )
+                        if err:
+                            answer_error = err
+                        else:
+                            answer_html = format_ai_prose(text)
+                            log_change(
+                                user_id, 'ai', None, question[:80],
+                                f"Sermon library AI ({len(used_sermons)} sermons) via {run_meta.get('provider') or '?'}",
+                            )
+                    except Exception as exc:
+                        print(f'sermons.research ask: {exc}')
+                        answer_error = str(exc)
+
+    # Preserve checkbox selection after POST (or default: all selected)
+    selected_for_ui = request.form.getlist('sermon_ids') if request.method == 'POST' and mode == 'ask' else None
 
     return render_template(
         'pastoral/sermons_research.html',
@@ -196,7 +220,8 @@ def research():
         used_sermons=used_sermons,
         status=status,
         library_count=library_count,
-        catalog=catalog[:12],
+        catalog=catalog,
+        selected_sermon_ids=selected_for_ui,
     )
 
 
