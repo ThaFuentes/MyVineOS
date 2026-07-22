@@ -32,7 +32,10 @@ from app.models.pastoral.sermons import (
     delete_sermon, get_sermon_sections, save_sermon_sections,
     get_collaborators, add_collaborator, remove_collaborator
 )
-from app.models.pastoral.service_plans import get_all_service_plans
+from app.models.pastoral.service_plans import (
+    get_all_service_plans,
+    get_service_plans_for_sermon_picker,
+)
 from app.models.pastoral.illustrations import get_visible_illustrations
 from app.models.log import log_change
 from app.utils.helpers import contains_censored_word
@@ -358,7 +361,8 @@ def import_sermons():
 def new():
     user_id = session['user_id']
     pastoral_users = load_pastoral_users()
-    service_plans = get_all_service_plans()
+    # Upcoming template/override dates first (not only past dated overrides)
+    service_plans = get_service_plans_for_sermon_picker(days_ahead=180, days_past=60)
     defaults = load_default_header_footer(user_id)
 
     # Auto-pre-select next upcoming Sunday for new sermons
@@ -368,6 +372,21 @@ def new():
         days_to_sunday = 7
     next_sunday = today + timedelta(days=days_to_sunday)
     next_upcoming_date = next_sunday.strftime('%Y-%m-%d')
+    # Prefer first upcoming plan in the list if next Sunday has no template
+    if service_plans:
+        try:
+            first = service_plans[0].get('service_date')
+            first_ymd = first.strftime('%Y-%m-%d') if hasattr(first, 'strftime') else str(first or '')[:10]
+            if first_ymd >= today.strftime('%Y-%m-%d'):
+                # If next_sunday is in the list, keep it; else default to first upcoming
+                ymds = []
+                for p in service_plans:
+                    sd = p.get('service_date')
+                    ymds.append(sd.strftime('%Y-%m-%d') if hasattr(sd, 'strftime') else str(sd or '')[:10])
+                if next_upcoming_date not in ymds and first_ymd:
+                    next_upcoming_date = first_ymd
+        except Exception:
+            pass
 
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
@@ -423,7 +442,15 @@ def edit(sermon_id: int):
     sections = get_sermon_sections(sermon_id)
     collaborators = get_collaborators(sermon_id)
     pastoral_users = load_pastoral_users()
-    service_plans = get_all_service_plans()
+    sermon_date = None
+    if sermon.get('service_date'):
+        sd = sermon.get('service_date')
+        sermon_date = sd.strftime('%Y-%m-%d') if hasattr(sd, 'strftime') else str(sd)[:10]
+    service_plans = get_service_plans_for_sermon_picker(
+        days_ahead=180,
+        days_past=120,
+        include_sermon_date=sermon_date,
+    )
     defaults = load_default_header_footer(user_id)
 
     if request.method == 'POST':

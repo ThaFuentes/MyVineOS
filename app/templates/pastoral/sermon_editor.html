@@ -87,6 +87,9 @@
 
                         <div class="input-group">
                             <label for="sermon-service-date">Associated Service</label>
+                            <p class="help-text" style="margin:0 0 0.35rem; font-size:0.8rem; opacity:0.75;">
+                                Upcoming services (and recent past) from your service schedule. Pick the future date you plan to preach.
+                            </p>
                             <select name="service_date" id="sermon-service-date" class="form-select form-control-dark">
                                 <option value="">No associated service</option>
                                 {% for plan in service_plans %}
