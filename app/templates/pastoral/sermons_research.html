@@ -106,17 +106,53 @@
 
   {% else %}
   {# Ask AI mode #}
+  {% set sel = selected_sermon_ids if selected_sermon_ids is not none else none %}
   <div class="glass-panel" style="margin-bottom:0.85rem;">
-    <form method="POST" action="{{ url_for('pastoral.sermons.research') }}" class="styled-form">
+    <form method="POST" action="{{ url_for('pastoral.sermons.research') }}" class="styled-form" id="ask-sermons-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
       <input type="hidden" name="mode" value="ask">
       <label class="control-label" for="question">Ask about your sermon library</label>
       <textarea name="question" id="question" class="form-input" rows="4"
-                placeholder="e.g. Where have I taught on love? What have I said about grace in my last few sermons?">{{ question }}</textarea>
+                placeholder="e.g. Where have I taught on love? What have I said about grace?">{{ question }}</textarea>
       <p class="help-text" style="margin:0.4rem 0 0.75rem;">
-        AI only sees sermons <strong>you created</strong>. Shared or other pastors’ sermons are never sent.
-        Answers stay in plain language and should point to your titles.
+        AI only sees sermons <strong>you created</strong> that you check below.
+        Other pastors’ sermons are never sent.
       </p>
+
+      {% if catalog %}
+      <div class="sermon-pick-block" style="margin:0 0 0.9rem;">
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; justify-content:space-between; margin-bottom:0.45rem;">
+          <label class="control-label" style="margin:0;">Which sermons may AI read?</label>
+          <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+            <button type="button" class="btn btn-secondary" id="pick-all" style="font-size:0.8rem; min-height:32px;">Select all</button>
+            <button type="button" class="btn btn-secondary" id="pick-none" style="font-size:0.8rem; min-height:32px;">Clear</button>
+          </div>
+        </div>
+        <p class="help-text" style="margin:0 0 0.5rem;">
+          Default is <strong>all</strong> selected. Uncheck any you want excluded. Count: <span id="pick-count">{{ catalog|length }}</span> / {{ catalog|length }}
+        </p>
+        <div class="sermon-pick-list" style="max-height:16rem; overflow:auto; border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.5rem 0.65rem; display:grid; gap:0.35rem;">
+          {% for c in catalog %}
+          {% set cid = c.id|string %}
+          {% set checked = (sel is none) or (cid in sel) or (c.id|string in sel) %}
+          <label class="sermon-pick-row" style="display:flex; gap:0.55rem; align-items:flex-start; cursor:pointer; padding:0.3rem 0.15rem; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <input type="checkbox" name="sermon_ids" value="{{ c.id }}" class="sermon-pick-cb" {% if checked %}checked{% endif %} style="margin-top:0.25rem;">
+            <span style="flex:1; min-width:0;">
+              <strong style="font-size:0.92rem;">{{ c.title }}</strong>
+              <span style="display:block; font-size:0.8rem; opacity:0.7;">
+                {% if c.passage %}{{ c.passage }}{% endif %}
+                {% if c.service_date %} · {{ c.service_date }}{% endif %}
+                · #{{ c.id }}
+              </span>
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <p style="margin:0 0 0.75rem; opacity:0.75;">No sermons in your library yet. Upload or create one first.</p>
+      {% endif %}
+
       {% if not status.configured %}
       <p style="margin:0 0 0.75rem; color:#ffc85a;">
         AI provider not ready.
@@ -127,7 +163,7 @@
         {% endif %}
       </p>
       {% endif %}
-      <button type="submit" class="btn btn-primary" {% if not status.configured %}disabled{% endif %}>
+      <button type="submit" class="btn btn-primary" {% if not status.configured or not catalog %}disabled{% endif %}>
         <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Ask AI
       </button>
     </form>
@@ -155,22 +191,27 @@
     {% endif %}
   </div>
   {% endif %}
-
-  {% if catalog %}
-  <div class="glass-panel">
-    <h2 style="margin:0 0 0.5rem; font-size:1rem; opacity:0.9;">Recent library (sample)</h2>
-    <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem; line-height:1.55; opacity:0.85;">
-      {% for c in catalog %}
-      <li>
-        <a href="{{ url_for('pastoral.sermons.edit', sermon_id=c.id) }}" style="color:var(--primary);">{{ c.title }}</a>
-        {% if c.passage %} · {{ c.passage }}{% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-  </div>
-  {% endif %}
   {% endif %}
 </section>
+
+{% if mode == 'ask' and catalog %}
+<script>
+(function () {
+  var boxes = function () { return Array.prototype.slice.call(document.querySelectorAll('.sermon-pick-cb')); };
+  var countEl = document.getElementById('pick-count');
+  function sync() {
+    var n = boxes().filter(function (b) { return b.checked; }).length;
+    if (countEl) countEl.textContent = String(n);
+  }
+  var allBtn = document.getElementById('pick-all');
+  var noneBtn = document.getElementById('pick-none');
+  if (allBtn) allBtn.onclick = function () { boxes().forEach(function (b) { b.checked = true; }); sync(); };
+  if (noneBtn) noneBtn.onclick = function () { boxes().forEach(function (b) { b.checked = false; }); sync(); };
+  document.getElementById('ask-sermons-form').addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endif %}
 
 <style>
   .ai-prose p.ai-prose-p { margin: 0 0 0.85rem; line-height: 1.65; }
