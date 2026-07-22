@@ -51,7 +51,10 @@ def _fetch_library_item(item_id: int, user_id: int, kind: str | None = None) -> 
     if kind in (None, 'illustration', 'illus'):
         cur.execute(
             """
-            SELECT il.*, 'illustration' AS type, il.source AS source_url
+            SELECT il.*,
+                   'illustration' AS type,
+                   il.source AS source_url,
+                   CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
             FROM illustration_library il
             WHERE il.id = %s AND (il.user_id = %s OR il.user_id IS NULL)
             """,
@@ -152,9 +155,12 @@ def library():
         illus_campus_frag, illus_campus_params = '', []
         vault_campus_frag, vault_campus_params = '', []
 
-    # Illustrations
+    # Illustrations (visibility derived from user_id: NULL = shared, set = private)
     illus_sql = """
-        SELECT il.*, 'illustration' AS type, il.source AS source_url
+        SELECT il.*,
+               'illustration' AS type,
+               il.source AS source_url,
+               CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
         FROM illustration_library il
         WHERE (il.user_id = %s OR il.user_id IS NULL)
     """
@@ -164,7 +170,10 @@ def library():
 
     if q:
         like = f"%{q}%"
-        illus_sql += " AND (il.title LIKE %s OR il.content LIKE %s OR il.source LIKE %s OR il.tags LIKE %s OR il.notes LIKE %s)"
+        illus_sql += (
+            " AND (il.title LIKE %s OR il.content LIKE %s OR il.source LIKE %s"
+            " OR il.tags LIKE %s OR IFNULL(il.notes, '') LIKE %s)"
+        )
         params += [like] * 5
 
     cur.execute(illus_sql, params)
@@ -172,7 +181,14 @@ def library():
 
     # Vault sections
     vault_sql = """
-        SELECT pv.*, 'section' AS type, pv.source_url
+        SELECT pv.*,
+               'section' AS type,
+               pv.source_url,
+               CASE
+                   WHEN pv.visibility = 'private' OR (pv.visibility IS NULL AND pv.user_id IS NOT NULL)
+                   THEN 'private'
+                   ELSE 'pastoral_group'
+               END AS visibility
         FROM pastoral_vault pv
         WHERE (pv.user_id = %s OR pv.user_id IS NULL)
     """
@@ -182,7 +198,7 @@ def library():
 
     if q:
         like = f"%{q}%"
-        vault_sql += " AND (pv.title LIKE %s OR pv.content LIKE %s OR pv.scripture_reference LIKE %s OR pv.source_url LIKE %s OR pv.notes LIKE %s)"
+        vault_sql += " AND (pv.title LIKE %s OR pv.content LIKE %s OR pv.scripture_reference LIKE %s OR pv.source_url LIKE %s OR IFNULL(pv.notes, '') LIKE %s)"
         params += [like] * 5
 
     cur.execute(vault_sql, params)
@@ -193,6 +209,9 @@ def library():
         item['tag_list'] = _safe_load_tags(item.get('tags'))
         item['source_url'] = item.get('source_url') or item.get('source') or ''
         item['can_edit'] = (item.get('user_id') == user_id or user_role in ['Admin', 'Owner'])
+        # Ensure badge/edit form always have a visibility string
+        if not item.get('visibility'):
+            item['visibility'] = 'private' if item.get('user_id') else 'pastoral_group'
 
     # Sort by created_at DESC
     items.sort(key=lambda x: x.get('created_at') or '0000-00-00 00:00:00', reverse=True)
@@ -221,6 +240,8 @@ def library():
             if edit_item:
                 edit_item['tag_list'] = _safe_load_tags(edit_item.get('tags'))
                 edit_item['tags_input'] = ', '.join(edit_item['tag_list'])
+                if not edit_item.get('visibility'):
+                    edit_item['visibility'] = 'private' if edit_item.get('user_id') else 'pastoral_group'
         except ValueError:
             flash('Invalid item ID.', 'error')
 
@@ -230,7 +251,9 @@ def library():
         source = request.form.get('source', '').strip()
         notes = request.form.get('notes', '').strip()
         tags_input = request.form.get('tags', '').strip()
-        visibility = request.form.get('visibility', 'private')
+        visibility = (request.form.get('visibility') or 'private').strip().lower()
+        if visibility not in ('private', 'pastoral_group'):
+            visibility = 'private'
         section_type = request.form.get('section_type')
         scripture_reference = request.form.get('scripture_reference', '').strip() or None
 
@@ -250,19 +273,7 @@ def library():
 
         try:
             if edit_item:
-                if edit_item['type'] == 'section':
-                    data = {
-                        'title': title,
-                        'content': content,
-                        'section_type': section_type or 'point',
-                        'scripture_reference': scripture_reference,
-                        'source_url': source,
-                        'notes': notes,
-                        'tags': tags_json,
-                        'visibility': visibility,
-                    }
-                    # Assume update_vault_item exists - add if not
-                    # update_vault_item(edit_id, data, owner_id)
+                if edit_item.get('type') == 'section':
                     cur.execute("""
                         UPDATE pastoral_vault
                         SET title = %s, content = %s, section_type = %s, scripture_reference = %s,
@@ -272,26 +283,29 @@ def library():
                     db.commit()
                     log_change(user_id, 'vault_update', edit_id, title, 'Updated saved section')
                 else:
+                    # Always pass acting user_id + visibility in data (model derives owner)
                     data = {
                         'title': title,
                         'content': content,
                         'source': source,
                         'notes': notes,
-                        'tags': tags_json
+                        'tags': tags_json,
+                        'visibility': visibility,
                     }
-                    update_illustration(edit_id, data, owner_id)
+                    update_illustration(edit_id, data, user_id)
                     log_change(user_id, 'illustration_update', edit_id, title, 'Updated illustration')
                 flash('Item updated.', 'success')
             else:
-                # New is always illustration
+                # New is always illustration — pass acting user + visibility
                 data = {
                     'title': title,
                     'content': content,
                     'source': source,
                     'notes': notes,
-                    'tags': tags_json
+                    'tags': tags_json,
+                    'visibility': visibility,
                 }
-                new_id = create_illustration(data, owner_id)
+                new_id = create_illustration(data, user_id)
                 log_change(user_id, 'illustration_create', new_id, title, 'Created illustration')
                 flash('Illustration created.', 'success')
             return redirect(url_for('pastoral.illustrations.library'))
@@ -312,6 +326,7 @@ def library():
 @pastoral_required()
 def view(item_id: int):
     user_id = session['user_id']
+    user_role = session.get('user_role', 'Member')
     kind = request.args.get('type') or request.args.get('kind')
     item = _fetch_library_item(item_id, user_id, kind)
 
@@ -320,10 +335,14 @@ def view(item_id: int):
         return redirect(url_for('pastoral.illustrations.library'))
 
     item['tag_list'] = _safe_load_tags(item.get('tags'))
+    if not item.get('visibility'):
+        item['visibility'] = 'private' if item.get('user_id') else 'pastoral_group'
 
     return render_template(
         'pastoral/illustration_view.html',
-        item=item
+        item=item,
+        current_user_id=user_id,
+        current_user_role=user_role,
     )
 
 
@@ -371,7 +390,10 @@ def download_all():
 
     cur.execute(
         """
-        SELECT il.*, 'illustration' AS type, il.source AS source_url
+        SELECT il.*,
+               'illustration' AS type,
+               il.source AS source_url,
+               CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
         FROM illustration_library il
         WHERE il.user_id = %s OR il.user_id IS NULL
         ORDER BY il.created_at DESC

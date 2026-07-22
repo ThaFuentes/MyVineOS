@@ -5,6 +5,7 @@
 #   Pure database layer for the Illustration Library.
 #   Handles fetching, CRUD, search, and tag parsing.
 #   Visibility: 'private' (user_id = owner), 'pastoral_group' (user_id IS NULL).
+#   Personal notes stored in notes column (creator-only display in UI).
 #   NO Flask imports - models must remain independent of routes.
 
 import pymysql
@@ -42,6 +43,16 @@ def _normalize_tags_for_storage(tags) -> str:
     return json.dumps([])
 
 
+def _resolve_owner(data: dict, acting_user_id: int):
+    """Private → owner user_id; shared/pastoral_group → NULL (visible to pastoral group)."""
+    vis = data.get('visibility') or 'private'
+    if isinstance(vis, str):
+        vis = vis.strip().lower()
+    if vis in ('private', 'only_me', 'me'):
+        return acting_user_id
+    return None
+
+
 def get_visible_illustrations(user_id: int, search: str | None = None) -> list[dict]:
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
@@ -49,12 +60,12 @@ def get_visible_illustrations(user_id: int, search: str | None = None) -> list[d
     sql = """
         SELECT il.*,
                u.username AS creator_name,
-               CASE WHEN il.user_id = %s THEN 'private' ELSE 'pastoral_group' END AS visibility
+               CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
         FROM illustration_library il
         LEFT JOIN users u ON il.user_id = u.id
         WHERE il.user_id = %s OR il.user_id IS NULL
     """
-    params = [user_id, user_id]
+    params = [user_id]
 
     try:
         from app.models.campuses import content_campus_filter_sql
@@ -68,8 +79,11 @@ def get_visible_illustrations(user_id: int, search: str | None = None) -> list[d
 
     if search:
         like = f"%{search}%"
-        sql += " AND (il.title LIKE %s OR il.content LIKE %s OR il.source LIKE %s OR il.tags LIKE %s)"
-        params.extend([like] * 4)
+        sql += (
+            " AND (il.title LIKE %s OR il.content LIKE %s OR il.source LIKE %s"
+            " OR il.tags LIKE %s OR IFNULL(il.notes, '') LIKE %s)"
+        )
+        params.extend([like] * 5)
 
     sql += " ORDER BY il.created_at DESC"
 
@@ -89,13 +103,13 @@ def get_illustration_by_id(illus_id: int, user_id: int) -> dict | None:
     sql = """
         SELECT il.*,
                u.username AS creator_name,
-               CASE WHEN il.user_id = %s THEN 'private' ELSE 'pastoral_group' END AS visibility
+               CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
         FROM illustration_library il
         LEFT JOIN users u ON il.user_id = u.id
         WHERE il.id = %s
           AND (il.user_id = %s OR il.user_id IS NULL)
     """
-    params = [user_id, illus_id, user_id]
+    params = [illus_id, user_id]
     try:
         from app.models.campuses import content_campus_filter_sql
         frag, cparams = content_campus_filter_sql(
@@ -114,10 +128,11 @@ def get_illustration_by_id(illus_id: int, user_id: int) -> dict | None:
 
 
 def create_illustration(data: dict, user_id: int) -> int:
+    """Create illustration. user_id is the acting user; visibility in data controls owner."""
     db = get_db()
     cur = db.cursor()
 
-    owner = user_id if data.get('visibility') == 'private' else None
+    owner = _resolve_owner(data, user_id)
     campus_id = data.get('campus_id')
     if campus_id in (None, '', 0, '0'):
         try:
@@ -126,15 +141,20 @@ def create_illustration(data: dict, user_id: int) -> int:
         except Exception:
             campus_id = None
 
+    notes = data.get('notes')
+    if notes is not None:
+        notes = str(notes).strip() or None
+
     cur.execute("""
-        INSERT INTO illustration_library (user_id, title, content, source, tags, campus_id)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO illustration_library (user_id, title, content, source, tags, notes, campus_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (
         owner,
         data['title'],
         data['content'],
         data.get('source'),
         _normalize_tags_for_storage(data.get('tags')),
+        notes,
         campus_id,
     ))
 
@@ -143,21 +163,34 @@ def create_illustration(data: dict, user_id: int) -> int:
 
 
 def update_illustration(illus_id: int, data: dict, user_id: int) -> None:
+    """Update illustration. user_id is the acting user (for ownership check + private owner)."""
     db = get_db()
     cur = db.cursor()
 
-    owner = user_id if data.get('visibility') == 'private' else None
+    owner = _resolve_owner(data, user_id)
+    notes = data.get('notes')
+    if notes is not None:
+        notes = str(notes).strip() or None
 
     cur.execute("""
         UPDATE illustration_library
-        SET user_id = %s, title = %s, content = %s, source = %s, tags = %s
+        SET user_id = %s, title = %s, content = %s, source = %s, tags = %s, notes = %s
         WHERE id = %s AND (user_id = %s OR user_id IS NULL)
-    """, (owner, data['title'], data['content'], data.get('source'), _normalize_tags_for_storage(data.get('tags')), illus_id, user_id))
+    """, (
+        owner,
+        data['title'],
+        data['content'],
+        data.get('source'),
+        _normalize_tags_for_storage(data.get('tags')),
+        notes,
+        illus_id,
+        user_id,
+    ))
 
     db.commit()
 
 
-def delete_illustration(illus_id: int, user_id: int) -> None:
+def delete_illustration(illus_id: int, user_id: int) -> bool:
     db = get_db()
     cur = db.cursor()
 
@@ -167,3 +200,4 @@ def delete_illustration(illus_id: int, user_id: int) -> None:
     """, (illus_id, user_id))
 
     db.commit()
+    return cur.rowcount > 0

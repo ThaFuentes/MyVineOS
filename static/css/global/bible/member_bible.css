@@ -525,6 +525,90 @@
   margin-right: 0.2rem;
 }
 
+/* Verse has a personal note */
+.member-bible-verse.has-note {
+  border-left: 3px solid rgba(255, 196, 80, 0.75);
+  padding-left: 0.35rem;
+  margin-left: -0.15rem;
+}
+.member-note-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.28rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 190, 60, 0.22);
+  color: #ffd27a;
+  font-size: 0.78rem;
+  cursor: pointer;
+  vertical-align: middle;
+  line-height: 1;
+  padding: 0;
+}
+.member-note-marker:hover,
+.member-note-marker:focus {
+  background: rgba(255, 190, 60, 0.4);
+  color: #fff3c8;
+  outline: none;
+}
+.member-note-dot-demo {
+  font-size: 0.9em;
+}
+
+/* Notes panel tabs */
+.member-notes-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.55rem;
+}
+.member-notes-tab {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(230, 240, 250, 0.85);
+  border-radius: 999px;
+  padding: 0.28rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.member-notes-tab.active {
+  background: rgba(90, 200, 255, 0.22);
+  border-color: rgba(90, 200, 255, 0.45);
+  color: #b8ecff;
+}
+.member-note-card.is-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.member-note-card.is-clickable:hover {
+  border-color: rgba(90, 200, 255, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+}
+.member-note-card.is-elsewhere {
+  border-style: dashed;
+}
+.member-note-here-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #9ef0ff;
+  background: rgba(0, 200, 255, 0.15);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+.member-lib-item {
+  cursor: pointer;
+}
+.member-lib-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+}
+
 .member-hl-default-wrap {
   display: inline-flex;
   align-items: center;
