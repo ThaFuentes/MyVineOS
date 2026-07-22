@@ -408,6 +408,119 @@ def get_all_service_plans():
     return plans
 
 
+def get_service_plans_for_sermon_picker(
+    *,
+    days_ahead: int = 180,
+    days_past: int = 90,
+    include_sermon_date: str | None = None,
+) -> list[dict]:
+    """
+    Service dates for the sermon editor "Associated Service" dropdown.
+
+    Includes:
+      - Future (and today) dates that have a weekday template or dated override
+      - Recent past dated overrides / template days (for editing older sermons)
+      - The sermon’s current service_date even if outside that window
+
+    Sorted upcoming first (soonest → later), then past (most recent first).
+    """
+    today = datetime.today().date()
+    by_key: dict[str, dict] = {}
+
+    def _ymd(d) -> str:
+        if d is None:
+            return ''
+        if hasattr(d, 'strftime'):
+            return d.strftime('%Y-%m-%d')
+        return str(d)[:10]
+
+    def _add(plan: dict | None, date_str: str):
+        if not plan or not date_str:
+            return
+        plan = dict(plan)
+        # Ensure service_date is a date object for templates that use strftime
+        sd = plan.get('service_date')
+        if isinstance(sd, str):
+            try:
+                plan['service_date'] = datetime.strptime(sd[:10], '%Y-%m-%d').date()
+            except ValueError:
+                plan['service_date'] = date_str
+        elif sd is None:
+            try:
+                plan['service_date'] = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                plan['service_date'] = date_str
+        plan['start_time'] = _normalize_time(plan.get('start_time'))
+        plan['worship_start_time'] = _normalize_time(plan.get('worship_start_time'))
+        if not (plan.get('title') or '').strip():
+            plan['title'] = _effective_service_title(plan)
+        by_key[date_str] = plan
+
+    # Upcoming + today (templates + overrides)
+    for offset in range(0, max(1, int(days_ahead)) + 1):
+        check = today + timedelta(days=offset)
+        ds = check.strftime('%Y-%m-%d')
+        try:
+            plan = get_plan_for_date(ds)
+        except Exception as exc:
+            print(f'get_service_plans_for_sermon_picker future {ds}: {exc}')
+            plan = None
+        _add(plan, ds)
+
+    # Recent past (so existing sermons still show their linked date)
+    for offset in range(1, max(0, int(days_past)) + 1):
+        check = today - timedelta(days=offset)
+        ds = check.strftime('%Y-%m-%d')
+        try:
+            plan = get_plan_for_date(ds)
+        except Exception as exc:
+            print(f'get_service_plans_for_sermon_picker past {ds}: {exc}')
+            plan = None
+        _add(plan, ds)
+
+    # Always include sermon’s own date if provided and missing
+    if include_sermon_date:
+        ds = str(include_sermon_date)[:10]
+        if ds and ds not in by_key:
+            try:
+                plan = get_plan_for_date(ds)
+            except Exception:
+                plan = None
+            if not plan:
+                try:
+                    dobj = datetime.strptime(ds, '%Y-%m-%d').date()
+                except ValueError:
+                    dobj = ds
+                plan = {
+                    'service_date': dobj,
+                    'title': 'Service',
+                    'start_time': None,
+                    'worship_start_time': None,
+                    'source': 'orphan',
+                }
+            _add(plan, ds)
+
+    upcoming: list[dict] = []
+    past: list[dict] = []
+    for ds, plan in by_key.items():
+        try:
+            dobj = datetime.strptime(ds, '%Y-%m-%d').date()
+        except ValueError:
+            continue
+        if dobj >= today:
+            upcoming.append(plan)
+        else:
+            past.append(plan)
+
+    def _sort_key(p):
+        sd = p.get('service_date')
+        return _ymd(sd)
+
+    upcoming.sort(key=_sort_key)          # soonest first
+    past.sort(key=_sort_key, reverse=True)  # most recent past first
+    return upcoming + past
+
+
 def get_service_plan_by_date(service_date: str):
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
