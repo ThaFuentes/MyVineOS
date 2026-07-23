@@ -43,14 +43,30 @@
 </div>
 
 {% if docked_count > 0 %}
-<div class="illus-dock-banner" id="dock-banner">
-  <span><strong id="dock-count-label">{{ docked_count }}</strong> item{{ 's' if docked_count != 1 else '' }} docked for your next sermon</span>
-  <button type="button" id="clear-dock-btn" class="btn btn-secondary" style="min-height:36px; font-size:0.85rem;">Clear all docked</button>
+<div class="illus-dock-banner" id="dock-banner" style="flex-wrap:wrap; gap:0.5rem;">
+  <span style="flex:1 1 200px;">
+    <strong id="dock-count-label">{{ docked_count }}</strong> item{{ 's' if docked_count != 1 else '' }} docked.
+    Open a sermon → click <strong>Sermon dock</strong> → <strong>Insert</strong> into a section
+    (or use <strong>From dock</strong> on each section).
+  </span>
+  <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-primary" style="min-height:36px; font-size:0.85rem;">
+    <i class="fa-solid fa-book-open" aria-hidden="true"></i> Open sermon builder
+  </a>
+  <div id="dock-insert-sermon-wrap" style="display:flex; flex-wrap:wrap; gap:0.35rem; align-items:center;">
+    <select id="dock-target-sermon" class="form-control-dark" style="min-width:12rem; max-width:18rem; padding:0.4rem 0.55rem; border-radius:8px; background:rgba(0,0,0,0.25); color:inherit; border:1px solid rgba(255,255,255,0.15);">
+      <option value="">Insert docked into…</option>
+    </select>
+    <button type="button" id="dock-insert-into-sermon-btn" class="btn btn-primary" style="min-height:36px; font-size:0.85rem;" disabled>
+      Insert as new sections
+    </button>
+  </div>
+  <button type="button" id="clear-dock-btn" class="btn btn-secondary" style="min-height:36px; font-size:0.85rem;">Clear dock</button>
 </div>
 {% else %}
-<div class="illus-dock-banner" id="dock-banner" style="display:none;">
-  <span><strong id="dock-count-label">0</strong> items docked for your next sermon</span>
-  <button type="button" id="clear-dock-btn" class="btn btn-secondary" style="min-height:36px; font-size:0.85rem;">Clear all docked</button>
+<div class="illus-dock-banner" id="dock-banner" style="display:none; flex-wrap:wrap; gap:0.5rem;">
+  <span style="flex:1 1 200px;"><strong id="dock-count-label">0</strong> items docked for your next sermon</span>
+  <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-primary" style="min-height:36px; font-size:0.85rem;">Open sermon builder</a>
+  <button type="button" id="clear-dock-btn" class="btn btn-secondary" style="min-height:36px; font-size:0.85rem;">Clear dock</button>
 </div>
 {% endif %}
 
@@ -176,6 +192,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const card = btn.closest('.illus-card');
     if (card) card.classList.toggle('is-docked', isDocked);
   }
+
+  // Populate sermon picker for docked insert
+  (function fillSermonPicker() {
+    const sel = document.getElementById('dock-target-sermon');
+    const go = document.getElementById('dock-insert-into-sermon-btn');
+    if (!sel) return;
+    const sermons = {{ recent_sermons|default([])|tojson }};
+    (sermons || []).forEach((s) => {
+      const opt = document.createElement('option');
+      opt.value = String(s.id);
+      opt.textContent = (s.title || 'Untitled') + (s.service_date ? ' · ' + String(s.service_date).slice(0, 10) : '');
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      if (go) go.disabled = !sel.value;
+    });
+    go?.addEventListener('click', async () => {
+      const sid = sel.value;
+      if (!sid) return;
+      if (!confirm('Insert all docked items into this sermon as new Illustration sections?')) return;
+      try {
+        const res = await fetch('/pastoral/illustrations/insert_docked/' + sid, {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ mode: 'new_sections', clear_dock: false }),
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          if (confirm('Inserted ' + data.count + ' item(s). Open the sermon now?')) {
+            window.location.href = '/pastoral/sermons/edit/' + sid;
+          }
+        } else {
+          alert(data.message || 'Could not insert into sermon.');
+        }
+      } catch (e) {
+        alert('Network error inserting into sermon.');
+      }
+    });
+  })();
 
   // Per-card dock / undock
   document.querySelectorAll('.illus-dock-btn').forEach((btn) => {

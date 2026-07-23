@@ -43,19 +43,23 @@ BRUTE_FORCE_MAX_ATTEMPTS = 10
 BRUTE_FORCE_JAIL_SECONDS = 120
 
 # ====================== REPUTATION SYSTEM ======================
-# Score death-spirals were the main false-positive source for real users.
-MAX_REPUTATION_SCORE = 100
+# Scores climb with normal good traffic up to 1000 (was hard-capped at 100,
+# which made 127.x / office IPs look "stuck" forever).
+# We do NOT death-spiral real people for soft/noisy "bad requests".
+MAX_REPUTATION_SCORE = 1000
 MIN_REPUTATION_SCORE = 0
-FAST_LANE_THRESHOLD = 70
+FAST_LANE_THRESHOLD = 200
 STRICT_MODE_THRESHOLD = 15
-INITIAL_REPUTATION = 85
-GOOD_BEHAVIOR_BONUS = 6
-BAD_BEHAVIOR_PENALTY = 2          # attack signals still count; recover quickly
-REPUTATION_DECAY_PER_HOUR = 20    # shared church/public Wi‑Fi recovers same day
+INITIAL_REPUTATION = 100
+GOOD_BEHAVIOR_BONUS = 4
+# Soft events should not jail humans. Penalty is only used for rare hard signals
+# and is intentionally tiny; most callers pass penalize=False for noise.
+BAD_BEHAVIOR_PENALTY = 0
+REPUTATION_DECAY_PER_HOUR = 40    # shared church/public Wi‑Fi recovers quickly
 # Only hard-block anonymous *mutations* below this (GETs stay open for humans).
 REPUTATION_BLOCK_THRESHOLD = 8
 # Cap stored negatives so shared mobile IPs can recover
-MAX_NEGATIVE_POINTS = 35
+MAX_NEGATIVE_POINTS = 20
 
 # ====================== DB GUARD / N+1 / SQL INJECTION PROTECTION ======================
 DB_MAX_CONNECTIONS = 20
