@@ -1,7 +1,8 @@
 {% extends "members/base_members.html" %}
-{% block page_title %}Who can open what?{% endblock %}
+{% block page_title %}Tools{% endblock %}
 {% block page_description %}
-  Find a person → tap <strong>Change</strong> → tap big green <strong>YES</strong> or red <strong>NO</strong> → <strong>Save</strong>.
+  See who can open which tools. Tap a person to change their YES / NO.
+  Defaults for new people are under <a href="{{ url_for('members.access_templates') }}">Starting templates</a>.
 {% endblock %}
 
 {% block extra_css %}
@@ -11,18 +12,16 @@
 
 {% block members_content %}
 <div class="ac-hero glass-panel">
-  <h2>Super simple</h2>
+  <h2>Tools for each person</h2>
   <p>
-    Green means they <strong>can</strong> open that tool.
-    Red means they <strong>cannot</strong>.
-    Being Staff does not automatically open tools — only YES does.
+    Green = they can open it. Red = they cannot.
+    Staff does not unlock tools by itself — only what you set (or their starting template).
   </p>
-  <div class="ac-steps">
-    <span class="ac-step"><span class="ac-step-num">1</span> Find person</span>
-    <span class="ac-step"><span class="ac-step-num">2</span> Tap Change</span>
-    <span class="ac-step"><span class="ac-step-num">3</span> Tap YES or NO</span>
-    <span class="ac-step"><span class="ac-step-num">4</span> Tap Save</span>
-  </div>
+  <p style="margin-top:0.65rem;">
+    <a class="btn-secondary" href="{{ url_for('members.access_templates') }}" style="display:inline-flex; min-height:2.5rem; align-items:center; padding:0.4rem 0.9rem; text-decoration:none;">
+      Edit starting templates (new Member / new Staff)
+    </a>
+  </p>
 </div>
 
 <label class="sr-only" for="ac-search">Search people</label>

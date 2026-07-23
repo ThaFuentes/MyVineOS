@@ -31,10 +31,15 @@
     <a href="{{ url_for('members.members_directory') }}"
        class="{% if request.endpoint == 'members.members_directory' %}is-active{% endif %}">Members Dashboard</a>
 
-    {% if can_manage_users or session.get('user_role') in ['Owner', 'Admin'] or user_has_permission('manage_groups') %}
+    {% if (can_manage_users or session.get('user_role') in ['Owner', 'Admin'] or user_has_permission('manage_groups'))
+          and (endpoint_exists is not defined or endpoint_exists('members.access_control')) %}
     <a href="{{ url_for('members.access_control') }}"
-       class="{% if request.endpoint in ['members.access_control', 'members.member_access'] %}is-active{% endif %}"
-       style="font-weight:800;">Who can open what?</a>
+       class="{% if request.endpoint in ['members.access_control', 'members.member_access'] %}is-active{% endif %}">Tools</a>
+    {% endif %}
+    {% if (can_manage_users or session.get('user_role') in ['Owner', 'Admin'] or user_has_permission('manage_groups'))
+          and (endpoint_exists is not defined or endpoint_exists('members.access_templates')) %}
+    <a href="{{ url_for('members.access_templates') }}"
+       class="{% if request.endpoint == 'members.access_templates' %}is-active{% endif %}">Starting templates</a>
     {% endif %}
 
     {% if can_manage_users %}

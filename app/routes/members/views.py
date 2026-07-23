@@ -249,6 +249,102 @@ def _can_manage_access() -> bool:
 
 
 # ----------------------------------------------------------------------
+# Role templates — default tools for NEW Members / NEW Staff
+# ----------------------------------------------------------------------
+@members_bp.route('/access/templates', methods=['GET', 'POST'])
+@login_required
+def access_templates():
+    """
+    Edit what brand-new Members and newly-made Staff start with.
+    Admin/Owner always have full access (no template).
+    """
+    import json
+    from app.utils.access_templates import (
+        TEMPLATE_META,
+        get_template_group,
+        save_template_permissions,
+        apply_template_to_all_with_role,
+        count_template_members,
+        ensure_user_in_template,
+    )
+    from app.utils.permission_matrix import (
+        keys_from_yes_no_form,
+        area_status_rows,
+        human_summary,
+        SYSTEM_TEMPLATE_GROUPS,
+    )
+
+    if not _can_manage_access():
+        flash('You do not have permission to manage access templates.', 'error')
+        abort(403)
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+
+    # Ensure system groups exist (seed if missing)
+    try:
+        from app.builddb.groups import create_tables as seed_groups
+        seed_groups(db.cursor())
+        db.commit()
+        cur = db.cursor(pymysql.cursors.DictCursor)
+    except Exception as e:
+        print(f"template seed note: {e}")
+
+    if request.method == 'POST':
+        action = (request.form.get('action') or 'save').strip()
+        system_key = (request.form.get('system_key') or '').strip()
+        try:
+            if action == 'save' and system_key in TEMPLATE_META:
+                keys = keys_from_yes_no_form(request.form)
+                if save_template_permissions(cur, system_key, keys):
+                    db.commit()
+                    flash(f'Saved template: {TEMPLATE_META[system_key]["title"]}.', 'success')
+                    log_change(
+                        session['user_id'],
+                        'access_template',
+                        f'Updated {system_key} tools template',
+                    )
+                else:
+                    flash('Template not found. Restart the app so system groups can seed.', 'error')
+            elif action == 'apply_all' and system_key in TEMPLATE_META:
+                role = TEMPLATE_META[system_key]['role']
+                n = apply_template_to_all_with_role(cur, role, session['user_id'])
+                db.commit()
+                flash(
+                    f'Added the {role} template to {n} existing {role} account(s) who did not have it yet. '
+                    f'People you already customized keep their personal YES/NO.',
+                    'success',
+                )
+            else:
+                flash('Nothing to do.', 'error')
+        except Exception as e:
+            flash(f'Could not update template: {e}', 'error')
+        return redirect(url_for('members.access_templates'))
+
+    cards = []
+    for tmpl in SYSTEM_TEMPLATE_GROUPS:
+        key = tmpl['system_key']
+        g = get_template_group(cur, key)
+        perms = (g or {}).get('permission_list') or list(tmpl.get('permissions') or [])
+        meta = TEMPLATE_META.get(key, {})
+        cards.append({
+            'system_key': key,
+            'title': meta.get('title') or tmpl['name'],
+            'blurb': meta.get('blurb') or tmpl.get('description') or '',
+            'role': meta.get('role') or '',
+            'group': g,
+            'status_rows': area_status_rows(set(perms), full_access=False),
+            'summary': human_summary(set(perms), full_access=False),
+            'member_count': count_template_members(cur, key) if g else 0,
+        })
+
+    return render_template(
+        'members/access_templates.html',
+        cards=cards,
+    )
+
+
+# ----------------------------------------------------------------------
 # Access Control hub — every user, YES/NO for each area
 # ----------------------------------------------------------------------
 @members_bp.route('/access')

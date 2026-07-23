@@ -1,0 +1,125 @@
+{% extends "members/base_members.html" %}
+{% block page_title %}Starting tools (templates){% endblock %}
+{% block page_description %}
+  Defaults for <strong>new</strong> Members and people first made <strong>Staff</strong>.
+  Admin / Owner always get every tool (no template needed).
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260722tpl1">
+{% endblock %}
+
+{% block members_content %}
+<div class="ac-hero glass-panel">
+  <h2>Templates for new people</h2>
+  <p>
+    When someone is <strong>added</strong> as a Member, or <strong>promoted</strong> to Staff,
+    they start with the tools you set here. You can still change any one person later under
+    <a href="{{ url_for('members.access_control') }}">Tools</a>.
+  </p>
+  <div class="ac-steps">
+    <span class="ac-step"><span class="ac-step-num">1</span> Pick Member or Staff card</span>
+    <span class="ac-step"><span class="ac-step-num">2</span> Tap YES / NO for each tool</span>
+    <span class="ac-step"><span class="ac-step-num">3</span> Save that template</span>
+  </div>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem; border-left:4px solid rgba(90,200,255,0.5);">
+  <strong>Admin &amp; Owner</strong>
+  <p style="margin:0.35rem 0 0; font-size:1.05rem;">
+    Always <strong>YES to every tool</strong>. There is no Admin template on purpose —
+    so the church can never lock operators out of settings and people.
+  </p>
+</div>
+
+{% for card in cards %}
+<section class="glass-panel" style="padding:1.1rem; margin-bottom:1.25rem;">
+  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.75rem; margin-bottom:0.75rem;">
+    <div>
+      <h3 style="margin:0 0 0.35rem; font-size:1.25rem;">{{ card.title }}</h3>
+      <p style="margin:0; opacity:0.9;">{{ card.blurb }}</p>
+      <p class="small text-muted" style="margin:0.4rem 0 0;">
+        {% if card.group %}
+          {{ card.member_count }} people currently have this pack attached
+          · role: <strong>{{ card.role }}</strong>
+        {% else %}
+          <span style="color:#e07070;">Template missing — restart the app so it can create system packs, then refresh.</span>
+        {% endif %}
+      </p>
+      {% if card.summary %}
+      <p class="small" style="margin:0.5rem 0 0;">
+        Starts with:
+        {% for line in card.summary %}
+          <span class="ac-chip ac-chip-yes" style="margin-right:0.25rem;">{{ line|replace(': YES','') }}</span>
+        {% endfor %}
+      </p>
+      {% else %}
+      <p class="small text-muted" style="margin:0.5rem 0 0;">Starts with no tools (all NO).</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if card.group %}
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <input type="hidden" name="system_key" value="{{ card.system_key }}">
+    <input type="hidden" name="action" value="save">
+
+    <div class="ac-grid">
+      {% for area in card.status_rows %}
+      <div class="ac-tool {% if area.can_see %}is-yes{% else %}is-no{% endif %}" data-tool-card>
+        <p class="ac-tool-title">
+          <i class="fa-solid {{ area.icon|default('fa-key') }}" aria-hidden="true"></i>
+          {{ area.label }}
+        </p>
+        <p class="ac-tool-desc">{{ area.description }}</p>
+        <div class="ac-toggle" role="group" aria-label="{{ area.label }}">
+          <span class="ac-opt">
+            <input type="radio" name="access_{{ area.id }}" id="{{ card.system_key }}_yes_{{ area.id }}" value="yes"
+                   {% if area.can_see %}checked{% endif %}>
+            <label class="ac-yes-label" for="{{ card.system_key }}_yes_{{ area.id }}">YES</label>
+          </span>
+          <span class="ac-opt">
+            <input type="radio" name="access_{{ area.id }}" id="{{ card.system_key }}_no_{{ area.id }}" value="no"
+                   {% if not area.can_see %}checked{% endif %}>
+            <label class="ac-no-label" for="{{ card.system_key }}_no_{{ area.id }}">NO</label>
+          </span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="ac-save-bar glass-panel" style="position:static; margin-top:1rem;">
+      <span class="ac-save-hint">Only affects <strong>new</strong> {{ card.role }}s (or people you apply it to below).</span>
+      <button type="submit" class="btn-primary">Save {{ card.role }} template</button>
+    </div>
+  </form>
+
+  <form method="POST" style="margin-top:0.75rem;"
+        onsubmit="return confirm('Add this {{ card.role }} template to every existing {{ card.role }} who does not have it yet? People you already set under Tools keep their personal YES/NO overrides.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <input type="hidden" name="system_key" value="{{ card.system_key }}">
+    <input type="hidden" name="action" value="apply_all">
+    <button type="submit" class="btn-secondary" style="min-height:2.75rem;">
+      Apply this pack to all existing {{ card.role }} accounts (missing it)
+    </button>
+  </form>
+  {% endif %}
+</section>
+{% endfor %}
+
+<script>
+(function () {
+  document.querySelectorAll('[data-tool-card]').forEach((card) => {
+    function paint() {
+      const yes = card.querySelector('input[value="yes"]');
+      card.classList.toggle('is-yes', !!(yes && yes.checked));
+      card.classList.toggle('is-no', !(yes && yes.checked));
+    }
+    card.querySelectorAll('input[type="radio"]').forEach((r) => r.addEventListener('change', paint));
+    paint();
+  });
+})();
+</script>
+{% endblock %}
