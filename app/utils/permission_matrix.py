@@ -316,9 +316,8 @@ def keys_from_form_levels(form, *, include_raw_checkboxes: bool = False) -> list
 
 def keys_from_yes_no_form(form) -> list[str]:
     """
-    Form fields:
-      access_<area_id> = 'yes' | 'no'   (can open)
-      manage_<area_id> = 'yes' | 'no'   (optional manage upgrade)
+    Super-simple form: access_<area_id> = 'yes' | 'no'
+    YES = full use of that tool (all keys for the area). NO = none.
     """
     get = form.get if hasattr(form, 'get') else (lambda k, d=None: form.get(k, d) if isinstance(form, dict) else d)
     keys: list[str] = []
@@ -326,29 +325,18 @@ def keys_from_yes_no_form(form) -> list[str]:
         see = (get(f"access_{area['id']}", 'no') or 'no').lower() == 'yes'
         if not see:
             continue
-        manage = (get(f"manage_{area['id']}", 'no') or 'no').lower() == 'yes'
-        # If view and manage keys are the same, YES = those keys
-        level = LEVEL_MANAGE if manage else LEVEL_VIEW
-        # Areas with only manage-type keys: "yes" alone means full access
-        view = set(area.get('view_keys') or [])
-        mkeys = set(area.get('manage_keys') or [])
-        if view == mkeys or not view:
-            level = LEVEL_MANAGE if see else LEVEL_OFF
-        keys.extend(keys_for_level(area, level))
+        # One switch: YES unlocks the whole tool (view + manage keys)
+        keys.extend(keys_for_level(area, LEVEL_MANAGE))
     return list(dict.fromkeys(keys))
 
 
 def human_summary(granted: set[str] | list[str], *, full_access: bool = False) -> list[str]:
     if full_access:
-        return ['FULL ACCESS — every area (Admin/Owner)']
+        return ['Everything — YES to all tools']
     lines = []
     for row in area_status_rows(granted, full_access=False):
-        if not row['can_see']:
-            continue
-        if row['can_manage']:
-            lines.append(f"{row['label']}: YES (manage)")
-        else:
-            lines.append(f"{row['label']}: YES (open)")
+        if row['can_see']:
+            lines.append(f"{row['label']}: YES")
     return lines
 
 

@@ -1,112 +1,117 @@
 {% extends "members/base_members.html" %}
-{% block page_title %}Access — {{ member.first_name }} {{ member.last_name }}{% endblock %}
+{% block page_title %}{{ member.first_name }} {{ member.last_name }} — tools{% endblock %}
 {% block page_description %}
-  Exact YES / NO for every tool this person can open. Not based on “Staff vs Member.”
+  Tap <strong style="color:#5dca7a;">YES</strong> or <strong style="color:#e07070;">NO</strong> for each tool. Then tap Save at the bottom.
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260722easy2">
 {% endblock %}
 
 {% block members_content %}
-<div class="glass-panel" style="padding:1rem 1.15rem; margin-bottom:1rem;">
-  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.75rem; align-items:flex-start;">
-    <div>
-      <h2 class="section-title" style="margin:0 0 0.35rem;">
-        {{ member.first_name }} {{ member.last_name }}
-        <span class="small text-muted">(@{{ member.username }})</span>
-      </h2>
-      <p style="margin:0;">
-        Role: <strong>{{ member.role }}</strong>
-        {% if breakdown.full_access %}
-          · <span style="color:#6fd4ff; font-weight:700;">FULL ACCESS (every area YES)</span>
-        {% else %}
-          · Access is <strong>exactly</strong> what you set below
-        {% endif %}
-      </p>
-    </div>
-    <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-      <a class="btn-secondary" href="{{ url_for('members.access_control') }}">All users board</a>
-      <a class="btn-secondary" href="{{ url_for('members.add_member', member_id=member.id) }}">Edit profile</a>
-    </div>
+<div class="ac-hero glass-panel">
+  <h2>{{ member.first_name or '' }} {{ member.last_name or member.username }}</h2>
+  <p>
+    Role: <strong>{{ member.role }}</strong>
+    {% if breakdown.full_access %}
+      — they already have <strong>YES to everything</strong> (Admin / Owner).
+    {% else %}
+      — only tools set to <strong style="color:#5dca7a;">YES</strong> will open for them.
+    {% endif %}
+  </p>
+  <div class="ac-toolbar" style="margin-top:0.85rem;">
+    <a class="btn-secondary" href="{{ url_for('members.access_control') }}">← All people</a>
+    <a class="btn-secondary" href="{{ url_for('members.add_member', member_id=member.id) }}">Edit profile</a>
   </div>
 </div>
 
-<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
-  <h3 class="h6" style="margin-top:0;">What they can open right now</h3>
+<div class="ac-summary-box glass-panel">
+  <h3>Right now they can open:</h3>
   {% if summary_lines %}
-  <ul style="margin:0.35rem 0 0; padding-left:1.2rem;">
+  <ul class="ac-summary-list">
     {% for line in summary_lines %}
-    <li><strong>{{ line }}</strong></li>
+    <li>{{ line|replace(': YES', '') }}</li>
     {% endfor %}
   </ul>
   {% else %}
-  <p class="mb-0 text-muted">NO operator tools — nothing from the list below is YES.</p>
-  {% endif %}
-  {% if preview.nav %}
-  <p class="small text-muted" style="margin:0.75rem 0 0;">
-    Menu areas: {{ preview.nav|join(' · ') }}
-  </p>
+  <p class="ac-empty mb-0">Nothing yet — all tools are NO.</p>
   {% endif %}
 </div>
 
 {% if breakdown.full_access %}
-<div class="glass-panel" style="padding:1rem;">
-  <p class="mb-0">
-    Owner and Admin always have <strong>YES</strong> on everything so the church is never locked out.
-    To limit tools, change this account’s role to Staff or Member, then set YES/NO below.
+<div class="glass-panel" style="padding:1.1rem;">
+  <p style="margin:0; font-size:1.1rem; line-height:1.5;">
+    Admins and Owners always get every tool so the church never gets locked out.
+    To limit tools, change their role to <strong>Staff</strong> or <strong>Member</strong> on the profile page, then come back here.
   </p>
 </div>
 {% else %}
 
-<form method="POST" class="glass-panel" style="padding:1rem;">
+<form method="POST" id="ac-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-  <p style="margin:0 0 1rem;">
-    Set each area to <strong style="color:#5dca7a;">YES</strong> or <strong style="color:#e07070;">NO</strong>.
-    Save makes this exact — a <strong>NO</strong> blocks that area even if they are in a permission group.
-  </p>
 
-  <div style="overflow:auto;">
-    <table class="data-table" style="width:100%;">
-      <thead>
-        <tr>
-          <th>Area</th>
-          <th style="width:7rem; text-align:center;">Can open?</th>
-          <th style="width:9rem; text-align:center;">Can manage?</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for area in status_rows %}
-        <tr>
-          <td>
-            <strong><i class="fa-solid {{ area.icon|default('fa-key') }}" aria-hidden="true"></i> {{ area.label }}</strong>
-            <div class="small text-muted">{{ area.description }}</div>
-          </td>
-          <td style="text-align:center;">
-            <select name="access_{{ area.id }}" class="form-input" style="width:auto; min-width:5.5rem; font-weight:800;
-              color: {% if area.can_see %}#5dca7a{% else %}#e07070{% endif %};">
-              <option value="yes" {% if area.can_see %}selected{% endif %}>YES</option>
-              <option value="no" {% if not area.can_see %}selected{% endif %}>NO</option>
-            </select>
-          </td>
-          <td style="text-align:center;">
-            {% set same_keys = (area.view_keys|default([])|sort) == (area.manage_keys|default([])|sort) %}
-            {% if same_keys %}
-            <span class="small text-muted">same as open</span>
-            <input type="hidden" name="manage_{{ area.id }}" value="{{ 'yes' if area.can_see else 'no' }}">
-            {% else %}
-            <select name="manage_{{ area.id }}" class="form-input" style="width:auto; min-width:5.5rem; font-weight:800;">
-              <option value="no" {% if not area.can_manage %}selected{% endif %}>NO</option>
-              <option value="yes" {% if area.can_manage %}selected{% endif %}>YES</option>
-            </select>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="ac-toolbar">
+    <button type="button" class="btn-secondary" id="ac-all-yes">Turn ALL to YES</button>
+    <button type="button" class="btn-secondary" id="ac-all-no">Turn ALL to NO</button>
   </div>
 
-  <div style="margin-top:1rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:flex-end;">
-    <a class="btn-secondary" href="{{ url_for('members.access_control') }}">Cancel</a>
-    <button type="submit" class="btn-primary">Save exact access</button>
+  <div class="ac-grid">
+    {% for area in status_rows %}
+    <div class="ac-tool {% if area.can_see %}is-yes{% else %}is-no{% endif %}" data-tool-card>
+      <p class="ac-tool-title">
+        <i class="fa-solid {{ area.icon|default('fa-key') }}" aria-hidden="true"></i>
+        {{ area.label }}
+      </p>
+      <p class="ac-tool-desc">{{ area.description }}</p>
+      <div class="ac-toggle" role="group" aria-label="{{ area.label }} access">
+        <span class="ac-opt">
+          <input type="radio" name="access_{{ area.id }}" id="yes_{{ area.id }}" value="yes"
+                 {% if area.can_see %}checked{% endif %}>
+          <label class="ac-yes-label" for="yes_{{ area.id }}">YES</label>
+        </span>
+        <span class="ac-opt">
+          <input type="radio" name="access_{{ area.id }}" id="no_{{ area.id }}" value="no"
+                 {% if not area.can_see %}checked{% endif %}>
+          <label class="ac-no-label" for="no_{{ area.id }}">NO</label>
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="ac-save-bar glass-panel">
+    <span class="ac-save-hint">Done choosing? Tap Save.</span>
+    <button type="submit" class="btn-primary">Save</button>
   </div>
 </form>
+
+<script>
+(function () {
+  function paintCard(card) {
+    const yes = card.querySelector('input[value="yes"]');
+    card.classList.toggle('is-yes', !!(yes && yes.checked));
+    card.classList.toggle('is-no', !(yes && yes.checked));
+  }
+  document.querySelectorAll('[data-tool-card]').forEach((card) => {
+    card.querySelectorAll('input[type="radio"]').forEach((r) => {
+      r.addEventListener('change', () => paintCard(card));
+    });
+    paintCard(card);
+  });
+  document.getElementById('ac-all-yes')?.addEventListener('click', () => {
+    document.querySelectorAll('input[type="radio"][value="yes"]').forEach((r) => {
+      r.checked = true;
+      r.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+  document.getElementById('ac-all-no')?.addEventListener('click', () => {
+    document.querySelectorAll('input[type="radio"][value="no"]').forEach((r) => {
+      r.checked = true;
+      r.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}
