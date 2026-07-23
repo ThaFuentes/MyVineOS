@@ -370,6 +370,14 @@ def build_group_permissions_context(cur, user_id: int, user_role: str, current_p
     total_visible = sum(len(c['permission_keys']) for c in categories)
     selected_count = sum(1 for p in current if p in known_permissions)
 
+    try:
+        from app.utils.permission_matrix import matrix_from_keys, human_summary
+        area_matrix_rows = matrix_from_keys(current)
+        area_matrix_summary = human_summary(current)
+    except Exception:
+        area_matrix_rows = []
+        area_matrix_summary = []
+
     return {
         'known_permissions': known_permissions,
         'permission_categories': categories,
@@ -380,6 +388,8 @@ def build_group_permissions_context(cur, user_id: int, user_role: str, current_p
         'current_permissions': current,
         'permission_total_count': total_visible,
         'permission_selected_count': selected_count,
+        'area_matrix_rows': area_matrix_rows,
+        'area_matrix_summary': area_matrix_summary,
     }
 
 

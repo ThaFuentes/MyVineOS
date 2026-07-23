@@ -129,6 +129,12 @@ Granted permissions control who can view, edit, or fully manage accounts.
                                    style="padding:0.45rem 0.8rem; font-size:0.9rem; min-width:60px; text-align:center; border-radius:8px; text-decoration:none; font-weight:600;">
                                     Edit
                                 </a>
+                                <a href="{{ url_for('members.member_access', member_id=member.id) }}"
+                                   class="btn-small btn-edit"
+                                   style="padding:0.45rem 0.8rem; font-size:0.9rem; min-width:60px; text-align:center; border-radius:8px; text-decoration:none; font-weight:600;"
+                                   title="Groups and personal permissions">
+                                    Access
+                                </a>
                                 {# Owner: any unverified account. Admin: unverified non-Admin/Owner. #}
                                 {% if can_manage_users and not member.email_verified and member.email
                                       and (session.get('user_role') == 'Owner'

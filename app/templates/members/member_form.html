@@ -118,6 +118,9 @@ A temporary password will be generated and emailed on creation.
 
         <div class="form-actions">
             <button type="submit" class="btn-primary">{{ 'Update' if member else 'Add' }} Member</button>
+            {% if member %}
+            <a href="{{ url_for('members.member_access', member_id=member.id) }}" class="btn-secondary">Manage access</a>
+            {% endif %}
             <a href="{{ url_for('members.members_directory') }}" class="btn-secondary">Cancel</a>
         </div>
     </form>

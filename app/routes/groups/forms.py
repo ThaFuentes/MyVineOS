@@ -10,6 +10,17 @@
 
 from flask import flash
 from app.utils.helpers import contains_censored_word
+from app.utils.permission_matrix import keys_from_form_levels
+from app.utils.permissions import is_valid_permission_key
+
+
+def _permissions_from_form(form_data):
+    """
+    Prefer area matrix selects (area_level_*); also accept classic checkboxes.
+    """
+    keys = keys_from_form_levels(form_data)
+    # If matrix was empty but checkboxes present, keys_from_form_levels already merged checkboxes.
+    return [p for p in keys if is_valid_permission_key(p)]
 
 
 def validate_create_group_form(form_data):
@@ -20,7 +31,6 @@ def validate_create_group_form(form_data):
     name = form_data.get('name', '').strip()
     description = form_data.get('description', '').strip()
     visibility = form_data.get('visibility', 'private')
-    selected_perms = form_data.getlist('permissions')
 
     # Required fields
     if not name:
@@ -33,8 +43,7 @@ def validate_create_group_form(form_data):
         flash('Group name or description contains a prohibited word or phrase.', 'error')
         return None
 
-    # Clean permissions
-    permissions = [p for p in selected_perms if p]  # remove empty
+    permissions = _permissions_from_form(form_data)
 
     return {
         'name': name,
@@ -52,7 +61,6 @@ def validate_edit_group_form(form_data):
     name = form_data.get('name', '').strip()
     description = form_data.get('description', '').strip()
     visibility = form_data.get('visibility', 'private')
-    selected_perms = form_data.getlist('permissions')
 
     # Required fields
     if not name:
@@ -65,8 +73,7 @@ def validate_edit_group_form(form_data):
         flash('Group name or description contains a prohibited word or phrase.', 'error')
         return None
 
-    # Clean permissions
-    permissions = [p for p in selected_perms if p]  # remove empty
+    permissions = _permissions_from_form(form_data)
 
     return {
         'name': name,

@@ -1,0 +1,69 @@
+{# Friendly area matrix — Off / View / Manage per church area.
+   Expects: area_matrix_rows (list of areas with .level), optional matrix_title, matrix_help
+#}
+{% set rows = area_matrix_rows|default([]) %}
+<div class="area-matrix glass-panel" id="area-matrix" style="padding:1rem; margin-bottom:1rem;">
+  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.5rem; margin-bottom:0.75rem;">
+    <div>
+      <h3 class="h6" style="margin:0 0 0.25rem;">{{ matrix_title|default('What can they access?') }}</h3>
+      <p class="small text-muted" style="margin:0;">
+        {{ matrix_help|default('Pick Off, View, or Manage for each area. This is the easy way — no need to know internal keys.') }}
+      </p>
+    </div>
+    <div class="small" id="area-matrix-summary" style="min-width:12rem; opacity:0.9;"></div>
+  </div>
+
+  <div class="area-matrix-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:0.65rem;">
+    {% for area in rows %}
+    <div class="area-matrix-card" data-area="{{ area.id }}"
+         style="border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:0.7rem 0.75rem; background:rgba(0,0,0,0.18);">
+      <div style="display:flex; align-items:flex-start; gap:0.45rem; margin-bottom:0.4rem;">
+        <i class="fa-solid {{ area.icon|default('fa-key') }}" style="opacity:0.85; margin-top:0.15rem;" aria-hidden="true"></i>
+        <div>
+          <div style="font-weight:700; font-size:0.95rem;">{{ area.label }}</div>
+          <div class="small text-muted" style="line-height:1.35;">{{ area.description }}</div>
+        </div>
+      </div>
+      <label class="sr-only" for="area_level_{{ area.id }}">Access level for {{ area.label }}</label>
+      <select name="area_level_{{ area.id }}" id="area_level_{{ area.id }}" class="form-input area-level-select"
+              style="width:100%;" data-area-label="{{ area.label }}">
+        <option value="off" {% if area.level == 'off' %}selected{% endif %}>Off — no access</option>
+        <option value="view" {% if area.level == 'view' %}selected{% endif %}>View / use</option>
+        <option value="manage" {% if area.level == 'manage' %}selected{% endif %}>Manage (edit)</option>
+      </select>
+    </div>
+    {% else %}
+    <p class="small text-muted">No areas configured.</p>
+    {% endfor %}
+  </div>
+
+  <details style="margin-top:0.85rem;">
+    <summary class="small" style="cursor:pointer; opacity:0.85;">Advanced: raw permission keys (optional)</summary>
+    <p class="small text-muted" style="margin:0.4rem 0;">
+      Leave this closed unless you need a key that is not on the cards. Matrix choices above are enough for almost everyone.
+    </p>
+    {% include 'groups/_permission_checkboxes.html' %}
+  </details>
+</div>
+<script>
+(function () {
+  function refreshSummary() {
+    const box = document.getElementById('area-matrix-summary');
+    if (!box) return;
+    const picks = [];
+    document.querySelectorAll('.area-level-select').forEach((sel) => {
+      if (sel.value && sel.value !== 'off') {
+        const label = sel.dataset.areaLabel || sel.id;
+        picks.push(label + ': ' + (sel.value === 'manage' ? 'manage' : 'view'));
+      }
+    });
+    box.innerHTML = picks.length
+      ? ('<strong>Active:</strong> ' + picks.slice(0, 8).join('; ') + (picks.length > 8 ? '…' : ''))
+      : '<span class="text-muted">Nothing selected yet.</span>';
+  }
+  document.querySelectorAll('.area-level-select').forEach((sel) => {
+    sel.addEventListener('change', refreshSummary);
+  });
+  refreshSummary();
+})();
+</script>
