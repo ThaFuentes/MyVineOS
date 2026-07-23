@@ -1,0 +1,62 @@
+{% extends "members/base_members.html" %}
+{% block page_title %}Access Control{% endblock %}
+{% block page_description %}
+  Every account · every area · <strong>YES or NO</strong>. Not “maybe if Staff.”
+  Click a person to change their exact access.
+{% endblock %}
+
+{% block members_content %}
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <p style="margin:0 0 0.5rem;">
+    <strong>How this works:</strong>
+    Role (Member / Staff / Admin / Owner) is identity.
+    <strong>Admin and Owner = YES to everything.</strong>
+    Everyone else = only what you set on their Access page (and optional groups, but a personal <strong>NO</strong> always wins).
+  </p>
+  <p class="small text-muted" style="margin:0;">
+    Scroll sideways on phones. Green <strong>YES</strong> = they can open that area. Red <strong>NO</strong> = they cannot.
+  </p>
+</div>
+
+<div class="glass-panel" style="padding:0; overflow:auto;">
+  <table class="data-table" style="width:100%; min-width:720px; border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th style="position:sticky; left:0; background:var(--bg-card,#1a1a1a); z-index:1;">Person</th>
+        <th>Role</th>
+        {% for a in board_areas %}
+        <th class="small" title="{{ a.description }}">{{ a.label }}</th>
+        {% endfor %}
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td style="position:sticky; left:0; background:var(--bg-card,#1a1a1a); z-index:1;">
+          <strong>{{ row.user.first_name or '' }} {{ row.user.last_name or '' }}</strong>
+          <div class="small text-muted">@{{ row.user.username }}</div>
+        </td>
+        <td>
+          {{ row.user.role }}
+          {% if row.full_access %}<div class="small" style="color:#6fd4ff;">full access</div>{% endif %}
+        </td>
+        {% for c in row.cells %}
+        <td style="text-align:center; font-weight:800; letter-spacing:0.02em;
+                   color: {% if c.yes %}#5dca7a{% else %}#e07070{% endif %};">
+          {{ c.label }}
+        </td>
+        {% endfor %}
+        <td>
+          <a class="btn-small btn-edit" href="{{ url_for('members.member_access', member_id=row.user.id) }}">
+            Manage
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="20" class="no-data">No users found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

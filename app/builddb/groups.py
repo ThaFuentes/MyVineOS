@@ -66,7 +66,7 @@ def create_tables(cursor):
     except:
         pass
 
-    # ----- USER_PERMISSIONS (direct per-person grants) -----
+    # ----- USER_PERMISSIONS (direct per-person YES grants) -----
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_permissions (
             user_id INT UNSIGNED NOT NULL,
@@ -80,6 +80,23 @@ def create_tables(cursor):
     """)
     try:
         cursor.execute("CREATE INDEX idx_user_permissions_key ON user_permissions(permission_key)")
+    except Exception:
+        pass
+
+    # ----- USER_PERMISSION_BLOCKS (explicit NO — beats groups) -----
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_permission_blocks (
+            user_id INT UNSIGNED NOT NULL,
+            permission_key VARCHAR(64) NOT NULL,
+            blocked_by INT UNSIGNED NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, permission_key),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (blocked_by) REFERENCES users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """)
+    try:
+        cursor.execute("CREATE INDEX idx_user_permission_blocks_key ON user_permission_blocks(permission_key)")
     except Exception:
         pass
 
