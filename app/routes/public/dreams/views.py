@@ -28,11 +28,40 @@ from app.utils.comment_moderation import (
 # ----------------------------------------------------------------------
 # Public Dreams Listing (Guests Only)
 # ----------------------------------------------------------------------
-@dreams_bp.route('/')
+@dreams_bp.route('/', methods=['GET', 'POST'])
 def public_dreams():
     """Public dreams listing - logged-in users are redirected to the private dreams dashboard."""
-    if 'user_id' in session:
+    if 'user_id' in session and request.method == 'GET':
         return redirect(url_for('dreams.dreams'))
+
+    from app.utils.community_participation import can_create_community_content, can_view_community_public
+    from app.utils.visitor_permissions import visitor_can_create, visitor_can_view
+    from .forms import validate_guest_submission_form
+    from .queries import create_guest_dream
+
+    if not can_view_community_public('dreams'):
+        flash('Dreams are not available to visitors on this site.', 'info')
+        return redirect(url_for('public.public_dashboard.public_dashboard'))
+
+    can_create = can_create_community_content('dreams')
+
+    if request.method == 'POST' and request.form.get('action') == 'submit_dream':
+        if not can_create:
+            flash('Submitting dreams is not open to visitors right now.', 'error')
+            return redirect(url_for('public.public_dreams.public_dreams'))
+        clean = validate_guest_submission_form(request.form)
+        if clean:
+            try:
+                create_guest_dream(
+                    clean['title'], clean['description'], clean['name'], request.remote_addr,
+                )
+                flash(
+                    'Thank you — your dream/vision was received and will appear after review.',
+                    'success',
+                )
+            except Exception:
+                flash('Failed to submit. Please try again.', 'error')
+        return redirect(url_for('public.public_dreams.public_dreams'))
 
     # Guest view only
     dreams = get_public_dreams()
@@ -55,7 +84,12 @@ def public_dreams():
         d['posted_by'] = d['creator_name']
         d['poster_name'] = d['creator_name']
 
-    return render_template('public/dreams/dreams.html', dreams=dreams)
+    return render_template(
+        'public/dreams/dreams.html',
+        dreams=dreams,
+        can_guest_create=visitor_can_create('dreams'),
+        can_guest_view=visitor_can_view('dreams'),
+    )
 
 
 # ----------------------------------------------------------------------
@@ -79,9 +113,15 @@ def public_dream_detail(dream_id):
     dream['description'] = censor_text(dream.get('description', ''))
     dream['notes']       = censor_text(dream.get('notes', ''))
 
+    from app.utils.community_participation import can_interact_community, can_view_community_public
+
+    if not can_view_community_public('dreams'):
+        flash('Dreams are not available to visitors on this site.', 'info')
+        return redirect(url_for('public.public_dashboard.public_dashboard'))
+
     viewer_ip = request.remote_addr
     viewer_uid = session.get('user_id')
-    comments_enabled = public_comments_enabled()
+    comments_enabled = public_comments_enabled() and can_interact_community('dreams')
     dream['comments'] = map_comments_legacy(
         fetch_public_comments('dream', dream_id, viewer_ip, viewer_uid)
     )

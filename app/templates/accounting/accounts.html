@@ -27,6 +27,7 @@
   </table>
 </div>
 
+{% if can_create_accounting() %}
 <div class="glass-panel acct-form-panel">
   <h2>Add account</h2>
   <p class="acct-form-lead">Custom accounts for expenses, assets, or liability tracking.</p>
@@ -64,4 +65,5 @@
     </div>
   </form>
 </div>
+{% endif %}
 {% endblock %}

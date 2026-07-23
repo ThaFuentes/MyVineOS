@@ -36,7 +36,7 @@ def _parse_mode_label(mode: str) -> str:
 
 
 @donations_bp.route('/email-import', methods=['GET', 'POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_queue():
     # Optional: save simple automation toggles on this same page (no separate settings screen)
     if request.method == 'POST' and request.form.get('action') == 'save_automation':
@@ -81,14 +81,14 @@ def email_import_queue():
 
 
 @donations_bp.route('/email-import/settings', methods=['GET', 'POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_settings():
     """This URL must never show a settings form. Email = Settings → Email only."""
     return redirect(url_for('donations.email_import_queue'), code=302)
 
 
 @donations_bp.route('/email-import/load-fixtures', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_load_fixtures():
     n = import_service.load_fixtures(force=request.form.get('force') == '1')
     flash(
@@ -101,7 +101,7 @@ def email_import_load_fixtures():
 
 
 @donations_bp.route('/email-import/send-samples', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_send_samples():
     """SMTP: send sample payment emails only to an address the staff types in (no defaults)."""
     to_email = (request.form.get('to_email') or '').strip()
@@ -131,7 +131,7 @@ def email_import_send_samples():
 
 
 @donations_bp.route('/email-import/revalidate', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_revalidate():
     """Re-parse open rows with current rules (clears cPanel/IP false gifts)."""
     result = import_service.revalidate_open_parses(use_ai='rules', limit=120)
@@ -203,7 +203,7 @@ def _flash_check_result(result: dict, mode: str, label: str | None = None):
 
 
 @donations_bp.route('/email-import/check', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_check_all():
     """Primary action: pull POP3/IMAP → parse (software or AI) → human review queue."""
     mode = _parse_mode_from_request()
@@ -227,7 +227,7 @@ def email_import_check_all():
 
 
 @donations_bp.route('/email-import/scan/<int:mailbox_id>', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_scan(mailbox_id):
     mode = _parse_mode_from_request()
     result = scan_mailbox(mailbox_id, limit=60, use_ai=mode)
@@ -240,7 +240,7 @@ def email_import_scan(mailbox_id):
 
 
 @donations_bp.route('/email-import/<int:message_id>')
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_detail(message_id):
     from app.utils.html_sanitize import sanitize_rich_html
     from markupsafe import Markup
@@ -258,7 +258,7 @@ def email_import_detail(message_id):
 
 
 @donations_bp.route('/email-import/<int:message_id>/reparse', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_reparse(message_id):
     mode = _parse_mode_from_request()
     try:
@@ -277,7 +277,7 @@ def email_import_reparse(message_id):
 
 
 @donations_bp.route('/email-import/paste', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_paste():
     """Paste a payment notification — software detects format and parses."""
     subject = (request.form.get('subject') or '').strip()
@@ -302,7 +302,7 @@ def email_import_paste():
 
 
 @donations_bp.route('/email-import/bulk-approve', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_bulk_approve():
     ids = request.form.getlist('message_id')
     if not ids:
@@ -335,7 +335,7 @@ def _redirect_after_queue_action(done_id: int, action_label: str):
 
 
 @donations_bp.route('/email-import/<int:message_id>/post', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_post(message_id):
     overrides = {
         'donor_name': request.form.get('donor_name'),
@@ -375,7 +375,7 @@ def email_import_post(message_id):
 
 
 @donations_bp.route('/email-import/<int:message_id>/dismiss', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def email_import_dismiss(message_id):
     """Not a gift — skip it and move to the next real gift."""
     reason = (request.form.get('reason') or 'not_a_gift').strip()[:500]
@@ -391,7 +391,7 @@ def email_import_dismiss(message_id):
         return redirect(url_for('donations.email_import_detail', message_id=message_id))
 
 @donations_bp.route('/receipts/test/<int:donation_id>', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def receipt_test(donation_id):
     from app.models.donation import get_donation_by_id
     donation = get_donation_by_id(donation_id)
@@ -410,7 +410,7 @@ def receipt_test(donation_id):
 
 
 @donations_bp.route('/enterprise-report')
-@permission_required('manage_donations')
+@permission_required('view_donations', 'create_donations', 'edit_donations', 'delete_donations', 'manage_donations')
 def enterprise_report():
     year = request.args.get('year', type=int)
     report = import_service.enterprise_report(year)

@@ -1,11 +1,5 @@
 # app/routes/donations/utils.py
-# Full path: MyVineChurch/app/routes/donations/utils.py
-# File name: utils.py
-# Brief, detailed purpose: Utility functions and constants for the Donations module.
-# - REQUIRED_ROLES and ADMIN_OWNER_ONLY constants
-# - get_church_info() helper (moved from views.py for clean separation)
-# - Keeps views.py thin and focused - all shared logic lives here.
-# - 100% matches the original donations.py behavior.
+# Fine-grained donation permissions: view ≠ create ≠ edit ≠ delete.
 
 from app.models.db import get_db
 import pymysql
@@ -18,15 +12,48 @@ from app.utils.permissions import user_has_permission
 # ----------------------------------------------------------------------
 REQUIRED_ROLES = ['Staff', 'Admin', 'Owner']
 ADMIN_OWNER_ONLY = ['Admin', 'Owner']
-DONATIONS_VIEW_PERMISSIONS = ('view_donations', 'manage_donations')
+
+# View pages: any donation key that expands to view, or legacy manage.
+DONATIONS_VIEW_PERMISSIONS = (
+    'view_donations',
+    'create_donations',
+    'edit_donations',
+    'delete_donations',
+    'manage_donations',
+)
 
 
 def can_view_donations() -> bool:
-    return any(user_has_permission(key) for key in DONATIONS_VIEW_PERMISSIONS)
+    """See donation lists / reports (read-only is enough)."""
+    return user_has_permission('view_donations') or any(
+        user_has_permission(k)
+        for k in ('create_donations', 'edit_donations', 'delete_donations', 'manage_donations')
+    )
+
+
+def can_create_donations() -> bool:
+    return user_has_permission('create_donations')
+
+
+def can_edit_donations() -> bool:
+    return user_has_permission('edit_donations')
+
+
+def can_delete_donations() -> bool:
+    return user_has_permission('delete_donations')
 
 
 def can_manage_donations() -> bool:
-    return user_has_permission('manage_donations')
+    """
+    Backward-compatible: True if user has any write capability.
+    Prefer can_create / can_edit / can_delete in new templates.
+    """
+    return (
+        can_create_donations()
+        or can_edit_donations()
+        or can_delete_donations()
+        or user_has_permission('manage_donations')
+    )
 
 
 # ----------------------------------------------------------------------

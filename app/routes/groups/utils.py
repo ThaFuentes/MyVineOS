@@ -17,54 +17,142 @@ from app.models.db import get_db
 # Keys must match user_has_permission / @permission_required checks in routes.
 # ----------------------------------------------------------------------
 KNOWN_PERMISSIONS = {
-    # --- Content: create & moderate ---
-    'create_announcements': 'Create and edit own announcements',
-    'moderate_announcements': 'Delete or edit ANY announcement (moderation)',
-    'create_events': 'Create and edit own events',
-    'moderate_events': 'Delete or edit ANY event (moderation)',
-    'manage_events': 'Full events management (create, edit, moderate any event)',
-    'manage_event_registration': 'Manage event registrations, fees, and ticketing',
-    'upload_sermons': 'Upload and manage public sermon library content',
-    'moderate_sermons': 'Delete or edit ANY sermon or sermon comment',
-    'moderate_prayers': 'Delete or edit ANY prayer request or response',
-    'create_dreams': 'Create and share dreams / visions',
-    'moderate_dreams': 'Delete or edit ANY dream/vision or comment',
-    'moderate_prophecies': 'Delete or edit ANY prophecy or comment',
+    # --- Content (one key per action) ---
+    'view_announcements': 'View announcements admin tools',
+    'create_announcements': 'Create announcements',
+    'edit_announcements': 'Edit announcements',
+    'delete_announcements': 'Delete announcements',
+    'moderate_announcements': 'Moderate any announcement',
 
-    # --- Financial & operations ---
-    'view_donations': 'View donation records and reports (read-only)',
-    'manage_donations': 'Full donation management (record, edit, delete — sensitive)',
-    'manage_bills': 'Access and manage recurring bills',
-    'manage_accounting': 'Full accounting: chart of accounts, expenses, budgets, payroll views',
-    'manage_inventory': 'Access and manage church inventory (items, stock, audits)',
-    'manage_tickets': 'Full Ticket Manager access (create, assign, resolve any ticket)',
-    'submit_tickets': 'Submit and view own support tickets',
+    'view_events': 'View events admin tools',
+    'create_events': 'Create events',
+    'edit_events': 'Edit events',
+    'delete_events': 'Delete events',
+    'moderate_events': 'Moderate any event',
+    'manage_events': 'Legacy full events (implies view/create/edit/delete/moderate)',
+    'manage_event_registration': 'Manage event registration & fees',
 
-    # --- People, family, attendance, volunteers ---
-    'view_members': 'View the member directory',
-    'manage_members': 'Edit member profiles, directory settings, and family links',
-    'manage_family_links': 'Approve/reject family relationship requests (admin override)',
-    'manage_users': 'Create, edit, approve, or delete user accounts and site roles',
-    'manage_attendance': 'Attendance kiosk, sessions, reports, and child check-in station',
-    'manage_volunteers': 'Volunteer teams, schedules, rotations, and staff scheduling tools',
-    'manage_child_checkin': 'Child check-in station, rooms, labels, and live board (also covered by manage_attendance)',
+    'view_sermons': 'View public sermon library admin',
+    'upload_sermons': 'Upload sermons',
+    'edit_sermons': 'Edit sermons',
+    'delete_sermons': 'Delete sermons',
+    'moderate_sermons': 'Moderate any sermon',
 
-    # --- Communications ---
-    'send_emails': 'Communications hub: mass email/SMS, drips, and automation',
+    'view_prayers': 'View prayers admin',
+    'create_prayers': 'Submit prayers',
+    'edit_prayers': 'Edit prayers',
+    'delete_prayers': 'Delete prayers',
+    'moderate_prayers': 'Moderate any prayer',
 
-    # --- Ministry areas (pastoral, worship, AI) ---
-    'access_pastoral': 'Access the private Pastoral Care area (sermons, vault, curriculum, podium, care)',
-    'access_worship': 'View Worship Team songs, setlists, and plans',
-    'manage_worship': 'Manage Worship Team: songs, setlists, plans, and team settings',
-    'use_ai_insights': 'Use AI Insights reports and analysis tools',
+    'view_dreams': 'View dreams admin',
+    'create_dreams': 'Post dreams / visions',
+    'edit_dreams': 'Edit dreams',
+    'delete_dreams': 'Delete dreams',
+    'moderate_dreams': 'Moderate any dream',
 
-    # --- Administration & governance ---
-    'manage_groups': 'Create/edit/delete permission groups and assign members',
-    'manage_settings': 'Access and change church settings (name, email, themes, modules, campuses)',
-    'manage_help': 'Create and edit help categories and how-to guides',
-    'manage_legal_notices': 'Create and edit legal notices, policies, and community guidelines',
-    'manage_security': 'Security console: attacks, IP bans, unlock false positives',
-    'view_audit_logs': 'View the Change Records / audit log',
+    'view_prophecies': 'View prophecies admin',
+    'create_prophecies': 'Post prophecies',
+    'edit_prophecies': 'Edit prophecies',
+    'delete_prophecies': 'Delete prophecies',
+    'moderate_prophecies': 'Moderate any prophecy',
+
+    # --- Finance ---
+    'view_donations': 'View donations and reports',
+    'create_donations': 'Record new donations',
+    'edit_donations': 'Edit donations',
+    'delete_donations': 'Delete donations',
+    'manage_donations': 'Legacy full donations',
+
+    'view_bills': 'View all bills',
+    'create_bills': 'Add new bills',
+    'edit_bills': 'Edit bills',
+    'delete_bills': 'Delete bills',
+    'manage_bills': 'Legacy full bills',
+
+    'view_accounting': 'View accounting (read only)',
+    'create_accounting': 'Create accounting records',
+    'edit_accounting': 'Edit accounting records',
+    'delete_accounting': 'Delete accounting records',
+    'manage_accounting': 'Legacy full accounting',
+
+    'view_inventory': 'View inventory',
+    'create_inventory': 'Add inventory items',
+    'edit_inventory': 'Edit inventory / stock',
+    'delete_inventory': 'Delete inventory items',
+    'manage_inventory': 'Legacy full inventory',
+
+    'view_tickets': 'View ticket manager tickets',
+    'create_tickets': 'Create tickets in ticket manager',
+    'edit_tickets': 'Edit / assign / resolve tickets',
+    'delete_tickets': 'Delete tickets',
+    'manage_tickets': 'Legacy full ticket manager',
+    'view_own_tickets': 'View own support tickets',
+    'submit_tickets': 'Submit own support tickets',
+
+    # --- People ---
+    'view_members': 'View member directory',
+    'create_members': 'Create member profiles',
+    'edit_members': 'Edit member profiles',
+    'delete_members': 'Delete member profiles',
+    'manage_members': 'Legacy create/edit members',
+    'manage_family_links': 'Manage family links',
+
+    'view_users': 'View user accounts',
+    'create_users': 'Create / approve user accounts',
+    'edit_users': 'Edit user accounts / roles',
+    'delete_users': 'Delete user accounts',
+    'manage_users': 'Legacy full user management',
+
+    'view_attendance': 'View attendance',
+    'create_attendance': 'Create sessions / check-ins',
+    'edit_attendance': 'Edit attendance',
+    'delete_attendance': 'Delete attendance',
+    'manage_attendance': 'Legacy full attendance',
+
+    'view_child_checkin': 'View child check-in',
+    'create_child_checkin': 'Check children in',
+    'edit_child_checkin': 'Edit child check-in',
+    'delete_child_checkin': 'Delete child check-in records',
+    'manage_child_checkin': 'Legacy full child check-in',
+
+    'view_volunteers': 'View volunteer tools',
+    'create_volunteers': 'Create teams / schedules',
+    'edit_volunteers': 'Edit volunteer schedules',
+    'delete_volunteers': 'Delete volunteer data',
+    'manage_volunteers': 'Legacy full volunteers',
+
+    # --- Comms / ministry / admin ---
+    'view_communications': 'View communications hub',
+    'send_emails': 'Send mass email / SMS',
+    'edit_communications': 'Edit campaigns / drips',
+    'delete_communications': 'Delete campaigns',
+
+    'access_pastoral': 'Open pastoral area',
+    'create_pastoral': 'Create pastoral content',
+    'edit_pastoral': 'Edit pastoral content',
+    'delete_pastoral': 'Delete pastoral content',
+
+    'access_worship': 'View worship tools',
+    'create_worship': 'Create songs / setlists',
+    'edit_worship': 'Edit worship content',
+    'delete_worship': 'Delete worship content',
+    'manage_worship': 'Legacy full worship manage',
+
+    'view_ai_insights': 'View AI insights',
+    'use_ai_insights': 'Run AI reports',
+
+    'view_settings': 'View church settings',
+    'manage_settings': 'Change church settings',
+
+    'view_help': 'View help admin',
+    'manage_help': 'Edit help content',
+    'view_legal': 'View legal admin',
+    'manage_legal_notices': 'Edit legal notices',
+
+    'view_security': 'View security console',
+    'manage_security': 'Ban / unlock / act in security',
+
+    'view_audit_logs': 'View the audit log',
 }
 
 
@@ -73,93 +161,74 @@ KNOWN_PERMISSIONS = {
 # Each category lists permission keys (must exist in KNOWN_PERMISSIONS).
 # Church Apps are injected dynamically at render time.
 # ----------------------------------------------------------------------
+# Category lists are derived from KNOWN_PERMISSIONS so new fine keys always appear.
+def _keys_matching(*prefixes: str) -> list[str]:
+    out = []
+    for k in KNOWN_PERMISSIONS:
+        if any(k == p or k.startswith(p) for p in prefixes):
+            out.append(k)
+    return out
+
+
 PERMISSION_CATEGORIES = [
     {
         'id': 'content',
         'label': 'Content & Community',
         'description': 'Announcements, events, sermons, prayers, dreams, and prophecies.',
         'icon': 'content',
-        'keys': [
-            'create_announcements',
-            'moderate_announcements',
-            'create_events',
-            'moderate_events',
-            'manage_events',
-            'manage_event_registration',
-            'upload_sermons',
-            'moderate_sermons',
-            'moderate_prayers',
-            'create_dreams',
-            'moderate_dreams',
-            'moderate_prophecies',
-        ],
+        'keys': sorted(k for k in KNOWN_PERMISSIONS if any(
+            x in k for x in (
+                'announcement', 'event', 'sermon', 'prayer', 'dream', 'prophec',
+            )
+        )),
     },
     {
         'id': 'finance',
         'label': 'Finance & Operations',
         'description': 'Donations, bills, accounting, inventory, and support tickets.',
         'icon': 'finance',
-        'keys': [
-            'view_donations',
-            'manage_donations',
-            'manage_bills',
-            'manage_accounting',
-            'manage_inventory',
-            'manage_tickets',
-            'submit_tickets',
-        ],
+        'keys': sorted(k for k in KNOWN_PERMISSIONS if any(
+            x in k for x in (
+                'donation', 'bill', 'accounting', 'inventory', 'ticket',
+            )
+        )),
     },
     {
         'id': 'people',
         'label': 'People & Serving',
         'description': 'Members, users, attendance, volunteers, and child check-in.',
         'icon': 'people',
-        'keys': [
-            'view_members',
-            'manage_members',
-            'manage_family_links',
-            'manage_users',
-            'manage_attendance',
-            'manage_volunteers',
-            'manage_child_checkin',
-        ],
+        'keys': sorted(k for k in KNOWN_PERMISSIONS if any(
+            x in k for x in (
+                'member', 'user', 'attendance', 'volunteer', 'child_checkin', 'family',
+            )
+        ) and 'donation' not in k),
     },
     {
         'id': 'communications',
         'label': 'Communications',
         'description': 'Mass email, SMS, drips, and automation.',
         'icon': 'comms',
-        'keys': [
-            'send_emails',
-        ],
+        'keys': sorted(k for k in KNOWN_PERMISSIONS if 'email' in k or 'communication' in k),
     },
     {
         'id': 'ministry',
         'label': 'Ministry Areas',
         'description': 'Pastoral care, worship team, and AI insights.',
         'icon': 'ministry',
-        'keys': [
-            'access_pastoral',
-            'access_worship',
-            'manage_worship',
-            'use_ai_insights',
-        ],
+        'keys': sorted(k for k in KNOWN_PERMISSIONS if any(
+            x in k for x in ('pastoral', 'worship', 'ai_insight')
+        )),
     },
     {
         'id': 'admin',
         'label': 'Administration & Security',
-        'description': 'Groups, settings, help, legal notices, security console, audit log.',
+        'description': 'Settings, help, legal notices, security console, audit log.',
         'icon': 'admin',
-        'keys': [
-            'manage_groups',
-            'manage_settings',
-            'manage_help',
-            'manage_legal_notices',
-            'manage_security',
-            'view_audit_logs',
-        ],
+        'keys': sorted(k for k in KNOWN_PERMISSIONS if any(
+            x in k for x in ('setting', 'help', 'legal', 'security', 'audit')
+        )),
     },
-    # Church Apps category is built dynamically in build_group_permissions_context
 ]
 
 

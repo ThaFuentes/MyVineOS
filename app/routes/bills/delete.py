@@ -15,7 +15,7 @@ import pymysql
 def register_delete_routes(bp):
     @bp.route('/delete/<int:bill_id>', methods=['POST'])
     @login_required
-    @permission_required('manage_bills')
+    @permission_required('delete_bills', 'manage_bills')
     def delete_bill(bill_id):
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)

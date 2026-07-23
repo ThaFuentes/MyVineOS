@@ -51,8 +51,8 @@ Browse and search all prophetic words.<br>
   </div>
 </div>
 
-<!-- Add Prophecy Button – logged-in only -->
-{% if is_logged_in %}
+<!-- Add Prophecy Button – create_prophecies grant (Owner/Admin always) -->
+{% if is_logged_in and can_create_prophecies() %}
 <div class="form-actions add-event-top">
     <a href="{{ url_for('prophecies.add_prophecy') }}" class="btn-primary">+ Add Prophecy</a>
 </div>
@@ -116,8 +116,8 @@ Browse and search all prophetic words.<br>
                         <td>{{ p.comments|length }}</td>
                         {% if is_logged_in %}
                         <td class="actions-cell">
-                            {% set can_edit = (p.user_id == current_user_id) or is_admin_owner %}
-                            {% set can_delete = is_admin_owner %}
+                            {% set can_edit = (p.user_id == current_user_id) or is_admin_owner or (can_moderate|default(false)) %}
+                            {% set can_delete = is_admin_owner or (can_moderate|default(false)) %}
                             {% if can_edit or can_delete %}
                             <div class="actions-flex">
                                 {% if can_edit %}

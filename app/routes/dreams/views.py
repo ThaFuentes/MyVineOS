@@ -110,7 +110,12 @@ def view_dream(dream_id):
 @dreams_bp.route('/submit', methods=['GET', 'POST'])
 @login_required
 def submit_dream():
+    from .utils import can_create_dreams
+
     user_id = session['user_id']
+    if not can_create_dreams():
+        flash('You do not have permission to submit dreams right now.', 'error')
+        return redirect(url_for('dreams.dreams'))
 
     if request.method == 'POST':
         clean_data = validate_submit_dream_form(request.form)

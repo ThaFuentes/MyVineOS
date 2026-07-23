@@ -33,7 +33,24 @@ def public_prayers():
     if 'user_id' in session and request.method == 'GET':
         return redirect(url_for('prayers.prayers'))
 
+    from app.utils.community_participation import (
+        can_create_community_content,
+        can_interact_community,
+        can_view_community_public,
+    )
+    from app.utils.visitor_permissions import visitor_can_view, visitor_can_create, visitor_can_comment
+
+    if not can_view_community_public('prayers'):
+        flash('Prayers are not available to visitors on this site.', 'info')
+        return redirect(url_for('public.public_dashboard.public_dashboard'))
+
+    can_create = can_create_community_content('prayers')
+    can_interact = can_interact_community('prayers')
+
     if request.method == 'POST' and request.form.get('action') == 'submit_request':
+        if not can_create:
+            flash('Submitting prayer requests is not open to visitors right now.', 'error')
+            return redirect(url_for('public.public_prayers.public_prayers'))
         clean = validate_guest_prayer_request_form(request.form)
         if clean:
             try:
@@ -61,7 +78,13 @@ def public_prayers():
         p['formatted_date'] = p.get('date_posted').strftime('%B %d, %Y') if p.get('date_posted') else 'Unknown'
         p['posted_by'] = p.get('creator_name', 'Anonymous')
 
-    return render_template('public/prayers/prayers.html', prayers=prayers)
+    return render_template(
+        'public/prayers/prayers.html',
+        prayers=prayers,
+        can_guest_create=visitor_can_create('prayers') if 'user_id' not in session else can_create,
+        can_guest_interact=visitor_can_comment('prayers') if 'user_id' not in session else can_interact,
+        can_guest_view=visitor_can_view('prayers') if 'user_id' not in session else True,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -84,9 +107,15 @@ def public_prayer_detail(prayer_id):
     prayer['title']       = censor_text(prayer.get('title', ''))
     prayer['description'] = censor_text(prayer.get('description', ''))
 
+    from app.utils.community_participation import can_interact_community, can_view_community_public
+
+    if not can_view_community_public('prayers'):
+        flash('Prayers are not available to visitors on this site.', 'info')
+        return redirect(url_for('public.public_dashboard.public_dashboard'))
+
     viewer_ip = request.remote_addr
     viewer_uid = session.get('user_id')
-    comments_enabled = public_comments_enabled()
+    comments_enabled = public_comments_enabled() and can_interact_community('prayers')
     responses = fetch_public_comments('prayer', prayer_id, viewer_ip, viewer_uid)
 
     # Handle POST - guest response or reply

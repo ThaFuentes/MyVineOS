@@ -154,7 +154,7 @@ def create_app():
         private_prefixes = (
             '/dashboard', '/settings', '/profile', '/members', '/donations',
             '/bills', '/accounting', '/inventory', '/attendance', '/child-checkin',
-            '/volunteers', '/tickets', '/support-tickets', '/groups', '/pastoral',
+            '/volunteers', '/tickets', '/support-tickets', '/pastoral',
             '/worship', '/security', '/ai-insights', '/communications', '/study',
             '/modules', '/log', '/the_gathering', '/campus', '/help/manage',
             '/events', '/prayers', '/dreams', '/sermons', '/announcements',
@@ -337,19 +337,38 @@ def create_app():
             can_manage_members,
             can_manage_users,
         )
-        from app.routes.donations.utils import can_view_donations, can_manage_donations
-        from app.routes.bills.utils import can_manage_bills, can_access_bills
+        from app.routes.donations.utils import (
+            can_view_donations,
+            can_manage_donations,
+            can_create_donations,
+            can_edit_donations,
+            can_delete_donations,
+        )
+        from app.routes.bills.utils import (
+            can_manage_bills,
+            can_access_bills,
+            can_create_bills,
+            can_edit_bills,
+            can_delete_bills,
+            can_view_bills,
+        )
+        from app.routes.accounting.utils import (
+            can_access_accounting,
+            can_view_accounting,
+            can_create_accounting,
+            can_edit_accounting,
+            can_delete_accounting,
+        )
         from app.routes.inventory.utils import can_manage_inventory
         from app.routes.attendance.utils import can_manage_attendance
         from app.routes.help.utils import can_manage_help
-
-        def can_access_accounting():
-            # Ledger is finance-staff only (not random members)
-            return (
-                user_has_permission('manage_accounting')
-                or user_has_permission('manage_bills')
-                or user_has_permission('manage_donations')
-            )
+        from app.routes.prophecies.utils import can_create_prophecies, can_moderate_prophecies
+        from app.routes.dreams.utils import can_create_dreams, can_moderate_dreams
+        from app.routes.prayers.utils import can_create_prayers, can_moderate_prayers
+        from app.utils.community_participation import (
+            can_create_community_content,
+            can_interact_community,
+        )
 
         def can_access_volunteers_admin():
             return (
@@ -367,19 +386,50 @@ def create_app():
             can_manage_users=can_manage_users,
             can_view_donations=can_view_donations,
             can_manage_donations=can_manage_donations,
+            can_create_donations=can_create_donations,
+            can_edit_donations=can_edit_donations,
+            can_delete_donations=can_delete_donations,
             can_manage_bills=can_manage_bills,
+            can_view_bills=can_view_bills,
+            can_create_bills=can_create_bills,
+            can_edit_bills=can_edit_bills,
+            can_delete_bills=can_delete_bills,
             can_access_bills=can_access_bills,
             can_access_accounting=can_access_accounting,
+            can_view_accounting=can_view_accounting,
+            can_create_accounting=can_create_accounting,
+            can_edit_accounting=can_edit_accounting,
+            can_delete_accounting=can_delete_accounting,
             can_access_volunteers_admin=can_access_volunteers_admin,
             can_access_communications=can_access_communications,
             can_manage_inventory=can_manage_inventory,
             can_manage_attendance=can_manage_attendance,
             can_manage_help=can_manage_help,
+            can_create_prophecies=can_create_prophecies,
+            can_moderate_prophecies=can_moderate_prophecies,
+            can_create_dreams=can_create_dreams,
+            can_moderate_dreams=can_moderate_dreams,
+            can_create_prayers=can_create_prayers,
+            can_moderate_prayers=can_moderate_prayers,
+            can_create_community_content=can_create_community_content,
+            can_interact_community=can_interact_community,
         )
     @app.context_processor
     def inject_pastoral_access():
+        """in_pastoral_group kept as alias = Access key access_pastoral (or Owner/Admin)."""
         from flask import session as flask_session
-        return dict(in_pastoral_group=is_in_pastoral_group(flask_session.get('user_id')))
+        from app.utils.permissions import user_has_permission as _has
+        uid = flask_session.get('user_id')
+        # Prefer live permission check so Access UI matches nav immediately
+        can = False
+        try:
+            can = bool(uid and (
+                flask_session.get('user_role') in ('Owner', 'Admin')
+                or _has('access_pastoral')
+            ))
+        except Exception:
+            can = is_in_pastoral_group(uid)
+        return dict(in_pastoral_group=can, can_access_pastoral=can)
 
     @app.context_processor
     def inject_campus_context():
@@ -568,7 +618,6 @@ def create_app():
         'members',
         'donations',
         'settings',
-        'groups',
         'log',
         'tickets',
         'attendance',

@@ -33,6 +33,11 @@ def public_sermons():
     if 'user_id' in session:
         return redirect(url_for('sermons.sermons'))
 
+    from app.utils.community_participation import can_view_community_public
+    if not can_view_community_public('sermons'):
+        flash('Sermons are not available to visitors on this site.', 'info')
+        return redirect(url_for('public.public_dashboard.public_dashboard'))
+
     # Guest view only
     sermons = get_public_sermons()
     sermons = censor_public_content(sermons)
@@ -77,9 +82,15 @@ def public_sermon_detail(sermon_id):
     sermon['details'] = censor_text(sermon.get('details', ''))
     sermon['notes']   = censor_text(sermon.get('notes', ''))
 
+    from app.utils.community_participation import can_interact_community, can_view_community_public
+
+    if not can_view_community_public('sermons'):
+        flash('Sermons are not available to visitors on this site.', 'info')
+        return redirect(url_for('public.public_dashboard.public_dashboard'))
+
     viewer_ip = request.remote_addr
     viewer_uid = session.get('user_id')
-    comments_enabled = public_comments_enabled()
+    comments_enabled = public_comments_enabled() and can_interact_community('sermons')
     sermon['comments'] = map_comments_legacy(
         fetch_public_comments('sermon', sermon_id, viewer_ip, viewer_uid)
     )

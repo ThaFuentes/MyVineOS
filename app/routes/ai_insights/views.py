@@ -41,7 +41,7 @@ REPORTS = [
         'id': 'security',
         'title': 'Security brief',
         'icon': 'fa-shield-halved',
-        'desc': 'High-level attack and ban stats (IPs redacted).',
+        'desc': 'Attack and ban patterns with network-prefix IPs (e.g. 99.199.89.x); optional full IPs.',
         'permission': 'manage_security',
     },
     {
@@ -108,10 +108,25 @@ def report(report_type):
 
     meta = next(r for r in REPORTS if r['id'] == report_type)
     status = ai_status()
-    dataset = dataset_for(report_type)
     insight = None
     error = None
     extra = ''
+    # Security IP detail: default network prefix; full only when explicitly checked
+    ip_detail = 'prefix'
+    if report_type == 'security':
+        if request.method == 'POST':
+            raw_ip = (request.form.get('ip_detail') or 'prefix').strip().lower()
+            if raw_ip in ('full', 'exact', 'reveal') or request.form.get('reveal_full_ips') in (
+                '1', 'on', 'true', 'yes',
+            ):
+                ip_detail = 'full'
+        else:
+            # Preview payload on GET uses same default as generate
+            raw_ip = (request.args.get('ip_detail') or 'prefix').strip().lower()
+            if raw_ip == 'full':
+                ip_detail = 'full'
+
+    dataset = dataset_for(report_type, ip_detail=ip_detail)
 
     if request.method == 'POST':
         extra = (request.form.get('extra_question') or '').strip()
@@ -120,6 +135,8 @@ def report(report_type):
         elif not status.get('configured'):
             error = 'Configure and enable an AI provider under Settings → AI Providers (Gemini, Grok, OpenAI, or Ollama).'
         else:
+            # Rebuild dataset with chosen IP detail after POST
+            dataset = dataset_for(report_type, ip_detail=ip_detail)
             system, user_prompt = prompt_for(report_type, dataset, extra)
             text, err, run_meta = run_insight(
                 f'insights_{report_type}',
@@ -130,12 +147,13 @@ def report(report_type):
                 error = err
             else:
                 insight = format_ai_prose(text)
+                detail_note = f', ip={ip_detail}' if report_type == 'security' else ''
                 log_change(
                     session['user_id'],
                     'ai',
                     None,
                     report_type,
-                    f"AI Insights: {report_type} via {run_meta.get('provider') or '?'}",
+                    f"AI Insights: {report_type} via {run_meta.get('provider') or '?'}{detail_note}",
                 )
 
     return render_template(
@@ -146,6 +164,8 @@ def report(report_type):
         insight=insight,
         error=error,
         extra_question=extra,
+        ip_detail=ip_detail,
+        report_type=report_type,
     )
 
 
@@ -159,6 +179,19 @@ def api_generate():
     data = request.get_json(silent=True) or {}
     report_type = (data.get('report_type') or request.form.get('report_type') or '').strip().lower()
     extra = (data.get('extra_question') or request.form.get('extra_question') or '').strip()
+    ip_detail = 'prefix'
+    if report_type == 'security':
+        raw_ip = (
+            data.get('ip_detail')
+            or request.form.get('ip_detail')
+            or ''
+        )
+        raw_ip = str(raw_ip).strip().lower()
+        reveal = data.get('reveal_full_ips') or request.form.get('reveal_full_ips')
+        if raw_ip in ('full', 'exact', 'reveal') or str(reveal).lower() in (
+            '1', 'on', 'true', 'yes',
+        ):
+            ip_detail = 'full'
 
     if report_type not in {r['id'] for r in REPORTS}:
         return jsonify({'ok': False, 'error': 'Unknown report type'}), 400
@@ -175,7 +208,7 @@ def api_generate():
             'status': status,
         }), 400
 
-    dataset = dataset_for(report_type)
+    dataset = dataset_for(report_type, ip_detail=ip_detail)
     if dataset.get('error') and len(dataset) <= 2:
         return jsonify({'ok': False, 'error': dataset.get('error'), 'dataset': dataset}), 500
 
@@ -184,21 +217,24 @@ def api_generate():
     if err:
         return jsonify({'ok': False, 'error': err, 'meta': run_meta}), 502
 
+    detail_note = f', ip={ip_detail}' if report_type == 'security' else ''
     log_change(
         session['user_id'],
         'ai',
         None,
         report_type,
-        f"AI Insights API: {report_type}",
+        f"AI Insights API: {report_type}{detail_note}",
     )
     return jsonify({
         'ok': True,
         'insight': format_ai_prose(text),
         'insight_raw': text,
         'meta': run_meta,
+        'ip_detail': ip_detail if report_type == 'security' else None,
         'dataset_preview': {
             'keys': list(dataset.keys())[:20],
             'note': dataset.get('note'),
+            'ip_detail_level': dataset.get('ip_detail_level'),
         },
     })
 

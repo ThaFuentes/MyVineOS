@@ -9,15 +9,14 @@
 # - FIXED: Correct full public endpoint names for guest redirects
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from app.utils.decorators import login_required, role_required
+from app.utils.decorators import login_required
 from app.utils.helpers import contains_censored_word, censor_text
 from app.models.db import get_db
 from app.models.log import log_change
 import pymysql
 
 from . import prophecies_bp
-
-REQUIRED_ROLES = ['Admin', 'Owner']
+from .utils import can_create_prophecies, can_moderate_prophecies
 
 
 # ----------------------------------------------------------------------
@@ -74,7 +73,9 @@ def list_prophecies():
                            search_query=search_query,
                            is_logged_in=True,
                            current_user_id=user_id,
-                           is_admin_owner=(role in REQUIRED_ROLES))
+                           can_create=can_create_prophecies(),
+                           can_moderate=can_moderate_prophecies(),
+                           is_admin_owner=can_moderate_prophecies())
 
 
 # ----------------------------------------------------------------------
@@ -129,8 +130,8 @@ def view_prophecy(prophecy_id):
     for c in comments:
         c['comment'] = censor_text(c['comment'])
 
-    can_edit = (prophecy['user_id'] == user_id) or (role in REQUIRED_ROLES)
-    can_delete = role in REQUIRED_ROLES
+    can_edit = (prophecy['user_id'] == user_id) or can_moderate_prophecies()
+    can_delete = can_moderate_prophecies()
 
     if user_id:
         log_change(user_id, 'view_prophecy', target_id=prophecy_id,
@@ -142,8 +143,10 @@ def view_prophecy(prophecy_id):
                            is_logged_in=True,
                            can_edit=can_edit,
                            can_delete=can_delete,
+                           can_create=can_create_prophecies(),
+                           can_moderate=can_moderate_prophecies(),
                            current_user_id=user_id,
-                           is_admin_owner=(role in REQUIRED_ROLES))
+                           is_admin_owner=can_moderate_prophecies())
 
 
 # ----------------------------------------------------------------------
@@ -152,6 +155,10 @@ def view_prophecy(prophecy_id):
 @prophecies_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_prophecy():
+    if not can_create_prophecies():
+        flash('You do not have permission to submit prophecies.', 'error')
+        return redirect(url_for('prophecies.list_prophecies'))
+
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
@@ -198,10 +205,11 @@ def edit_prophecy(prophecy_id):
     cur.execute("SELECT * FROM prophecies WHERE id = %s", (prophecy_id,))
     prophecy = cur.fetchone()
 
-    if not prophecy or (prophecy['user_id'] != session['user_id'] and session.get('user_role') not in REQUIRED_ROLES):
+    if not prophecy or (
+        prophecy['user_id'] != session['user_id'] and not can_moderate_prophecies()
+    ):
         flash('Not authorized to edit this prophecy.', 'error')
         return redirect(url_for('prophecies.list_prophecies'))
-
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
@@ -243,8 +251,11 @@ def edit_prophecy(prophecy_id):
 
 @prophecies_bp.route('/delete/<int:prophecy_id>', methods=['POST'])
 @login_required
-@role_required(REQUIRED_ROLES)
 def delete_prophecy(prophecy_id):
+    if not can_moderate_prophecies():
+        flash('Not authorized to delete this prophecy.', 'error')
+        return redirect(url_for('prophecies.list_prophecies'))
+
     db = get_db()
     cur = db.cursor()
     try:
@@ -315,7 +326,9 @@ def edit_comment(comment_id):
     cur.execute("SELECT user_id, prophecy_id FROM prophecy_comments WHERE id = %s", (comment_id,))
     comment = cur.fetchone()
 
-    if not comment or (comment['user_id'] != session['user_id'] and session.get('user_role') not in REQUIRED_ROLES):
+    if not comment or (
+        comment['user_id'] != session['user_id'] and not can_moderate_prophecies()
+    ):
         flash('Not authorized to edit this comment.', 'error')
         return redirect(url_for('prophecies.list_prophecies'))
 
@@ -343,7 +356,9 @@ def delete_comment(comment_id):
     cur.execute("SELECT user_id, prophecy_id FROM prophecy_comments WHERE id = %s", (comment_id,))
     comment = cur.fetchone()
 
-    if not comment or (comment['user_id'] != session['user_id'] and session.get('user_role') not in REQUIRED_ROLES):
+    if not comment or (
+        comment['user_id'] != session['user_id'] and not can_moderate_prophecies()
+    ):
         flash('Not authorized to delete this comment.', 'error')
         return redirect(url_for('prophecies.list_prophecies'))
 

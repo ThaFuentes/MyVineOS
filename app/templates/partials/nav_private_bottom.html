@@ -6,7 +6,7 @@
 {% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond') %}
 {% set more_active = ep.startswith(('pastoral.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) %}
 {% set show_security = can_access_security_console|default(false) %}
-{% set show_pastoral = in_pastoral_group|default(false) or session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
+{% set show_pastoral = user_has_permission('access_pastoral') %}
 {% set show_ticket_mgr = can_manage_tickets() if can_manage_tickets is defined else (session.get('user_role') in ['Admin', 'Owner']) %}
 
 <nav class="bottom-nav bottom-nav--sheets" aria-label="Primary mobile navigation" id="private-bottom-nav">
@@ -149,11 +149,6 @@
     {% if module_on('communications') and endpoint_exists('communications.dashboard') and can_access_communications() %}
     <a href="{{ url_for('communications.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('communications.') else '' }}">
       <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Communications
-    </a>
-    {% endif %}
-    {% if user_has_permission('manage_groups') %}
-    <a href="{{ url_for('groups.list_groups') }}" class="nav-sheet-link {{ 'active' if ep.startswith('groups.') else '' }}">
-      <i class="fa-solid fa-people-group" aria-hidden="true"></i> Permission Groups
     </a>
     {% endif %}
     {% if module_on('worship') and can_access_worship %}

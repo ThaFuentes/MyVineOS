@@ -22,7 +22,11 @@
     Paste ChordPro (<code>[G]Amazing [C]grace</code>), chord-over-lyrics, or section markers like
     <code>[Verse 1]</code> / <code>[Chorus]</code>. AI keeps your chords + wording and splits sections.
   </p>
-  <form method="post" enctype="multipart/form-data" class="styled-form" style="display:grid; gap:0.65rem;">
+  <form method="post" enctype="multipart/form-data" class="styled-form" style="display:grid; gap:0.65rem;"
+        data-ai-wait
+        data-ai-wait-title="Working on your chart…"
+        data-ai-wait-sub="If AI assist is on, this may take a few seconds. Please wait."
+        data-ai-wait-btn="Please wait…">
     {% include 'partials/csrf_field.html' %}
     <input type="hidden" name="action" value="chart">
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
@@ -142,4 +146,7 @@
   {% endif %}
   {% endif %}
 </div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/ai_wait.css') }}?v=20260723aiwait1">
+<script src="{{ url_for('static', filename='js/ai_wait.js') }}?v=20260723aiwait1" defer></script>
 {% endblock %}

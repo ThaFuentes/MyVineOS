@@ -36,23 +36,32 @@
 <div class="ac-hero glass-panel">
   <h2>Access dashboard</h2>
   <p>
-    <strong>One source of truth:</strong> each person’s tool list.
-    Turn a tool ON → choose Create / Delete / View, etc.
-    No permission groups granting tools in the background.
+    <strong>People</strong> get tools one person at a time.
+    <strong>Visitors</strong> (not logged in) get the same style of checkboxes for public community areas.
   </p>
 </div>
 
 <div class="access-hub-grid">
+  <a class="access-hub-card" href="{{ url_for('members.access_visitors') }}">
+    <h2><i class="fa-solid fa-globe" aria-hidden="true"></i> Visitors</h2>
+    <p>
+      Not logged in. Same idea: ON + View / Create / Comment per community tab.
+      e.g. Dreams: see only — no comment, no submit.
+    </p>
+    <div class="access-hub-meta">Public site policy</div>
+    <span class="access-hub-go">Set visitor tools →</span>
+  </a>
+
   <a class="access-hub-card" href="{{ url_for('members.access_people') }}">
     <h2><i class="fa-solid fa-users" aria-hidden="true"></i> People tools</h2>
-    <p>The main control. Open anyone. Enable tools. Set fine-grained actions.</p>
+    <p>Logged-in accounts. Open anyone. Enable tools. Set fine-grained actions.</p>
     <div class="access-hub-meta">{{ people_count }} people</div>
     <span class="access-hub-go">Open people →</span>
   </a>
 
   <a class="access-hub-card" href="{{ url_for('members.access_templates') }}">
     <h2><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Templates</h2>
-    <p>Named packs (Standard, Staff, Staff Accounting). Shortcuts that write the same single tool list.</p>
+    <p>Named packs for people (not visitors). Shortcuts that write the same tool list.</p>
     <div class="access-hub-meta">{{ template_count }} template{{ 's' if template_count != 1 else '' }}</div>
     <span class="access-hub-go">Manage templates →</span>
   </a>
@@ -61,9 +70,9 @@
 <div class="glass-panel" style="padding:1rem; margin-top:1.25rem;">
   <strong>How to use it</strong>
   <ol style="margin:0.5rem 0 0; padding-left:1.25rem; line-height:1.55; font-size:1.05rem;">
-    <li><strong>Templates</strong> (optional) — Standard for Members, Staff defaults, Staff Accounting, etc.</li>
-    <li><strong>People tools</strong> — open a person → apply a pack or set ON + actions yourself → Save.</li>
-    <li>If Access is <strong>OFF</strong>, they cannot open that tool. No accidental grants.</li>
+    <li><strong>Visitors</strong> — what the public can see / submit / comment on community tabs.</li>
+    <li><strong>People tools</strong> — accounting, donations, moderate, create, etc. for each account.</li>
+    <li>If a tool is <strong>OFF</strong> for them, they should not see the button (not just a deny message).</li>
   </ol>
 </div>
 {% endblock %}

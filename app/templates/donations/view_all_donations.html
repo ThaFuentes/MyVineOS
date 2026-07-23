@@ -94,7 +94,7 @@ Complete donation ledger grouped by donor. Search by name, username, email, or p
                                                 <th>Confirmation #</th>
                                                 <th>Notes</th>
                                                 <th>Quid Pro Quo</th>
-                                                {% if session.user_role in ['Admin', 'Owner'] %}
+                                                {% if can_edit_donations() or can_delete_donations() %}
                                                 <th>Actions</th>
                                                 {% endif %}
                                             </tr>
@@ -108,12 +108,15 @@ Complete donation ledger grouped by donor. Search by name, username, email, or p
                                                 <td>{{ detail.confirmation_number or '-' }}</td>
                                                 <td>{% if detail.notes %}<span title="{{ detail.notes }}">{{ detail.notes[:60] }}{% if detail.notes|length > 60 %}...{% endif %}</span>{% else %}-{% endif %}</td>
                                                 <td>{% if detail.goods_services_provided %}Yes{% else %}No{% endif %}</td>
-                                                {% if session.user_role in ['Admin', 'Owner'] %}
+                                                {% if can_edit_donations() or can_delete_donations() %}
                                                 <td class="actions-cell">
                                                     <div class="button-group" style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+                                                        {% if can_edit_donations() %}
                                                         <a href="{{ url_for('donations.edit_donation', donation_id=detail.id) }}"
                                                            class="btn-small btn-secondary"
                                                            onclick="event.stopPropagation();">Edit</a>
+                                                        {% endif %}
+                                                        {% if can_delete_donations() %}
                                                         <form method="POST"
                                                               action="{{ url_for('donations.delete_donation_route', donation_id=detail.id) }}"
                                                               style="display:inline;"
@@ -121,6 +124,7 @@ Complete donation ledger grouped by donor. Search by name, username, email, or p
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                                                             <button type="submit" class="btn-small btn-danger">Delete</button>
                                                         </form>
+                                                        {% endif %}
                                                     </div>
                                                 </td>
                                                 {% endif %}

@@ -4,7 +4,9 @@
 {% block acct_content %}
 <div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; margin-bottom:0.85rem;">
   <h1 class="page-title" style="margin:0;">Expenses</h1>
+  {% if can_create_accounting() %}
   <a href="{{ url_for('accounting.expense_new') }}" class="btn btn-primary">Record expense</a>
+  {% endif %}
 </div>
 
 <form method="get" class="glass-panel" style="padding:0.75rem; margin-bottom:0.85rem; display:flex; flex-wrap:wrap; gap:0.5rem; align-items:end;">

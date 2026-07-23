@@ -35,7 +35,7 @@ def _bill_acct_template_ctx() -> dict:
 def register_management_routes(bp):
     @bp.route('/add', methods=['GET', 'POST'])
     @login_required
-    @permission_required('manage_bills')
+    @permission_required('create_bills', 'manage_bills')
     def add_bill():
         if request.method == 'GET':
             return render_template(
@@ -150,7 +150,7 @@ def register_management_routes(bp):
 
     @bp.route('/edit/<int:bill_id>', methods=['GET', 'POST'])
     @login_required
-    @permission_required('manage_bills')
+    @permission_required('edit_bills', 'manage_bills')
     def edit_bill(bill_id):
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)

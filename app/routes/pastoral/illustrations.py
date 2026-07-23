@@ -129,6 +129,131 @@ def _safe_load_tags(tags_raw) -> list:
     return []
 
 
+@illustrations_bp.route('/research', methods=['GET', 'POST'])
+@pastoral_required()
+def research():
+    """
+    Illustrations library research: keyword search + AI Q&A over library items you can see.
+    """
+    from app.models.pastoral.illustration_search import (
+        search_illustrations_library,
+        pack_illustrations_for_ai,
+        illustration_catalog,
+    )
+    from app.utils.ai_client import ai_status, run_insight
+    from app.utils.ai_format import PASTOR_VOICE_SYSTEM, format_ai_prose
+
+    user_id = session['user_id']
+    mode = (request.values.get('mode') or 'search').strip().lower()
+    if mode not in ('search', 'ask'):
+        mode = 'search'
+
+    query = (request.values.get('q') or '').strip()
+    question = (request.values.get('question') or '').strip()
+    hits = []
+    answer_html = None
+    answer_error = None
+    used_items = []
+    status = ai_status()
+    catalog = illustration_catalog(user_id, limit=100)
+    library_count = len(catalog)
+
+    if request.method == 'POST' or (request.method == 'GET' and query and mode == 'search'):
+        if mode == 'search':
+            if len(query) < 2:
+                if request.method == 'POST':
+                    flash('Enter at least 2 characters to search.', 'error')
+            else:
+                try:
+                    hits = search_illustrations_library(user_id, query, limit=50)
+                except Exception as exc:
+                    print(f'illustrations.research search: {exc}')
+                    flash(f'Search failed: {exc}', 'error')
+        elif mode == 'ask' and request.method == 'POST':
+            if not question:
+                flash('Type a question about your illustrations library.', 'error')
+            elif contains_censored_word(question):
+                flash('Prohibited content in question.', 'error')
+            elif not status.get('configured'):
+                answer_error = (
+                    'AI is not configured. Add a provider under Settings → AI Providers.'
+                )
+            else:
+                selected_keys = request.form.getlist('item_keys')
+                # de-dupe preserve order
+                seen_sel: set[str] = set()
+                selected_keys = [
+                    k for k in selected_keys
+                    if k and not (k in seen_sel or seen_sel.add(k))
+                ]
+
+                if not selected_keys:
+                    flash('Select at least one library item for the AI to use.', 'error')
+                else:
+                    try:
+                        context, used_items = pack_illustrations_for_ai(
+                            user_id,
+                            question,
+                            item_keys=selected_keys,
+                        )
+                        system = (
+                            PASTOR_VOICE_SYSTEM
+                            + ' Answer only from the illustrations library material provided. '
+                            'That material is stories, analogies, and saved sermon sections '
+                            'from this pastor’s library — not general web knowledge about their church. '
+                            'Cite item titles (and keys like i-12 or s-5 when helpful). '
+                            'If the library does not cover the question, say so plainly. '
+                            'No markdown headings.'
+                        )
+                        user_prompt = (
+                            f"My question: {question[:800]}\n\n"
+                            f"Here is MY illustrations library only:\n{context}\n\n"
+                            "Answer like a ministry teammate who has read my illustration notes. "
+                            "Point me to specific items when you can. "
+                            "Do not invent illustrations that are not listed."
+                        )
+                        max_prompt = min(90000, max(28000, 4000 + len(selected_keys) * 1800))
+                        text, err, run_meta = run_insight(
+                            'illustration_library_ask',
+                            system,
+                            user_prompt,
+                            timeout=120,
+                            max_prompt_chars=max_prompt,
+                        )
+                        if err:
+                            answer_error = err
+                        else:
+                            answer_html = format_ai_prose(text)
+                            log_change(
+                                user_id, 'ai', None, question[:80],
+                                f"Illustration library AI ({len(used_items)} items) via {run_meta.get('provider') or '?'}",
+                            )
+                    except Exception as exc:
+                        print(f'illustrations.research ask: {exc}')
+                        answer_error = str(exc)
+
+    selected_for_ui = (
+        request.form.getlist('item_keys')
+        if request.method == 'POST' and mode == 'ask'
+        else None
+    )
+
+    return render_template(
+        'pastoral/illustrations_research.html',
+        mode=mode,
+        query=query,
+        question=question,
+        hits=hits,
+        answer_html=answer_html,
+        answer_error=answer_error,
+        used_items=used_items,
+        status=status,
+        library_count=library_count,
+        catalog=catalog,
+        selected_item_keys=selected_for_ui,
+    )
+
+
 @illustrations_bp.route('/library', methods=['GET', 'POST'])
 @pastoral_required()
 def library():

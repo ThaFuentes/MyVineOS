@@ -21,8 +21,14 @@ from app.utils.permissions import user_has_permission
 # ----------------------------------------------------------------------
 REQUIRED_ROLES = ['Staff', 'Admin', 'Owner']
 
-MEMBERS_VIEW_PERMISSIONS = ('view_members', 'manage_members', 'manage_users')
-MEMBERS_EDIT_PERMISSIONS = ('manage_members', 'manage_users')
+MEMBERS_VIEW_PERMISSIONS = (
+    'view_members', 'create_members', 'edit_members', 'delete_members',
+    'manage_members', 'manage_users', 'view_users', 'create_users', 'edit_users', 'delete_users',
+)
+MEMBERS_EDIT_PERMISSIONS = (
+    'create_members', 'edit_members', 'delete_members', 'manage_members',
+    'create_users', 'edit_users', 'delete_users', 'manage_users',
+)
 
 
 # ----------------------------------------------------------------------
@@ -41,7 +47,7 @@ def can_view_members() -> bool:
 
 
 def can_manage_members() -> bool:
-    return any(user_has_permission(key) for key in MEMBERS_EDIT_PERMISSIONS)
+    return any(user_has_permission(key) for key in MEMBERS_EDIT_PERMISSIONS) or user_has_permission('edit_members') or user_has_permission('create_members')
 
 
 def can_manage_users() -> bool:

@@ -1,95 +1,84 @@
 # app/models/pastoral/shared.py
-# Full path: WebChurchMan/app/models/pastoral/shared.py
-# File name: shared.py
-# Brief, detailed purpose:
-#   Shared / cross-cutting helper functions used across multiple Pastoral Area sub-modules.
-#   Currently contains only the core permission check: is_in_pastoral_group().
-#   More shared utilities can be added here later (e.g. common visibility helpers,
-#   date formatting for pastoral views, team member counts, permission checks, etc.).
-#   Uses DictCursor for consistency where needed.
-#   Parameterized queries for MariaDB / PyMySQL safety.
+# Pastoral access is Access-only: permission key access_pastoral (or Owner/Admin).
+# Legacy function names kept so existing imports keep working.
 
 import pymysql
 from app.models.db import get_db
 
 
-# ----------------------------------------------------------------------
-# Pastoral Group Membership Check
-# ----------------------------------------------------------------------
 def is_in_pastoral_group(user_id):
     """
-    Gatekeeper for the Pastoral Area.
+    May this user open the Pastoral Area?
 
-    True if the user:
-      - is a member of the named 'Pastoral Group' (or system_key = pastoral), OR
-      - belongs to any group that grants the 'access_pastoral' permission
+    True if:
+      - role is Owner or Admin, OR
+      - they have the Access tool key access_pastoral in user_permissions
 
-    Owner/Admin/Staff bypass is handled by callers that also check role.
+    Group membership is NOT used for tools.
     """
     if not user_id:
         return False
 
-    import json as _json
-
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 
-    cur.execute("""
-        SELECT g.name, g.system_key, g.permissions
-        FROM groups g
-        JOIN user_groups ug ON g.id = ug.group_id
-        WHERE ug.user_id = %s
-    """, (user_id,))
+    cur.execute("SELECT role FROM users WHERE id = %s LIMIT 1", (user_id,))
+    row = cur.fetchone()
+    role = (row or {}).get('role') if isinstance(row, dict) else None
+    if role in ('Owner', 'Admin'):
+        return True
 
-    for row in cur.fetchall() or []:
-        name = (row.get('name') or '') if isinstance(row, dict) else (row[0] or '')
-        system_key = (row.get('system_key') or '') if isinstance(row, dict) else (row[1] or '')
-        if name == 'Pastoral Group' or system_key == 'pastoral':
-            return True
-        raw = row.get('permissions') if isinstance(row, dict) else row[2]
-        try:
-            perms = _json.loads(raw or '[]')
-        except (TypeError, ValueError):
-            perms = []
-        if isinstance(perms, list) and 'access_pastoral' in perms:
-            return True
-
-    return False
+    try:
+        cur.execute(
+            """
+            SELECT 1 FROM user_permissions
+            WHERE user_id = %s AND permission_key = 'access_pastoral'
+            LIMIT 1
+            """,
+            (user_id,),
+        )
+        return bool(cur.fetchone())
+    except Exception:
+        return False
 
 
 def get_pastoral_team_members():
     """
-    Return users in the Pastoral Group (for care assignment dropdowns).
-
-    Returns:
-        list[dict]: id, first_name, last_name, email
+    People who can do pastoral care work: Access access_pastoral, or Owner/Admin.
     """
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
-    cur.execute("""
-        SELECT u.id, u.first_name, u.last_name, u.email
-        FROM users u
-        JOIN user_groups ug ON u.id = ug.user_id
-        JOIN groups g ON ug.group_id = g.id
-        WHERE g.name = 'Pastoral Group'
-        ORDER BY u.last_name, u.first_name
-    """)
-    return cur.fetchall()
+    try:
+        cur.execute("""
+            SELECT DISTINCT u.id, u.first_name, u.last_name, u.email
+            FROM users u
+            LEFT JOIN user_permissions up
+              ON up.user_id = u.id AND up.permission_key = 'access_pastoral'
+            WHERE u.role IN ('Owner', 'Admin')
+               OR up.permission_key = 'access_pastoral'
+            ORDER BY u.last_name, u.first_name
+        """)
+        return list(cur.fetchall() or [])
+    except Exception:
+        cur.execute("""
+            SELECT id, first_name, last_name, email
+            FROM users
+            WHERE role IN ('Owner', 'Admin')
+            ORDER BY last_name, first_name
+        """)
+        return list(cur.fetchall() or [])
 
 
 def get_active_members_for_care():
-    """
-    Return members eligible to receive pastoral care (not banned/pending).
-
-    Returns:
-        list[dict]: id, first_name, last_name, email
-    """
+    """Members directory for care assignment dropdowns."""
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
-        SELECT id, first_name, last_name, email
+        SELECT id, first_name, last_name, email, username
         FROM users
-        WHERE role NOT IN ('banned', 'pending')
+        WHERE COALESCE(is_shadow_banned, 0) = 0
+          AND role NOT IN ('banned', 'pending')
         ORDER BY last_name, first_name
+        LIMIT 1000
     """)
-    return cur.fetchall()
+    return list(cur.fetchall() or [])

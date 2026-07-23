@@ -33,8 +33,10 @@
             </div>
             {% endif %}
           </div>
+          {% if can_edit_accounting() %}
           <a href="{{ url_for('accounting.payroll', edit=e.id) }}"
              class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.65rem;font-size:0.82rem;">Edit</a>
+          {% endif %}
         </div>
       </li>
       {% endfor %}
@@ -43,6 +45,7 @@
     <p style="opacity:0.78; margin:0 0 1.1rem; line-height:1.45;">No people yet — add anyone you pay below (member or not).</p>
     {% endif %}
 
+    {% if (edit_employee and can_edit_accounting()) or (not edit_employee and can_create_accounting()) %}
     <form method="post" action="{{ url_for('accounting.employee_save') }}" class="styled-form" id="employee-form">
       {% include 'partials/csrf_field.html' %}
       {% if edit_employee %}
@@ -140,6 +143,7 @@
         {% endif %}
       </div>
     </form>
+    {% endif %}
   </div>
 
   <div class="glass-panel">
@@ -160,6 +164,7 @@
     <p style="opacity:0.75; margin:0 0 1.1rem;">No pay runs yet.</p>
     {% endif %}
 
+    {% if can_create_accounting() %}
     <form method="post" action="{{ url_for('accounting.pay_run_new') }}" class="styled-form">
       {% include 'partials/csrf_field.html' %}
       <h3>New pay run</h3>
@@ -180,6 +185,7 @@
         <button type="submit" class="btn btn-primary">Create draft run</button>
       </div>
     </form>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
