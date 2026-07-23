@@ -37,7 +37,12 @@ def create_tables(cursor):
         SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'groups'
     """)
-    existing_cols = [row[0] for row in cursor.fetchall()]
+    def _col_name(row):
+        if isinstance(row, dict):
+            return row.get('COLUMN_NAME') or row.get('Field') or next(iter(row.values()))
+        return row[0]
+
+    existing_cols = [_col_name(row) for row in cursor.fetchall()]
     columns_to_add = {
         'description': "TEXT",
         'visibility': "VARCHAR(20) NOT NULL DEFAULT 'private' CHECK(visibility IN ('public', 'private'))",
