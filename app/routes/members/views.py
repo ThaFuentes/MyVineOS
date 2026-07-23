@@ -464,7 +464,11 @@ def member_access(member_id):
         human_summary,
         preview_labels,
     )
-    from app.utils.access_templates import list_templates, apply_template_to_user
+    from app.utils.access_templates import (
+        list_templates,
+        apply_template_to_user,
+        get_default_template_for_role,
+    )
 
     if not _can_manage_access():
         flash('You do not have permission to manage access.', 'error')
@@ -488,9 +492,20 @@ def member_access(member_id):
                 tid = int(request.form.get('template_id') or 0)
                 if tid and apply_template_to_user(cur, member_id, tid, session['user_id'], exact=True):
                     db.commit()
-                    flash('Template applied to this person. Adjust YES/NO below if you want extras.', 'success')
+                    flash('Template applied. Tweak YES/NO below if you want extra tools for this person only.', 'success')
                 else:
                     flash('Could not apply template.', 'error')
+            elif action == 'apply_role_default':
+                d = get_default_template_for_role(cur, member.get('role') or '')
+                if d and apply_template_to_user(cur, member_id, d['id'], session['user_id'], exact=True):
+                    db.commit()
+                    flash(f'Applied default “{d["name"]}” for {member.get("role")}.', 'success')
+                else:
+                    flash(
+                        f'No default template for {member.get("role")}. '
+                        f'Make one under Templates and check “Default for new {member.get("role")}”.',
+                        'error',
+                    )
             else:
                 desired = keys_from_yes_no_form(request.form)
                 set_user_exact_access(cur, member_id, desired, session['user_id'])
@@ -515,6 +530,24 @@ def member_access(member_id):
         templates = list_templates(cur)
     except Exception:
         templates = []
+    role_default = None
+    try:
+        role_default = get_default_template_for_role(cur, member.get('role') or '')
+    except Exception:
+        role_default = None
+
+    # Group picker: role default first, then same-role packs, then the rest
+    role = (member.get('role') or '').strip()
+    tpl_default = []
+    tpl_role = []
+    tpl_other = []
+    for t in templates:
+        if role_default and t['id'] == role_default['id']:
+            tpl_default.append(t)
+        elif t.get('for_role') == role:
+            tpl_role.append(t)
+        else:
+            tpl_other.append(t)
 
     return render_template(
         'members/member_access.html',
@@ -524,6 +557,10 @@ def member_access(member_id):
         summary_lines=summary_lines,
         preview=preview,
         templates=templates,
+        role_default=role_default,
+        tpl_default=tpl_default,
+        tpl_role=tpl_role,
+        tpl_other=tpl_other,
     )
 
 

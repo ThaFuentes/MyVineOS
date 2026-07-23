@@ -40,26 +40,68 @@
   {% endif %}
 </div>
 
-{% if not breakdown.full_access and templates %}
+{% if not breakdown.full_access %}
 <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
-  <h3 style="margin:0 0 0.5rem; font-size:1.1rem;">Apply a template</h3>
-  <p class="small text-muted" style="margin:0 0 0.65rem;">
-    Loads a named pack onto this person (you can still change YES/NO after).
+  <h3 style="margin:0 0 0.45rem; font-size:1.15rem;">1) Start from a template (optional)</h3>
+  <p style="margin:0 0 0.85rem; font-size:1.02rem; line-height:1.45;">
+    <strong>Default for their role</strong> · <strong>or</strong> pick a special pack (e.g. Staff Accounting)
+    · <strong>or</strong> skip this and only use YES/NO below for a custom mix.
   </p>
+
+  {% if role_default %}
+  <form method="POST" style="margin-bottom:0.85rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <input type="hidden" name="action" value="apply_role_default">
+    <button type="submit" class="btn-primary" style="min-height:2.85rem; font-weight:800;">
+      Use default for {{ member.role }}: “{{ role_default.name }}”
+    </button>
+  </form>
+  {% else %}
+  <p class="small text-muted" style="margin:0 0 0.75rem;">
+    No default template for {{ member.role }} yet.
+    <a href="{{ url_for('members.access_templates') }}">Create one under Templates</a>
+    and check “Default for new {{ member.role }}”.
+  </p>
+  {% endif %}
+
+  {% if templates %}
   <form method="POST" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
     <input type="hidden" name="action" value="apply_template">
-    <div style="flex:1; min-width:12rem;">
-      <label class="small" for="template_id">Template</label>
+    <div style="flex:1; min-width:14rem;">
+      <label class="small" for="template_id"><strong>Or pick any pack</strong></label>
       <select name="template_id" id="template_id" class="form-input" required style="width:100%; min-height:2.75rem;">
-        <option value="">Choose…</option>
-        {% for t in templates %}
-        <option value="{{ t.id }}">{{ t.name }}{% if t.is_default %} (default {{ t.for_role }}){% endif %}</option>
-        {% endfor %}
+        <option value="">Choose a template…</option>
+        {% if tpl_default %}
+        <optgroup label="Default for {{ member.role }}">
+          {% for t in tpl_default %}
+          <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endif %}
+        {% if tpl_role %}
+        <optgroup label="Other {{ member.role }} packs">
+          {% for t in tpl_role %}
+          <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endif %}
+        {% if tpl_other %}
+        <optgroup label="All other templates">
+          {% for t in tpl_other %}
+          <option value="{{ t.id }}">{{ t.name }}{% if t.for_role and t.for_role != 'any' %} ({{ t.for_role }}){% endif %}</option>
+          {% endfor %}
+        </optgroup>
+        {% endif %}
       </select>
     </div>
-    <button type="submit" class="btn-secondary" style="min-height:2.75rem;">Apply template</button>
+    <button type="submit" class="btn-secondary" style="min-height:2.75rem;">Apply this pack</button>
   </form>
+  {% else %}
+  <p class="small text-muted" style="margin:0;">
+    No templates yet — <a href="{{ url_for('members.access_templates') }}">create “Standard”, “Staff”, “Staff Accounting”, …</a>
+  </p>
+  {% endif %}
 </div>
 {% endif %}
 
@@ -74,6 +116,12 @@
 
 <form method="POST" id="ac-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+  <input type="hidden" name="action" value="save">
+
+  <h3 style="margin:0 0 0.5rem; font-size:1.15rem;">2) Custom tools for this person</h3>
+  <p style="margin:0 0 0.85rem; opacity:0.9;">
+    After a template (or instead of one), set extra YES/NO here and Save.
+  </p>
 
   <div class="ac-toolbar">
     <button type="button" class="btn-secondary" id="ac-all-yes">Turn ALL to YES</button>
