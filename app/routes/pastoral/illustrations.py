@@ -116,6 +116,34 @@ def list_json():
     return jsonify(simple)
 
 
+@illustrations_bp.route('/dock_json', methods=['GET'])
+@pastoral_required()
+def dock_json():
+    """Docked library items (session) for sermon editor insert tray."""
+    user_id = session['user_id']
+    docked_ids = [int(x) for x in (session.get('docked_items') or []) if str(x).isdigit() or isinstance(x, int)]
+    if not docked_ids:
+        return jsonify({'items': [], 'count': 0})
+
+    out = []
+    seen = set()
+    for iid in docked_ids:
+        if iid in seen:
+            continue
+        seen.add(iid)
+        item = _fetch_library_item(iid, user_id)
+        if not item:
+            continue
+        out.append({
+            'id': int(item['id']),
+            'title': item.get('title') or 'Untitled',
+            'content': item.get('content') or '',
+            'source': item.get('source_url') or item.get('source') or '',
+            'type': item.get('type') or 'illustration',
+        })
+    return jsonify({'items': out, 'count': len(out)})
+
+
 def _safe_load_tags(tags_raw) -> list:
     if tags_raw is None:
         return []
@@ -348,6 +376,14 @@ def library():
     for item in items:
         item['is_docked'] = item['id'] in docked_ids
 
+    # Recent sermons for "Insert docked into…" on the library banner
+    recent_sermons = []
+    try:
+        from app.models.pastoral.sermons import get_visible_sermons
+        recent_sermons = get_visible_sermons(user_id, limit=40) or []
+    except Exception:
+        recent_sermons = []
+
     # Edit handling - both types
     edit_item = None
     if edit_id:
@@ -443,7 +479,8 @@ def library():
         total_count=total_count,
         q=q,
         edit_item=edit_item,
-        docked_count=len(docked_ids)
+        docked_count=len(docked_ids),
+        recent_sermons=recent_sermons,
     )
 
 
@@ -674,38 +711,54 @@ def clear_dock():
     return jsonify({'status': 'success', 'count': 0})
 
 
-@illustrations_bp.route('/insert/<int:sermon_id>', methods=['POST'])
-@pastoral_required()
-def insert_into_sermon(sermon_id: int):
-    user_id = session['user_id']
-    data = request.get_json() or {}
-    item_id = data.get('item_id')
-    if not item_id:
-        return jsonify({'status': 'error', 'message': 'No item selected'}), 400
-
-    # Unified - try illustration, then vault
-    item = get_illustration_by_id(item_id, user_id)
-    if not item:
-        # Try vault
-        cur = get_db().cursor(pymysql.cursors.DictCursor)
-        cur.execute("""
-            SELECT pv.*, 'section' AS type
-            FROM pastoral_vault pv
-            WHERE pv.id = %s AND (pv.user_id = %s OR pv.user_id IS NULL)
-        """, (item_id, user_id))
-        item = cur.fetchone()
-
-    if not item:
-        return jsonify({'status': 'error', 'message': 'Item not found or access denied'}), 404
-
-    source_line = f"<p><em>Source: {item.get('source_url') or item.get('source', '')}</em></p>" if item.get('source_url') or item.get('source') else ""
-    html = f"""
+def _item_insert_html(item: dict, item_id: int) -> str:
+    source_line = (
+        f"<p><em>Source: {item.get('source_url') or item.get('source', '')}</em></p>"
+        if item.get('source_url') or item.get('source')
+        else ""
+    )
+    return f"""
     <div class="inserted-content" data-item-id="{item_id}">
-        <h3>{item['title']}</h3>
-        <blockquote>{item['content']}</blockquote>
+        <h3>{item.get('title') or 'Illustration'}</h3>
+        <blockquote>{item.get('content') or ''}</blockquote>
         {source_line}
     </div>
     """.strip()
+
+
+@illustrations_bp.route('/insert/<int:sermon_id>', methods=['POST'])
+@pastoral_required()
+def insert_into_sermon(sermon_id: int):
+    """
+    Insert one library item into a sermon.
+
+    JSON body:
+      item_id (required)
+      section_index (optional, 0-based) — append into that section's content
+      as_new_section (optional bool) — create a new illustration section instead
+    """
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    item_id = data.get('item_id')
+    if not item_id:
+        return jsonify({'status': 'error', 'message': 'No item selected'}), 400
+    try:
+        item_id = int(item_id)
+    except (TypeError, ValueError):
+        return jsonify({'status': 'error', 'message': 'Invalid item'}), 400
+
+    as_new = str(data.get('as_new_section') or '').lower() in ('1', 'true', 'yes', 'on')
+    section_index = data.get('section_index')
+    try:
+        section_index = int(section_index) if section_index is not None and str(section_index) != '' else None
+    except (TypeError, ValueError):
+        section_index = None
+
+    item = _fetch_library_item(item_id, user_id)
+    if not item:
+        return jsonify({'status': 'error', 'message': 'Item not found or access denied'}), 404
+
+    html = _item_insert_html(item, item_id)
 
     from app.models.pastoral.sermons import get_sermon_by_id, get_sermon_sections, save_sermon_sections
 
@@ -713,23 +766,34 @@ def insert_into_sermon(sermon_id: int):
     if not sermon:
         return jsonify({'status': 'error', 'message': 'Sermon not found or access denied'}), 404
 
-    sections = get_sermon_sections(sermon_id)
-    source_ref = item.get('source_url') or item.get('source', '')
-    if sections:
-        last = dict(sections[-1])
-        last['content'] = (last.get('content') or '') + html
-        if not last.get('source') and source_ref:
-            last['source'] = source_ref
-        sections[-1] = last
-    else:
-        sections = [{
+    sections = list(get_sermon_sections(sermon_id) or [])
+    source_ref = item.get('source_url') or item.get('source', '') or ''
+    target_index = None
+
+    if as_new or not sections:
+        sections.append({
             'section_type': 'illustration',
-            'title': item['title'],
+            'title': item.get('title') or 'Illustration',
             'content': html,
-            'scripture_reference': '',
+            'scripture_reference': item.get('scripture_reference') or '',
             'source': source_ref,
             'notes': '',
-        }]
+        })
+        target_index = len(sections) - 1
+    else:
+        if section_index is None or section_index < 0 or section_index >= len(sections):
+            section_index = len(sections) - 1
+        target = dict(sections[section_index])
+        target['content'] = (target.get('content') or '') + html
+        if not target.get('source') and source_ref:
+            target['source'] = source_ref
+        # If section type is still generic "point", label it illustration when empty title
+        if (target.get('section_type') or '') == 'point' and not (target.get('title') or '').strip():
+            target['section_type'] = 'illustration'
+            target['title'] = item.get('title') or 'Illustration'
+        sections[section_index] = target
+        target_index = section_index
+
     save_sermon_sections(sermon_id, sections)
 
     item_type = item.get('type', 'content')
@@ -738,6 +802,88 @@ def insert_into_sermon(sermon_id: int):
         'insert',
         sermon_id,
         str(item_id),
-        f'Inserted {item_type} {item_id} into sermon {sermon_id}',
+        f'Inserted {item_type} {item_id} into sermon {sermon_id} section {target_index}',
     )
-    return jsonify({'status': 'success', 'html': html, 'persisted': True})
+    return jsonify({
+        'status': 'success',
+        'html': html,
+        'persisted': True,
+        'section_index': target_index,
+        'as_new_section': as_new or target_index is not None and (
+            section_index is None and as_new
+        ),
+        'title': item.get('title') or 'Illustration',
+    })
+
+
+@illustrations_bp.route('/insert_docked/<int:sermon_id>', methods=['POST'])
+@pastoral_required()
+def insert_docked_into_sermon(sermon_id: int):
+    """
+    Insert every docked library item into a sermon as new illustration sections
+    (or append each to the last section if mode=append).
+    """
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    mode = (data.get('mode') or 'new_sections').strip().lower()
+    as_new = mode != 'append'
+
+    docked_ids = [int(x) for x in (session.get('docked_items') or []) if str(x).isdigit() or isinstance(x, int)]
+    if not docked_ids:
+        return jsonify({'status': 'error', 'message': 'Dock is empty. Dock items on the library cards first.'}), 400
+
+    from app.models.pastoral.sermons import get_sermon_by_id, get_sermon_sections, save_sermon_sections
+
+    sermon = get_sermon_by_id(sermon_id, user_id)
+    if not sermon:
+        return jsonify({'status': 'error', 'message': 'Sermon not found or access denied'}), 404
+
+    sections = list(get_sermon_sections(sermon_id) or [])
+    inserted = []
+    for iid in docked_ids:
+        item = _fetch_library_item(iid, user_id)
+        if not item:
+            continue
+        html = _item_insert_html(item, iid)
+        source_ref = item.get('source_url') or item.get('source', '') or ''
+        if as_new or not sections:
+            sections.append({
+                'section_type': 'illustration',
+                'title': item.get('title') or 'Illustration',
+                'content': html,
+                'scripture_reference': item.get('scripture_reference') or '',
+                'source': source_ref,
+                'notes': '',
+            })
+        else:
+            last = dict(sections[-1])
+            last['content'] = (last.get('content') or '') + html
+            if not last.get('source') and source_ref:
+                last['source'] = source_ref
+            sections[-1] = last
+        inserted.append({'id': iid, 'title': item.get('title') or 'Untitled'})
+
+    if not inserted:
+        return jsonify({'status': 'error', 'message': 'None of the docked items could be loaded.'}), 404
+
+    save_sermon_sections(sermon_id, sections)
+    log_change(
+        user_id,
+        'insert',
+        sermon_id,
+        None,
+        f'Inserted {len(inserted)} docked library items into sermon {sermon_id}',
+    )
+    clear = str(data.get('clear_dock') or '').lower() in ('1', 'true', 'yes', 'on')
+    if clear:
+        session.pop('docked_items', None)
+        session.modified = True
+
+    return jsonify({
+        'status': 'success',
+        'inserted': inserted,
+        'count': len(inserted),
+        'sermon_id': sermon_id,
+        'sermon_title': sermon.get('title') or '',
+        'dock_cleared': clear,
+    })
