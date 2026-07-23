@@ -1,52 +1,75 @@
 {% extends "members/base_members.html" %}
-{% block page_title %}Template: {{ tmpl.name }}{% endblock %}
+{% block page_title %}{% if is_new %}New template{% else %}Edit: {{ tmpl.name }}{% endif %}{% endblock %}
 {% block page_description %}
-  Name it, choose who it’s for, set YES/NO tools, save.
+  {% if is_new %}
+  Type a name, set tools to YES or NO, then tap <strong>Save template</strong> (top or bottom).
+  {% else %}
+  Change the name or tools, then tap <strong>Save template</strong>.
+  {% endif %}
 {% endblock %}
 
 {% block extra_css %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260722tpl2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723tpl3">
 {% endblock %}
 
 {% block members_content %}
 <div class="ac-hero glass-panel">
-  <h2>Edit template</h2>
-  <p><a href="{{ url_for('members.access_templates') }}">← All templates</a></p>
+  <h2>{% if is_new %}Create template{% else %}Edit template{% endif %}</h2>
+  <p>
+    <strong>What gets saved:</strong> the name, who it’s for, whether it’s the default for new
+    Members/Staff, and every tool set to <span style="color:#5dca7a;font-weight:800;">YES</span>.
+  </p>
+  <p style="margin-top:0.5rem;"><a href="{{ url_for('members.access_templates') }}">← All templates</a></p>
 </div>
 
-<form method="POST" id="ac-form">
+<form method="POST" id="ac-form" action="">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
-  <div class="glass-panel" style="padding:1rem; margin-bottom:1rem; display:grid; gap:0.75rem; max-width:40rem;">
+  {# Always-visible save at the TOP so you never hunt for it #}
+  <div class="ac-save-bar glass-panel" style="position:static; margin-bottom:1rem;">
+    <span class="ac-save-hint">{% if is_new %}Name it + pick tools, then save once.{% else %}Save all changes below.{% endif %}</span>
+    <button type="submit" class="btn-primary" style="min-height:3.4rem; min-width:12rem; font-size:1.15rem; font-weight:900;">
+      Save template
+    </button>
+  </div>
+
+  <div class="glass-panel" style="padding:1rem; margin-bottom:1rem; display:grid; gap:0.85rem; max-width:42rem;">
     <div>
-      <label for="name"><strong>Name</strong></label>
+      <label for="name"><strong>1. Name</strong> (required)</label>
       <input type="text" id="name" name="name" class="form-input" required maxlength="120"
-             value="{{ tmpl.name }}" style="width:100%; min-height:2.75rem;">
+             value="{{ tmpl.name or '' }}"
+             placeholder="e.g. Standard, Staff, Staff Accounting"
+             style="width:100%; min-height:3rem; font-size:1.1rem;">
     </div>
     <div>
-      <label for="description">Note</label>
+      <label for="description"><strong>2. Note</strong> (optional)</label>
       <input type="text" id="description" name="description" class="form-input" maxlength="255"
-             value="{{ tmpl.description or '' }}" style="width:100%; min-height:2.5rem;">
+             value="{{ tmpl.description or '' }}"
+             placeholder="What is this pack for?"
+             style="width:100%; min-height:2.75rem;">
     </div>
     <div>
-      <label for="for_role">Usually for</label>
-      <select id="for_role" name="for_role" class="form-input" style="width:100%; min-height:2.75rem;">
-        <option value="any" {% if tmpl.for_role == 'any' %}selected{% endif %}>Anyone</option>
+      <label for="for_role"><strong>3. Usually for</strong></label>
+      <select id="for_role" name="for_role" class="form-input" style="width:100%; min-height:2.85rem; font-size:1.05rem;">
+        <option value="any" {% if tmpl.for_role == 'any' %}selected{% endif %}>Anyone (Member or Staff)</option>
         <option value="Member" {% if tmpl.for_role == 'Member' %}selected{% endif %}>Members</option>
         <option value="Staff" {% if tmpl.for_role == 'Staff' %}selected{% endif %}>Staff</option>
       </select>
     </div>
-    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-      <input type="checkbox" name="is_default" value="1" style="width:1.15rem; height:1.15rem;"
+    <label style="display:flex; align-items:flex-start; gap:0.55rem; cursor:pointer; font-size:1.02rem;">
+      <input type="checkbox" name="is_default" value="1" style="width:1.25rem; height:1.25rem; margin-top:0.15rem;"
              {% if tmpl.is_default %}checked{% endif %}>
-      <span>Default for new people with that role (Member or Staff)</span>
+      <span>
+        <strong>4. Default for new people with that role</strong><br>
+        <span class="small text-muted">Only works when “Usually for” is Members or Staff. New accounts get these tools automatically.</span>
+      </span>
     </label>
   </div>
 
   {% if summary %}
   <div class="ac-summary-box glass-panel">
-    <h3>This pack includes:</h3>
+    <h3>Currently ON in this pack:</h3>
     <ul class="ac-summary-list">
       {% for line in summary %}
       <li>{{ line|replace(': YES','') }}</li>
@@ -54,6 +77,9 @@
     </ul>
   </div>
   {% endif %}
+
+  <h3 style="margin:0 0 0.5rem; font-size:1.2rem;">5. Tools (YES or NO)</h3>
+  <p style="margin:0 0 0.75rem; opacity:0.9;">Tap green YES if people with this pack should open that tool.</p>
 
   <div class="ac-toolbar">
     <button type="button" class="btn-secondary" id="ac-all-yes">All YES</button>
@@ -84,9 +110,11 @@
     {% endfor %}
   </div>
 
-  <div class="ac-save-bar glass-panel">
-    <span class="ac-save-hint">Save name + tools together.</span>
-    <button type="submit" class="btn-primary">Save template</button>
+  <div class="ac-save-bar glass-panel" style="margin-top:1.25rem;">
+    <span class="ac-save-hint">Done? Tap Save. You’ll see which tools were stored.</span>
+    <button type="submit" class="btn-primary" style="min-height:3.4rem; min-width:12rem; font-size:1.15rem; font-weight:900;">
+      Save template
+    </button>
   </div>
 </form>
 
@@ -104,13 +132,13 @@
     paintCard(card);
   });
   document.getElementById('ac-all-yes')?.addEventListener('click', () => {
-    document.querySelectorAll('input[type="radio"][value="yes"]').forEach((r) => {
+    document.querySelectorAll('#ac-form input[type="radio"][value="yes"]').forEach((r) => {
       r.checked = true;
       r.dispatchEvent(new Event('change', { bubbles: true }));
     });
   });
   document.getElementById('ac-all-no')?.addEventListener('click', () => {
-    document.querySelectorAll('input[type="radio"][value="no"]').forEach((r) => {
+    document.querySelectorAll('#ac-form input[type="radio"][value="no"]').forEach((r) => {
       r.checked = true;
       r.dispatchEvent(new Event('change', { bubbles: true }));
     });

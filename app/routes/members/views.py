@@ -248,16 +248,26 @@ def _can_manage_access() -> bool:
     )
 
 
+def _template_form_payload():
+    """Shared fields from create/edit template POST."""
+    from app.utils.permission_matrix import keys_from_yes_no_form
+    name = (request.form.get('name') or '').strip()
+    desc = (request.form.get('description') or '').strip()
+    for_role = (request.form.get('for_role') or 'any').strip() or 'any'
+    is_default = request.form.get('is_default') == '1'
+    keys = keys_from_yes_no_form(request.form)
+    return name, desc, for_role, is_default, keys
+
+
 # ----------------------------------------------------------------------
 # Named tool templates — create as many as you want
 # ----------------------------------------------------------------------
 @members_bp.route('/access/templates', methods=['GET', 'POST'])
 @login_required
 def access_templates():
-    """List / create named templates. Edit is a separate page."""
+    """List templates + delete. Create is /access/templates/new (name + tools in one save)."""
     from app.utils.access_templates import (
         list_templates,
-        create_template,
         delete_template,
         seed_starter_templates,
         ensure_templates_table,
@@ -280,28 +290,11 @@ def access_templates():
     if request.method == 'POST':
         action = (request.form.get('action') or '').strip()
         try:
-            if action == 'create':
-                name = (request.form.get('name') or '').strip()
-                desc = (request.form.get('description') or '').strip()
-                for_role = (request.form.get('for_role') or 'any').strip() or 'any'
-                is_default = request.form.get('is_default') == '1'
-                tid = create_template(
-                    cur,
-                    name=name,
-                    description=desc,
-                    for_role=for_role,
-                    is_default=is_default,
-                    permissions=[],
-                    created_by=session.get('user_id'),
-                )
-                db.commit()
-                flash(f'Template “{name}” created — set its tools next.', 'success')
-                return redirect(url_for('members.access_template_edit', template_id=tid))
             if action == 'delete':
                 tid = int(request.form.get('template_id') or 0)
                 if tid and delete_template(cur, tid):
                     db.commit()
-                    flash('Template deleted.', 'success')
+                    flash('Template deleted. People already set keep their tools.', 'success')
                 else:
                     flash('Could not delete template.', 'error')
         except Exception as e:
@@ -318,12 +311,80 @@ def access_templates():
     )
 
 
+@members_bp.route('/access/templates/new', methods=['GET', 'POST'])
+@login_required
+def access_template_new():
+    """
+    One screen: name the pack + set every tool YES/NO + Save once.
+    What gets saved: name, note, who it's for, default flag, list of tools turned YES.
+    """
+    from app.utils.access_templates import create_template, ensure_templates_table
+    from app.utils.permission_matrix import AREA_MATRIX, area_status_rows, human_summary
+
+    if not _can_manage_access():
+        flash('You do not have permission to manage templates.', 'error')
+        abort(403)
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    ensure_templates_table(cur)
+    db.commit()
+
+    if request.method == 'POST':
+        try:
+            name, desc, for_role, is_default, keys = _template_form_payload()
+            if not name:
+                flash('Please type a name for this template (e.g. Standard or Staff Accounting).', 'error')
+            else:
+                tid = create_template(
+                    cur,
+                    name=name,
+                    description=desc,
+                    for_role=for_role,
+                    is_default=is_default,
+                    permissions=keys,
+                    created_by=session.get('user_id'),
+                )
+                db.commit()
+                labels = human_summary(set(keys))
+                if labels:
+                    flash(
+                        f'Saved “{name}”. Tools ON: ' + ', '.join(l.replace(': YES', '') for l in labels) + '.',
+                        'success',
+                    )
+                else:
+                    flash(
+                        f'Saved “{name}” with no tools on (all NO). Open it anytime to turn tools YES.',
+                        'success',
+                    )
+                log_change(session['user_id'], 'access_template', f'Created template {tid} ({name})')
+                return redirect(url_for('members.access_templates'))
+        except Exception as e:
+            flash(f'Could not save template: {e}', 'error')
+
+    # Empty form — all tools start NO
+    status_rows = area_status_rows(set(), full_access=False)
+    return render_template(
+        'members/access_template_edit.html',
+        tmpl={
+            'id': None,
+            'name': request.form.get('name', '') if request.method == 'POST' else '',
+            'description': request.form.get('description', '') if request.method == 'POST' else '',
+            'for_role': request.form.get('for_role', 'any') if request.method == 'POST' else 'any',
+            'is_default': request.form.get('is_default') == '1' if request.method == 'POST' else False,
+        },
+        status_rows=status_rows,
+        summary=[],
+        is_new=True,
+    )
+
+
 @members_bp.route('/access/templates/<int:template_id>', methods=['GET', 'POST'])
 @login_required
 def access_template_edit(template_id):
-    """Name + YES/NO tools for one template."""
+    """Edit name + YES/NO tools. One Save writes everything."""
     from app.utils.access_templates import get_template, update_template
-    from app.utils.permission_matrix import keys_from_yes_no_form, area_status_rows, human_summary
+    from app.utils.permission_matrix import area_status_rows, human_summary
 
     if not _can_manage_access():
         flash('You do not have permission to manage templates.', 'error')
@@ -338,24 +399,30 @@ def access_template_edit(template_id):
 
     if request.method == 'POST':
         try:
-            name = (request.form.get('name') or '').strip()
-            desc = (request.form.get('description') or '').strip()
-            for_role = (request.form.get('for_role') or 'any').strip() or 'any'
-            is_default = request.form.get('is_default') == '1'
-            keys = keys_from_yes_no_form(request.form)
-            update_template(
-                cur,
-                template_id,
-                name=name,
-                description=desc,
-                for_role=for_role,
-                is_default=is_default,
-                permissions=keys,
-            )
-            db.commit()
-            flash(f'Saved template “{name}”.', 'success')
-            log_change(session['user_id'], 'access_template', f'Updated template {template_id}')
-            return redirect(url_for('members.access_template_edit', template_id=template_id))
+            name, desc, for_role, is_default, keys = _template_form_payload()
+            if not name:
+                flash('Name is required.', 'error')
+            else:
+                update_template(
+                    cur,
+                    template_id,
+                    name=name,
+                    description=desc,
+                    for_role=for_role,
+                    is_default=is_default,
+                    permissions=keys,
+                )
+                db.commit()
+                labels = human_summary(set(keys))
+                if labels:
+                    flash(
+                        f'Saved “{name}”. Tools ON: ' + ', '.join(l.replace(': YES', '') for l in labels) + '.',
+                        'success',
+                    )
+                else:
+                    flash(f'Saved “{name}” with all tools NO.', 'success')
+                log_change(session['user_id'], 'access_template', f'Updated template {template_id}')
+                return redirect(url_for('members.access_template_edit', template_id=template_id))
         except Exception as e:
             flash(f'Could not save: {e}', 'error')
 
@@ -367,6 +434,7 @@ def access_template_edit(template_id):
         tmpl=tmpl,
         status_rows=status_rows,
         summary=summary,
+        is_new=False,
     )
 
 
