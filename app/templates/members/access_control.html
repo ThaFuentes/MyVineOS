@@ -41,9 +41,15 @@
         {% endif %}
       {% endif %}
     </div>
+    {% if row.can_manage %}
     <a class="btn-primary ac-person-btn" href="{{ url_for('members.member_access', member_id=row.user.id) }}">
       Tools
     </a>
+    {% else %}
+    <span class="btn-secondary ac-person-btn" style="opacity:0.75; cursor:not-allowed;" title="You cannot manage someone at or above your rank">
+      Locked
+    </span>
+    {% endif %}
   </article>
   {% else %}
   <p class="ac-empty">No people found.</p>

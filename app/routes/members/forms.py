@@ -9,6 +9,7 @@
 
 from flask import flash
 from app.utils.helpers import contains_censored_word, identity_spam_reason
+from app.routes.members.utils import get_allowed_roles, can_outrank, role_rank
 
 
 def validate_member_form(
@@ -23,6 +24,10 @@ def validate_member_form(
     """
     Validate and clean the Add/Edit Member form.
     Returns clean dict on success, or None + flash on error.
+
+    Role changes: actor may only assign roles strictly below their own rank,
+    and may never change the role of someone at or above them (enforced in views
+    too; this blocks form tampering).
     """
     first_name = form_data.get('first_name', '').strip()
     last_name = form_data.get('last_name', '').strip()
@@ -40,17 +45,34 @@ def validate_member_form(
         return None
 
     if can_manage_users:
-        new_role = form_data.get('role', 'Member')
-        allowed_roles = ['Member']
-        if current_role in ['Staff', 'Admin', 'Owner']:
-            allowed_roles.append('Staff')
-        if current_role in ['Admin', 'Owner']:
-            allowed_roles.append('Admin')
-        if current_role == 'Owner':
-            allowed_roles.append('Owner')
+        new_role = (form_data.get('role') or 'Member').strip()
+        allowed_roles = get_allowed_roles(current_role)
+
+        # Editing someone already at/above you: never accept a role change
+        if is_edit and existing_role and not can_outrank(current_role, existing_role):
+            flash(
+                f'You cannot change the role of a {existing_role}. '
+                'Only someone above them can do that.',
+                'error',
+            )
+            return None
 
         if new_role not in allowed_roles:
-            flash('You do not have permission to assign this role.', 'error')
+            flash(
+                'You do not have permission to assign that role. '
+                'You may only assign roles below your own.',
+                'error',
+            )
+            return None
+
+        # Defense in depth: assigned role must be strictly below actor
+        # (Owner may assign Owner — special-case)
+        if new_role != 'Owner' or (current_role or '') != 'Owner':
+            if not can_outrank(current_role, new_role):
+                flash('You cannot assign a role at or above your own rank.', 'error')
+                return None
+        if (current_role or '') != 'Owner' and role_rank(new_role) >= role_rank(current_role):
+            flash('You cannot assign a role at or above your own rank.', 'error')
             return None
     else:
         new_role = existing_role or 'Member'

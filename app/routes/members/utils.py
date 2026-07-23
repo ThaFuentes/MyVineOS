@@ -40,6 +40,84 @@ def current_user_id():
 
 
 # ----------------------------------------------------------------------
+# Role hierarchy (strict: higher rank only manages people BELOW them)
+# ----------------------------------------------------------------------
+# Owner > Admin > Staff > Member > pending/banned
+ROLE_RANK = {
+    'owner': 40,
+    'admin': 30,
+    'staff': 20,
+    'member': 10,
+    'pending': 0,
+    'banned': 0,
+}
+
+
+def role_rank(role) -> int:
+    """Numeric rank for hierarchy checks. Unknown roles rank as Member."""
+    key = (role or 'Member').strip().lower()
+    return int(ROLE_RANK.get(key, ROLE_RANK['member']))
+
+
+def normalize_role_name(role) -> str:
+    raw = (role or 'Member').strip()
+    mapping = {
+        'owner': 'Owner',
+        'admin': 'Admin',
+        'staff': 'Staff',
+        'member': 'Member',
+        'pending': 'pending',
+        'banned': 'banned',
+    }
+    return mapping.get(raw.lower(), raw)
+
+
+def can_outrank(actor_role, target_role) -> bool:
+    """True only when actor is strictly above target (never equals, never below)."""
+    return role_rank(actor_role) > role_rank(target_role)
+
+
+def can_manage_target_user(
+    target,
+    actor_id=None,
+    actor_role=None,
+    *,
+    require_manage_users: bool = False,
+    allow_self: bool = False,
+) -> tuple[bool, str]:
+    """
+    Hard rule: tools/permissions never override rank.
+
+    Staff with "edit users" / manage_users still cannot touch Admin or Owner.
+    Admin cannot touch Admin peers or Owner.
+    Only a higher rank may edit, demote, ban, or set tools for a person.
+
+    Owner may manage anyone else (including other Owners for profile/tools).
+    """
+    if not target:
+        return False, 'Member not found.'
+
+    role = (actor_role if actor_role is not None else session.get('user_role') or '').strip()
+    actor = actor_id if actor_id is not None else session.get('user_id')
+    target_role = (target.get('role') or 'Member').strip()
+    target_id = target.get('id')
+
+    if not allow_self and target_id is not None and actor is not None and int(target_id) == int(actor):
+        return False, 'You cannot manage your own account this way. Use Profile for your own details.'
+
+    if require_manage_users and not can_manage_users() and role != 'Owner':
+        return False, 'You do not have permission to manage user accounts.'
+
+    # Strict hierarchy — equal rank peers have no power over each other
+    if not can_outrank(role, target_role):
+        return False, (
+            f'Your role ({role or "none"}) cannot manage a {target_role}. '
+            'Only someone above them in rank can change their account, role, or tools.'
+        )
+    return True, ''
+
+
+# ----------------------------------------------------------------------
 # Group Permission Helpers
 # ----------------------------------------------------------------------
 def can_view_members() -> bool:
@@ -51,7 +129,7 @@ def can_manage_members() -> bool:
 
 
 def can_manage_users() -> bool:
-    """Owner/Admin/Staff always True via permission layer; Owner is absolute."""
+    """Owner always; others need manage_users permission (still subject to rank)."""
     if session.get('user_role') == 'Owner':
         return True
     return user_has_permission('manage_users')
@@ -61,9 +139,10 @@ def can_delete_member(target, actor_id, actor_role) -> tuple[bool, str]:
     """
     Who may permanently delete a user account.
 
-    - Owner: full reign (may delete anyone except self and the last Owner).
-    - Admin: may delete Member/Staff/pending/banned, but never Admin or Owner.
-    - Others: no (even with manage_users from a group).
+    Hierarchy first (must outrank target), then:
+    - Owner: may delete anyone except self and the last Owner.
+    - Admin: may delete people below them (Member/Staff/pending), never peers/above.
+    - Staff / others: no account deletion (even with manage_users).
     """
     if not target:
         return False, 'Member not found.'
@@ -72,15 +151,17 @@ def can_delete_member(target, actor_id, actor_role) -> tuple[bool, str]:
     target_role = (target.get('role') or 'Member').strip()
     target_id = target.get('id')
 
-    if not can_manage_users() and role not in ('Owner', 'Admin'):
-        return False, 'You do not have permission to delete accounts.'
-
     if target_id == actor_id:
         return False, 'You cannot delete your own account.'
 
+    ok, reason = can_manage_target_user(
+        target, actor_id=actor_id, actor_role=role, require_manage_users=False,
+    )
+    if not ok:
+        return False, reason
+
     if role == 'Owner':
         if target_role == 'Owner':
-            # Never remove the last Owner
             try:
                 from app.models.db import get_db
                 import pymysql
@@ -95,30 +176,23 @@ def can_delete_member(target, actor_id, actor_role) -> tuple[bool, str]:
         return True, ''
 
     if role == 'Admin':
-        if target_role in ('Admin', 'Owner'):
-            return False, 'Admins cannot delete Admin or Owner accounts. Only the Owner can.'
+        # Already outranks; still no deleting other Admins/Owners (outrank blocks that)
         return True, ''
 
     return False, 'Only Owner or Admin can delete accounts.'
 
 
 def can_moderate_account(target, actor_id, actor_role) -> bool:
-    """Account security tools require manage_users plus role ceiling.
-    Owner: full reign over others. Admin: not Admin/Owner targets.
-    """
-    if not target or target['id'] == actor_id:
+    """Ban / unlock / shadow tools: manage_users + must strictly outrank the target."""
+    if not target:
         return False
-    if (actor_role or session.get('user_role')) == 'Owner':
-        return True
-    if not can_manage_users():
-        return False
-    if target['role'] == 'Owner':
-        return False
-    if target['role'] == 'Admin':
-        return actor_role == 'Owner'
-    if target['role'] == 'Staff':
-        return actor_role in ('Staff', 'Admin', 'Owner')
-    return actor_role in ('Staff', 'Admin', 'Owner')
+    ok, _ = can_manage_target_user(
+        target,
+        actor_id=actor_id,
+        actor_role=actor_role,
+        require_manage_users=True,
+    )
+    return ok
 
 
 def get_assignable_groups(cur, user_id, user_role):
@@ -156,15 +230,25 @@ def get_assignable_groups(cur, user_id, user_role):
 # Role Permission Helpers
 # ----------------------------------------------------------------------
 def get_allowed_roles(current_role):
-    """Return list of roles the current user is allowed to assign to new members."""
-    allowed = ['Member']
-    if current_role in ['Staff', 'Admin', 'Owner']:
-        allowed.append('Staff')
-    if current_role in ['Admin', 'Owner']:
-        allowed.append('Admin')
-    if current_role == 'Owner':
-        allowed.append('Owner')
-    return allowed
+    """
+    Roles the actor may assign — only ranks strictly BELOW the actor.
+    Staff → Member only (cannot mint peer Staff or touch Admin).
+    Admin → Member, Staff (cannot mint Admin/Owner).
+    Owner → Member, Staff, Admin, Owner.
+    """
+    allowed = []
+    actor_r = role_rank(current_role)
+    for name in ('Member', 'Staff', 'Admin', 'Owner'):
+        if role_rank(name) < actor_r:
+            allowed.append(name)
+    # Owner may also assign Owner (still cannot demote last Owner elsewhere)
+    if (current_role or '').strip() == 'Owner':
+        if 'Owner' not in allowed:
+            allowed.append('Owner')
+    # Always allow Member if actor is above Member (Staff+)
+    if actor_r > role_rank('Member') and 'Member' not in allowed:
+        allowed.insert(0, 'Member')
+    return allowed or ['Member']
 
 
 # ----------------------------------------------------------------------

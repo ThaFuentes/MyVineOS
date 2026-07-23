@@ -36,8 +36,10 @@ from .utils import (
     can_manage_members,
     can_manage_users,
     can_moderate_account,
+    can_manage_target_user,
     can_delete_member as actor_can_delete_member,
     get_assignable_groups,
+    get_allowed_roles,
     MEMBERS_VIEW_PERMISSIONS,
     MEMBERS_EDIT_PERMISSIONS,
 )
@@ -112,6 +114,10 @@ def add_member(member_id=None):
     current_role = session['user_role']
     manage_users = can_manage_users()
     manage_members = can_manage_members()
+    # Role dropdown: only ranks strictly below the actor (Staff cannot list Admin)
+    allowed_roles = get_allowed_roles(current_role)
+    # May show role field only if they manage users AND there is something they can assign
+    can_set_role = bool(manage_users and allowed_roles)
 
     if member_id:
         if not manage_members:
@@ -134,16 +140,33 @@ def add_member(member_id=None):
             flash('Member not found.', 'error')
             return redirect(url_for('members.members_directory'))
 
+        # Hierarchy gate: Staff cannot open/edit Admin or Owner, etc.
+        ok, reason = can_manage_target_user(
+            member, actor_id=session['user_id'], actor_role=current_role,
+        )
+        if not ok:
+            flash(reason, 'error')
+            return redirect(url_for('members.members_directory'))
+
         cur.execute("SELECT group_id FROM user_groups WHERE user_id = %s", (member_id,))
         selected_group_ids = [row['group_id'] for row in cur.fetchall()]
 
     if request.method == 'POST':
+        # Re-check hierarchy on POST (never trust GET-only checks)
+        if member_id and member:
+            ok, reason = can_manage_target_user(
+                member, actor_id=session['user_id'], actor_role=current_role,
+            )
+            if not ok:
+                flash(reason, 'error')
+                return redirect(url_for('members.members_directory'))
+
         clean_data = validate_member_form(
             request.form,
             is_edit=bool(member_id),
             current_role=current_role,
             available_group_ids=[g['id'] for g in available_groups],
-            can_manage_users=manage_users,
+            can_manage_users=can_set_role,
             existing_role=member['role'] if member else None,
         )
         if not clean_data:
@@ -152,7 +175,8 @@ def add_member(member_id=None):
                 member=member,
                 available_groups=available_groups,
                 selected_group_ids=selected_group_ids,
-                can_manage_users=manage_users,
+                can_manage_users=can_set_role,
+                allowed_roles=allowed_roles,
                 can_moderate_account=can_moderate_account(member, session['user_id'], current_role),
             )
 
@@ -207,6 +231,11 @@ Please log in and change your password.
         else:  # EDIT EXISTING MEMBER
             try:
                 old_role = (member or {}).get('role')
+                # Never persist a role the actor is not allowed to set
+                if not can_set_role:
+                    clean_data['role'] = old_role
+                elif clean_data.get('role') not in allowed_roles:
+                    clean_data['role'] = old_role
                 update_member(member_id, clean_data)
                 # Tools stay under People tools / Access — not groups
                 try:
@@ -219,7 +248,12 @@ Please log in and change your password.
                     print(f"Template attach (edit) skipped: {te}")
 
                 flash('Member updated successfully.', 'success')
-                log_change(session['user_id'], 'edit_member', f'Updated {clean_data["first_name"]} {clean_data["last_name"]} (ID {member_id})')
+                log_change(
+                    session['user_id'],
+                    'edit_member',
+                    f'Updated {clean_data["first_name"]} {clean_data["last_name"]} '
+                    f'(ID {member_id}; role {old_role}→{clean_data.get("role")})',
+                )
 
             except Exception as e:
                 flash('Failed to update member.', 'error')
@@ -233,7 +267,8 @@ Please log in and change your password.
         member=member,
         available_groups=available_groups,
         selected_group_ids=selected_group_ids,
-        can_manage_users=manage_users,
+        can_manage_users=can_set_role,
+        allowed_roles=allowed_roles,
         can_moderate_account=can_moderate_account(member, session['user_id'], current_role),
     )
 
@@ -574,10 +609,15 @@ def access_people():
     # preserve order
     board_areas = sorted(board_areas, key=lambda a: board_ids.index(a['id']))
 
+    actor_role = session.get('user_role')
+    actor_id = session.get('user_id')
     rows = []
     for u in users:
         full = role_has_full_access(u.get('role'))
         eff = get_user_effective_permissions(cur, u['id'], u.get('role'))
+        can_manage_this, _mgr_reason = can_manage_target_user(
+            u, actor_id=actor_id, actor_role=actor_role, allow_self=False,
+        )
         cells = []
         yes_labels = []
         for area in board_areas:
@@ -596,6 +636,7 @@ def access_people():
             'cells': cells,
             'yes_labels': yes_labels,
             'yes_count': len(yes_labels),
+            'can_manage': can_manage_this,
         })
 
     return render_template(
@@ -642,10 +683,26 @@ def member_access(member_id):
         flash('Member not found.', 'error')
         return redirect(url_for('members.members_directory'))
 
+    # Hierarchy: Staff cannot open or change tools for Admin/Owner, peers, etc.
+    ok, reason = can_manage_target_user(
+        member, actor_id=session['user_id'], actor_role=session.get('user_role'),
+    )
+    if not ok:
+        flash(reason, 'error')
+        return redirect(url_for('members.access_people'))
+
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
 
     if request.method == 'POST':
+        # Re-check on POST (stale form / privilege race)
+        ok, reason = can_manage_target_user(
+            member, actor_id=session['user_id'], actor_role=session.get('user_role'),
+        )
+        if not ok:
+            flash(reason, 'error')
+            return redirect(url_for('members.access_people'))
+
         if role_has_full_access(member.get('role')):
             flash('Owner/Admin already have full access to everything. Change their role if needed.', 'error')
             return redirect(url_for('members.member_access', member_id=member_id))
