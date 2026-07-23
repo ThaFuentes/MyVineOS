@@ -9,7 +9,7 @@
 # - Fully modular and ready for use with views.py, queries.py, and utils.py.
 
 from flask import flash
-from app.utils.helpers import contains_censored_word
+from app.utils.helpers import contains_censored_word, identity_spam_reason
 
 
 def validate_register_form(form_data):
@@ -34,6 +34,11 @@ def validate_register_form(form_data):
     visible_text = f"{first_name} {last_name} {username}"
     if contains_censored_word(visible_text):
         flash('Name or username contains a prohibited word or phrase.', 'error')
+        return None
+
+    spam = identity_spam_reason(first_name, last_name, username)
+    if spam:
+        flash(spam, 'error')
         return None
 
     # Required fields

@@ -8,7 +8,7 @@
 # - 100% matches the original members.py validation and repopulation logic.
 
 from flask import flash
-from app.utils.helpers import contains_censored_word
+from app.utils.helpers import contains_censored_word, identity_spam_reason
 
 
 def validate_member_form(
@@ -59,6 +59,11 @@ def validate_member_form(
     visible_text = f"{first_name} {last_name} {email} {phone or ''} {address or ''}"
     if contains_censored_word(visible_text):
         flash('Member information contains a prohibited word or phrase.', 'error')
+        return None
+
+    spam = identity_spam_reason(first_name, last_name)
+    if spam:
+        flash(spam, 'error')
         return None
 
     # Group validation
