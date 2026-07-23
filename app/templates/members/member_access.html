@@ -40,6 +40,29 @@
   {% endif %}
 </div>
 
+{% if not breakdown.full_access and templates %}
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h3 style="margin:0 0 0.5rem; font-size:1.1rem;">Apply a template</h3>
+  <p class="small text-muted" style="margin:0 0 0.65rem;">
+    Loads a named pack onto this person (you can still change YES/NO after).
+  </p>
+  <form method="POST" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <input type="hidden" name="action" value="apply_template">
+    <div style="flex:1; min-width:12rem;">
+      <label class="small" for="template_id">Template</label>
+      <select name="template_id" id="template_id" class="form-input" required style="width:100%; min-height:2.75rem;">
+        <option value="">Choose…</option>
+        {% for t in templates %}
+        <option value="{{ t.id }}">{{ t.name }}{% if t.is_default %} (default {{ t.for_role }}){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn-secondary" style="min-height:2.75rem;">Apply template</button>
+  </form>
+</div>
+{% endif %}
+
 {% if breakdown.full_access %}
 <div class="glass-panel" style="padding:1.1rem;">
   <p style="margin:0; font-size:1.1rem; line-height:1.5;">

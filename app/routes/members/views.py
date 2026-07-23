@@ -249,98 +249,124 @@ def _can_manage_access() -> bool:
 
 
 # ----------------------------------------------------------------------
-# Role templates — default tools for NEW Members / NEW Staff
+# Named tool templates — create as many as you want
 # ----------------------------------------------------------------------
 @members_bp.route('/access/templates', methods=['GET', 'POST'])
 @login_required
 def access_templates():
-    """
-    Edit what brand-new Members and newly-made Staff start with.
-    Admin/Owner always have full access (no template).
-    """
-    import json
+    """List / create named templates. Edit is a separate page."""
     from app.utils.access_templates import (
-        TEMPLATE_META,
-        get_template_group,
-        save_template_permissions,
-        apply_template_to_all_with_role,
-        count_template_members,
-        ensure_user_in_template,
+        list_templates,
+        create_template,
+        delete_template,
+        seed_starter_templates,
+        ensure_templates_table,
     )
-    from app.utils.permission_matrix import (
-        keys_from_yes_no_form,
-        area_status_rows,
-        human_summary,
-        SYSTEM_TEMPLATE_GROUPS,
-    )
+    from app.utils.permission_matrix import human_summary
 
     if not _can_manage_access():
-        flash('You do not have permission to manage access templates.', 'error')
+        flash('You do not have permission to manage templates.', 'error')
         abort(403)
 
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
-
-    # Ensure system groups exist (seed if missing)
     try:
-        from app.builddb.groups import create_tables as seed_groups
-        seed_groups(db.cursor())
+        ensure_templates_table(cur)
+        seed_starter_templates(cur)
         db.commit()
-        cur = db.cursor(pymysql.cursors.DictCursor)
     except Exception as e:
-        print(f"template seed note: {e}")
+        print(f'template table: {e}')
 
     if request.method == 'POST':
-        action = (request.form.get('action') or 'save').strip()
-        system_key = (request.form.get('system_key') or '').strip()
+        action = (request.form.get('action') or '').strip()
         try:
-            if action == 'save' and system_key in TEMPLATE_META:
-                keys = keys_from_yes_no_form(request.form)
-                if save_template_permissions(cur, system_key, keys):
-                    db.commit()
-                    flash(f'Saved template: {TEMPLATE_META[system_key]["title"]}.', 'success')
-                    log_change(
-                        session['user_id'],
-                        'access_template',
-                        f'Updated {system_key} tools template',
-                    )
-                else:
-                    flash('Template not found. Restart the app so system groups can seed.', 'error')
-            elif action == 'apply_all' and system_key in TEMPLATE_META:
-                role = TEMPLATE_META[system_key]['role']
-                n = apply_template_to_all_with_role(cur, role, session['user_id'])
-                db.commit()
-                flash(
-                    f'Added the {role} template to {n} existing {role} account(s) who did not have it yet. '
-                    f'People you already customized keep their personal YES/NO.',
-                    'success',
+            if action == 'create':
+                name = (request.form.get('name') or '').strip()
+                desc = (request.form.get('description') or '').strip()
+                for_role = (request.form.get('for_role') or 'any').strip() or 'any'
+                is_default = request.form.get('is_default') == '1'
+                tid = create_template(
+                    cur,
+                    name=name,
+                    description=desc,
+                    for_role=for_role,
+                    is_default=is_default,
+                    permissions=[],
+                    created_by=session.get('user_id'),
                 )
-            else:
-                flash('Nothing to do.', 'error')
+                db.commit()
+                flash(f'Template “{name}” created — set its tools next.', 'success')
+                return redirect(url_for('members.access_template_edit', template_id=tid))
+            if action == 'delete':
+                tid = int(request.form.get('template_id') or 0)
+                if tid and delete_template(cur, tid):
+                    db.commit()
+                    flash('Template deleted.', 'success')
+                else:
+                    flash('Could not delete template.', 'error')
         except Exception as e:
-            flash(f'Could not update template: {e}', 'error')
+            flash(f'Could not update templates: {e}', 'error')
         return redirect(url_for('members.access_templates'))
 
-    cards = []
-    for tmpl in SYSTEM_TEMPLATE_GROUPS:
-        key = tmpl['system_key']
-        g = get_template_group(cur, key)
-        perms = (g or {}).get('permission_list') or list(tmpl.get('permissions') or [])
-        meta = TEMPLATE_META.get(key, {})
-        cards.append({
-            'system_key': key,
-            'title': meta.get('title') or tmpl['name'],
-            'blurb': meta.get('blurb') or tmpl.get('description') or '',
-            'role': meta.get('role') or '',
-            'group': g,
-            'status_rows': area_status_rows(set(perms), full_access=False),
-            'summary': human_summary(set(perms), full_access=False),
-            'member_count': count_template_members(cur, key) if g else 0,
-        })
+    templates = list_templates(cur)
+    for t in templates:
+        t['summary'] = human_summary(set(t.get('permission_list') or []))
 
     return render_template(
         'members/access_templates.html',
-        cards=cards,
+        templates=templates,
+    )
+
+
+@members_bp.route('/access/templates/<int:template_id>', methods=['GET', 'POST'])
+@login_required
+def access_template_edit(template_id):
+    """Name + YES/NO tools for one template."""
+    from app.utils.access_templates import get_template, update_template
+    from app.utils.permission_matrix import keys_from_yes_no_form, area_status_rows, human_summary
+
+    if not _can_manage_access():
+        flash('You do not have permission to manage templates.', 'error')
+        abort(403)
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    tmpl = get_template(cur, template_id)
+    if not tmpl:
+        flash('Template not found.', 'error')
+        return redirect(url_for('members.access_templates'))
+
+    if request.method == 'POST':
+        try:
+            name = (request.form.get('name') or '').strip()
+            desc = (request.form.get('description') or '').strip()
+            for_role = (request.form.get('for_role') or 'any').strip() or 'any'
+            is_default = request.form.get('is_default') == '1'
+            keys = keys_from_yes_no_form(request.form)
+            update_template(
+                cur,
+                template_id,
+                name=name,
+                description=desc,
+                for_role=for_role,
+                is_default=is_default,
+                permissions=keys,
+            )
+            db.commit()
+            flash(f'Saved template “{name}”.', 'success')
+            log_change(session['user_id'], 'access_template', f'Updated template {template_id}')
+            return redirect(url_for('members.access_template_edit', template_id=template_id))
+        except Exception as e:
+            flash(f'Could not save: {e}', 'error')
+
+    tmpl = get_template(cur, template_id)
+    status_rows = area_status_rows(set(tmpl.get('permission_list') or []))
+    summary = human_summary(set(tmpl.get('permission_list') or []))
+    return render_template(
+        'members/access_template_edit.html',
+        tmpl=tmpl,
+        status_rows=status_rows,
+        summary=summary,
     )
 
 
@@ -431,7 +457,6 @@ def member_access(member_id):
         role_has_full_access,
         get_user_permission_breakdown,
         set_user_exact_access,
-        user_has_permission,
     )
     from app.utils.permission_matrix import (
         keys_from_yes_no_form,
@@ -439,6 +464,7 @@ def member_access(member_id):
         human_summary,
         preview_labels,
     )
+    from app.utils.access_templates import list_templates, apply_template_to_user
 
     if not _can_manage_access():
         flash('You do not have permission to manage access.', 'error')
@@ -456,16 +482,25 @@ def member_access(member_id):
         if role_has_full_access(member.get('role')):
             flash('Owner/Admin already have full access to everything. Change their role if needed.', 'error')
             return redirect(url_for('members.member_access', member_id=member_id))
+        action = (request.form.get('action') or 'save').strip()
         try:
-            desired = keys_from_yes_no_form(request.form)
-            set_user_exact_access(cur, member_id, desired, session['user_id'])
-            db.commit()
-            flash('Saved. This is exactly what they can open (YES/NO). Groups cannot override a NO.', 'success')
-            log_change(
-                session['user_id'],
-                'member_access',
-                f'Set exact access for user {member_id}',
-            )
+            if action == 'apply_template':
+                tid = int(request.form.get('template_id') or 0)
+                if tid and apply_template_to_user(cur, member_id, tid, session['user_id'], exact=True):
+                    db.commit()
+                    flash('Template applied to this person. Adjust YES/NO below if you want extras.', 'success')
+                else:
+                    flash('Could not apply template.', 'error')
+            else:
+                desired = keys_from_yes_no_form(request.form)
+                set_user_exact_access(cur, member_id, desired, session['user_id'])
+                db.commit()
+                flash('Saved. This is exactly what they can open.', 'success')
+                log_change(
+                    session['user_id'],
+                    'member_access',
+                    f'Set exact access for user {member_id}',
+                )
         except Exception as e:
             flash(f'Could not update access: {e}', 'error')
         return redirect(url_for('members.member_access', member_id=member_id))
@@ -476,6 +511,10 @@ def member_access(member_id):
     status_rows = area_status_rows(effective, full_access=full)
     summary_lines = human_summary(effective, full_access=full)
     preview = preview_labels(effective, full_access=full)
+    try:
+        templates = list_templates(cur)
+    except Exception:
+        templates = []
 
     return render_template(
         'members/member_access.html',
@@ -484,6 +523,7 @@ def member_access(member_id):
         status_rows=status_rows,
         summary_lines=summary_lines,
         preview=preview,
+        templates=templates,
     )
 
 

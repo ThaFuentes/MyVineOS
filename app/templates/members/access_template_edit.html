@@ -1,0 +1,120 @@
+{% extends "members/base_members.html" %}
+{% block page_title %}Template: {{ tmpl.name }}{% endblock %}
+{% block page_description %}
+  Name it, choose who it’s for, set YES/NO tools, save.
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260722tpl2">
+{% endblock %}
+
+{% block members_content %}
+<div class="ac-hero glass-panel">
+  <h2>Edit template</h2>
+  <p><a href="{{ url_for('members.access_templates') }}">← All templates</a></p>
+</div>
+
+<form method="POST" id="ac-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+  <div class="glass-panel" style="padding:1rem; margin-bottom:1rem; display:grid; gap:0.75rem; max-width:40rem;">
+    <div>
+      <label for="name"><strong>Name</strong></label>
+      <input type="text" id="name" name="name" class="form-input" required maxlength="120"
+             value="{{ tmpl.name }}" style="width:100%; min-height:2.75rem;">
+    </div>
+    <div>
+      <label for="description">Note</label>
+      <input type="text" id="description" name="description" class="form-input" maxlength="255"
+             value="{{ tmpl.description or '' }}" style="width:100%; min-height:2.5rem;">
+    </div>
+    <div>
+      <label for="for_role">Usually for</label>
+      <select id="for_role" name="for_role" class="form-input" style="width:100%; min-height:2.75rem;">
+        <option value="any" {% if tmpl.for_role == 'any' %}selected{% endif %}>Anyone</option>
+        <option value="Member" {% if tmpl.for_role == 'Member' %}selected{% endif %}>Members</option>
+        <option value="Staff" {% if tmpl.for_role == 'Staff' %}selected{% endif %}>Staff</option>
+      </select>
+    </div>
+    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+      <input type="checkbox" name="is_default" value="1" style="width:1.15rem; height:1.15rem;"
+             {% if tmpl.is_default %}checked{% endif %}>
+      <span>Default for new people with that role (Member or Staff)</span>
+    </label>
+  </div>
+
+  {% if summary %}
+  <div class="ac-summary-box glass-panel">
+    <h3>This pack includes:</h3>
+    <ul class="ac-summary-list">
+      {% for line in summary %}
+      <li>{{ line|replace(': YES','') }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="ac-toolbar">
+    <button type="button" class="btn-secondary" id="ac-all-yes">All YES</button>
+    <button type="button" class="btn-secondary" id="ac-all-no">All NO</button>
+  </div>
+
+  <div class="ac-grid">
+    {% for area in status_rows %}
+    <div class="ac-tool {% if area.can_see %}is-yes{% else %}is-no{% endif %}" data-tool-card>
+      <p class="ac-tool-title">
+        <i class="fa-solid {{ area.icon|default('fa-key') }}" aria-hidden="true"></i>
+        {{ area.label }}
+      </p>
+      <p class="ac-tool-desc">{{ area.description }}</p>
+      <div class="ac-toggle">
+        <span class="ac-opt">
+          <input type="radio" name="access_{{ area.id }}" id="yes_{{ area.id }}" value="yes"
+                 {% if area.can_see %}checked{% endif %}>
+          <label class="ac-yes-label" for="yes_{{ area.id }}">YES</label>
+        </span>
+        <span class="ac-opt">
+          <input type="radio" name="access_{{ area.id }}" id="no_{{ area.id }}" value="no"
+                 {% if not area.can_see %}checked{% endif %}>
+          <label class="ac-no-label" for="no_{{ area.id }}">NO</label>
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="ac-save-bar glass-panel">
+    <span class="ac-save-hint">Save name + tools together.</span>
+    <button type="submit" class="btn-primary">Save template</button>
+  </div>
+</form>
+
+<script>
+(function () {
+  function paintCard(card) {
+    const yes = card.querySelector('input[value="yes"]');
+    card.classList.toggle('is-yes', !!(yes && yes.checked));
+    card.classList.toggle('is-no', !(yes && yes.checked));
+  }
+  document.querySelectorAll('[data-tool-card]').forEach((card) => {
+    card.querySelectorAll('input[type="radio"]').forEach((r) => {
+      r.addEventListener('change', () => paintCard(card));
+    });
+    paintCard(card);
+  });
+  document.getElementById('ac-all-yes')?.addEventListener('click', () => {
+    document.querySelectorAll('input[type="radio"][value="yes"]').forEach((r) => {
+      r.checked = true;
+      r.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+  document.getElementById('ac-all-no')?.addEventListener('click', () => {
+    document.querySelectorAll('input[type="radio"][value="no"]').forEach((r) => {
+      r.checked = true;
+      r.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+})();
+</script>
+{% endblock %}
