@@ -1,26 +1,20 @@
 {% extends "members/base_members.html" %}
-{% block page_title %}Tools{% endblock %}
+{% block page_title %}People tools{% endblock %}
 {% block page_description %}
-  See who can open which tools. Tap a person to change their YES / NO.
-  Defaults for new people are under <a href="{{ url_for('members.access_templates') }}">Starting templates</a>.
+  Tap a person to set tools (template or custom YES / NO).
 {% endblock %}
 
 {% block extra_css %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260722easy2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723hub1">
 {% endblock %}
 
 {% block members_content %}
+{% include 'members/_access_subnav.html' %}
 <div class="ac-hero glass-panel">
-  <h2>Tools for each person</h2>
+  <h2>People tools</h2>
   <p>
-    Green = they can open it. Red = they cannot.
-    Staff does not unlock tools by itself — only what you set (or their starting template).
-  </p>
-  <p style="margin-top:0.65rem;">
-    <a class="btn-secondary" href="{{ url_for('members.access_templates') }}" style="display:inline-flex; min-height:2.5rem; align-items:center; padding:0.4rem 0.9rem; text-decoration:none;">
-      Edit starting templates (new Member / new Staff)
-    </a>
+    Green chips = tools they can open. Tap <strong>Tools</strong> on a card to change them.
   </p>
 </div>
 
@@ -48,7 +42,7 @@
       {% endif %}
     </div>
     <a class="btn-primary ac-person-btn" href="{{ url_for('members.member_access', member_id=row.user.id) }}">
-      Change
+      Tools
     </a>
   </article>
   {% else %}

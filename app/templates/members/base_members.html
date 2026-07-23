@@ -32,14 +32,12 @@
        class="{% if request.endpoint == 'members.members_directory' %}is-active{% endif %}">Members Dashboard</a>
 
     {% if (can_manage_users or session.get('user_role') in ['Owner', 'Admin'] or user_has_permission('manage_groups'))
-          and (endpoint_exists is not defined or endpoint_exists('members.access_control')) %}
-    <a href="{{ url_for('members.access_control') }}"
-       class="{% if request.endpoint in ['members.access_control', 'members.member_access'] %}is-active{% endif %}">Tools</a>
-    {% endif %}
-    {% if (can_manage_users or session.get('user_role') in ['Owner', 'Admin'] or user_has_permission('manage_groups'))
-          and (endpoint_exists is not defined or endpoint_exists('members.access_templates')) %}
-    <a href="{{ url_for('members.access_templates') }}"
-       class="{% if request.endpoint in ['members.access_templates', 'members.access_template_edit'] %}is-active{% endif %}">Templates</a>
+          and (endpoint_exists is not defined or endpoint_exists('members.access_dashboard')) %}
+    <a href="{{ url_for('members.access_dashboard') }}"
+       class="{% if request.endpoint and (
+            request.endpoint.startswith('members.access')
+            or request.endpoint == 'members.member_access'
+       ) %}is-active{% endif %}">Access</a>
     {% endif %}
 
     {% if can_manage_users %}

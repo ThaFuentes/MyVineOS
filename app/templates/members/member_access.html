@@ -10,6 +10,7 @@
 {% endblock %}
 
 {% block members_content %}
+{% include 'members/_access_subnav.html' %}
 <div class="ac-hero glass-panel">
   <h2>{{ member.first_name or '' }} {{ member.last_name or member.username }}</h2>
   <p>
@@ -21,8 +22,8 @@
     {% endif %}
   </p>
   <div class="ac-toolbar" style="margin-top:0.85rem;">
-    <a class="btn-secondary" href="{{ url_for('members.access_control') }}">← All people</a>
-    <a class="btn-secondary" href="{{ url_for('members.access_templates') }}">Starting templates</a>
+    <a class="btn-secondary" href="{{ url_for('members.access_people') }}">← All people</a>
+    <a class="btn-secondary" href="{{ url_for('members.access_dashboard') }}">Access home</a>
     <a class="btn-secondary" href="{{ url_for('members.add_member', member_id=member.id) }}">Edit profile</a>
   </div>
 </div>
