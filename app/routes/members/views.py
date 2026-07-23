@@ -294,10 +294,24 @@ def access_control():
         full = role_has_full_access(u.get('role'))
         eff = get_user_effective_permissions(cur, u['id'], u.get('role'))
         cells = []
+        yes_labels = []
         for area in board_areas:
             yes = full or can_see_area(area, eff)
-            cells.append({'id': area['id'], 'yes': yes, 'label': 'YES' if yes else 'NO'})
-        rows.append({'user': u, 'full_access': full, 'cells': cells})
+            cells.append({
+                'id': area['id'],
+                'yes': yes,
+                'label': 'YES' if yes else 'NO',
+                'name': area['label'],
+            })
+            if yes:
+                yes_labels.append(area['label'])
+        rows.append({
+            'user': u,
+            'full_access': full,
+            'cells': cells,
+            'yes_labels': yes_labels,
+            'yes_count': len(yes_labels),
+        })
 
     return render_template(
         'members/access_control.html',
