@@ -14,7 +14,7 @@
     Gross <strong>${{ '%.2f'|format(total_gross) }}</strong> ·
     Net <strong>${{ '%.2f'|format(total_net) }}</strong>
   </p>
-  {% if run.status == 'draft' %}
+  {% if run.status == 'draft' and can_edit_accounting() %}
   <form method="post" style="margin-top:0.75rem;">
     {% include 'partials/csrf_field.html' %}
     <button type="submit" name="action" value="post" class="btn btn-primary"
@@ -52,7 +52,7 @@
   </table>
 </div>
 
-{% if run.status == 'draft' %}
+{% if run.status == 'draft' and can_create_accounting() %}
 <div class="glass-panel acct-form-panel">
   <h2>Add pay item</h2>
   <p class="acct-form-lead">Add someone to this draft run with gross pay and optional deductions.</p>

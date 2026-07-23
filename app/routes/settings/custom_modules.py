@@ -100,11 +100,9 @@ def custom_modules_create():
                 log_change(session['user_id'], 'create', target_id=mid,
                            change_details=f'Created custom module "{data["name"]}"')
                 msg = f'App "{data["name"]}" installed - visit /modules/{data["slug"]}/'
-                if data.get('create_group') and data.get('group_id'):
-                    msg += f' A permission group was created - add members at Groups -> Edit.'
+                if data.get('create_group'):
+                    msg += ' Grant people access under Members → Access (People tools).'
                 flash(msg, 'success')
-                if data.get('group_id'):
-                    return redirect(url_for('groups.edit_group', group_id=data['group_id']))
                 return redirect(url_for('settings.custom_modules_list'))
             except IntegrityError:
                 flash('That URL slug is already in use.', 'error')

@@ -15,7 +15,7 @@ import pymysql
 def register_assign_routes(bp):
     @bp.route('/assign/<int:bill_id>', methods=['GET', 'POST'])
     @login_required
-    @permission_required('manage_bills')
+    @permission_required('edit_bills', 'manage_bills')
     def assign_bill(bill_id):
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)

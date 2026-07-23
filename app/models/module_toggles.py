@@ -179,14 +179,13 @@ CORE_ALWAYS_ON = [
     ('profile', 'Profile'),
     ('settings', 'Settings'),
     ('help', 'Help'),
-    ('groups', 'Groups'),
     ('pastoral', 'Pastoral area'),
     ('events', 'Events'),
     ('prayers', 'Prayers'),
     ('sermons', 'Sermons (public library)'),
     ('announcements', 'Announcements'),
-    ('members', 'Members (permission-gated)'),
-    ('security', 'Security console (permission-gated)'),
+    ('members', 'Members (Access-gated)'),
+    ('security', 'Security console (Access-gated)'),
 ]
 
 _DEFAULTS = {m['key']: bool(m['default']) for m in OPTIONAL_MODULES}

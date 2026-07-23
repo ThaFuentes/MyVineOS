@@ -10,7 +10,7 @@
     <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
         <p class="help-text" style="margin:0 0 0.5rem;">
             <strong>One-way bulletins, not forums.</strong> Managers post entries; members read them. No comments or chat.
-            Use <strong>Permission Groups</strong> to control who sees the app and who can add/edit entries (Group Manager role).
+            Use <strong>Members → Access</strong> to control who can open each Church App (per-person tools).
         </p>
         <p class="help-text" style="margin:0;">
             <strong>Start with:</strong> Bus Routes or Youth Group. "Equipment & Rooms" and "Ministry Calendar" are optional extras
@@ -44,7 +44,7 @@
                     <td><a href="{{ url_for('custom_modules.module_list', slug=m.slug) }}" target="_blank">/modules/{{ m.slug }}/</a></td>
                     <td>
                         {% if m.visibility == 'group' %}
-                            {% if m.group_id %}<a href="{{ url_for('groups.edit_group', group_id=m.group_id) }}">{{ m.group_name or 'Group' }}</a>
+                            {% if m.group_id %}<span class="text-muted">Use Access for who can open apps</span>
                             {% else %}Group{% endif %}
                         {% elif m.visibility == 'public' %}Public
                         {% else %}All members{% endif %}

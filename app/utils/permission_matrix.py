@@ -1,37 +1,22 @@
 # app/utils/permission_matrix.py
 # Single-source access model: only per-user grants (user_permissions).
-# UI: enable a tool → expand fine-grained actions (view / create-edit / delete).
+# RULE: every checkbox maps to exactly ONE permission key.
+# view ≠ create ≠ edit ≠ delete (never a combined "full access" box).
 
 from __future__ import annotations
 
-# Each area has optional actions. keys = permission keys granted when that action is checked.
-# "enabled" is derived: any action on ⇒ area is on.
+# Each action.keys list must contain exactly one key.
 AREA_MATRIX = [
     {
         'id': 'accounting',
         'label': 'Accounting',
-        'description': 'Chart of accounts, expenses, budgets, payroll.',
+        'description': 'Chart of accounts, expenses, budgets, payroll, reports.',
         'icon': 'fa-calculator',
         'actions': [
-            {'id': 'full', 'label': 'Full access (view, create, edit, delete)', 'keys': ['manage_accounting']},
-        ],
-    },
-    {
-        'id': 'tickets',
-        'label': 'Ticket Manager',
-        'description': 'See and run the full ticket desk.',
-        'icon': 'fa-ticket',
-        'actions': [
-            {'id': 'manage', 'label': 'Manage all tickets (view, assign, resolve)', 'keys': ['manage_tickets']},
-        ],
-    },
-    {
-        'id': 'my_tickets',
-        'label': 'My own tickets',
-        'description': 'Submit and see only their own support tickets.',
-        'icon': 'fa-ticket-simple',
-        'actions': [
-            {'id': 'submit', 'label': 'Can submit and view own tickets', 'keys': ['submit_tickets']},
+            {'id': 'view', 'label': 'Can view (dashboard, ledger, reports)', 'keys': ['view_accounting']},
+            {'id': 'create', 'label': 'Can create records', 'keys': ['create_accounting']},
+            {'id': 'edit', 'label': 'Can edit records', 'keys': ['edit_accounting']},
+            {'id': 'delete', 'label': 'Can delete records', 'keys': ['delete_accounting']},
         ],
     },
     {
@@ -40,8 +25,10 @@ AREA_MATRIX = [
         'description': 'Giving records and donation tools.',
         'icon': 'fa-hand-holding-dollar',
         'actions': [
-            {'id': 'view', 'label': 'Can view donations', 'keys': ['view_donations']},
-            {'id': 'manage', 'label': 'Can create, edit, and delete donations', 'keys': ['manage_donations']},
+            {'id': 'view', 'label': 'Can view donations and reports', 'keys': ['view_donations']},
+            {'id': 'create', 'label': 'Can record new donations', 'keys': ['create_donations']},
+            {'id': 'edit', 'label': 'Can edit donations', 'keys': ['edit_donations']},
+            {'id': 'delete', 'label': 'Can delete donations', 'keys': ['delete_donations']},
         ],
     },
     {
@@ -50,7 +37,32 @@ AREA_MATRIX = [
         'description': 'Church bills and recurring payables.',
         'icon': 'fa-file-invoice-dollar',
         'actions': [
-            {'id': 'full', 'label': 'Full access (view, create, edit, pay)', 'keys': ['manage_bills']},
+            {'id': 'view', 'label': 'Can view all bills', 'keys': ['view_bills']},
+            {'id': 'create', 'label': 'Can add new bills', 'keys': ['create_bills']},
+            {'id': 'edit', 'label': 'Can edit bills', 'keys': ['edit_bills']},
+            {'id': 'delete', 'label': 'Can delete bills', 'keys': ['delete_bills']},
+        ],
+    },
+    {
+        'id': 'tickets',
+        'label': 'Ticket Manager',
+        'description': 'Staff ticket desk (all tickets).',
+        'icon': 'fa-ticket',
+        'actions': [
+            {'id': 'view', 'label': 'Can view tickets', 'keys': ['view_tickets']},
+            {'id': 'create', 'label': 'Can create tickets', 'keys': ['create_tickets']},
+            {'id': 'edit', 'label': 'Can edit / assign / resolve tickets', 'keys': ['edit_tickets']},
+            {'id': 'delete', 'label': 'Can delete tickets', 'keys': ['delete_tickets']},
+        ],
+    },
+    {
+        'id': 'my_tickets',
+        'label': 'My own tickets',
+        'description': 'Submit and see only their own support tickets.',
+        'icon': 'fa-ticket-simple',
+        'actions': [
+            {'id': 'view', 'label': 'Can view own tickets', 'keys': ['view_own_tickets']},
+            {'id': 'create', 'label': 'Can submit own tickets', 'keys': ['submit_tickets']},
         ],
     },
     {
@@ -59,7 +71,10 @@ AREA_MATRIX = [
         'description': 'Items, stock, audits, barcodes.',
         'icon': 'fa-boxes-stacked',
         'actions': [
-            {'id': 'full', 'label': 'Full access (view, add, edit, stock moves)', 'keys': ['manage_inventory']},
+            {'id': 'view', 'label': 'Can view inventory', 'keys': ['view_inventory']},
+            {'id': 'create', 'label': 'Can add items', 'keys': ['create_inventory']},
+            {'id': 'edit', 'label': 'Can edit items / stock moves', 'keys': ['edit_inventory']},
+            {'id': 'delete', 'label': 'Can delete items', 'keys': ['delete_inventory']},
         ],
     },
     {
@@ -69,7 +84,9 @@ AREA_MATRIX = [
         'icon': 'fa-address-book',
         'actions': [
             {'id': 'view', 'label': 'Can view the directory', 'keys': ['view_members']},
-            {'id': 'edit', 'label': 'Can create and edit member profiles', 'keys': ['manage_members']},
+            {'id': 'create', 'label': 'Can create member profiles', 'keys': ['create_members']},
+            {'id': 'edit', 'label': 'Can edit member profiles', 'keys': ['edit_members']},
+            {'id': 'delete', 'label': 'Can delete member profiles', 'keys': ['delete_members']},
             {'id': 'family', 'label': 'Can manage family links', 'keys': ['manage_family_links']},
         ],
     },
@@ -79,7 +96,10 @@ AREA_MATRIX = [
         'description': 'Create accounts, approve people, change roles (powerful).',
         'icon': 'fa-user-gear',
         'actions': [
-            {'id': 'full', 'label': 'Can create, approve, and change roles', 'keys': ['manage_users']},
+            {'id': 'view', 'label': 'Can view user accounts', 'keys': ['view_users']},
+            {'id': 'create', 'label': 'Can create / approve accounts', 'keys': ['create_users']},
+            {'id': 'edit', 'label': 'Can edit accounts / roles', 'keys': ['edit_users']},
+            {'id': 'delete', 'label': 'Can delete accounts', 'keys': ['delete_users']},
         ],
     },
     {
@@ -88,7 +108,10 @@ AREA_MATRIX = [
         'description': 'Kiosk, sessions, reports.',
         'icon': 'fa-clipboard-user',
         'actions': [
-            {'id': 'full', 'label': 'Full access (kiosk, sessions, reports)', 'keys': ['manage_attendance']},
+            {'id': 'view', 'label': 'Can view attendance', 'keys': ['view_attendance']},
+            {'id': 'create', 'label': 'Can create sessions / check-ins', 'keys': ['create_attendance']},
+            {'id': 'edit', 'label': 'Can edit attendance records', 'keys': ['edit_attendance']},
+            {'id': 'delete', 'label': 'Can delete attendance records', 'keys': ['delete_attendance']},
         ],
     },
     {
@@ -97,7 +120,10 @@ AREA_MATRIX = [
         'description': 'Rooms, labels, live board.',
         'icon': 'fa-children',
         'actions': [
-            {'id': 'full', 'label': 'Full child check-in access', 'keys': ['manage_child_checkin']},
+            {'id': 'view', 'label': 'Can view child check-in', 'keys': ['view_child_checkin']},
+            {'id': 'create', 'label': 'Can check children in', 'keys': ['create_child_checkin']},
+            {'id': 'edit', 'label': 'Can edit rooms / check-in records', 'keys': ['edit_child_checkin']},
+            {'id': 'delete', 'label': 'Can delete check-in records', 'keys': ['delete_child_checkin']},
         ],
     },
     {
@@ -106,7 +132,10 @@ AREA_MATRIX = [
         'description': 'Teams, schedules, rotations.',
         'icon': 'fa-hands-helping',
         'actions': [
-            {'id': 'full', 'label': 'Full volunteer management', 'keys': ['manage_volunteers']},
+            {'id': 'view', 'label': 'Can view volunteer tools', 'keys': ['view_volunteers']},
+            {'id': 'create', 'label': 'Can create teams / schedules', 'keys': ['create_volunteers']},
+            {'id': 'edit', 'label': 'Can edit volunteer schedules', 'keys': ['edit_volunteers']},
+            {'id': 'delete', 'label': 'Can delete volunteer data', 'keys': ['delete_volunteers']},
         ],
     },
     {
@@ -115,8 +144,11 @@ AREA_MATRIX = [
         'description': 'Church events and registration.',
         'icon': 'fa-calendar-days',
         'actions': [
-            {'id': 'create', 'label': 'Can create and edit own events', 'keys': ['create_events']},
-            {'id': 'manage', 'label': 'Can manage / moderate any event', 'keys': ['manage_events', 'moderate_events']},
+            {'id': 'view', 'label': 'Can view events admin tools', 'keys': ['view_events']},
+            {'id': 'create', 'label': 'Can create events', 'keys': ['create_events']},
+            {'id': 'edit', 'label': 'Can edit events', 'keys': ['edit_events']},
+            {'id': 'delete', 'label': 'Can delete events', 'keys': ['delete_events']},
+            {'id': 'moderate', 'label': 'Can moderate any event', 'keys': ['moderate_events']},
             {'id': 'registration', 'label': 'Can manage event registration & fees', 'keys': ['manage_event_registration']},
         ],
     },
@@ -126,8 +158,11 @@ AREA_MATRIX = [
         'description': 'Church announcements.',
         'icon': 'fa-bullhorn',
         'actions': [
-            {'id': 'create', 'label': 'Can create and edit own announcements', 'keys': ['create_announcements']},
-            {'id': 'moderate', 'label': 'Can delete / edit any announcement', 'keys': ['moderate_announcements']},
+            {'id': 'view', 'label': 'Can view announcements admin', 'keys': ['view_announcements']},
+            {'id': 'create', 'label': 'Can create announcements', 'keys': ['create_announcements']},
+            {'id': 'edit', 'label': 'Can edit announcements', 'keys': ['edit_announcements']},
+            {'id': 'delete', 'label': 'Can delete announcements', 'keys': ['delete_announcements']},
+            {'id': 'moderate', 'label': 'Can moderate any announcement', 'keys': ['moderate_announcements']},
         ],
     },
     {
@@ -136,20 +171,50 @@ AREA_MATRIX = [
         'description': 'Uploaded public sermons.',
         'icon': 'fa-book-bible',
         'actions': [
-            {'id': 'upload', 'label': 'Can upload and manage own uploads', 'keys': ['upload_sermons']},
-            {'id': 'moderate', 'label': 'Can delete / edit any sermon', 'keys': ['moderate_sermons']},
+            {'id': 'view', 'label': 'Can view sermon library admin', 'keys': ['view_sermons']},
+            {'id': 'create', 'label': 'Can upload sermons', 'keys': ['upload_sermons']},
+            {'id': 'edit', 'label': 'Can edit sermons', 'keys': ['edit_sermons']},
+            {'id': 'delete', 'label': 'Can delete sermons', 'keys': ['delete_sermons']},
+            {'id': 'moderate', 'label': 'Can moderate any sermon', 'keys': ['moderate_sermons']},
         ],
     },
     {
-        'id': 'community_mod',
-        'label': 'Community moderation',
-        'description': 'Prayers, dreams, prophecies moderation.',
-        'icon': 'fa-comments',
+        'id': 'dreams',
+        'label': 'Dreams & visions',
+        'description': 'Share and moderate community dreams / visions.',
+        'icon': 'fa-cloud-moon',
         'actions': [
-            {'id': 'dreams_create', 'label': 'Can post dreams / visions', 'keys': ['create_dreams']},
-            {'id': 'moderate_prayers', 'label': 'Can moderate prayers', 'keys': ['moderate_prayers']},
-            {'id': 'moderate_dreams', 'label': 'Can moderate dreams', 'keys': ['moderate_dreams']},
-            {'id': 'moderate_prophecies', 'label': 'Can moderate prophecies', 'keys': ['moderate_prophecies']},
+            {'id': 'view', 'label': 'Can view dreams admin', 'keys': ['view_dreams']},
+            {'id': 'create', 'label': 'Can post dreams / visions', 'keys': ['create_dreams']},
+            {'id': 'edit', 'label': 'Can edit dreams', 'keys': ['edit_dreams']},
+            {'id': 'delete', 'label': 'Can delete dreams', 'keys': ['delete_dreams']},
+            {'id': 'moderate', 'label': 'Can moderate any dream', 'keys': ['moderate_dreams']},
+        ],
+    },
+    {
+        'id': 'prophecies',
+        'label': 'Prophecies',
+        'description': 'Share and moderate community prophecies.',
+        'icon': 'fa-scroll',
+        'actions': [
+            {'id': 'view', 'label': 'Can view prophecies admin', 'keys': ['view_prophecies']},
+            {'id': 'create', 'label': 'Can post prophecies', 'keys': ['create_prophecies']},
+            {'id': 'edit', 'label': 'Can edit prophecies', 'keys': ['edit_prophecies']},
+            {'id': 'delete', 'label': 'Can delete prophecies', 'keys': ['delete_prophecies']},
+            {'id': 'moderate', 'label': 'Can moderate any prophecy', 'keys': ['moderate_prophecies']},
+        ],
+    },
+    {
+        'id': 'prayers',
+        'label': 'Prayers',
+        'description': 'Prayer requests (logged-in tools). Visitors use Access → Visitors.',
+        'icon': 'fa-hands-praying',
+        'actions': [
+            {'id': 'view', 'label': 'Can view prayers admin', 'keys': ['view_prayers']},
+            {'id': 'create', 'label': 'Can submit prayers', 'keys': ['create_prayers']},
+            {'id': 'edit', 'label': 'Can edit prayers', 'keys': ['edit_prayers']},
+            {'id': 'delete', 'label': 'Can delete prayers', 'keys': ['delete_prayers']},
+            {'id': 'moderate', 'label': 'Can moderate any prayer', 'keys': ['moderate_prayers']},
         ],
     },
     {
@@ -158,7 +223,10 @@ AREA_MATRIX = [
         'description': 'Sermons, vault, curriculum, care, podium.',
         'icon': 'fa-hands-praying',
         'actions': [
-            {'id': 'access', 'label': 'Can open the pastoral area', 'keys': ['access_pastoral']},
+            {'id': 'view', 'label': 'Can open the pastoral area', 'keys': ['access_pastoral']},
+            {'id': 'create', 'label': 'Can create pastoral content', 'keys': ['create_pastoral']},
+            {'id': 'edit', 'label': 'Can edit pastoral content', 'keys': ['edit_pastoral']},
+            {'id': 'delete', 'label': 'Can delete pastoral content', 'keys': ['delete_pastoral']},
         ],
     },
     {
@@ -168,7 +236,9 @@ AREA_MATRIX = [
         'icon': 'fa-music',
         'actions': [
             {'id': 'view', 'label': 'Can view worship tools', 'keys': ['access_worship']},
-            {'id': 'manage', 'label': 'Can manage songs, setlists, plans', 'keys': ['manage_worship']},
+            {'id': 'create', 'label': 'Can create songs / setlists', 'keys': ['create_worship']},
+            {'id': 'edit', 'label': 'Can edit worship content', 'keys': ['edit_worship']},
+            {'id': 'delete', 'label': 'Can delete worship content', 'keys': ['delete_worship']},
         ],
     },
     {
@@ -177,7 +247,10 @@ AREA_MATRIX = [
         'description': 'Mass email / SMS and automation.',
         'icon': 'fa-envelope',
         'actions': [
-            {'id': 'full', 'label': 'Full communications access', 'keys': ['send_emails']},
+            {'id': 'view', 'label': 'Can view communications', 'keys': ['view_communications']},
+            {'id': 'create', 'label': 'Can send email / SMS', 'keys': ['send_emails']},
+            {'id': 'edit', 'label': 'Can edit campaigns / drips', 'keys': ['edit_communications']},
+            {'id': 'delete', 'label': 'Can delete campaigns', 'keys': ['delete_communications']},
         ],
     },
     {
@@ -186,7 +259,8 @@ AREA_MATRIX = [
         'description': 'AI reports and analysis.',
         'icon': 'fa-robot',
         'actions': [
-            {'id': 'use', 'label': 'Can use AI insights', 'keys': ['use_ai_insights']},
+            {'id': 'view', 'label': 'Can view AI insights', 'keys': ['view_ai_insights']},
+            {'id': 'create', 'label': 'Can run AI reports', 'keys': ['use_ai_insights']},
         ],
     },
     {
@@ -195,7 +269,8 @@ AREA_MATRIX = [
         'description': 'Name, email, themes, modules, campuses.',
         'icon': 'fa-gear',
         'actions': [
-            {'id': 'full', 'label': 'Can change church settings', 'keys': ['manage_settings']},
+            {'id': 'view', 'label': 'Can view settings', 'keys': ['view_settings']},
+            {'id': 'edit', 'label': 'Can change settings', 'keys': ['manage_settings']},
         ],
     },
     {
@@ -204,7 +279,8 @@ AREA_MATRIX = [
         'description': 'Attacks, IP bans, unlocks.',
         'icon': 'fa-shield-halved',
         'actions': [
-            {'id': 'full', 'label': 'Full security console access', 'keys': ['manage_security']},
+            {'id': 'view', 'label': 'Can view security console', 'keys': ['view_security']},
+            {'id': 'edit', 'label': 'Can ban / unlock / act', 'keys': ['manage_security']},
         ],
     },
     {
@@ -222,8 +298,10 @@ AREA_MATRIX = [
         'description': 'Edit help guides and legal notices.',
         'icon': 'fa-circle-question',
         'actions': [
-            {'id': 'help', 'label': 'Can edit help content', 'keys': ['manage_help']},
-            {'id': 'legal', 'label': 'Can edit legal notices', 'keys': ['manage_legal_notices']},
+            {'id': 'view_help', 'label': 'Can view help admin', 'keys': ['view_help']},
+            {'id': 'edit_help', 'label': 'Can edit help content', 'keys': ['manage_help']},
+            {'id': 'view_legal', 'label': 'Can view legal admin', 'keys': ['view_legal']},
+            {'id': 'edit_legal', 'label': 'Can edit legal notices', 'keys': ['manage_legal_notices']},
         ],
     },
 ]
@@ -236,22 +314,32 @@ def _area_all_keys(area: dict) -> list[str]:
     return list(dict.fromkeys(keys))
 
 
+def _expanded_granted(granted: set[str] | list[str]) -> set[str]:
+    """Expand legacy manage_* so UI checkboxes reflect real effective access."""
+    try:
+        from app.utils.permissions import expand_permission_keys
+        return expand_permission_keys(granted)
+    except Exception:
+        return set(granted or [])
+
+
 def can_see_area(area: dict, granted: set[str] | list[str]) -> bool:
-    g = set(granted or [])
+    g = _expanded_granted(granted)
     return any(k in g for k in _area_all_keys(area))
 
 
 def action_checked(action: dict, granted: set[str] | list[str]) -> bool:
-    g = set(granted or [])
+    g = _expanded_granted(granted)
     keys = action.get('keys') or []
     if not keys:
         return False
-    return all(k in g for k in keys) or any(k in g for k in keys)
+    # Exactly one key per action — checked if that key is held (after expansion).
+    return any(k in g for k in keys)
 
 
 def area_status_rows(granted: set[str] | list[str], *, full_access: bool = False) -> list[dict]:
     """Rows for the expandable table UI."""
-    g = set(granted or [])
+    g = _expanded_granted(granted)
     rows = []
     for area in AREA_MATRIX:
         actions_out = []
@@ -271,18 +359,14 @@ def area_status_rows(granted: set[str] | list[str], *, full_access: bool = False
 def keys_from_action_form(form) -> list[str]:
     """
     Form fields:
-      enable_<area_id> = '1' if area is on (optional; if missing, any action implies on)
+      enable_<area_id> = '1' if area is on
       act_<area_id>_<action_id> = '1' if checked
-    If enable is off, no keys for that area.
-    If enable is on but no actions checked, grant first action as default (safe minimum)
-    or grant nothing — we grant only checked actions.
+    Only checked actions grant keys (one key each).
     """
     get = form.get if hasattr(form, 'get') else (lambda k, d=None: form.get(k, d) if isinstance(form, dict) else d)
     keys: list[str] = []
     for area in AREA_MATRIX:
         aid = area['id']
-        # enable checkbox: if present and not checked → skip
-        # if any act_* present for area, use those; enable may be '1' or missing when JS syncs
         enable_raw = get(f'enable_{aid}')
         any_act = False
         area_keys = []
@@ -291,15 +375,16 @@ def keys_from_action_form(form) -> list[str]:
             on = get(field) in ('1', 'on', 'yes', 'true', True)
             if on:
                 any_act = True
-                area_keys.extend(act.get('keys') or [])
+                # enforce single key per action
+                klist = act.get('keys') or []
+                if klist:
+                    area_keys.append(klist[0])
         if enable_raw is not None and enable_raw not in ('1', 'on', 'yes', 'true', True):
-            # explicitly disabled
             continue
         if enable_raw in ('1', 'on', 'yes', 'true', True) and not any_act:
-            # Enabled but no sub-actions: turn on first action as baseline
             acts = area.get('actions') or []
-            if acts:
-                area_keys.extend(acts[0].get('keys') or [])
+            if acts and acts[0].get('keys'):
+                area_keys.append(acts[0]['keys'][0])
         elif not any_act and enable_raw is None:
             continue
         keys.extend(area_keys)
@@ -316,7 +401,6 @@ def keys_from_yes_no_form(form) -> list[str]:
         form_keys = []
     if any(str(k).startswith('act_') or str(k).startswith('enable_') for k in form_keys):
         return keys_from_action_form(form)
-    # legacy simple yes/no
     keys: list[str] = []
     for area in AREA_MATRIX:
         see = (get(f"access_{area['id']}", 'no') or 'no').lower() == 'yes'
@@ -324,6 +408,34 @@ def keys_from_yes_no_form(form) -> list[str]:
             continue
         keys.extend(_area_all_keys(area))
     return list(dict.fromkeys(keys))
+
+
+def keys_from_form_levels(form) -> list[str]:
+    """Alias used by older forms."""
+    get = form.get if hasattr(form, 'get') else (lambda k, d=None: form.get(k, d) if isinstance(form, dict) else d)
+    form_keys = []
+    try:
+        form_keys = list(form.keys())
+    except Exception:
+        form_keys = []
+
+    if any(str(k).startswith('act_') or str(k).startswith('enable_') or str(k).startswith('access_') for k in form_keys):
+        return keys_from_yes_no_form(form)
+
+    keys: list[str] = []
+    try:
+        if hasattr(form, 'getlist'):
+            keys.extend(form.getlist('permissions') or [])
+            keys.extend(form.getlist('permission_keys') or [])
+    except Exception:
+        pass
+    for k in form_keys:
+        sk = str(k)
+        if sk.startswith('perm_') and get(sk) in ('1', 'on', 'yes', 'true', True):
+            keys.append(sk[5:])
+        elif sk.startswith('permission_') and get(sk) in ('1', 'on', 'yes', 'true', True):
+            keys.append(sk[len('permission_'):])
+    return list(dict.fromkeys(k for k in keys if k))
 
 
 def human_summary(granted: set[str] | list[str], *, full_access: bool = False) -> list[str]:
@@ -348,6 +460,5 @@ def preview_labels(granted: set[str] | list[str], *, full_access: bool = False) 
     return {'nav': nav, 'dash': nav}
 
 
-# Starter template key packs (seed only)
-TEMPLATE_MEMBER_START_KEYS = ['submit_tickets']
-TEMPLATE_STAFF_START_KEYS = ['view_members', 'manage_attendance', 'submit_tickets']
+TEMPLATE_MEMBER_START_KEYS = ['submit_tickets', 'view_own_tickets']
+TEMPLATE_STAFF_START_KEYS = ['view_members', 'view_attendance', 'create_attendance', 'submit_tickets', 'view_own_tickets']

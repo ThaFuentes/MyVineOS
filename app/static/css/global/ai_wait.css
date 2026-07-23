@@ -1,0 +1,63 @@
+/* Shared “AI thinking” wait state for long model requests */
+
+#ai-wait-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+#ai-wait-overlay.is-open {
+  display: flex;
+}
+
+.ai-wait-card {
+  max-width: 22rem;
+  width: 100%;
+  text-align: center;
+  padding: 1.5rem 1.35rem 1.35rem;
+  border-radius: 16px;
+  background: var(--bg-panel, rgba(28, 32, 40, 0.96));
+  border: 1px solid rgba(77, 255, 200, 0.35);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  color: var(--text-primary, #e8edf4);
+}
+
+.ai-wait-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #4dffc8;
+  animation: ai-wait-spin 0.75s linear infinite;
+}
+
+@keyframes ai-wait-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-wait-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #4dffc8;
+}
+
+.ai-wait-sub {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+button.is-ai-waiting,
+button.is-ai-waiting:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}

@@ -12,7 +12,7 @@
         </p>
         <p class="help-text" style="margin:0.5rem 0 0;">
             <strong>Recommended:</strong> check "Create a permission group" below. That creates a group in
-            <a href="{{ url_for('groups.list_groups') }}">Permission Groups</a> where you add viewers and managers.
+            <a href="{{ url_for('members.access_dashboard') }}">Members → Access</a> where you grant people the app tools.
         </p>
     </div>
 
@@ -72,18 +72,17 @@
             <label class="checkbox-label">
                 <input type="checkbox" name="create_group" id="create_group" checked>
                 <span class="checkbox-custom"></span>
-                <strong>Create a permission group for this app (recommended)</strong>
+                <strong>Create Access keys for this app (recommended)</strong>
             </label>
             <p class="help-text" style="margin:0.35rem 0 0 1.75rem;">
-                Creates <code>App: [your name]</code> in Permission Groups. You are added as Group Manager.
-                Then add members (viewers) and promote others to Group Manager (can add/edit/delete entries).
+                Creates app tools you grant under <a href="{{ url_for('members.access_dashboard') }}">Members → Access</a>
+                (People tools) — no permission groups.
             </p>
         </div>
         {% elif module.group_id %}
         <p class="help-text">
-            Permission group:
-            <a href="{{ url_for('groups.edit_group', group_id=module.group_id) }}">{{ module.group_name or 'View group' }}</a>
-            - add members and managers there.
+            App tools are granted under
+            <a href="{{ url_for('members.access_dashboard') }}">Members → Access</a>.
         </p>
         {% endif %}
 
@@ -92,9 +91,9 @@
             <select id="visibility" name="visibility" class="form-input">
                 <option value="members" {% if not module or module.visibility == 'members' %}selected{% endif %}>All logged-in members</option>
                 <option value="public" {% if module and module.visibility == 'public' %}selected{% endif %}>Public (anyone)</option>
-                <option value="group" {% if module and module.visibility == 'group' %}selected{% endif %}>Specific group only</option>
+                <option value="group" {% if module and module.visibility == 'group' %}selected{% endif %}>Access-granted people only</option>
             </select>
-            <p class="help-text" id="visibility-hint">If you created a permission group, leave this on "Specific group only".</p>
+            <p class="help-text" id="visibility-hint">Prefer Access-granted or all members — grant tools under Members → Access.</p>
         </div>
 
         <div class="form-group" id="group-access-row">

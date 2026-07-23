@@ -4,7 +4,9 @@
 {% block acct_content %}
 <div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; margin-bottom:0.85rem;">
   <h1 class="page-title" style="margin:0;">Budgets</h1>
+  {% if can_create_accounting() %}
   <a href="{{ url_for('accounting.budget_new') }}" class="btn btn-primary">New budget</a>
+  {% endif %}
 </div>
 
 {% if budgets %}
@@ -27,7 +29,9 @@
 {% else %}
 <div class="glass-panel" style="padding:2rem; text-align:center;">
   <p style="opacity:0.75;">No budgets yet — create a fiscal year plan and set line amounts by account.</p>
+  {% if can_create_accounting() %}
   <a href="{{ url_for('accounting.budget_new') }}" class="btn btn-primary">Create budget</a>
+  {% endif %}
 </div>
 {% endif %}
 {% endblock %}

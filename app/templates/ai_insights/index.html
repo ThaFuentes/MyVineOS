@@ -9,7 +9,8 @@
   </h1>
   <p class="page-description" style="margin:0; max-width:42rem;">
     Leadership reports powered by your configured AI provider.
-    Only <strong>aggregate</strong> stats are sent (no donor names, emails, or raw security IPs).
+    Only <strong>aggregate</strong> stats are sent (no donor names or emails).
+    Security IPs default to network prefix only (e.g. <code>99.199.89.x</code>); full IPs are opt-in per run.
     Configure Gemini, Grok, OpenAI, or local Ollama under Settings.
   </p>
 </div>
@@ -71,13 +72,26 @@
   </a>
 </div>
 
+<div class="glass-panel" style="margin-bottom:1.15rem; border-left:3px solid var(--primary);">
+  <h2 class="section-subtitle" style="margin:0 0 0.5rem;">Illustrations library AI &amp; search</h2>
+  <p style="margin:0 0 0.75rem; opacity:0.85; line-height:1.5;">
+    Search your stories, analogies, and saved sections, or ask AI
+    (e.g. “what illustrations do I have about grace?”). Only items you select are sent.
+  </p>
+  <a href="{{ url_for('pastoral.illustrations.research') }}" class="btn btn-primary">
+    <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Open illustration research
+  </a>
+</div>
+
 <div class="glass-panel ai-security-notes">
   <h2 class="section-subtitle" style="margin:0 0 0.75rem;">Security model</h2>
   <ul>
     <li>API keys stay encrypted at rest; never shown again after save.</li>
-    <li>Report payloads are aggregates only (privacy-first for giving &amp; security).</li>
+    <li>Report payloads are aggregates only (privacy-first for giving).</li>
+    <li>Security brief IPs default to prefix form (<code>99.199.89.x</code> / IPv6 first 3 hextets); full IPs only when you choose “Reveal full IP” for that run.</li>
     <li>Prompts and outputs pass censored-word checks; usage is rate-limited and audit-logged.</li>
     <li>Pastoral sermon AI uses the same shared client under Pastoral → Sermon research.</li>
+    <li>Illustration library AI uses the same client under Pastoral → Illustration research.</li>
   </ul>
 </div>
 

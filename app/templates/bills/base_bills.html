@@ -33,11 +33,11 @@
     <a {% if request.endpoint == 'bills.bills' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
        href="{{ url_for('bills.bills') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Bills Dashboard</a>
 
-    {% if user_has_permission('manage_bills') %}
+    {% if can_create_bills() %}
         <a {% if request.endpoint in ['bills.add_bill', 'bills.edit_bill'] %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
            href="{{ url_for('bills.add_bill') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Add Bill</a>
     {% endif %}
-    {% if module_on is defined and module_on('accounting') and (user_has_permission('manage_accounting') or user_has_permission('manage_bills')) %}
+    {% if module_on is defined and module_on('accounting') and can_access_accounting() %}
         <a href="{{ url_for('accounting.dashboard') }}"
            style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Accounting</a>
         <a href="{{ url_for('accounting.expenses') }}"

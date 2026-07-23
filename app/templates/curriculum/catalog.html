@@ -11,7 +11,7 @@
     Courses built by your pastoral team — clear lessons, scripture, media, and check-your-understanding moments.
     Pick a path and take the next step.
   </p>
-  {% if in_pastoral_group %}
+  {% if user_has_permission('access_pastoral') %}
   <div class="curr-hero-actions">
     <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn btn-secondary">
       <i class="fa-solid fa-pen-ruler" aria-hidden="true"></i> Open Curriculum Studio
@@ -68,7 +68,7 @@
   <div style="font-size:2.2rem; opacity:0.45;"><i class="fa-solid fa-compass" aria-hidden="true"></i></div>
   <h2>Courses are on the way</h2>
   <p>When your church publishes study paths, they’ll show up here. Check back soon — or ask a pastor about what’s coming.</p>
-  {% if in_pastoral_group %}
+  {% if user_has_permission('access_pastoral') %}
   <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn btn-primary">Build the first course</a>
   {% endif %}
 </div>

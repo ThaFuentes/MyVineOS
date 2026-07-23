@@ -27,6 +27,9 @@
     <button type="button" id="add-item-btn" class="btn btn-secondary" style="min-height:42px;">
       <i class="fa-solid fa-plus" aria-hidden="true"></i> Add illustration
     </button>
+    <a href="{{ url_for('pastoral.illustrations.research') }}" class="btn btn-secondary" style="min-height:42px;" title="Search or ask AI about your library">
+      <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Ask AI
+    </a>
     <a href="{{ url_for('pastoral.illustrations.download_all') }}" class="btn btn-secondary" style="min-height:42px;" title="Download all as Markdown ZIP">
       <i class="fa-solid fa-download" aria-hidden="true"></i> Download all
     </a>

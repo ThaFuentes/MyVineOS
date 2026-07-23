@@ -1,23 +1,23 @@
-{# Search + AI over the pastoral sermon library. #}
+{# Search + AI over the illustrations library (text stories, analogies, vault sections). #}
 {% extends "pastoral/base_pastoral.html" %}
 
-{% block title %}Sermon Research{% endblock %}
+{% block title %}Illustration Research{% endblock %}
 
 {% block pastoral_content %}
 <section class="content-section">
   <div class="glass-panel" style="margin-bottom:0.85rem;">
     <div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:flex-start;">
       <div>
-        <h1 class="page-title" style="margin:0 0 0.25rem;">Sermon research</h1>
-        <p class="page-description" style="margin:0; opacity:0.85; max-width:40rem;">
-          Search and ask AI about <strong>your own sermons only</strong>
-          (titles, passages, full body text) — never other pastors’ content.
-          You have <strong>{{ library_count }}</strong> sermon{{ 's' if library_count != 1 else '' }} in your library.
+        <h1 class="page-title" style="margin:0 0 0.25rem;">Illustration research</h1>
+        <p class="page-description" style="margin:0; opacity:0.85; max-width:42rem;">
+          Search and ask AI about <strong>your illustrations library</strong>
+          (written stories, analogies, memories, and saved sermon sections).
+          You have <strong>{{ library_count }}</strong> item{{ 's' if library_count != 1 else '' }} available.
         </p>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-        <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary" style="font-size:0.85rem;">Library</a>
-        <a href="{{ url_for('pastoral.sermons.import_sermons') }}" class="btn btn-secondary" style="font-size:0.85rem;">Upload</a>
+        <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-secondary" style="font-size:0.85rem;">Library</a>
+        <a href="{{ url_for('pastoral.sermons.research') }}" class="btn btn-secondary" style="font-size:0.85rem;">Sermon research</a>
         {% if endpoint_exists('ai_insights.index') %}
         <a href="{{ url_for('ai_insights.index') }}" class="btn btn-secondary" style="font-size:0.85rem;">AI Insights</a>
         {% endif %}
@@ -27,30 +27,30 @@
 
   {# Mode tabs #}
   <div style="display:flex; flex-wrap:wrap; gap:0.45rem; margin-bottom:0.85rem;">
-    <a href="{{ url_for('pastoral.sermons.research', mode='search', q=query) }}"
+    <a href="{{ url_for('pastoral.illustrations.research', mode='search', q=query) }}"
        class="btn {% if mode == 'search' %}btn-primary{% else %}btn-secondary{% endif %}"
        style="font-size:0.9rem;">
       <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Keyword search
     </a>
-    <a href="{{ url_for('pastoral.sermons.research', mode='ask') }}"
+    <a href="{{ url_for('pastoral.illustrations.research', mode='ask') }}"
        class="btn {% if mode == 'ask' %}btn-primary{% else %}btn-secondary{% endif %}"
        style="font-size:0.9rem;">
-      <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Ask AI about my sermons
+      <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Ask AI about my library
     </a>
   </div>
 
   {% if mode == 'search' %}
   <div class="glass-panel" style="margin-bottom:0.85rem;">
-    <form method="GET" action="{{ url_for('pastoral.sermons.research') }}" class="styled-form">
+    <form method="GET" action="{{ url_for('pastoral.illustrations.research') }}" class="styled-form">
       <input type="hidden" name="mode" value="search">
-      <label class="control-label" for="q">Find a word or phrase across all sermons</label>
+      <label class="control-label" for="q">Find a word or phrase across illustrations &amp; sections</label>
       <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:stretch;">
         <input type="search" name="q" id="q" class="form-input" style="flex:1 1 220px;"
-               value="{{ query }}" placeholder="e.g. love, grace, John 3, discipleship" autofocus>
+               value="{{ query }}" placeholder="e.g. grace, fishing story, John 3, prodigal" autofocus>
         <button type="submit" class="btn btn-primary">Search</button>
       </div>
       <p class="help-text" style="margin-top:0.45rem;">
-        Looks in titles, passages, tags, and every section body. Open a hit to read the full sermon.
+        Looks in titles, body text, sources, tags, notes, and scripture references.
       </p>
     </form>
   </div>
@@ -67,23 +67,22 @@
       <article class="item-card" style="margin:0; padding:0.85rem 1rem;">
         <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.4rem; align-items:baseline;">
           <strong style="font-size:1rem;">
-            <a href="{{ url_for('pastoral.sermons.edit', sermon_id=h.sermon_id) }}"
+            <a href="{{ url_for('pastoral.illustrations.view', item_id=h.id, type=h.kind) }}"
                style="color:var(--primary); text-decoration:underline;">
-              {{ h.sermon_title }}
+              {{ h.title }}
             </a>
           </strong>
           <span style="font-size:0.8rem; opacity:0.65;">
-            {% if h.service_date %}{{ h.service_date }} · {% endif %}
-            match: {{ h.match_field }}
+            {{ 'Illustration' if h.kind == 'illustration' else 'Section' }}
+            {% if h.created_at %} · {{ h.created_at }}{% endif %}
+            · match: {{ h.match_field }}
           </span>
         </div>
-        {% if h.primary_passage %}
-        <p style="margin:0.25rem 0 0; font-size:0.88rem; opacity:0.8;">{{ h.primary_passage }}</p>
+        {% if h.source %}
+        <p style="margin:0.25rem 0 0; font-size:0.88rem; opacity:0.8;">Source: {{ h.source }}</p>
         {% endif %}
-        {% if h.section_title %}
-        <p style="margin:0.35rem 0 0; font-size:0.85rem; opacity:0.75;">
-          Section: <em>{{ h.section_title }}</em>{% if h.section_type %} ({{ h.section_type }}){% endif %}
-        </p>
+        {% if h.scripture_reference %}
+        <p style="margin:0.25rem 0 0; font-size:0.88rem; opacity:0.8;">{{ h.scripture_reference }}</p>
         {% endif %}
         {% if h.snippet %}
         <p style="margin:0.45rem 0 0; font-size:0.92rem; line-height:1.5; opacity:0.92;">
@@ -91,8 +90,9 @@
         </p>
         {% endif %}
         <div style="margin-top:0.55rem;">
-          <a href="{{ url_for('pastoral.sermons.edit', sermon_id=h.sermon_id) }}" class="btn btn-secondary" style="font-size:0.82rem; min-height:34px;">
-            Open sermon
+          <a href="{{ url_for('pastoral.illustrations.view', item_id=h.id, type=h.kind) }}"
+             class="btn btn-secondary" style="font-size:0.82rem; min-height:34px;">
+            Open item
           </a>
         </div>
       </article>
@@ -106,27 +106,26 @@
 
   {% else %}
   {# Ask AI mode #}
-  {% set sel = selected_sermon_ids if selected_sermon_ids is not none else none %}
+  {% set sel = selected_item_keys if selected_item_keys is not none else none %}
   <div class="glass-panel" style="margin-bottom:0.85rem;">
-    <form method="POST" action="{{ url_for('pastoral.sermons.research') }}" class="styled-form" id="ask-sermons-form"
+    <form method="POST" action="{{ url_for('pastoral.illustrations.research') }}" class="styled-form" id="ask-illustrations-form"
           data-ai-wait
           data-ai-wait-title="AI is thinking…"
-          data-ai-wait-sub="Reading your selected sermons and drafting an answer. Please wait — do not close this page."
+          data-ai-wait-sub="Reading your selected library items and drafting an answer. Please wait — do not close this page."
           data-ai-wait-btn="Waiting for AI…">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
       <input type="hidden" name="mode" value="ask">
-      <label class="control-label" for="question">Ask about your sermon library</label>
+      <label class="control-label" for="question">Ask about your illustrations library</label>
       <textarea name="question" id="question" class="form-input" rows="4"
-                placeholder="e.g. Where have I taught on love? What have I said about grace?">{{ question }}</textarea>
+                placeholder="e.g. What stories do I have about grace? Which illustrations fit a sermon on forgiveness?">{{ question }}</textarea>
       <p class="help-text" style="margin:0.4rem 0 0.75rem;">
-        AI only sees sermons <strong>you created</strong> that you check below.
-        Other pastors’ sermons are never sent.
+        AI only sees library items <strong>you select below</strong> (illustrations and saved sections you can already open).
       </p>
 
       {% if catalog %}
-      <div class="sermon-pick-block" style="margin:0 0 0.9rem;">
+      <div class="item-pick-block" style="margin:0 0 0.9rem;">
         <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; justify-content:space-between; margin-bottom:0.45rem;">
-          <label class="control-label" style="margin:0;">Which sermons may AI read?</label>
+          <label class="control-label" style="margin:0;">Which items may AI read?</label>
           <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
             <button type="button" class="btn btn-secondary" id="pick-all" style="font-size:0.8rem; min-height:32px;">Select all</button>
             <button type="button" class="btn btn-secondary" id="pick-none" style="font-size:0.8rem; min-height:32px;">Clear</button>
@@ -135,18 +134,19 @@
         <p class="help-text" style="margin:0 0 0.5rem;">
           Default is <strong>all</strong> selected. Uncheck any you want excluded. Count: <span id="pick-count">{{ catalog|length }}</span> / {{ catalog|length }}
         </p>
-        <div class="sermon-pick-list" style="max-height:16rem; overflow:auto; border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.5rem 0.65rem; display:grid; gap:0.35rem;">
+        <div class="item-pick-list" style="max-height:16rem; overflow:auto; border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.5rem 0.65rem; display:grid; gap:0.35rem;">
           {% for c in catalog %}
-          {% set cid = c.id|string %}
-          {% set checked = (sel is none) or (cid in sel) or (c.id|string in sel) %}
-          <label class="sermon-pick-row" style="display:flex; gap:0.55rem; align-items:flex-start; cursor:pointer; padding:0.3rem 0.15rem; border-bottom:1px solid rgba(255,255,255,0.05);">
-            <input type="checkbox" name="sermon_ids" value="{{ c.id }}" class="sermon-pick-cb" {% if checked %}checked{% endif %} style="margin-top:0.25rem;">
+          {% set checked = (sel is none) or (c.key in sel) %}
+          <label class="item-pick-row" style="display:flex; gap:0.55rem; align-items:flex-start; cursor:pointer; padding:0.3rem 0.15rem; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <input type="checkbox" name="item_keys" value="{{ c.key }}" class="item-pick-cb" {% if checked %}checked{% endif %} style="margin-top:0.25rem;">
             <span style="flex:1; min-width:0;">
               <strong style="font-size:0.92rem;">{{ c.title }}</strong>
               <span style="display:block; font-size:0.8rem; opacity:0.7;">
-                {% if c.passage %}{{ c.passage }}{% endif %}
-                {% if c.service_date %} · {{ c.service_date }}{% endif %}
-                · #{{ c.id }}
+                {{ 'Illustration' if c.kind == 'illustration' else 'Section' }}
+                {% if c.source %} · {{ c.source }}{% endif %}
+                {% if c.tags %} · {{ c.tags }}{% endif %}
+                {% if c.created_at %} · {{ c.created_at }}{% endif %}
+                · {{ c.key }}
               </span>
             </span>
           </label>
@@ -154,7 +154,7 @@
         </div>
       </div>
       {% else %}
-      <p style="margin:0 0 0.75rem; opacity:0.75;">No sermons in your library yet. Upload or create one first.</p>
+      <p style="margin:0 0 0.75rem; opacity:0.75;">No items in your library yet. Add an illustration or save a sermon section first.</p>
       {% endif %}
 
       {% if not status.configured %}
@@ -184,12 +184,13 @@
   <div class="glass-panel" style="margin-bottom:0.85rem; border-left:4px solid #4dffc8;">
     <h2 style="margin:0 0 0.75rem; font-size:1.05rem; color:#4dffc8;">Answer</h2>
     <div class="ai-prose">{{ answer_html | safe }}</div>
-    {% if used_sermons %}
+    {% if used_items %}
     <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.08);">
-      <div style="font-size:0.8rem; opacity:0.7; margin-bottom:0.45rem; font-weight:600;">Sermons used as context</div>
+      <div style="font-size:0.8rem; opacity:0.7; margin-bottom:0.45rem; font-weight:600;">Items used as context</div>
       <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-        {% for s in used_sermons %}
-        <a href="{{ url_for('pastoral.sermons.edit', sermon_id=s.id) }}" class="btn btn-secondary" style="font-size:0.8rem; min-height:32px;">
+        {% for s in used_items %}
+        <a href="{{ url_for('pastoral.illustrations.view', item_id=s.id, type=s.kind) }}"
+           class="btn btn-secondary" style="font-size:0.8rem; min-height:32px;">
           {{ s.title }}
         </a>
         {% endfor %}
@@ -204,7 +205,7 @@
 {% if mode == 'ask' and catalog %}
 <script>
 (function () {
-  var boxes = function () { return Array.prototype.slice.call(document.querySelectorAll('.sermon-pick-cb')); };
+  var boxes = function () { return Array.prototype.slice.call(document.querySelectorAll('.item-pick-cb')); };
   var countEl = document.getElementById('pick-count');
   function sync() {
     var n = boxes().filter(function (b) { return b.checked; }).length;
@@ -214,7 +215,8 @@
   var noneBtn = document.getElementById('pick-none');
   if (allBtn) allBtn.onclick = function () { boxes().forEach(function (b) { b.checked = true; }); sync(); };
   if (noneBtn) noneBtn.onclick = function () { boxes().forEach(function (b) { b.checked = false; }); sync(); };
-  document.getElementById('ask-sermons-form').addEventListener('change', sync);
+  var form = document.getElementById('ask-illustrations-form');
+  if (form) form.addEventListener('change', sync);
   sync();
 })();
 </script>

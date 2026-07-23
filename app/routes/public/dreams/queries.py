@@ -45,6 +45,23 @@ def get_public_dreams(limit=None):
     return dreams
 
 
+def create_guest_dream(title, description, contributor_name, ip_address):
+    """Visitor dream/vision — public but not approved until staff reviews."""
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute("""
+            INSERT INTO dreams
+            (title, description, visibility, user_id, contributor_name, ip_address, is_approved, date_posted)
+            VALUES (%s, %s, 'public', NULL, %s, %s, 0, UTC_TIMESTAMP())
+        """, (title, description, contributor_name, ip_address))
+        db.commit()
+        return cur.lastrowid
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_public_dream(dream_id):
     """
     Retrieve a single public + approved dream by ID for the detail page (view_dream.html).

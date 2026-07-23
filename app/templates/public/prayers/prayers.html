@@ -10,6 +10,7 @@
   </p>
 </div>
 
+{% if can_guest_create|default(true) %}
 <div class="glass-panel" style="max-width:640px; margin:0 auto 1.25rem; padding:1.15rem 1.2rem;">
   <h2 style="margin:0 0 0.35rem; font-size:1.15rem; color:var(--primary);">Submit a prayer request</h2>
   <p style="margin:0 0 1rem; font-size:0.9rem; opacity:0.75;">
@@ -44,6 +45,7 @@
     </div>
   </form>
 </div>
+{% endif %}
 
 {% if prayers %}
 <h2 class="section-title" style="max-width:1100px; margin:0 auto 0.75rem;">Community prayer requests</h2>

@@ -3,7 +3,7 @@
 # File name: __init__.py
 # Brief, detailed purpose:
 #   Central factory for the Pastoral Area blueprint (/pastoral prefix).
-#   - Defines pastoral_required decorator (login + Pastoral Group membership)
+#   - Defines pastoral_required decorator (login + Access key access_pastoral)
 #   - Registers root dashboard route (/pastoral/) with upcoming_service context for the "Next Upcoming Service" card
 #   - Explicitly imports and registers all sub-module blueprints
 #   - Uses explicit imports -> fully compatible with Python 3.14+
@@ -34,8 +34,7 @@ pastoral_bp = Blueprint(
 # --------------------------------------------------------------------------
 def has_pastoral_permission(user_id: Optional[int], required_permission: Optional[str] = None) -> bool:
     """
-    Core check: user must be in the Pastoral Group.
-    Future-proof for granular permissions.
+    Core check: Access tool access_pastoral (or Owner/Admin via is_in_pastoral_group helper).
     """
     if not user_id:
         return False
@@ -44,7 +43,6 @@ def has_pastoral_permission(user_id: Optional[int], required_permission: Optiona
         return False
 
     if required_permission:
-        # TODO: future granular check when permissions table exists
         pass
 
     return True
@@ -52,7 +50,7 @@ def has_pastoral_permission(user_id: Optional[int], required_permission: Optiona
 
 def pastoral_required(permission: Optional[str] = None) -> Callable:
     """
-    Decorator: requires login + Pastoral Group membership.
+    Decorator: requires login + Access pastoral tool (access_pastoral).
     Redirects with flash message on failure.
     """
 

@@ -2,6 +2,8 @@
 <nav class="members-subnav" aria-label="Access sections" style="margin-bottom:0.85rem;">
   <a href="{{ url_for('members.access_dashboard') }}"
      class="{% if ep == 'members.access_dashboard' %}is-active{% endif %}">Access home</a>
+  <a href="{{ url_for('members.access_visitors') }}"
+     class="{% if ep == 'members.access_visitors' %}is-active{% endif %}">Visitors</a>
   <a href="{{ url_for('members.access_people') }}"
      class="{% if ep in ['members.access_people', 'members.member_access', 'members.access_control'] %}is-active{% endif %}">People tools</a>
   <a href="{{ url_for('members.access_templates') }}"

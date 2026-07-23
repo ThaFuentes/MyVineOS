@@ -72,9 +72,6 @@
     {% if module_on('communications') and endpoint_exists('communications.dashboard') and can_access_communications() %}
     <a href="{{ url_for('communications.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('communications.') else '' }}">Communications</a>
     {% endif %}
-    {% if user_has_permission('manage_groups') %}
-    <a href="{{ url_for('groups.list_groups') }}" role="menuitem" class="{{ 'active' if ep.startswith('groups.') else '' }}">Permission Groups</a>
-    {% endif %}
     {% if module_on('worship') and can_access_worship is defined and can_access_worship %}
     <a href="{{ url_for('worship.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('worship.') else '' }}">Worship Team</a>
     {% endif %}
@@ -89,7 +86,7 @@
     Ministry <span class="nav-caret" aria-hidden="true">▾</span>
   </button>
   <div class="nav-group-menu" role="menu">
-    {% if in_pastoral_group or is_staff %}
+    {% if user_has_permission('access_pastoral') %}
     <a href="{{ url_for('pastoral.dashboard_pastoral') }}" role="menuitem" class="{{ 'active' if ep.startswith('pastoral.') else '' }}">Pastoral</a>
     <a href="{{ url_for('pastoral.sermons.list') }}" role="menuitem" class="{{ 'active' if 'pastoral.sermons' in ep else '' }}">Sermon Library</a>
     <a href="{{ url_for('pastoral.bible.bible_study') }}" role="menuitem" class="{{ 'active' if 'pastoral.bible' in ep else '' }}">Bible Study (pastoral)</a>

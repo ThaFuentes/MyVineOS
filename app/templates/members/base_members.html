@@ -31,7 +31,7 @@
     <a href="{{ url_for('members.members_directory') }}"
        class="{% if request.endpoint == 'members.members_directory' %}is-active{% endif %}">Members Dashboard</a>
 
-    {% if (can_manage_users or session.get('user_role') in ['Owner', 'Admin'] or user_has_permission('manage_groups'))
+    {% if (can_manage_users or session.get('user_role') in ['Owner', 'Admin'])
           and (endpoint_exists is not defined or endpoint_exists('members.access_dashboard')) %}
     <a href="{{ url_for('members.access_dashboard') }}"
        class="{% if request.endpoint and (

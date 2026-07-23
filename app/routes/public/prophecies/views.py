@@ -28,11 +28,40 @@ from app.utils.comment_moderation import (
 # ----------------------------------------------------------------------
 # Public Prophecies Listing (Guests Only)
 # ----------------------------------------------------------------------
-@prophecies_bp.route('/')
+@prophecies_bp.route('/', methods=['GET', 'POST'])
 def public_prophecies():
     """Public prophecies listing - logged-in users are redirected to the private prophecies dashboard."""
-    if 'user_id' in session:
+    if 'user_id' in session and request.method == 'GET':
         return redirect(url_for('prophecies.list_prophecies'))
+
+    from app.utils.community_participation import can_create_community_content, can_view_community_public
+    from app.utils.visitor_permissions import visitor_can_create, visitor_can_view
+    from .forms import validate_guest_submission_form
+    from .queries import create_guest_prophecy
+
+    if not can_view_community_public('prophecies'):
+        flash('Prophecies are not available to visitors on this site.', 'info')
+        return redirect(url_for('public.public_dashboard.public_dashboard'))
+
+    can_create = can_create_community_content('prophecies')
+
+    if request.method == 'POST' and request.form.get('action') == 'submit_prophecy':
+        if not can_create:
+            flash('Submitting prophecies is not open to visitors right now.', 'error')
+            return redirect(url_for('public.public_prophecies.public_prophecies'))
+        clean = validate_guest_submission_form(request.form)
+        if clean:
+            try:
+                create_guest_prophecy(
+                    clean['title'], clean['description'], clean['name'], request.remote_addr,
+                )
+                flash(
+                    'Thank you — your prophecy was received and will appear after review.',
+                    'success',
+                )
+            except Exception:
+                flash('Failed to submit. Please try again.', 'error')
+        return redirect(url_for('public.public_prophecies.public_prophecies'))
 
     # Guest view only
     prophecies = get_public_prophecies()
@@ -54,7 +83,12 @@ def public_prophecies():
         p['creator_name'] = p.get('creator_name') or p.get('posted_by') or 'Anonymous'
         p['posted_by'] = p['creator_name']
 
-    return render_template('public/prophecies/prophecies.html', prophecies=prophecies)
+    return render_template(
+        'public/prophecies/prophecies.html',
+        prophecies=prophecies,
+        can_guest_create=visitor_can_create('prophecies'),
+        can_guest_view=visitor_can_view('prophecies'),
+    )
 
 
 # ----------------------------------------------------------------------
@@ -77,9 +111,15 @@ def public_prophecy_detail(prophecy_id):
     prophecy['title']       = censor_text(prophecy.get('title', ''))
     prophecy['description'] = censor_text(prophecy.get('description', ''))
 
+    from app.utils.community_participation import can_interact_community, can_view_community_public
+
+    if not can_view_community_public('prophecies'):
+        flash('Prophecies are not available to visitors on this site.', 'info')
+        return redirect(url_for('public.public_dashboard.public_dashboard'))
+
     viewer_ip = request.remote_addr
     viewer_uid = session.get('user_id')
-    comments_enabled = public_comments_enabled()
+    comments_enabled = public_comments_enabled() and can_interact_community('prophecies')
     prophecy['comments'] = map_comments_legacy(
         fetch_public_comments('prophecy', prophecy_id, viewer_ip, viewer_uid)
     )

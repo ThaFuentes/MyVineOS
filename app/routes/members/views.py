@@ -191,8 +191,7 @@ Please log in and change your password.
                 flash('Member added successfully. Temporary password emailed.', 'success')
                 log_change(session['user_id'], 'add_member', f'Added {clean_data["first_name"]} {clean_data["last_name"]} (ID {new_id})')
 
-                # Assign groups
-                assign_groups_to_member(new_id, clean_data['groups'], session['user_id'])
+                # Tools: Access templates only (permission groups retired)
                 # Attach Member/Staff start template pack (fine-grained defaults)
                 try:
                     from app.utils.access_templates import ensure_user_in_template
@@ -209,7 +208,7 @@ Please log in and change your password.
             try:
                 old_role = (member or {}).get('role')
                 update_member(member_id, clean_data)
-                assign_groups_to_member(member_id, clean_data['groups'], session['user_id'])
+                # Tools stay under People tools / Access — not groups
                 try:
                     from app.utils.access_templates import apply_role_template_on_role_change
                     apply_role_template_on_role_change(
@@ -244,7 +243,6 @@ def _can_manage_access() -> bool:
     return (
         role_has_full_access(session.get('user_role'))
         or user_has_permission('manage_users')
-        or user_has_permission('manage_groups')
     )
 
 
@@ -481,6 +479,50 @@ def access_dashboard():
         'members/access_dashboard.html',
         people_count=people_count,
         template_count=template_count,
+    )
+
+
+# ----------------------------------------------------------------------
+# Visitors (not logged in) — same fine-grained action model as people tools
+# ----------------------------------------------------------------------
+@members_bp.route('/access/visitors', methods=['GET', 'POST'])
+@login_required
+def access_visitors():
+    """
+    Church-wide permissions for people who are not logged in.
+    Same checkbox model as people tools: view / create / comment per community area.
+    """
+    from app.utils.visitor_permissions import (
+        get_visitor_permission_keys,
+        set_visitor_permission_keys,
+        visitor_area_status_rows,
+        keys_from_visitor_action_form,
+        human_summary_visitor,
+    )
+
+    if not _can_manage_access():
+        flash('You do not have permission to manage access.', 'error')
+        abort(403)
+
+    if request.method == 'POST':
+        keys = keys_from_visitor_action_form(request.form)
+        try:
+            set_visitor_permission_keys(keys)
+            log_change(
+                session.get('user_id'),
+                'update',
+                change_details=f'Updated visitor community permissions ({len(keys)} keys)',
+            )
+            flash('Visitor permissions saved. This applies site-wide to anyone not logged in.', 'success')
+        except Exception as e:
+            flash(f'Could not save visitor permissions: {e}', 'error')
+        return redirect(url_for('members.access_visitors'))
+
+    granted = get_visitor_permission_keys()
+    return render_template(
+        'members/access_visitors.html',
+        status_rows=visitor_area_status_rows(granted),
+        summary_lines=human_summary_visitor(granted),
     )
 
 

@@ -100,26 +100,23 @@ A temporary password will be generated and emailed on creation.
         </div>
         {% endif %}
 
-        <!-- Permission-Filtered Group Assignment -->
-        <div class="form-group">
-            <label for="groups">Assign to Groups</label>
-            <select id="groups" name="groups" multiple size="8">
-                {% for group in available_groups %}
-                <option value="{{ group.id }}" {% if group.id in selected_group_ids %}selected{% endif %}>
-                    {{ group.name }}{% if group.description %} ({{ group.description }}){% endif %}
-                </option>
-                {% endfor %}
-            </select>
-            <p class="help-text">
-                Hold Ctrl (Windows) / Cmd (Mac) to select multiple groups.<br>
-                Only groups you have permission to manage are shown.
+        <div class="form-group glass-panel" style="padding:0.85rem 1rem;">
+            <label style="margin:0;">Tools &amp; permissions</label>
+            <p class="help-text" style="margin:0.35rem 0 0;">
+                Permission Groups are removed. Grant tools under
+                {% if member %}
+                <a href="{{ url_for('members.member_access', member_id=member.id) }}"><strong>People tools for this person</strong></a>
+                {% else %}
+                <a href="{{ url_for('members.access_dashboard') }}"><strong>Members → Access</strong></a>
+                after you create their account.
+                {% endif %}
             </p>
         </div>
 
         <div class="form-actions">
             <button type="submit" class="btn-primary">{{ 'Update' if member else 'Add' }} Member</button>
             {% if member %}
-            <a href="{{ url_for('members.member_access', member_id=member.id) }}" class="btn-secondary">Manage access</a>
+            <a href="{{ url_for('members.member_access', member_id=member.id) }}" class="btn-secondary">People tools</a>
             {% endif %}
             <a href="{{ url_for('members.members_directory') }}" class="btn-secondary">Cancel</a>
         </div>

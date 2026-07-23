@@ -11,6 +11,24 @@ from flask import flash
 from app.utils.helpers import contains_censored_word
 
 
+def validate_guest_submission_form(form_data):
+    """Validate guest dream / vision submission (queued for approval)."""
+    name = form_data.get('contributor_name', '').strip()
+    title = form_data.get('title', '').strip()
+    description = form_data.get('description', '').strip()
+    if not name or not title or not description:
+        flash('Your name, title, and description are required.', 'error')
+        return None
+    if contains_censored_word(f'{name} {title} {description}'):
+        flash('Your submission contains prohibited content.', 'error')
+        return None
+    return {
+        'name': name,
+        'title': title,
+        'description': description,
+    }
+
+
 def validate_guest_comment_form(form_data):
     """Validate and clean the public guest comment / reply form used on dreams."""
     name         = form_data.get('contributor_name', '').strip()

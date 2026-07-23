@@ -25,6 +25,91 @@ GLOBAL_MANAGER_ROLES = FULL_ACCESS_ROLES
 APP_ACCESS_KEY_RE = re.compile(r'^access_app_[a-z0-9_]{1,48}$')
 APP_MANAGE_KEY_RE = re.compile(r'^manage_app_[a-z0-9_]{1,48}$')
 
+# Legacy "manage_*" (and similar) expand into fine-grained keys.
+# Holding manage_tickets ⇒ view/create/edit/delete_tickets all pass checks.
+# New Access UI stores one key per checkbox only.
+PERMISSION_SUPERSETS: dict[str, frozenset[str]] = {
+    'manage_accounting': frozenset([
+        'view_accounting', 'create_accounting', 'edit_accounting', 'delete_accounting',
+    ]),
+    'manage_donations': frozenset([
+        'view_donations', 'create_donations', 'edit_donations', 'delete_donations',
+    ]),
+    'manage_bills': frozenset([
+        'view_bills', 'create_bills', 'edit_bills', 'delete_bills',
+    ]),
+    'manage_inventory': frozenset([
+        'view_inventory', 'create_inventory', 'edit_inventory', 'delete_inventory',
+    ]),
+    'manage_tickets': frozenset([
+        'view_tickets', 'create_tickets', 'edit_tickets', 'delete_tickets',
+    ]),
+    'submit_tickets': frozenset(['view_own_tickets', 'submit_tickets']),
+    'manage_members': frozenset([
+        'view_members', 'create_members', 'edit_members', 'delete_members',
+    ]),
+    'manage_users': frozenset([
+        'view_users', 'create_users', 'edit_users', 'delete_users',
+    ]),
+    'manage_attendance': frozenset([
+        'view_attendance', 'create_attendance', 'edit_attendance', 'delete_attendance',
+        # attendance often covered child check-in too historically
+        'view_child_checkin', 'create_child_checkin', 'edit_child_checkin', 'delete_child_checkin',
+        'manage_child_checkin',
+    ]),
+    'manage_child_checkin': frozenset([
+        'view_child_checkin', 'create_child_checkin', 'edit_child_checkin', 'delete_child_checkin',
+    ]),
+    'manage_volunteers': frozenset([
+        'view_volunteers', 'create_volunteers', 'edit_volunteers', 'delete_volunteers',
+    ]),
+    'manage_events': frozenset([
+        'view_events', 'create_events', 'edit_events', 'delete_events', 'moderate_events',
+    ]),
+    'create_announcements': frozenset(['view_announcements', 'create_announcements', 'edit_announcements']),
+    'moderate_announcements': frozenset([
+        'view_announcements', 'edit_announcements', 'delete_announcements', 'moderate_announcements',
+    ]),
+    'upload_sermons': frozenset(['view_sermons', 'upload_sermons', 'edit_sermons']),
+    'moderate_sermons': frozenset([
+        'view_sermons', 'edit_sermons', 'delete_sermons', 'moderate_sermons',
+    ]),
+    'create_dreams': frozenset(['view_dreams', 'create_dreams', 'edit_dreams']),
+    'moderate_dreams': frozenset(['view_dreams', 'edit_dreams', 'delete_dreams', 'moderate_dreams']),
+    'create_prophecies': frozenset(['view_prophecies', 'create_prophecies', 'edit_prophecies']),
+    'moderate_prophecies': frozenset([
+        'view_prophecies', 'edit_prophecies', 'delete_prophecies', 'moderate_prophecies',
+    ]),
+    'create_prayers': frozenset(['view_prayers', 'create_prayers', 'edit_prayers']),
+    'moderate_prayers': frozenset(['view_prayers', 'edit_prayers', 'delete_prayers', 'moderate_prayers']),
+    'access_pastoral': frozenset(['access_pastoral']),
+    'manage_worship': frozenset([
+        'access_worship', 'create_worship', 'edit_worship', 'delete_worship',
+    ]),
+    'send_emails': frozenset([
+        'view_communications', 'send_emails', 'edit_communications', 'delete_communications',
+    ]),
+    'use_ai_insights': frozenset(['view_ai_insights', 'use_ai_insights']),
+    'manage_settings': frozenset(['view_settings', 'manage_settings']),
+    'manage_help': frozenset(['view_help', 'manage_help']),
+    'manage_legal_notices': frozenset(['view_legal', 'manage_legal_notices']),
+    'manage_security': frozenset(['view_security', 'manage_security']),
+}
+
+
+def expand_permission_keys(keys) -> set[str]:
+    """Expand legacy manage_* supersets into fine-grained keys for checks / UI."""
+    out = set(keys or [])
+    # Multiple passes so chained expansions settle (e.g. manage_attendance → child_checkin)
+    for _ in range(3):
+        before = len(out)
+        for super_key, implied in PERMISSION_SUPERSETS.items():
+            if super_key in out:
+                out |= implied
+        if len(out) == before:
+            break
+    return out
+
 
 def _known_permission_keys():
     from app.routes.groups.utils import KNOWN_PERMISSIONS
@@ -218,7 +303,16 @@ def user_has_permission_for_user(cur, user_id: int, user_role: str | None, permi
         return True
     if not is_valid_permission_key(permission_key):
         return False
-    return permission_key in get_user_effective_permissions(cur, user_id, user_role)
+    effective = expand_permission_keys(
+        get_user_effective_permissions(cur, user_id, user_role)
+    )
+    if permission_key in effective:
+        return True
+    # Legacy routes still ask for manage_*: true if user holds any fine key that manage_* expands to.
+    implied = PERMISSION_SUPERSETS.get(permission_key)
+    if implied and (effective & implied):
+        return True
+    return False
 
 
 def user_has_permission(permission_key: str) -> bool:

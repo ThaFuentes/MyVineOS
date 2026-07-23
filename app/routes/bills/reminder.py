@@ -18,7 +18,7 @@ import pymysql
 def register_reminder_routes(bp):
     @bp.route('/send_reminder/<int:bill_id>', methods=['POST'])
     @login_required
-    @permission_required('manage_bills')
+    @permission_required('edit_bills', 'manage_bills')
     def send_reminder(bill_id):
         try:
             db = get_db()

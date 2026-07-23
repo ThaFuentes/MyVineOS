@@ -1,39 +1,31 @@
 # app/routes/prayers/utils.py
-# Full path: MyVineChurch/app/routes/prayers/utils.py
-# File name: utils.py
-# Brief, detailed purpose: Utility functions and constants for the Prayers module.
-# - REQUIRED_ROLES and ADMIN_ROLES constants
-# - Simple helpers for role checks (keeps views.py clean)
-# - Designed for easy future growth (email notifications, response moderation, etc.)
-# - 100% consistent with the rest of the application
+# Prayers: church participation policy + Access create/moderate.
 
 from flask import session
 
+from app.utils.community_participation import can_create_community_content
+from app.utils.permissions import user_has_permission
 
-# ----------------------------------------------------------------------
-# Constants
-# ----------------------------------------------------------------------
+
 REQUIRED_ROLES = ['Staff', 'Admin', 'Owner']
 ADMIN_ROLES = ['Admin', 'Owner']
 
 
-# ----------------------------------------------------------------------
-# Permission Helpers
-# ----------------------------------------------------------------------
+def can_create_prayers() -> bool:
+    return can_create_community_content('prayers')
+
+
+def can_moderate_prayers() -> bool:
+    return user_has_permission('moderate_prayers')
+
+
 def is_admin_or_owner():
-    """True if current user is Admin or Owner."""
     return session.get('user_role') in ADMIN_ROLES
 
 
 def is_staff_plus():
-    """True if current user is Staff, Admin, or Owner."""
-    return session.get('user_role') in REQUIRED_ROLES
+    return session.get('user_role') in REQUIRED_ROLES or can_moderate_prayers()
 
 
-# ----------------------------------------------------------------------
-# Future Growth Placeholders
-# ----------------------------------------------------------------------
-# These can be expanded when you add more prayer features (notifications, moderation, etc.)
 def get_default_visibility():
-    """Default visibility for new prayer requests (public focus)."""
     return 'public'

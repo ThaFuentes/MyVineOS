@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import timedelta
 
 import pymysql
@@ -151,22 +152,200 @@ def attendance_aggregate(days: int = 90) -> dict:
         return {'error': 'Could not load attendance aggregates', 'detail': str(e)[:120]}
 
 
-def security_aggregate() -> dict:
+def mask_ip_for_ai(ip: str | None, *, detail: str = 'prefix') -> str:
+    """
+    Privacy-safe IP for AI payloads.
+
+    detail:
+      - 'prefix' (default): IPv4 → 99.199.89.x  |  IPv6 → first 3 hextets + :x:x:x:x
+      - 'full': exact address (only when operator explicitly opts in)
+    """
+    raw = (ip or '').strip()
+    if not raw:
+        return ''
+    mode = (detail or 'prefix').strip().lower()
+    if mode in ('full', 'exact', 'reveal', 'unmasked'):
+        return raw[:80]
+
+    # IPv4 dotted-quad
+    if '.' in raw and ':' not in raw:
+        parts = raw.split('.')
+        if len(parts) == 4 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts):
+            return f'{parts[0]}.{parts[1]}.{parts[2]}.x'
+        # partial/malformed — still redact last segment if possible
+        if len(parts) >= 3:
+            return f'{parts[0]}.{parts[1]}.{parts[2]}.x'
+        return 'x.x.x.x'
+
+    # IPv6 (including compressed forms)
+    if ':' in raw:
+        # Strip zone id (fe80::1%eth0)
+        core = raw.split('%', 1)[0]
+        # Expand :: once for consistent hextet count
+        if '::' in core:
+            left, _, right = core.partition('::')
+            left_parts = [p for p in left.split(':') if p != '']
+            right_parts = [p for p in right.split(':') if p != '']
+            missing = 8 - (len(left_parts) + len(right_parts))
+            if missing < 0:
+                missing = 0
+            hextets = left_parts + (['0'] * missing) + right_parts
+        else:
+            hextets = [p for p in core.split(':') if p != '']
+        # Keep first 3 hextets (network-ish), mask the rest
+        keep = []
+        for h in hextets[:3]:
+            # normalize to lowercase hex-ish token
+            keep.append(h.lower()[:4] if h else '0')
+        while len(keep) < 3:
+            keep.append('0')
+        return ':'.join(keep) + ':x:x:x:x'
+
+    return 'x'
+
+
+def _safe_notes_for_ai(notes: str | None, *, max_len: int = 120) -> str:
+    """Drop obvious identity tokens from free-text security notes."""
+    if not notes:
+        return ''
+    text = str(notes)
+    # emails
+    text = re.sub(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', '[email]', text)
+    # long tokens / keys
+    text = re.sub(r'\b[A-Fa-f0-9]{24,}\b', '[token]', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text[:max_len]
+
+
+def security_aggregate(*, ip_detail: str = 'prefix') -> dict:
+    """
+    Security brief for AI: counts + sample events/bans with IPs masked by default.
+
+    ip_detail: 'prefix' (99.199.89.x) or 'full' (exact IP — opt-in only).
+    """
     try:
-        from app.routes.security.queries import summary_stats
+        from app.routes.security.queries import (
+            summary_stats,
+            list_security_events,
+            list_attack_stats,
+            list_reputation_rows,
+            list_event_types,
+        )
+
+        detail = (ip_detail or 'prefix').strip().lower()
+        if detail not in ('prefix', 'full'):
+            detail = 'prefix'
 
         stats = summary_stats() or {}
-        # Prefer coarse numbers; drop any IP-looking keys if present
-        safe = {}
-        for k, v in stats.items():
-            lk = str(k).lower()
-            if any(x in lk for x in ('ip', 'email', 'user', 'password', 'token')):
-                continue
-            if isinstance(v, (int, float, str, bool)) or v is None:
-                safe[k] = v
-            elif isinstance(v, (list, dict)):
-                safe[k] = _serialize(v)[:20] if isinstance(v, list) else _serialize(v)
-        safe['note'] = 'Coarse security stats only; IPs and identities omitted.'
+        safe: dict = {
+            'events_24h': int(stats.get('events_24h') or 0),
+            'events_total': int(stats.get('events_total') or 0),
+            'active_temp_bans': int(stats.get('active_temp_bans') or 0),
+            'perm_bans': int(stats.get('perm_bans') or 0),
+            'low_reputation': int(stats.get('low_reputation') or 0),
+            'account_login_locks': int(stats.get('account_login_locks') or 0),
+            'attack_types_tracked': int(stats.get('attack_types') or 0),
+            'ip_detail_level': detail,
+        }
+
+        # Event-type mix (no IPs)
+        try:
+            types = list_event_types() or []
+            safe['event_types_seen'] = types[:40]
+        except Exception:
+            safe['event_types_seen'] = []
+
+        # Recent events — IP masked unless full
+        try:
+            events, _total = list_security_events(limit=35)
+            recent = []
+            for ev in events or []:
+                recent.append({
+                    'when': str(ev.get('timestamp') or '')[:19],
+                    'event_type': ev.get('event_type') or '',
+                    'ip': mask_ip_for_ai(ev.get('ip'), detail=detail),
+                    'reputation_score': ev.get('reputation_score'),
+                    'behavior_grade': ev.get('behavior_grade') or '',
+                    'notes': _safe_notes_for_ai(ev.get('notes')),
+                })
+            safe['recent_events'] = recent
+            # Prefix frequency — useful even when full IPs are redacted
+            prefix_counts: dict[str, int] = {}
+            for row in recent:
+                p = row.get('ip') or ''
+                if p:
+                    prefix_counts[p] = prefix_counts.get(p, 0) + 1
+            top_prefixes = sorted(
+                ({'ip_or_prefix': k, 'events_in_sample': v} for k, v in prefix_counts.items()),
+                key=lambda x: -x['events_in_sample'],
+            )[:15]
+            safe['top_ip_prefixes_in_sample'] = top_prefixes
+        except Exception as exc:
+            safe['recent_events'] = []
+            safe['events_error'] = str(exc)[:100]
+
+        # Attack stats
+        try:
+            attacks = list_attack_stats() or []
+            safe['attack_stats'] = [
+                {
+                    'attack_type': a.get('attack_type') or '',
+                    'total_attempts': a.get('total_attempts'),
+                    'blocked_count': a.get('blocked_count'),
+                    'last_attack_ip': mask_ip_for_ai(a.get('last_attack_ip'), detail=detail),
+                    'last_attack_time': str(a.get('last_attack_time') or '')[:19],
+                    'severity_level': a.get('severity_level'),
+                    'notes': _safe_notes_for_ai(a.get('notes'), max_len=80),
+                }
+                for a in attacks[:25]
+            ]
+        except Exception:
+            safe['attack_stats'] = []
+
+        # Active bans / low reputation — no usernames
+        try:
+            bans = list_reputation_rows(filter_mode='bans', limit=30) or []
+            safe['active_bans_sample'] = [
+                {
+                    'ip': mask_ip_for_ai(b.get('ip'), detail=detail),
+                    'score': b.get('score'),
+                    'grade': b.get('grade') or '',
+                    'ban_until': str(b.get('ban_until') or '')[:19] or None,
+                    'ban_count': b.get('ban_count'),
+                    'ban_reason': _safe_notes_for_ai(b.get('ban_reason'), max_len=100),
+                    'last_seen': str(b.get('last_seen') or '')[:19],
+                }
+                for b in bans
+            ]
+        except Exception:
+            safe['active_bans_sample'] = []
+
+        try:
+            low = list_reputation_rows(filter_mode='low', limit=20) or []
+            safe['low_reputation_sample'] = [
+                {
+                    'ip': mask_ip_for_ai(b.get('ip'), detail=detail),
+                    'score': b.get('score'),
+                    'grade': b.get('grade') or '',
+                    'negative_points': b.get('negative_points'),
+                    'last_seen': str(b.get('last_seen') or '')[:19],
+                }
+                for b in low
+            ]
+        except Exception:
+            safe['low_reputation_sample'] = []
+
+        if detail == 'full':
+            safe['note'] = (
+                'Security brief with FULL IP addresses included by operator choice. '
+                'Treat as sensitive. No account emails/usernames.'
+            )
+        else:
+            safe['note'] = (
+                'Security brief: IPs shown as network prefix only '
+                '(IPv4 like 99.199.89.x; IPv6 first 3 hextets + :x:x:x:x). '
+                'Last octet / host portion redacted. No account emails/usernames.'
+            )
         return safe
     except Exception as e:
         return {'error': 'Security stats unavailable', 'detail': str(e)[:120]}
@@ -258,14 +437,14 @@ def _serialize(val, depth=0):
     return str(val)[:120]
 
 
-def dataset_for(report_type: str) -> dict:
+def dataset_for(report_type: str, *, ip_detail: str = 'prefix') -> dict:
     report_type = (report_type or '').strip().lower()
     if report_type == 'donations':
         return donations_aggregate()
     if report_type == 'attendance':
         return attendance_aggregate()
     if report_type == 'security':
-        return security_aggregate()
+        return security_aggregate(ip_detail=ip_detail)
     if report_type == 'tickets':
         return tickets_aggregate()
     if report_type == 'overview':
@@ -282,6 +461,20 @@ def prompt_for(report_type: str, dataset: dict, extra_question: str = '') -> tup
         'Do not invent names, emails, or exact people. '
         'Keep the whole answer under about 350 words.'
     )
+    if report_type == 'security':
+        level = (dataset or {}).get('ip_detail_level') or 'prefix'
+        if level == 'full':
+            system += (
+                ' IP addresses in this payload may be complete. '
+                'Discuss them carefully; do not invent addresses.'
+            )
+        else:
+            system += (
+                ' IP addresses are network-prefix only '
+                '(IPv4 like 99.199.89.x; IPv6 first three hextets + masked host). '
+                'Treat matching prefixes as the same network cluster when useful. '
+                'Do not invent full host addresses.'
+            )
     titles = {
         'donations': 'giving numbers',
         'attendance': 'attendance numbers',
@@ -290,7 +483,9 @@ def prompt_for(report_type: str, dataset: dict, extra_question: str = '') -> tup
         'overview': 'church operations snapshot',
     }
     title = titles.get(report_type, 'church data')
-    payload = json.dumps(dataset, default=str, separators=(',', ':'))[:10000]
+    # Security payloads are larger (event samples); allow more room
+    cap = 18000 if report_type == 'security' else 10000
+    payload = json.dumps(dataset, default=str, separators=(',', ':'))[:cap]
     user = (
         f'Talk through this {title} with me like we are in a staff meeting. '
         f'Here is the aggregate JSON (only source of truth):\n{payload}\n\n'
@@ -301,6 +496,12 @@ def prompt_for(report_type: str, dataset: dict, extra_question: str = '') -> tup
         '- A few concrete next steps I could take this month\n'
         'If the numbers are sparse, say the sample is small and do not overclaim.'
     )
+    if report_type == 'security':
+        user += (
+            '\nFor security: call out noisy event types, repeat prefixes/networks, '
+            'ban load, and practical hardening steps. '
+            'When IPs are prefix-masked, reason at the network level.'
+        )
     q = (extra_question or '').strip()
     if q:
         user += f'\n\nMy extra question: {q[:500]}'

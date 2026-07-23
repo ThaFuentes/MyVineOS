@@ -81,7 +81,7 @@ def donations_dashboard():
 # Add Donation
 # ----------------------------------------------------------------------
 @donations_bp.route('/add', methods=['GET', 'POST'])
-@permission_required('manage_donations')
+@permission_required('create_donations', 'manage_donations')
 def add_donation():
     church_info = get_church_info()
 
@@ -127,7 +127,7 @@ def add_donation():
 # Edit Donation
 # ----------------------------------------------------------------------
 @donations_bp.route('/edit/<int:donation_id>', methods=['GET', 'POST'])
-@permission_required('manage_donations')
+@permission_required('edit_donations', 'manage_donations')
 def edit_donation(donation_id):
     donation = get_donation_by_id(donation_id)
     if not donation:
@@ -152,7 +152,7 @@ def edit_donation(donation_id):
 # Delete Donation
 # ----------------------------------------------------------------------
 @donations_bp.route('/delete/<int:donation_id>', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required('delete_donations', 'manage_donations')
 def delete_donation_route(donation_id):
     donation = delete_donation(donation_id)
     if donation:
@@ -193,7 +193,7 @@ def view_all_donations():
 # Reports
 # ----------------------------------------------------------------------
 @donations_bp.route('/reports')
-@permission_required('manage_donations')
+@permission_required(DONATIONS_VIEW_PERMISSIONS)
 def reports():
     selected_year = request.args.get('year')
     selected_month = request.args.get('month')
@@ -215,7 +215,7 @@ def reports():
 # Export Page
 # ----------------------------------------------------------------------
 @donations_bp.route('/export')
-@permission_required('manage_donations')
+@permission_required(DONATIONS_VIEW_PERMISSIONS)
 def export_page():
     years = get_export_years()
     current_year = now_church().year
@@ -226,7 +226,7 @@ def export_page():
 # Export Individual Receipts (DOCX)
 # ----------------------------------------------------------------------
 @donations_bp.route('/export/individual', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required(DONATIONS_VIEW_PERMISSIONS)
 def export_individual():
     year = request.form['year']
     member_ids = request.form.getlist('member_ids')
@@ -306,7 +306,7 @@ def export_individual():
 # Export Yearly Summary (DOCX)
 # ----------------------------------------------------------------------
 @donations_bp.route('/export/yearly', methods=['POST'])
-@permission_required('manage_donations')
+@permission_required(DONATIONS_VIEW_PERMISSIONS)
 def export_yearly():
     year = request.form['year']
     save_location = request.form.get('save_location', '').strip() or os.path.join(current_app.root_path, '..', 'export')
@@ -386,7 +386,7 @@ def get_years():
 
 
 @donations_bp.route('/members_with_donations')
-@permission_required('manage_donations')
+@permission_required(DONATIONS_VIEW_PERMISSIONS)
 def members_with_donations():
     year = request.args.get('year')
     members = get_members_with_donations(year) if year else []

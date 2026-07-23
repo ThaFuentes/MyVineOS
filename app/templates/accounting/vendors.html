@@ -41,8 +41,10 @@
             <td style="font-size:0.88rem;">{{ v.email or '—' }}</td>
             <td>{% if v.is_active %}Active{% else %}Inactive{% endif %}</td>
             <td>
+              {% if can_edit_accounting() %}
               <a href="{{ url_for('accounting.vendors', edit=v.id, q=search_q) }}"
                  class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.65rem;font-size:0.82rem;">Edit</a>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
@@ -56,6 +58,7 @@
     {% endif %}
   </div>
 
+  {% if (edit_vendor and can_edit_accounting()) or (not edit_vendor and can_create_accounting()) %}
   <div class="glass-panel acct-form-panel" id="vendor-form-card" style="max-width:none;">
     <h2>{% if edit_vendor %}Edit vendor{% else %}Add vendor{% endif %}</h2>
     <p class="acct-form-lead" style="margin-bottom:1rem;">
@@ -133,5 +136,6 @@
       </div>
     </form>
   </div>
+  {% endif %}
 </div>
 {% endblock %}

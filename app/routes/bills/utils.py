@@ -1,6 +1,5 @@
-# app/routes/bills/utils.py
-# Permission helpers for recurring bills — group-based with Staff/Admin/Owner override.
-# Random members must not see Bills unless they manage bills or are assigned to a bill.
+# Permission helpers for recurring bills — fine-grained view / create / edit / delete.
+# Assigned members may still view/pay their own bills without any bills tool grant.
 
 from flask import session, flash, redirect, url_for, abort
 from functools import wraps
@@ -9,14 +8,45 @@ from app.utils.permissions import user_has_permission
 from app.models.db import get_db
 import pymysql
 
+BILLS_ANY = (
+    'view_bills',
+    'create_bills',
+    'edit_bills',
+    'delete_bills',
+    'manage_bills',
+)
+
+
+def can_view_bills() -> bool:
+    """See the full bills list (not only assigned)."""
+    return user_has_permission('view_bills') or any(
+        user_has_permission(k)
+        for k in ('create_bills', 'edit_bills', 'delete_bills', 'manage_bills')
+    )
+
+
+def can_create_bills() -> bool:
+    return user_has_permission('create_bills')
+
+
+def can_edit_bills() -> bool:
+    return user_has_permission('edit_bills')
+
+
+def can_delete_bills() -> bool:
+    return user_has_permission('delete_bills')
+
 
 def can_manage_bills() -> bool:
-    """Full bills management (create, assign, delete) via Staff/Admin/Owner or manage_bills group perm."""
-    return user_has_permission('manage_bills')
+    """
+    Backward-compatible "manager" flag: any bills tool grant (not assignment-only).
+    Used for seeing all bills and manager UI. Prefer specific can_* helpers for buttons.
+    """
+    return any(user_has_permission(k) for k in BILLS_ANY)
 
 
 def is_bill_manager() -> bool:
-    """True when user can manage all bills (not just assigned ones)."""
+    """True when user can manage / see all bills (not just assigned ones)."""
     return can_manage_bills()
 
 
@@ -40,7 +70,7 @@ def user_has_bill_assignment(user_id: int | None = None) -> bool:
 def can_access_bills(user_id: int | None = None) -> bool:
     """
     Nav + entry point gate:
-    - manage_bills (or Staff/Admin/Owner via user_has_permission), OR
+    - any bills permission, OR
     - assigned to one or more bills (view/pay only their assignments).
     """
     if can_manage_bills():
@@ -81,7 +111,7 @@ def bills_access_required(f):
                 log_change(
                     session.get('user_id'),
                     'unauthorized_access_attempt',
-                    details=f'Denied bills access (no manage_bills, no assignments)',
+                    details='Denied bills access (no bills permission, no assignments)',
                 )
             except Exception:
                 pass

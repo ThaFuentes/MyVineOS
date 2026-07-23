@@ -10,10 +10,16 @@
     when you add a gift or approve an email gift.
   </p>
   <div class="acct-actions">
+    {% if can_create_accounting() %}
     <a href="{{ url_for('accounting.expense_new') }}" class="btn btn-primary">Record expense</a>
     <a href="{{ url_for('accounting.journal_new') }}" class="btn btn-secondary">Journal entry</a>
+    {% endif %}
+    {% if can_view_accounting() %}
     <a href="{{ url_for('accounting.reports', report='pnl') }}" class="btn btn-secondary">P&amp;L report</a>
+    {% endif %}
+    {% if can_view_donations() %}
     <a href="{{ url_for('donations.donations_dashboard') }}" class="btn btn-secondary">Donations</a>
+    {% endif %}
   </div>
 </div>
 

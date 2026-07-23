@@ -108,7 +108,7 @@ def permission_required(*permission_keys, require_all: bool = False):
     """
     Require one or more capability keys (OR by default).
     Owner/Admin: full access via user_has_permission.
-    Staff/Member: only keys granted through Permission Groups.
+    Staff/Member: only keys granted through Access (user_permissions).
     """
     keys = permission_keys
     if len(keys) == 1 and isinstance(keys[0], (list, tuple, frozenset, set)):
@@ -154,6 +154,6 @@ def permission_required(*permission_keys, require_all: bool = False):
 
 
 def user_has_permission(permission: str) -> bool:
-    """Re-export group-based permission check (see app.utils.permissions)."""
+    """Re-export Access-based permission check (see app.utils.permissions)."""
     from app.utils.permissions import user_has_permission as check_permission
     return check_permission(permission)

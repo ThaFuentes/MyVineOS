@@ -28,14 +28,17 @@ Billing record and secure credential vault for {{ bill.bill_name }} - payment sc
             </p>
         </div>
 
-        {% if is_manager %}
+        {% if can_edit_bills() or can_delete_bills() %}
         <div class="event-actions">
+            {% if can_edit_bills() %}
             <a href="{{ url_for('bills.edit_bill', bill_id=bill.id) }}" class="btn-primary">Edit Bill</a>
             <a href="{{ url_for('bills.assign_bill', bill_id=bill.id) }}" class="btn-secondary">Assign Users</a>
             <form action="{{ url_for('bills.send_reminder', bill_id=bill.id) }}" method="post" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                 <button type="submit" class="btn-secondary">Send Reminder</button>
             </form>
+            {% endif %}
+            {% if can_delete_bills() %}
             <form action="{{ url_for('bills.delete_bill', bill_id=bill.id) }}" method="post" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                 <button type="submit" class="btn-danger"
@@ -43,6 +46,7 @@ Billing record and secure credential vault for {{ bill.bill_name }} - payment sc
                     Delete Bill
                 </button>
             </form>
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -196,7 +200,7 @@ Billing record and secure credential vault for {{ bill.bill_name }} - payment sc
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn-primary">Record Payment</button>
-                {% if expense_accounts and (user_has_permission('manage_accounting')) %}
+                {% if expense_accounts and (can_create_accounting() or can_edit_accounting() or can_view_accounting()) %}
                 <a href="{{ url_for('accounting.expenses') }}" class="btn-secondary">View expenses ledger</a>
                 {% endif %}
             </div>

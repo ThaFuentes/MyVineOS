@@ -23,7 +23,13 @@
 <div class="glass-panel ai-generate-panel">
   <h2 class="section-subtitle" style="margin:0 0 0.35rem;">Generate insight</h2>
   <p class="help-text" style="margin:0 0 1.1rem; max-width:36rem;">
-    The model only receives aggregate numbers for this report — never donor names, emails, or raw IPs.
+    {% if report_type == 'security' %}
+    The model receives security counts, event samples, and bans.
+    IPs default to <strong>network prefix only</strong> (e.g. <code>99.199.89.x</code> for IPv4;
+    first three hextets for IPv6). No account emails or usernames.
+    {% else %}
+    The model only receives aggregate numbers for this report — never donor names or emails.
+    {% endif %}
   </p>
 
   {% if not status.configured %}
@@ -37,19 +43,60 @@
   </p>
   {% endif %}
 
-  <form method="post" class="styled-form">
+  <form method="post" class="styled-form" data-ai-wait
+        data-ai-wait-title="AI is thinking…"
+        data-ai-wait-sub="Generating your insight report. Please wait — this can take a few seconds."
+        data-ai-wait-btn="Waiting for AI…">
     {% include 'partials/csrf_field.html' %}
     <label for="extra_question">Optional focus question
       <textarea id="extra_question" name="extra_question" class="form-input" rows="4"
                 placeholder="e.g. What should we watch for next quarter?">{{ extra_question or '' }}</textarea>
     </label>
     <p class="help-text">Leave blank for a general leadership summary of the data below.</p>
+
+    {% if report_type == 'security' %}
+    <div class="ai-ip-detail-block" style="margin:1rem 0 1.15rem; padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18);">
+      <div style="font-weight:700; margin-bottom:0.45rem; font-size:0.95rem;">
+        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> IP detail sent to AI
+      </div>
+      <label style="display:flex; gap:0.55rem; align-items:flex-start; cursor:pointer; margin-bottom:0.55rem;">
+        <input type="radio" name="ip_detail" value="prefix" {% if (ip_detail or 'prefix') != 'full' %}checked{% endif %} style="margin-top:0.25rem;">
+        <span>
+          <strong>Network prefix only (recommended)</strong><br>
+          <span class="help-text" style="margin:0; display:inline;">
+            IPv4 like <code>99.199.89.x</code> · IPv6 first 3 hextets + <code>:x:x:x:x</code>.
+            Enough for pattern / cluster insight without full host exposure.
+          </span>
+        </span>
+      </label>
+      <label style="display:flex; gap:0.55rem; align-items:flex-start; cursor:pointer;">
+        <input type="radio" name="ip_detail" value="full" {% if ip_detail == 'full' %}checked{% endif %} style="margin-top:0.25rem;">
+        <span>
+          <strong>Reveal full IP addresses for this run</strong><br>
+          <span class="help-text" style="margin:0; display:inline;">
+            Sends complete IPs to the model for this generate only.
+            Use when you need host-level investigation; treat the chat as sensitive.
+          </span>
+        </span>
+      </label>
+    </div>
+    {% endif %}
+
     <div class="form-actions">
       <button type="submit" class="btn btn-primary" {% if not status.configured %}disabled{% endif %}>
         <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
         Generate report
       </button>
+      {% if report_type == 'security' %}
+      <a href="{{ url_for('ai_insights.report', report_type='security', ip_detail='prefix' if ip_detail == 'full' else 'full') }}"
+         class="btn btn-secondary" style="min-height:auto;">
+        Preview payload with {% if ip_detail == 'full' %}prefix{% else %}full{% endif %} IPs
+      </a>
+      {% endif %}
     </div>
+    <p class="help-text ai-wait-hint" style="margin-top:0.65rem;">
+      After you click Generate, the page will show <strong>AI is thinking…</strong> until the model replies.
+    </p>
   </form>
 </div>
 
@@ -64,6 +111,9 @@
   <summary>Data sent to the model (aggregates only)</summary>
   <p class="help-text" style="margin:0.75rem 0 0.85rem;">
     Review this payload — it is what the model sees. No API keys are included.
+    {% if report_type == 'security' %}
+    Current IP mode: <strong>{{ 'full addresses' if ip_detail == 'full' else 'network prefix (…x)' }}</strong>.
+    {% endif %}
   </p>
   <pre class="ai-payload-pre">{{ dataset | tojson(indent=2) }}</pre>
 </details>
@@ -129,4 +179,6 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/ai_wait.css') }}?v=20260723aiwait1">
+<script src="{{ url_for('static', filename='js/ai_wait.js') }}?v=20260723aiwait1" defer></script>
 {% endblock %}

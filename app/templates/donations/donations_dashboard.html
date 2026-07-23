@@ -58,8 +58,10 @@ Donations post into <a href="{{ url_for('accounting.dashboard') }}">Accounting</
   <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.4rem;">
     <div style="font-size:0.8rem; opacity:0.65; letter-spacing:0.5px;">RECENT DONATIONS</div>
     <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+      {% if can_create_donations() %}
       <a href="{{ url_for('donations.email_import_queue') }}" class="btn btn-secondary" style="padding:0.35rem 0.8rem; font-size:0.85rem;">Email gifts</a>
       <a href="{{ url_for('donations.add_donation') }}" class="btn btn-primary" style="padding:0.35rem 0.8rem; font-size:0.85rem;">+ Add Donation</a>
+      {% endif %}
     </div>
   </div>
 

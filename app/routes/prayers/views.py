@@ -122,14 +122,18 @@ def prayers():
 # ----------------------------------------------------------------------
 @prayers_bp.route('/add', methods=['GET', 'POST'])
 def add_prayer():
+    from .utils import can_create_prayers
+
     is_logged_in = 'user_id' in session
     user_id = session.get('user_id')
 
-    print(f"[DEBUG] Add prayer accessed - logged_in={is_logged_in}, user_id={user_id}")
+    if not can_create_prayers():
+        flash('You do not have permission to submit prayer requests right now.', 'error')
+        if is_logged_in:
+            return redirect(url_for('prayers.prayers'))
+        return redirect(url_for('public.public_prayers.public_prayers'))
 
     if request.method == 'POST':
-        print("[DEBUG] POST data:", request.form.to_dict(flat=False))
-
         try:
             title = request.form.get('title', '').strip()
             description = request.form.get('description', '').strip()
