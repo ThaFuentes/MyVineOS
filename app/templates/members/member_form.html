@@ -73,30 +73,27 @@ A temporary password will be generated and emailed on creation.
             </label>
         </div>
 
-        {% if can_manage_users %}
+        {% if can_manage_users and allowed_roles is defined and allowed_roles %}
         <div class="form-group">
             <label for="role">Role <span class="required">*</span></label>
             <select id="role" name="role" required>
-                <option value="Member" {% if (member and member.role == 'Member') or not member %}selected{% endif %}>Member</option>
-
-                {% if session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
-                <option value="Staff" {% if member and member.role == 'Staff' %}selected{% endif %}>Staff</option>
-                {% endif %}
-
-                {% if session.get('user_role') in ['Admin', 'Owner'] %}
-                <option value="Admin" {% if member and member.role == 'Admin' %}selected{% endif %}>Admin</option>
-                {% endif %}
-
-                {% if session.get('user_role') == 'Owner' %}
-                <option value="Owner" {% if member and member.role == 'Owner' %}selected{% endif %}>Owner</option>
-                {% endif %}
+                {% for r in allowed_roles %}
+                <option value="{{ r }}"
+                  {% if member and member.role == r %}selected
+                  {% elif not member and r == 'Member' %}selected
+                  {% endif %}>{{ r }}</option>
+                {% endfor %}
             </select>
+            <p class="help-text" style="margin:0.35rem 0 0;">
+                You can only assign roles <strong>below</strong> your own.
+                You cannot change anyone at or above your rank (e.g. Staff cannot change an Admin).
+            </p>
         </div>
         {% elif member %}
         <input type="hidden" name="role" value="{{ member.role }}">
         <div class="form-group">
             <label>Role</label>
-            <p>{{ member.role }} <span class="help-text">(only account managers can change roles)</span></p>
+            <p>{{ member.role }} <span class="help-text">(only a higher rank can change this role)</span></p>
         </div>
         {% endif %}
 
