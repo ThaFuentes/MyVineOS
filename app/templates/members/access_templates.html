@@ -1,65 +1,39 @@
 {% extends "members/base_members.html" %}
-{% block page_title %}Tool templates{% endblock %}
+{% block page_title %}Templates{% endblock %}
 {% block page_description %}
-  Make as many named packs as you want. Use one as the default for new Members or new Staff,
-  or apply any pack to one person under Tools.
+  A template is a <strong>named list of tools</strong> (YES/NO).  
+  Use it as the default for new Members/Staff, or apply it to one person under Tools.
 {% endblock %}
 
 {% block extra_css %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260722tpl2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723tpl3">
 {% endblock %}
 
 {% block members_content %}
 <div class="ac-hero glass-panel">
-  <h2>Your tool templates</h2>
-  <p>
-    Examples you might create:
-    <strong>Standard</strong> (default for Members) ·
-    <strong>Staff</strong> (default for Staff) ·
-    <strong>Staff Accounting</strong> (apply only when you pick it on a person).
+  <h2>What is a template?</h2>
+  <p style="font-size:1.08rem; line-height:1.55;">
+    When you <strong>save a template</strong>, we store:
   </p>
-  <p style="margin-top:0.5rem;">
-    <a href="{{ url_for('members.access_control') }}">← Back to Tools (people)</a>
+  <ul style="margin:0.5rem 0 0; padding-left:1.25rem; font-size:1.05rem; line-height:1.55;">
+    <li><strong>Name</strong> (e.g. Standard, Staff, Staff Accounting)</li>
+    <li><strong>Who it’s for</strong> (Members, Staff, or anyone)</li>
+    <li><strong>Default?</strong> — auto-used when a new Member or new Staff is created</li>
+    <li><strong>Which tools are YES</strong> (Accounting, Tickets, Worship, …)</li>
+  </ul>
+  <p style="margin-top:0.85rem;">
+    <a class="btn-primary ac-person-btn" style="display:inline-flex; width:auto; padding:0 1.25rem; text-decoration:none;"
+       href="{{ url_for('members.access_template_new') }}">
+      + Create a template
+    </a>
+    <a class="btn-secondary" style="display:inline-flex; align-items:center; min-height:3rem; padding:0 1rem; margin-left:0.5rem; text-decoration:none;"
+       href="{{ url_for('members.access_control') }}">Tools (people)</a>
   </p>
-</div>
-
-<div class="glass-panel" style="padding:1rem; margin-bottom:1.25rem;">
-  <h3 style="margin:0 0 0.75rem; font-size:1.15rem;">Create a new template</h3>
-  <form method="POST" class="styled-form" style="display:grid; gap:0.75rem; max-width:36rem;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-    <input type="hidden" name="action" value="create">
-    <div>
-      <label for="name"><strong>Name</strong> (required)</label>
-      <input type="text" id="name" name="name" class="form-input" required maxlength="120"
-             placeholder="e.g. Ticket desk only" style="width:100%; min-height:2.75rem;">
-    </div>
-    <div>
-      <label for="description">Short note (optional)</label>
-      <input type="text" id="description" name="description" class="form-input" maxlength="255"
-             placeholder="What is this pack for?" style="width:100%; min-height:2.5rem;">
-    </div>
-    <div>
-      <label for="for_role">Usually for</label>
-      <select id="for_role" name="for_role" class="form-input" style="width:100%; min-height:2.75rem;">
-        <option value="any">Anyone (Member or Staff)</option>
-        <option value="Member">Members</option>
-        <option value="Staff">Staff</option>
-      </select>
-    </div>
-    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-      <input type="checkbox" name="is_default" value="1" style="width:1.15rem; height:1.15rem;">
-      <span>Use as <strong>default</strong> when someone is new to this role (Member or Staff only)</span>
-    </label>
-    <button type="submit" class="btn-primary" style="min-height:3rem; font-weight:800;">Create template</button>
-  </form>
 </div>
 
 <div class="glass-panel" style="padding:1rem; margin-bottom:1rem; border-left:4px solid rgba(90,200,255,0.45);">
-  <strong>Admin &amp; Owner</strong>
-  <p style="margin:0.35rem 0 0;">
-    Always have every tool. You don’t need a template for them.
-  </p>
+  <strong>Admin &amp; Owner</strong> always have every tool. No template needed for them.
 </div>
 
 {% if templates %}
@@ -83,13 +57,13 @@
         <span class="ac-chip ac-chip-yes">+{{ t.summary|length - 8 }} more</span>
         {% endif %}
       {% else %}
-        <span class="ac-chip ac-chip-no">No tools yet — open and set YES</span>
+        <span class="ac-chip ac-chip-no">No tools on — open Edit and set YES</span>
       {% endif %}
     </div>
     <a class="btn-primary ac-person-btn" href="{{ url_for('members.access_template_edit', template_id=t.id) }}">
-      Edit tools
+      Edit
     </a>
-    <form method="POST" style="margin:0;" onsubmit="return confirm('Delete template “{{ t.name }}”? People keep tools they already have.');">
+    <form method="POST" style="margin:0;" onsubmit="return confirm('Delete “{{ t.name }}”? People already set keep their own tools.');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
       <input type="hidden" name="action" value="delete">
       <input type="hidden" name="template_id" value="{{ t.id }}">
@@ -99,6 +73,10 @@
   {% endfor %}
 </div>
 {% else %}
-<p class="ac-empty">No templates yet — create one above.</p>
+<div class="glass-panel" style="padding:1.25rem; text-align:center;">
+  <p style="font-size:1.1rem;">No templates yet.</p>
+  <a class="btn-primary" style="display:inline-flex; min-height:3rem; align-items:center; padding:0 1.25rem; text-decoration:none;"
+     href="{{ url_for('members.access_template_new') }}">+ Create your first template</a>
+</div>
 {% endif %}
 {% endblock %}
