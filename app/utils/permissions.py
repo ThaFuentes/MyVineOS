@@ -1,18 +1,16 @@
 # app/utils/permissions.py
 # Enterprise capability checks for MyVine.
 #
-# MODEL (how it is supposed to work)
-# ----------------------------------
-# 1) Site ROLE (Member / Staff / Admin / Owner) = account tier, not a free buffet of features.
-# 2) GROUPS hold capability keys (manage_bills, manage_accounting, access_worship, …).
-# 3) Effective permissions = union of all group permission lists for that user.
-# 4) FULL ACCESS bypass: Owner (and Admin) only — they can always fix the site.
-# 5) Staff and Member: ONLY what their groups grant. No automatic “Staff sees everything.”
-#
-# Example:
-#   Put Alice (Staff) in group "Finance Team" with manage_accounting + manage_bills.
-#   Put Bob (Staff) in "Worship Team" with access_worship + manage_worship.
-#   Bob does not see Accounting. Alice does not see Worship management.
+# MODEL
+# -----
+# 1) ROLE (Member / Staff / Admin / Owner) = identity + operator bypass.
+#    Owner + Admin: full access (never lock site operators out).
+#    Staff + Member: NOT automatic tools — only grants below.
+# 2) GROUPS: shared packs of permission keys (JSON on groups.permissions).
+# 3) DIRECT per-user grants: user_permissions table (one-off fine grain).
+# 4) Effective (non-Admin) = union(groups) ∪ union(direct grants).
+# 5) Templates (Member Start / Staff Start) are system groups attached on
+#    create/promote — editable, not a hard ceiling.
 
 import json
 import re
@@ -77,6 +75,27 @@ def _union_group_permissions(cur, user_id: int) -> set[str]:
     return effective
 
 
+def _union_direct_permissions(cur, user_id: int) -> set[str]:
+    """Personal grants from user_permissions (table may be missing on old hosts)."""
+    try:
+        cur.execute(
+            """
+            SELECT permission_key
+            FROM user_permissions
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+    except Exception:
+        return set()
+    keys = set()
+    for row in cur.fetchall() or []:
+        key = row['permission_key'] if isinstance(row, dict) else row[0]
+        if is_valid_permission_key(key):
+            keys.add(key)
+    return keys
+
+
 def role_has_full_access(user_role: str | None) -> bool:
     """Owner/Admin only — not Staff."""
     return (user_role or '') in FULL_ACCESS_ROLES
@@ -88,7 +107,74 @@ def get_user_effective_permissions(cur, user_id: int, user_role: str | None = No
         return set(_known_permission_keys()) | set(get_all_app_permission_keys(cur))
     if not user_id:
         return set()
-    return _union_group_permissions(cur, user_id)
+    return _union_group_permissions(cur, user_id) | _union_direct_permissions(cur, user_id)
+
+
+def get_user_permission_breakdown(cur, user_id: int, user_role: str | None = None) -> dict:
+    """
+    For Access UI: effective keys + sources (role / groups / direct).
+    """
+    role = user_role if user_role is not None else session.get('user_role')
+    if role_has_full_access(role):
+        all_keys = set(_known_permission_keys()) | set(get_all_app_permission_keys(cur))
+        return {
+            'role': role,
+            'full_access': True,
+            'group_keys': set(),
+            'direct_keys': set(),
+            'effective': all_keys,
+            'groups': [],
+        }
+
+    group_keys = _union_group_permissions(cur, user_id)
+    direct_keys = _union_direct_permissions(cur, user_id)
+    cur.execute(
+        """
+        SELECT g.id, g.name, g.system_key, g.permissions
+        FROM groups g
+        JOIN user_groups ug ON ug.group_id = g.id
+        WHERE ug.user_id = %s
+        ORDER BY g.name
+        """,
+        (user_id,),
+    )
+    groups = []
+    for row in cur.fetchall() or []:
+        try:
+            perms = json.loads((row.get('permissions') if isinstance(row, dict) else row[3]) or '[]')
+        except (TypeError, json.JSONDecodeError):
+            perms = []
+        if not isinstance(perms, list):
+            perms = []
+        groups.append({
+            'id': row['id'] if isinstance(row, dict) else row[0],
+            'name': row['name'] if isinstance(row, dict) else row[1],
+            'system_key': (row.get('system_key') if isinstance(row, dict) else row[2]),
+            'permissions': [p for p in perms if is_valid_permission_key(p)],
+        })
+    return {
+        'role': role,
+        'full_access': False,
+        'group_keys': group_keys,
+        'direct_keys': direct_keys,
+        'effective': group_keys | direct_keys,
+        'groups': groups,
+    }
+
+
+def set_user_direct_permissions(cur, user_id: int, keys: list[str], granted_by: int | None = None) -> None:
+    """Replace all direct grants for a user with the given key list."""
+    clean = [k for k in (keys or []) if is_valid_permission_key(k)]
+    clean = list(dict.fromkeys(clean))
+    cur.execute("DELETE FROM user_permissions WHERE user_id = %s", (user_id,))
+    for key in clean:
+        cur.execute(
+            """
+            INSERT INTO user_permissions (user_id, permission_key, granted_by)
+            VALUES (%s, %s, %s)
+            """,
+            (user_id, key, granted_by),
+        )
 
 
 def get_grantable_permissions(cur, user_id: int, user_role: str | None = None) -> set[str]:
@@ -126,14 +212,16 @@ def user_has_permission_for_user(cur, user_id: int, user_role: str | None, permi
         return True
     if not is_valid_permission_key(permission_key):
         return False
-    return permission_key in _union_group_permissions(cur, user_id)
+    return permission_key in (
+        _union_group_permissions(cur, user_id) | _union_direct_permissions(cur, user_id)
+    )
 
 
 def user_has_permission(permission_key: str) -> bool:
     """
     Return True if the current user has the specified permission.
     - Owner / Admin: always True (full site operators)
-    - Staff / Member: only keys granted via Permission Groups
+    - Staff / Member: groups ∪ direct personal grants only
     """
     user_id = session.get('user_id')
     if not user_id:

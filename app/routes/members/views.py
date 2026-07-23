@@ -193,6 +193,13 @@ Please log in and change your password.
 
                 # Assign groups
                 assign_groups_to_member(new_id, clean_data['groups'], session['user_id'])
+                # Attach Member/Staff start template pack (fine-grained defaults)
+                try:
+                    from app.utils.access_templates import ensure_user_in_template
+                    ensure_user_in_template(cur, new_id, clean_data['role'], session['user_id'])
+                    db.commit()
+                except Exception as te:
+                    print(f"Template attach (create) skipped: {te}")
 
             except Exception as e:
                 flash('Failed to add member.', 'error')
@@ -200,8 +207,17 @@ Please log in and change your password.
 
         else:  # EDIT EXISTING MEMBER
             try:
+                old_role = (member or {}).get('role')
                 update_member(member_id, clean_data)
                 assign_groups_to_member(member_id, clean_data['groups'], session['user_id'])
+                try:
+                    from app.utils.access_templates import apply_role_template_on_role_change
+                    apply_role_template_on_role_change(
+                        cur, member_id, old_role, clean_data.get('role'), session['user_id']
+                    )
+                    db.commit()
+                except Exception as te:
+                    print(f"Template attach (edit) skipped: {te}")
 
                 flash('Member updated successfully.', 'success')
                 log_change(session['user_id'], 'edit_member', f'Updated {clean_data["first_name"]} {clean_data["last_name"]} (ID {member_id})')
@@ -220,6 +236,119 @@ Please log in and change your password.
         selected_group_ids=selected_group_ids,
         can_manage_users=manage_users,
         can_moderate_account=can_moderate_account(member, session['user_id'], current_role),
+    )
+
+
+# ----------------------------------------------------------------------
+# Person Access — fine-grained groups + direct grants + live preview
+# ----------------------------------------------------------------------
+@members_bp.route('/member/<int:member_id>/access', methods=['GET', 'POST'])
+@login_required
+def member_access(member_id):
+    """
+    Owner/Admin (or manage_users / manage_groups): see and edit what this person can open.
+    Staff/Member access is NOT a role ladder — only groups + personal grants.
+    """
+    from app.utils.permissions import (
+        role_has_full_access,
+        get_user_permission_breakdown,
+        set_user_direct_permissions,
+        user_has_permission,
+    )
+    from app.utils.permission_matrix import (
+        matrix_from_keys,
+        keys_from_form_levels,
+        human_summary,
+        preview_labels,
+    )
+
+    if not (
+        role_has_full_access(session.get('user_role'))
+        or user_has_permission('manage_users')
+        or user_has_permission('manage_groups')
+    ):
+        flash('You do not have permission to manage access.', 'error')
+        abort(403)
+
+    member = get_member_by_id(member_id)
+    if not member:
+        flash('Member not found.', 'error')
+        return redirect(url_for('members.members_directory'))
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+
+    if request.method == 'POST':
+        action = (request.form.get('action') or 'save_direct').strip()
+        try:
+            if action == 'add_group':
+                gid = int(request.form.get('group_id') or 0)
+                if gid:
+                    cur.execute(
+                        """
+                        INSERT IGNORE INTO user_groups (user_id, group_id, role_in_group, assigned_by)
+                        VALUES (%s, %s, 'member', %s)
+                        """,
+                        (member_id, gid, session['user_id']),
+                    )
+                    db.commit()
+                    flash('Group added.', 'success')
+            elif action == 'remove_group':
+                gid = int(request.form.get('group_id') or 0)
+                if gid:
+                    cur.execute(
+                        "DELETE FROM user_groups WHERE user_id = %s AND group_id = %s",
+                        (member_id, gid),
+                    )
+                    db.commit()
+                    flash('Group removed.', 'success')
+            else:
+                # Save direct personal grants from area matrix
+                keys = keys_from_form_levels(request.form)
+                set_user_direct_permissions(cur, member_id, keys, session['user_id'])
+                db.commit()
+                flash('Personal access updated.', 'success')
+                log_change(
+                    session['user_id'],
+                    'member_access',
+                    f'Updated direct access for user {member_id}',
+                )
+        except Exception as e:
+            flash(f'Could not update access: {e}', 'error')
+        return redirect(url_for('members.member_access', member_id=member_id))
+
+    breakdown = get_user_permission_breakdown(cur, member_id, member.get('role'))
+    direct = breakdown.get('direct_keys') or set()
+    effective = breakdown.get('effective') or set()
+    area_matrix_rows = matrix_from_keys(direct)
+    summary_lines = human_summary(effective)
+    preview = preview_labels(effective)
+
+    # Groups available to add
+    cur.execute(
+        """
+        SELECT g.id, g.name, g.system_key
+        FROM groups g
+        WHERE g.id NOT IN (SELECT group_id FROM user_groups WHERE user_id = %s)
+        ORDER BY g.name
+        """,
+        (member_id,),
+    )
+    available_groups = list(cur.fetchall() or [])
+
+    return render_template(
+        'members/member_access.html',
+        member=member,
+        breakdown=breakdown,
+        area_matrix_rows=area_matrix_rows,
+        summary_lines=summary_lines,
+        preview=preview,
+        available_groups=available_groups,
+        matrix_title='Personal access (this person only)',
+        matrix_help=(
+            'These grants apply only to this person — on top of their groups. '
+            'Example: give a Member tickets here without making them Staff, or leave a Staff person with tickets Off.'
+        ),
     )
 
 

@@ -66,6 +66,59 @@ def create_tables(cursor):
     except:
         pass
 
+    # ----- USER_PERMISSIONS (direct per-person grants) -----
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_permissions (
+            user_id INT UNSIGNED NOT NULL,
+            permission_key VARCHAR(64) NOT NULL,
+            granted_by INT UNSIGNED NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, permission_key),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """)
+    try:
+        cursor.execute("CREATE INDEX idx_user_permissions_key ON user_permissions(permission_key)")
+    except Exception:
+        pass
+
+    # ----- SEED START TEMPLATES (Member / Staff) — fine-grained defaults, not role ladders -----
+    try:
+        import json
+        from app.utils.permission_matrix import SYSTEM_TEMPLATE_GROUPS
+        for tmpl in SYSTEM_TEMPLATE_GROUPS:
+            perms_json = json.dumps(tmpl.get('permissions') or [])
+            cursor.execute(
+                "SELECT id FROM groups WHERE system_key = %s OR name = %s LIMIT 1",
+                (tmpl['system_key'], tmpl['name']),
+            )
+            row = cursor.fetchone()
+            if row:
+                gid = row[0] if not isinstance(row, dict) else row.get('id')
+                cursor.execute(
+                    """
+                    UPDATE groups
+                       SET description = %s,
+                           permissions = %s,
+                           system_key = %s,
+                           visibility = 'private'
+                     WHERE id = %s
+                    """,
+                    (tmpl['description'], perms_json, tmpl['system_key'], gid),
+                )
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO groups (name, description, visibility, permissions, system_key)
+                    VALUES (%s, %s, 'private', %s, %s)
+                    """,
+                    (tmpl['name'], tmpl['description'], perms_json, tmpl['system_key']),
+                )
+                print(f"Seeded access template group: {tmpl['name']}")
+    except Exception as e:
+        print(f"Warning: could not seed access template groups: {e}")
+
     # ----- SEED ESSENTIAL SYSTEM GROUPS -----
     # Using INSERT IGNORE - safe to run repeatedly (name is UNIQUE).
     # All new Ticket groups added here. Pastoral and Worship left untouched.
