@@ -424,7 +424,10 @@ def access_template_edit(template_id):
                     )
                 else:
                     flash(f'Saved “{name}” with all tools NO.', 'success')
-                log_change(session['user_id'], 'access_template', f'Updated template {template_id}')
+                try:
+                    log_change(session['user_id'], 'access_template', template_id, name, 'Updated tools template')
+                except Exception:
+                    pass
                 return redirect(url_for('members.access_template_edit', template_id=template_id))
         except Exception as e:
             flash(f'Could not save: {e}', 'error')
@@ -442,11 +445,66 @@ def access_template_edit(template_id):
 
 
 # ----------------------------------------------------------------------
-# Access Control hub — every user, YES/NO for each area
+# Access dashboard — one home for tools, templates, permission groups
 # ----------------------------------------------------------------------
 @members_bp.route('/access')
 @login_required
+def access_dashboard():
+    """Single landing page for all permissions / tools management."""
+    from app.utils.access_templates import list_templates, ensure_templates_table, seed_starter_templates
+
+    if not _can_manage_access():
+        flash('You do not have permission to manage access.', 'error')
+        abort(403)
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    people_count = 0
+    template_count = 0
+    group_count = 0
+    try:
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM users WHERE role IS NULL OR role != 'pending'"
+        )
+        row = cur.fetchone() or {}
+        people_count = int(row.get('n') or 0)
+    except Exception:
+        pass
+    try:
+        ensure_templates_table(cur)
+        seed_starter_templates(cur)
+        db.commit()
+        template_count = len(list_templates(cur))
+    except Exception:
+        pass
+    try:
+        cur.execute("SELECT COUNT(*) AS n FROM groups")
+        row = cur.fetchone() or {}
+        group_count = int(row.get('n') or 0)
+    except Exception:
+        pass
+
+    return render_template(
+        'members/access_dashboard.html',
+        people_count=people_count,
+        template_count=template_count,
+        group_count=group_count,
+    )
+
+
+# Legacy alias (old bookmarks / links)
+@members_bp.route('/access/control')
+@login_required
 def access_control():
+    return redirect(url_for('members.access_people'))
+
+
+# ----------------------------------------------------------------------
+# People tools — every user, YES/NO for each area
+# ----------------------------------------------------------------------
+@members_bp.route('/access/people')
+@login_required
+def access_people():
     """
     Master list: every account and whether they can open key areas.
     Not a role ladder — definitive effective access.

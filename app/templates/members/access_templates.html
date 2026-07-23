@@ -11,6 +11,7 @@
 {% endblock %}
 
 {% block members_content %}
+{% include 'members/_access_subnav.html' %}
 <div class="ac-hero glass-panel">
   <h2>What is a template?</h2>
   <p style="font-size:1.08rem; line-height:1.55;">
@@ -27,8 +28,6 @@
        href="{{ url_for('members.access_template_new') }}">
       + Create a template
     </a>
-    <a class="btn-secondary" style="display:inline-flex; align-items:center; min-height:3rem; padding:0 1rem; margin-left:0.5rem; text-decoration:none;"
-       href="{{ url_for('members.access_control') }}">Tools (people)</a>
   </p>
 </div>
 
