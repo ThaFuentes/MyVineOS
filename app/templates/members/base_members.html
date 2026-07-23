@@ -39,7 +39,7 @@
     {% if (can_manage_users or session.get('user_role') in ['Owner', 'Admin'] or user_has_permission('manage_groups'))
           and (endpoint_exists is not defined or endpoint_exists('members.access_templates')) %}
     <a href="{{ url_for('members.access_templates') }}"
-       class="{% if request.endpoint == 'members.access_templates' %}is-active{% endif %}">Starting templates</a>
+       class="{% if request.endpoint in ['members.access_templates', 'members.access_template_edit'] %}is-active{% endif %}">Templates</a>
     {% endif %}
 
     {% if can_manage_users %}

@@ -105,41 +105,13 @@ def create_tables(cursor):
     except Exception:
         pass
 
-    # ----- SEED START TEMPLATES (Member / Staff) — fine-grained defaults, not role ladders -----
+    # ----- NAMED ACCESS TEMPLATES (create as many as you want) -----
     try:
-        import json
-        from app.utils.permission_matrix import SYSTEM_TEMPLATE_GROUPS
-        for tmpl in SYSTEM_TEMPLATE_GROUPS:
-            perms_json = json.dumps(tmpl.get('permissions') or [])
-            cursor.execute(
-                "SELECT id FROM groups WHERE system_key = %s OR name = %s LIMIT 1",
-                (tmpl['system_key'], tmpl['name']),
-            )
-            row = cursor.fetchone()
-            if row:
-                gid = row[0] if not isinstance(row, dict) else row.get('id')
-                cursor.execute(
-                    """
-                    UPDATE groups
-                       SET description = %s,
-                           permissions = %s,
-                           system_key = %s,
-                           visibility = 'private'
-                     WHERE id = %s
-                    """,
-                    (tmpl['description'], perms_json, tmpl['system_key'], gid),
-                )
-            else:
-                cursor.execute(
-                    """
-                    INSERT INTO groups (name, description, visibility, permissions, system_key)
-                    VALUES (%s, %s, 'private', %s, %s)
-                    """,
-                    (tmpl['name'], tmpl['description'], perms_json, tmpl['system_key']),
-                )
-                print(f"Seeded access template group: {tmpl['name']}")
+        from app.utils.access_templates import ensure_templates_table, seed_starter_templates
+        ensure_templates_table(cursor)
+        seed_starter_templates(cursor)
     except Exception as e:
-        print(f"Warning: could not seed access template groups: {e}")
+        print(f"Warning: could not seed access_templates: {e}")
 
     # ----- SEED ESSENTIAL SYSTEM GROUPS -----
     # Using INSERT IGNORE - safe to run repeatedly (name is UNIQUE).
