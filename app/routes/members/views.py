@@ -461,7 +461,6 @@ def access_dashboard():
     cur = db.cursor(pymysql.cursors.DictCursor)
     people_count = 0
     template_count = 0
-    group_count = 0
     try:
         cur.execute(
             "SELECT COUNT(*) AS n FROM users WHERE role IS NULL OR role != 'pending'"
@@ -477,18 +476,11 @@ def access_dashboard():
         template_count = len(list_templates(cur))
     except Exception:
         pass
-    try:
-        cur.execute("SELECT COUNT(*) AS n FROM groups")
-        row = cur.fetchone() or {}
-        group_count = int(row.get('n') or 0)
-    except Exception:
-        pass
 
     return render_template(
         'members/access_dashboard.html',
         people_count=people_count,
         template_count=template_count,
-        group_count=group_count,
     )
 
 

@@ -79,37 +79,11 @@
   </div>
   {% endif %}
 
-  <h3 style="margin:0 0 0.5rem; font-size:1.2rem;">5. Tools (YES or NO)</h3>
-  <p style="margin:0 0 0.75rem; opacity:0.9;">Tap green YES if people with this pack should open that tool.</p>
+  <h3 style="margin:0 0 0.5rem; font-size:1.2rem;">5. Tools</h3>
+  <p style="margin:0 0 0.75rem; opacity:0.9;">Turn a tool ON, then check the actions people with this pack get.</p>
 
-  <div class="ac-toolbar">
-    <button type="button" class="btn-secondary" id="ac-all-yes">All YES</button>
-    <button type="button" class="btn-secondary" id="ac-all-no">All NO</button>
-  </div>
-
-  <div class="ac-grid">
-    {% for area in status_rows %}
-    <div class="ac-tool {% if area.can_see %}is-yes{% else %}is-no{% endif %}" data-tool-card>
-      <p class="ac-tool-title">
-        <i class="fa-solid {{ area.icon|default('fa-key') }}" aria-hidden="true"></i>
-        {{ area.label }}
-      </p>
-      <p class="ac-tool-desc">{{ area.description }}</p>
-      <div class="ac-toggle">
-        <span class="ac-opt">
-          <input type="radio" name="access_{{ area.id }}" id="yes_{{ area.id }}" value="yes"
-                 {% if area.can_see %}checked{% endif %}>
-          <label class="ac-yes-label" for="yes_{{ area.id }}">YES</label>
-        </span>
-        <span class="ac-opt">
-          <input type="radio" name="access_{{ area.id }}" id="no_{{ area.id }}" value="no"
-                 {% if not area.can_see %}checked{% endif %}>
-          <label class="ac-no-label" for="no_{{ area.id }}">NO</label>
-        </span>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
+  {% set status_rows = status_rows %}
+  {% include 'members/_access_action_table.html' %}
 
   <div class="ac-save-bar glass-panel" style="margin-top:1.25rem;">
     <span class="ac-save-hint">Done? Tap Save. You’ll see which tools were stored.</span>
@@ -118,32 +92,4 @@
     </button>
   </div>
 </form>
-
-<script>
-(function () {
-  function paintCard(card) {
-    const yes = card.querySelector('input[value="yes"]');
-    card.classList.toggle('is-yes', !!(yes && yes.checked));
-    card.classList.toggle('is-no', !(yes && yes.checked));
-  }
-  document.querySelectorAll('[data-tool-card]').forEach((card) => {
-    card.querySelectorAll('input[type="radio"]').forEach((r) => {
-      r.addEventListener('change', () => paintCard(card));
-    });
-    paintCard(card);
-  });
-  document.getElementById('ac-all-yes')?.addEventListener('click', () => {
-    document.querySelectorAll('#ac-form input[type="radio"][value="yes"]').forEach((r) => {
-      r.checked = true;
-      r.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-  });
-  document.getElementById('ac-all-no')?.addEventListener('click', () => {
-    document.querySelectorAll('#ac-form input[type="radio"][value="no"]').forEach((r) => {
-      r.checked = true;
-      r.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-  });
-})();
-</script>
 {% endblock %}

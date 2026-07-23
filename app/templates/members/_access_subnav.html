@@ -1,4 +1,3 @@
-{# Sub-nav for all Access pages (dashboard, people, templates, person tools) #}
 {% set ep = request.endpoint or '' %}
 <nav class="members-subnav" aria-label="Access sections" style="margin-bottom:0.85rem;">
   <a href="{{ url_for('members.access_dashboard') }}"
@@ -7,8 +6,4 @@
      class="{% if ep in ['members.access_people', 'members.member_access', 'members.access_control'] %}is-active{% endif %}">People tools</a>
   <a href="{{ url_for('members.access_templates') }}"
      class="{% if ep in ['members.access_templates', 'members.access_template_new', 'members.access_template_edit'] %}is-active{% endif %}">Templates</a>
-  {% if endpoint_exists is not defined or endpoint_exists('groups.list_groups') %}
-  <a href="{{ url_for('groups.list_groups') }}"
-     class="{% if ep and ep.startswith('groups.') %}is-active{% endif %}">Permission groups</a>
-  {% endif %}
 </nav>
