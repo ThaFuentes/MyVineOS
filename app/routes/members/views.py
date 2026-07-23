@@ -239,34 +239,98 @@ Please log in and change your password.
     )
 
 
+def _can_manage_access() -> bool:
+    from app.utils.permissions import role_has_full_access, user_has_permission
+    return (
+        role_has_full_access(session.get('user_role'))
+        or user_has_permission('manage_users')
+        or user_has_permission('manage_groups')
+    )
+
+
 # ----------------------------------------------------------------------
-# Person Access — fine-grained groups + direct grants + live preview
+# Access Control hub — every user, YES/NO for each area
+# ----------------------------------------------------------------------
+@members_bp.route('/access')
+@login_required
+def access_control():
+    """
+    Master list: every account and whether they can open key areas.
+    Not a role ladder — definitive effective access.
+    """
+    from app.utils.permissions import (
+        role_has_full_access,
+        get_user_effective_permissions,
+    )
+    from app.utils.permission_matrix import AREA_MATRIX, can_see_area
+
+    if not _can_manage_access():
+        flash('You do not have permission to manage access.', 'error')
+        abort(403)
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute(
+        """
+        SELECT id, username, first_name, last_name, email, role
+        FROM users
+        WHERE role IS NULL OR role != 'pending'
+        ORDER BY role DESC, last_name, first_name, username
+        """
+    )
+    users = list(cur.fetchall() or [])
+
+    # Columns for the board (high-signal areas first)
+    board_ids = [
+        'accounting', 'tickets', 'donations', 'bills', 'members',
+        'attendance', 'pastoral', 'worship', 'inventory', 'settings',
+    ]
+    board_areas = [a for a in AREA_MATRIX if a['id'] in board_ids]
+    # preserve order
+    board_areas = sorted(board_areas, key=lambda a: board_ids.index(a['id']))
+
+    rows = []
+    for u in users:
+        full = role_has_full_access(u.get('role'))
+        eff = get_user_effective_permissions(cur, u['id'], u.get('role'))
+        cells = []
+        for area in board_areas:
+            yes = full or can_see_area(area, eff)
+            cells.append({'id': area['id'], 'yes': yes, 'label': 'YES' if yes else 'NO'})
+        rows.append({'user': u, 'full_access': full, 'cells': cells})
+
+    return render_template(
+        'members/access_control.html',
+        board_areas=board_areas,
+        rows=rows,
+    )
+
+
+# ----------------------------------------------------------------------
+# Person Access — definitive YES/NO for every area for THIS person
 # ----------------------------------------------------------------------
 @members_bp.route('/member/<int:member_id>/access', methods=['GET', 'POST'])
 @login_required
 def member_access(member_id):
     """
-    Owner/Admin (or manage_users / manage_groups): see and edit what this person can open.
-    Staff/Member access is NOT a role ladder — only groups + personal grants.
+    Exact access switchboard for one person.
+    Save sets their access exactly (YES areas granted, NO areas blocked even if in a group).
+    Role is identity only — Staff does not mean tools.
     """
     from app.utils.permissions import (
         role_has_full_access,
         get_user_permission_breakdown,
-        set_user_direct_permissions,
+        set_user_exact_access,
         user_has_permission,
     )
     from app.utils.permission_matrix import (
-        matrix_from_keys,
-        keys_from_form_levels,
+        keys_from_yes_no_form,
+        area_status_rows,
         human_summary,
         preview_labels,
     )
 
-    if not (
-        role_has_full_access(session.get('user_role'))
-        or user_has_permission('manage_users')
-        or user_has_permission('manage_groups')
-    ):
+    if not _can_manage_access():
         flash('You do not have permission to manage access.', 'error')
         abort(403)
 
@@ -279,76 +343,37 @@ def member_access(member_id):
     cur = db.cursor(pymysql.cursors.DictCursor)
 
     if request.method == 'POST':
-        action = (request.form.get('action') or 'save_direct').strip()
+        if role_has_full_access(member.get('role')):
+            flash('Owner/Admin already have full access to everything. Change their role if needed.', 'error')
+            return redirect(url_for('members.member_access', member_id=member_id))
         try:
-            if action == 'add_group':
-                gid = int(request.form.get('group_id') or 0)
-                if gid:
-                    cur.execute(
-                        """
-                        INSERT IGNORE INTO user_groups (user_id, group_id, role_in_group, assigned_by)
-                        VALUES (%s, %s, 'member', %s)
-                        """,
-                        (member_id, gid, session['user_id']),
-                    )
-                    db.commit()
-                    flash('Group added.', 'success')
-            elif action == 'remove_group':
-                gid = int(request.form.get('group_id') or 0)
-                if gid:
-                    cur.execute(
-                        "DELETE FROM user_groups WHERE user_id = %s AND group_id = %s",
-                        (member_id, gid),
-                    )
-                    db.commit()
-                    flash('Group removed.', 'success')
-            else:
-                # Save direct personal grants from area matrix
-                keys = keys_from_form_levels(request.form)
-                set_user_direct_permissions(cur, member_id, keys, session['user_id'])
-                db.commit()
-                flash('Personal access updated.', 'success')
-                log_change(
-                    session['user_id'],
-                    'member_access',
-                    f'Updated direct access for user {member_id}',
-                )
+            desired = keys_from_yes_no_form(request.form)
+            set_user_exact_access(cur, member_id, desired, session['user_id'])
+            db.commit()
+            flash('Saved. This is exactly what they can open (YES/NO). Groups cannot override a NO.', 'success')
+            log_change(
+                session['user_id'],
+                'member_access',
+                f'Set exact access for user {member_id}',
+            )
         except Exception as e:
             flash(f'Could not update access: {e}', 'error')
         return redirect(url_for('members.member_access', member_id=member_id))
 
     breakdown = get_user_permission_breakdown(cur, member_id, member.get('role'))
-    direct = breakdown.get('direct_keys') or set()
+    full = bool(breakdown.get('full_access'))
     effective = breakdown.get('effective') or set()
-    area_matrix_rows = matrix_from_keys(direct)
-    summary_lines = human_summary(effective)
-    preview = preview_labels(effective)
-
-    # Groups available to add
-    cur.execute(
-        """
-        SELECT g.id, g.name, g.system_key
-        FROM groups g
-        WHERE g.id NOT IN (SELECT group_id FROM user_groups WHERE user_id = %s)
-        ORDER BY g.name
-        """,
-        (member_id,),
-    )
-    available_groups = list(cur.fetchall() or [])
+    status_rows = area_status_rows(effective, full_access=full)
+    summary_lines = human_summary(effective, full_access=full)
+    preview = preview_labels(effective, full_access=full)
 
     return render_template(
         'members/member_access.html',
         member=member,
         breakdown=breakdown,
-        area_matrix_rows=area_matrix_rows,
+        status_rows=status_rows,
         summary_lines=summary_lines,
         preview=preview,
-        available_groups=available_groups,
-        matrix_title='Personal access (this person only)',
-        matrix_help=(
-            'These grants apply only to this person — on top of their groups. '
-            'Example: give a Member tickets here without making them Staff, or leave a Staff person with tickets Off.'
-        ),
     )
 
 

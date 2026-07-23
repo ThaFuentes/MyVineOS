@@ -1,132 +1,111 @@
 {% extends "members/base_members.html" %}
-{% block title %}Access — {{ member.first_name }} {{ member.last_name }}{% endblock %}
+{% block page_title %}Access — {{ member.first_name }} {{ member.last_name }}{% endblock %}
+{% block page_description %}
+  Exact YES / NO for every tool this person can open. Not based on “Staff vs Member.”
+{% endblock %}
 
 {% block members_content %}
 <div class="glass-panel" style="padding:1rem 1.15rem; margin-bottom:1rem;">
   <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.75rem; align-items:flex-start;">
     <div>
-      <h1 class="page-title" style="margin:0 0 0.25rem;">
-        Access for {{ member.first_name }} {{ member.last_name }}
-      </h1>
-      <p class="page-description" style="margin:0;">
+      <h2 class="section-title" style="margin:0 0 0.35rem;">
+        {{ member.first_name }} {{ member.last_name }}
+        <span class="small text-muted">(@{{ member.username }})</span>
+      </h2>
+      <p style="margin:0;">
         Role: <strong>{{ member.role }}</strong>
         {% if breakdown.full_access %}
-          · <span class="badge" style="background:rgba(90,200,255,0.2);">Full site access (Admin/Owner)</span>
+          · <span style="color:#6fd4ff; font-weight:700;">FULL ACCESS (every area YES)</span>
         {% else %}
-          · Fine-grained: <strong>groups + personal grants</strong> only (not automatic from role)
+          · Access is <strong>exactly</strong> what you set below
         {% endif %}
       </p>
     </div>
     <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-      <a class="btn btn-secondary" href="{{ url_for('members.add_member', member_id=member.id) }}">Edit profile</a>
-      <a class="btn btn-secondary" href="{{ url_for('members.members_directory') }}">Directory</a>
+      <a class="btn-secondary" href="{{ url_for('members.access_control') }}">All users board</a>
+      <a class="btn-secondary" href="{{ url_for('members.add_member', member_id=member.id) }}">Edit profile</a>
     </div>
   </div>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h3 class="h6" style="margin-top:0;">What they can open right now</h3>
+  {% if summary_lines %}
+  <ul style="margin:0.35rem 0 0; padding-left:1.2rem;">
+    {% for line in summary_lines %}
+    <li><strong>{{ line }}</strong></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="mb-0 text-muted">NO operator tools — nothing from the list below is YES.</p>
+  {% endif %}
+  {% if preview.nav %}
+  <p class="small text-muted" style="margin:0.75rem 0 0;">
+    Menu areas: {{ preview.nav|join(' · ') }}
+  </p>
+  {% endif %}
 </div>
 
 {% if breakdown.full_access %}
-<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+<div class="glass-panel" style="padding:1rem;">
   <p class="mb-0">
-    This account is <strong>{{ member.role }}</strong> and can open everything.
-    Personal grants and groups still show for organization, but they are not required for access.
+    Owner and Admin always have <strong>YES</strong> on everything so the church is never locked out.
+    To limit tools, change this account’s role to Staff or Member, then set YES/NO below.
   </p>
 </div>
-{% endif %}
+{% else %}
 
-<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
-  <h2 class="h6">What they can open right now</h2>
-  {% if summary_lines %}
-  <ul style="margin:0.4rem 0 0.75rem; padding-left:1.2rem;">
-    {% for line in summary_lines %}
-    <li>{{ line }}</li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="small text-muted">No ops tools yet — only baseline community features (unless you grant more below).</p>
-  {% endif %}
-  <div class="row" style="display:flex; flex-wrap:wrap; gap:1rem;">
-    <div style="flex:1; min-width:200px;">
-      <div class="small text-muted">Menu / areas</div>
-      <div>{% if preview.nav %}{{ preview.nav|join(' · ') }}{% else %}—{% endif %}</div>
-    </div>
-    <div style="flex:1; min-width:200px;">
-      <div class="small text-muted">Dashboard tiles (approx.)</div>
-      <div>{% if preview.dash %}{{ preview.dash|join(' · ') }}{% else %}—{% endif %}</div>
-    </div>
-  </div>
-</div>
-
-<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
-  <h2 class="h6">Groups (shared packs)</h2>
-  <p class="small text-muted">Add this person to a pack (Finance, Worship, Ticket Managers, Member Start Pack, …).</p>
-  {% if breakdown.groups %}
-  <ul style="list-style:none; padding:0; margin:0 0 0.75rem;">
-    {% for g in breakdown.groups %}
-    <li style="display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem; padding:0.45rem 0; border-bottom:1px solid rgba(255,255,255,0.08);">
-      <strong>{{ g.name }}</strong>
-      {% if g.system_key %}<span class="small text-muted">(template)</span>{% endif %}
-      <form method="POST" style="margin:0 0 0 auto;" onsubmit="return confirm('Remove this group from this person?');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-        <input type="hidden" name="action" value="remove_group">
-        <input type="hidden" name="group_id" value="{{ g.id }}">
-        <button type="submit" class="btn btn-sm btn-secondary">Remove</button>
-      </form>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="small text-muted">Not in any group yet.</p>
-  {% endif %}
-
-  {% if available_groups %}
-  <form method="POST" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-    <input type="hidden" name="action" value="add_group">
-    <div style="flex:1; min-width:180px;">
-      <label class="small" for="group_id">Add group</label>
-      <select name="group_id" id="group_id" class="form-input" required>
-        <option value="">Choose…</option>
-        {% for g in available_groups %}
-        <option value="{{ g.id }}">{{ g.name }}{% if g.system_key %} (template){% endif %}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <button type="submit" class="btn btn-primary">Add group</button>
-  </form>
-  {% endif %}
-</div>
-
-{% if not breakdown.full_access %}
-<form method="POST">
+<form method="POST" class="glass-panel" style="padding:1rem;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-  <input type="hidden" name="action" value="save_direct">
-  {% set area_matrix_rows = area_matrix_rows %}
-  {% set matrix_title = matrix_title %}
-  {% set matrix_help = matrix_help %}
-  <div class="area-matrix glass-panel" id="area-matrix" style="padding:1rem; margin-bottom:1rem;">
-    <div style="margin-bottom:0.75rem;">
-      <h2 class="h6" style="margin:0 0 0.25rem;">{{ matrix_title }}</h2>
-      <p class="small text-muted" style="margin:0;">{{ matrix_help }}</p>
-    </div>
-    <div class="area-matrix-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:0.65rem;">
-      {% for area in area_matrix_rows %}
-      <div style="border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:0.7rem 0.75rem; background:rgba(0,0,0,0.18);">
-        <div style="font-weight:700; font-size:0.95rem; margin-bottom:0.2rem;">
-          <i class="fa-solid {{ area.icon|default('fa-key') }}" aria-hidden="true"></i>
-          {{ area.label }}
-        </div>
-        <div class="small text-muted" style="margin-bottom:0.4rem;">{{ area.description }}</div>
-        <select name="area_level_{{ area.id }}" class="form-input" style="width:100%;">
-          <option value="off" {% if area.level == 'off' %}selected{% endif %}>Off — no access</option>
-          <option value="view" {% if area.level == 'view' %}selected{% endif %}>View / use</option>
-          <option value="manage" {% if area.level == 'manage' %}selected{% endif %}>Manage (edit)</option>
-        </select>
-      </div>
-      {% endfor %}
-    </div>
-    <div style="margin-top:1rem; text-align:right;">
-      <button type="submit" class="btn btn-primary">Save personal access</button>
-    </div>
+  <p style="margin:0 0 1rem;">
+    Set each area to <strong style="color:#5dca7a;">YES</strong> or <strong style="color:#e07070;">NO</strong>.
+    Save makes this exact — a <strong>NO</strong> blocks that area even if they are in a permission group.
+  </p>
+
+  <div style="overflow:auto;">
+    <table class="data-table" style="width:100%;">
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th style="width:7rem; text-align:center;">Can open?</th>
+          <th style="width:9rem; text-align:center;">Can manage?</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for area in status_rows %}
+        <tr>
+          <td>
+            <strong><i class="fa-solid {{ area.icon|default('fa-key') }}" aria-hidden="true"></i> {{ area.label }}</strong>
+            <div class="small text-muted">{{ area.description }}</div>
+          </td>
+          <td style="text-align:center;">
+            <select name="access_{{ area.id }}" class="form-input" style="width:auto; min-width:5.5rem; font-weight:800;
+              color: {% if area.can_see %}#5dca7a{% else %}#e07070{% endif %};">
+              <option value="yes" {% if area.can_see %}selected{% endif %}>YES</option>
+              <option value="no" {% if not area.can_see %}selected{% endif %}>NO</option>
+            </select>
+          </td>
+          <td style="text-align:center;">
+            {% set same_keys = (area.view_keys|default([])|sort) == (area.manage_keys|default([])|sort) %}
+            {% if same_keys %}
+            <span class="small text-muted">same as open</span>
+            <input type="hidden" name="manage_{{ area.id }}" value="{{ 'yes' if area.can_see else 'no' }}">
+            {% else %}
+            <select name="manage_{{ area.id }}" class="form-input" style="width:auto; min-width:5.5rem; font-weight:800;">
+              <option value="no" {% if not area.can_manage %}selected{% endif %}>NO</option>
+              <option value="yes" {% if area.can_manage %}selected{% endif %}>YES</option>
+            </select>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:1rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:flex-end;">
+    <a class="btn-secondary" href="{{ url_for('members.access_control') }}">Cancel</a>
+    <button type="submit" class="btn-primary">Save exact access</button>
   </div>
 </form>
 {% endif %}

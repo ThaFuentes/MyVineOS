@@ -31,6 +31,12 @@
     <a href="{{ url_for('members.members_directory') }}"
        class="{% if request.endpoint == 'members.members_directory' %}is-active{% endif %}">Members Dashboard</a>
 
+    {% if can_manage_users or session.get('user_role') in ['Owner', 'Admin'] or user_has_permission('manage_groups') %}
+    <a href="{{ url_for('members.access_control') }}"
+       class="{% if request.endpoint in ['members.access_control', 'members.member_access'] %}is-active{% endif %}"
+       style="font-weight:700;">Access Control (YES/NO)</a>
+    {% endif %}
+
     {% if can_manage_users %}
     <a href="{{ url_for('members.add_member') }}"
        class="{% if request.endpoint == 'members.add_member' and request.view_args.get('member_id') is none %}is-active{% endif %}">Add Member</a>

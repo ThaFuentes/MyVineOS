@@ -96,24 +96,50 @@ def _union_direct_permissions(cur, user_id: int) -> set[str]:
     return keys
 
 
+def _union_blocked_permissions(cur, user_id: int) -> set[str]:
+    """Explicit NO overrides — always win over groups for Staff/Member."""
+    try:
+        cur.execute(
+            """
+            SELECT permission_key
+            FROM user_permission_blocks
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+    except Exception:
+        return set()
+    keys = set()
+    for row in cur.fetchall() or []:
+        key = row['permission_key'] if isinstance(row, dict) else row[0]
+        if is_valid_permission_key(key):
+            keys.add(key)
+    return keys
+
+
 def role_has_full_access(user_role: str | None) -> bool:
     """Owner/Admin only — not Staff."""
     return (user_role or '') in FULL_ACCESS_ROLES
 
 
 def get_user_effective_permissions(cur, user_id: int, user_role: str | None = None) -> set[str]:
+    """
+    Owner/Admin: all keys.
+    Staff/Member: (groups ∪ personal YES) minus personal NO blocks.
+    Role never adds tools by itself.
+    """
     role = user_role if user_role is not None else session.get('user_role')
     if role_has_full_access(role):
         return set(_known_permission_keys()) | set(get_all_app_permission_keys(cur))
     if not user_id:
         return set()
-    return _union_group_permissions(cur, user_id) | _union_direct_permissions(cur, user_id)
+    granted = _union_group_permissions(cur, user_id) | _union_direct_permissions(cur, user_id)
+    blocked = _union_blocked_permissions(cur, user_id)
+    return granted - blocked
 
 
 def get_user_permission_breakdown(cur, user_id: int, user_role: str | None = None) -> dict:
-    """
-    For Access UI: effective keys + sources (role / groups / direct).
-    """
+    """For Access UI: effective keys + sources."""
     role = user_role if user_role is not None else session.get('user_role')
     if role_has_full_access(role):
         all_keys = set(_known_permission_keys()) | set(get_all_app_permission_keys(cur))
@@ -122,12 +148,14 @@ def get_user_permission_breakdown(cur, user_id: int, user_role: str | None = Non
             'full_access': True,
             'group_keys': set(),
             'direct_keys': set(),
+            'blocked_keys': set(),
             'effective': all_keys,
             'groups': [],
         }
 
     group_keys = _union_group_permissions(cur, user_id)
     direct_keys = _union_direct_permissions(cur, user_id)
+    blocked_keys = _union_blocked_permissions(cur, user_id)
     cur.execute(
         """
         SELECT g.id, g.name, g.system_key, g.permissions
@@ -157,13 +185,14 @@ def get_user_permission_breakdown(cur, user_id: int, user_role: str | None = Non
         'full_access': False,
         'group_keys': group_keys,
         'direct_keys': direct_keys,
-        'effective': group_keys | direct_keys,
+        'blocked_keys': blocked_keys,
+        'effective': (group_keys | direct_keys) - blocked_keys,
         'groups': groups,
     }
 
 
 def set_user_direct_permissions(cur, user_id: int, keys: list[str], granted_by: int | None = None) -> None:
-    """Replace all direct grants for a user with the given key list."""
+    """Replace all direct YES grants for a user."""
     clean = [k for k in (keys or []) if is_valid_permission_key(k)]
     clean = list(dict.fromkeys(clean))
     cur.execute("DELETE FROM user_permissions WHERE user_id = %s", (user_id,))
@@ -175,6 +204,45 @@ def set_user_direct_permissions(cur, user_id: int, keys: list[str], granted_by: 
             """,
             (user_id, key, granted_by),
         )
+
+
+def set_user_exact_access(
+    cur,
+    user_id: int,
+    desired_keys: list[str],
+    granted_by: int | None = None,
+) -> None:
+    """
+    Make effective access match desired_keys exactly for Staff/Member.
+
+    - Writes desired keys as personal YES grants.
+    - Blocks every known key NOT in desired (so groups cannot sneak access back).
+    - Owner/Admin not handled here (full access).
+    """
+    desired = set(k for k in (desired_keys or []) if is_valid_permission_key(k))
+    # All known catalog keys we can block
+    all_keys = set(_known_permission_keys())
+    try:
+        all_keys |= set(get_all_app_permission_keys(cur))
+    except Exception:
+        pass
+
+    set_user_direct_permissions(cur, user_id, list(desired), granted_by)
+
+    blocked = list(all_keys - desired)
+    try:
+        cur.execute("DELETE FROM user_permission_blocks WHERE user_id = %s", (user_id,))
+        for key in blocked:
+            cur.execute(
+                """
+                INSERT INTO user_permission_blocks (user_id, permission_key, blocked_by)
+                VALUES (%s, %s, %s)
+                """,
+                (user_id, key, granted_by),
+            )
+    except Exception as e:
+        # Table may not exist yet on first request before builddb
+        print(f"user_permission_blocks write skipped: {e}")
 
 
 def get_grantable_permissions(cur, user_id: int, user_role: str | None = None) -> set[str]:
@@ -212,9 +280,7 @@ def user_has_permission_for_user(cur, user_id: int, user_role: str | None, permi
         return True
     if not is_valid_permission_key(permission_key):
         return False
-    return permission_key in (
-        _union_group_permissions(cur, user_id) | _union_direct_permissions(cur, user_id)
-    )
+    return permission_key in get_user_effective_permissions(cur, user_id, user_role)
 
 
 def user_has_permission(permission_key: str) -> bool:
