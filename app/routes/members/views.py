@@ -357,7 +357,10 @@ def access_template_new():
                         f'Saved “{name}” with no tools on (all NO). Open it anytime to turn tools YES.',
                         'success',
                     )
-                log_change(session['user_id'], 'access_template', f'Created template {tid} ({name})')
+                try:
+                    log_change(session['user_id'], 'access_template', tid, name, 'Created tools template')
+                except Exception:
+                    pass
                 return redirect(url_for('members.access_templates'))
         except Exception as e:
             flash(f'Could not save template: {e}', 'error')
