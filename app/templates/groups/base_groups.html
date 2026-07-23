@@ -31,7 +31,7 @@
 <!-- Internal menu -->
 <div style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
     {% if endpoint_exists is not defined or endpoint_exists('members.access_dashboard') %}
-    <a href="{{ url_for('members.access_dashboard') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">← Access home</a>
+    <a href="{{ url_for('members.access_dashboard') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">← Access (tools)</a>
     {% endif %}
     <a {% if request.endpoint == 'groups.list_groups' %}style="background:var(--primary); color:var(--text-on-primary);"{% endif %}
        href="{{ url_for('groups.list_groups') }}" style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; background:rgba(255,255,255,0.06); color:var(--text-primary);">Groups List</a>

@@ -1,56 +1,32 @@
 {% extends "members/base_members.html" %}
 {% block page_title %}Access{% endblock %}
 {% block page_description %}
-  One place for <strong>who can open tools</strong>, <strong>templates</strong>, and <strong>permission groups</strong>.
+  One control plane: <strong>who can open which tools</strong>, with fine-grained actions.
+  No group permission grants — no second source of access.
 {% endblock %}
 
 {% block extra_css %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723hub1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723single1">
 <style>
   .access-hub-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1rem;
   }
   .access-hub-card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-    padding: 1.25rem 1.2rem;
-    border-radius: 16px;
+    display: flex; flex-direction: column; gap: 0.65rem;
+    padding: 1.25rem 1.2rem; border-radius: 16px;
     border: 2px solid rgba(255,255,255,0.12);
     background: rgba(0,0,0,0.22);
-    text-decoration: none;
-    color: inherit;
-    min-height: 11rem;
+    text-decoration: none; color: inherit; min-height: 11rem;
     transition: border-color 0.15s ease, transform 0.12s ease;
   }
-  .access-hub-card:hover {
-    border-color: rgba(90, 200, 255, 0.5);
-    transform: translateY(-2px);
-  }
-  .access-hub-card h2 {
-    margin: 0;
-    font-size: 1.35rem;
-    font-weight: 800;
-  }
-  .access-hub-card p {
-    margin: 0;
-    flex: 1;
-    font-size: 1.02rem;
-    line-height: 1.45;
-    opacity: 0.9;
-  }
-  .access-hub-meta {
-    font-size: 0.95rem;
-    font-weight: 700;
-    opacity: 0.75;
-  }
-  .access-hub-go {
-    font-weight: 800;
-    color: #8ed9ff;
-  }
+  .access-hub-card:hover { border-color: rgba(90, 200, 255, 0.5); transform: translateY(-2px); }
+  .access-hub-card h2 { margin: 0; font-size: 1.35rem; font-weight: 800; }
+  .access-hub-card p { margin: 0; flex: 1; font-size: 1.02rem; line-height: 1.45; opacity: 0.9; }
+  .access-hub-meta { font-size: 0.95rem; font-weight: 700; opacity: 0.75; }
+  .access-hub-go { font-weight: 800; color: #8ed9ff; }
 </style>
 {% endblock %}
 
@@ -60,40 +36,34 @@
 <div class="ac-hero glass-panel">
   <h2>Access dashboard</h2>
   <p>
-    Pick a person and set tools, build named templates (Standard, Staff Accounting, …),
-    or manage shared permission groups — all from here.
+    <strong>One source of truth:</strong> each person’s tool list.
+    Turn a tool ON → choose Create / Delete / View, etc.
+    No permission groups granting tools in the background.
   </p>
 </div>
 
 <div class="access-hub-grid">
   <a class="access-hub-card" href="{{ url_for('members.access_people') }}">
     <h2><i class="fa-solid fa-users" aria-hidden="true"></i> People tools</h2>
-    <p>Open anyone. Apply a template or set YES/NO tools for that person only.</p>
+    <p>The main control. Open anyone. Enable tools. Set fine-grained actions.</p>
     <div class="access-hub-meta">{{ people_count }} people</div>
     <span class="access-hub-go">Open people →</span>
   </a>
 
   <a class="access-hub-card" href="{{ url_for('members.access_templates') }}">
     <h2><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Templates</h2>
-    <p>Create packs like Standard, Staff, or Staff Accounting. Mark defaults for new Members/Staff.</p>
+    <p>Named packs (Standard, Staff, Staff Accounting). Shortcuts that write the same single tool list.</p>
     <div class="access-hub-meta">{{ template_count }} template{{ 's' if template_count != 1 else '' }}</div>
     <span class="access-hub-go">Manage templates →</span>
-  </a>
-
-  <a class="access-hub-card" href="{{ url_for('groups.list_groups') }}">
-    <h2><i class="fa-solid fa-people-group" aria-hidden="true"></i> Permission groups</h2>
-    <p>Shared groups (teams) that grant tools to everyone in the group.</p>
-    <div class="access-hub-meta">{{ group_count }} group{{ 's' if group_count != 1 else '' }}</div>
-    <span class="access-hub-go">Open groups →</span>
   </a>
 </div>
 
 <div class="glass-panel" style="padding:1rem; margin-top:1.25rem;">
-  <strong>Quick path</strong>
+  <strong>How to use it</strong>
   <ol style="margin:0.5rem 0 0; padding-left:1.25rem; line-height:1.55; font-size:1.05rem;">
-    <li><strong>Templates</strong> — make Standard / Staff / Staff Accounting</li>
-    <li><strong>People tools</strong> — open a person → apply pack or custom YES/NO</li>
-    <li><strong>Permission groups</strong> — optional team packs for many people at once</li>
+    <li><strong>Templates</strong> (optional) — Standard for Members, Staff defaults, Staff Accounting, etc.</li>
+    <li><strong>People tools</strong> — open a person → apply a pack or set ON + actions yourself → Save.</li>
+    <li>If Access is <strong>OFF</strong>, they cannot open that tool. No accidental grants.</li>
   </ol>
 </div>
 {% endblock %}
