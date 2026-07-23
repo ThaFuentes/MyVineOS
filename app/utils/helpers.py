@@ -85,6 +85,53 @@ def get_censored_words() -> List[str]:
     return []  # Empty list = censoring disabled
 
 
+# Identity spam / ad injection (names, usernames) — common on open registration sites
+_SPAM_IDENTITY_PATTERNS = [
+    re.compile(r'https?://', re.I),
+    re.compile(r'www\.', re.I),
+    re.compile(r'\bgraph\.org\b', re.I),
+    re.compile(r'\bbit\.ly\b', re.I),
+    re.compile(r'\bt\.me\b', re.I),
+    re.compile(r'\btelegram\b', re.I),
+    re.compile(r'transfer\s+to\s+you', re.I),
+    re.compile(r'\bbalance[-\s]?\d', re.I),
+    re.compile(r'us[-\s]?dollars?', re.I),
+    re.compile(r'crypto|bitcoin|usdt|wallet\s*address', re.I),
+    re.compile(r'>>>|<<<'),
+    re.compile(r'🏷|💲|💰'),
+    re.compile(r'\bhs=[a-f0-9]{16,}', re.I),
+]
+
+
+def identity_spam_reason(*parts: Optional[str]) -> Optional[str]:
+    """
+    Return a short reason if name/username fields look like ad/scam injection.
+    Used on register, profile, and member create/edit so Access titles
+    cannot become “Transfer to you graph.org…” spam.
+    """
+    blob = ' '.join(str(p or '') for p in parts).strip()
+    if not blob:
+        return None
+    if len(blob) > 200:
+        return 'Name is too long.'
+    for part in parts:
+        s = (part or '').strip()
+        if not s:
+            continue
+        if len(s) > 80:
+            return 'Each name field must be 80 characters or less.'
+        # Real human names should not be bare domains or query strings
+        if re.search(r'[?&=]', s) and re.search(r'\.[a-z]{2,}', s, re.I):
+            return 'Names cannot contain website links or tracking codes.'
+    for pat in _SPAM_IDENTITY_PATTERNS:
+        if pat.search(blob):
+            return (
+                'That name or username looks like spam or a website link. '
+                'Use a real first and last name only.'
+            )
+    return None
+
+
 def contains_censored_word(text: Optional[str]) -> bool:
     """
     Case-insensitive check if text contains any censored word/phrase.

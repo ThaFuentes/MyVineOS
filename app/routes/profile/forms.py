@@ -9,7 +9,7 @@
 # - 100% matches the original profile.py validation and repopulation logic.
 
 from flask import flash
-from app.utils.helpers import contains_censored_word
+from app.utils.helpers import contains_censored_word, identity_spam_reason
 
 
 def validate_profile_form(form_data, current_role=None):
@@ -42,6 +42,11 @@ def validate_profile_form(form_data, current_role=None):
     visible_text = f"{first_name} {last_name} {email} {phone or ''} {address or ''}"
     if contains_censored_word(visible_text):
         flash('Profile contains a prohibited word or phrase.', 'error')
+        return None
+
+    spam = identity_spam_reason(first_name, last_name)
+    if spam:
+        flash(spam, 'error')
         return None
 
     # Password change (handled in views, but basic validation here)
