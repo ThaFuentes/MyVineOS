@@ -11,7 +11,7 @@ from typing import Any, Iterable
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, RGBColor
-from flask import Response, send_file
+from flask import Response
 
 
 def safe_filename(name: str, default: str = "content", max_len: int = 80) -> str:
@@ -249,35 +249,47 @@ def docx_bytes(doc: Document) -> BytesIO:
     return bio
 
 
+def _attachment_response(data: bytes, filename: str, mimetype: str) -> Response:
+    """
+    LiteSpeed / lswsgi-safe download response.
+
+    Do NOT use flask.send_file(BytesIO(...)) on this host — it calls fileno()
+    and raises: io.UnsupportedOperation: fileno → "Internal Error".
+    Always send raw bytes via Response.
+    """
+    if not isinstance(data, (bytes, bytearray)):
+        data = bytes(data or b"")
+    return Response(
+        bytes(data),
+        mimetype=mimetype,
+        headers={
+            "Content-Type": mimetype,
+            "Content-Disposition": content_disposition_attachment(filename),
+            "Content-Length": str(len(data)),
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store",
+        },
+        direct_passthrough=False,
+    )
+
+
 def send_markdown_download(body: str, filename: str) -> Response:
     if not filename.lower().endswith(".md"):
         filename = f"{filename}.md"
-    # Ensure UTF-8 bytes; some hosts choke on Response(str) + attachment
     data = body if isinstance(body, (bytes, bytearray)) else (body or "").encode("utf-8")
     safe = safe_filename(filename[:-3] if filename.lower().endswith(".md") else filename) + ".md"
-    return Response(
-        data,
-        mimetype="text/markdown",
-        headers={
-            "Content-Type": "text/markdown; charset=utf-8",
-            "Content-Disposition": content_disposition_attachment(safe),
-            "Content-Length": str(len(data)),
-            "X-Content-Type-Options": "nosniff",
-        },
-    )
+    return _attachment_response(bytes(data), safe, "text/markdown; charset=utf-8")
 
 
 def send_docx_download(doc: Document, filename: str) -> Response:
     if not filename.lower().endswith(".docx"):
         filename = f"{filename}.docx"
     safe = safe_filename(filename[:-5] if filename.lower().endswith(".docx") else filename) + ".docx"
-    bio = docx_bytes(doc)
-    return send_file(
-        bio,
-        as_attachment=True,
-        download_name=safe,
-        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        max_age=0,
+    data = docx_bytes(doc).getvalue()
+    return _attachment_response(
+        data,
+        safe,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
 
 
@@ -301,15 +313,12 @@ def zip_named_bytes(files: Iterable[tuple[str, bytes]], zip_name: str) -> Respon
                 n += 1
             used.add(candidate)
             zf.writestr(candidate, data)
-    bio.seek(0)
+    data = bio.getvalue()
     if not zip_name.lower().endswith(".zip"):
         zip_name = f"{zip_name}.zip"
     stamp = datetime.now().strftime("%Y%m%d")
     if "{date}" in zip_name:
         zip_name = zip_name.replace("{date}", stamp)
-    return send_file(
-        bio,
-        as_attachment=True,
-        download_name=zip_name,
-        mimetype="application/zip",
-    )
+    # ZIP name may be a template with path-safe chars only
+    safe_zip = safe_filename(zip_name[:-4] if zip_name.lower().endswith(".zip") else zip_name) + ".zip"
+    return _attachment_response(data, safe_zip, "application/zip")
