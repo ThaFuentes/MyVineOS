@@ -31,7 +31,7 @@
     <section class="content-section">
         <h3 class="section-title">Prayer Request</h3>
         <div class="card glass">
-            {{ prayer.description | nl2br | censor }}
+            {{ prayer.description | censor | nl2br }}
         </div>
     </section>
     {% endif %}
@@ -47,7 +47,7 @@
                 <div class="comment-item" style="margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1);">
                     <p><strong>{{ response.name or response.responder_name or response.contributor_name | censor }}</strong>
                        <small style="color:#888;">{{ response.created_at_nice or response.date_added_nice }}</small></p>
-                    <p>{{ (response.prayer or response.comment_text) | nl2br | censor }}</p>
+                    <p>{{ (response.prayer or response.comment_text) | censor | nl2br }}</p>
 
                     <!-- Reply button -->
                     <button onclick="toggleReplyForm({{ response.id }})"
@@ -86,7 +86,7 @@
                 <div class="comment-item" style="margin-left:2rem; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1); border-left:3px solid var(--primary); padding-left:1rem;">
                     <p><strong>{{ reply.name or reply.responder_name or reply.contributor_name | censor }}</strong>
                        <small style="color:#888;">{{ reply.created_at_nice or reply.date_added_nice }}</small></p>
-                    <p>{{ (reply.prayer or reply.comment_text) | nl2br | censor }}</p>
+                    <p>{{ (reply.prayer or reply.comment_text) | censor | nl2br }}</p>
                 </div>
                 {% endfor %}
             {% endfor %}

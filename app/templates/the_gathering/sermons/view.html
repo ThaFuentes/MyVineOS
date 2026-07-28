@@ -75,14 +75,14 @@
         {% if sermon.notes %}
         <div class="mb-4">
             <h5 class="text-light">Notes / Summary</h5>
-            <div class="glass-panel">{{ sermon.notes | nl2br | safe }}</div>
+            <div class="glass-panel">{{ sermon.notes | censor | nl2br }}</div>
         </div>
         {% endif %}
 
         <!-- Full Sermon Content -->
         <div class="mb-5">
             <h5 class="text-light">Sermon Content</h5>
-            <div class="glass-panel">{{ sermon.sermon_text | nl2br | safe }}</div>
+            <div class="glass-panel">{{ sermon.sermon_text | censor | nl2br }}</div>
         </div>
 
         <!-- Created / Updated Info -->

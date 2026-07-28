@@ -43,12 +43,21 @@ illustrations_bp = Blueprint('illustrations', __name__, url_prefix='/illustratio
 
 
 def _fetch_library_item(item_id: int, user_id: int, kind: str | None = None) -> dict | None:
-    """Load illustration or vault section by id (optionally forced kind)."""
+    """
+    Load illustration or vault section by id (optionally forced kind).
+    Visibility: own private items + shared pastoral_group (user_id IS NULL).
+    If forced kind misses (id collision / bad type query), fall back to the other table
+    so Download never 404s when the user can already see the card in the library.
+    """
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     kind = (kind or '').strip().lower() or None
+    if kind in ('illus', 'illustrations'):
+        kind = 'illustration'
+    if kind in ('vault', 'sections'):
+        kind = 'section'
 
-    if kind in (None, 'illustration', 'illus'):
+    def _load_illustration():
         cur.execute(
             """
             SELECT il.*,
@@ -60,23 +69,35 @@ def _fetch_library_item(item_id: int, user_id: int, kind: str | None = None) -> 
             """,
             (item_id, user_id),
         )
-        row = cur.fetchone()
-        if row:
-            return row
-        if kind in ('illustration', 'illus'):
-            return None
+        return cur.fetchone()
 
-    if kind in (None, 'section', 'vault'):
+    def _load_section():
         cur.execute(
             """
-            SELECT pv.*, 'section' AS type, pv.source_url
+            SELECT pv.*,
+                   'section' AS type,
+                   pv.source_url,
+                   CASE
+                       WHEN pv.visibility = 'private' OR (pv.visibility IS NULL AND pv.user_id IS NOT NULL)
+                       THEN 'private'
+                       ELSE 'pastoral_group'
+                   END AS visibility
             FROM pastoral_vault pv
             WHERE pv.id = %s AND (pv.user_id = %s OR pv.user_id IS NULL)
             """,
             (item_id, user_id),
         )
         return cur.fetchone()
-    return None
+
+    if kind == 'illustration':
+        row = _load_illustration()
+        return row or _load_section()
+    if kind == 'section':
+        row = _load_section()
+        return row or _load_illustration()
+
+    # No kind: prefer illustration id, then vault
+    return _load_illustration() or _load_section()
 
 
 @illustrations_bp.route('/quick_add', methods=['POST'])
@@ -515,28 +536,37 @@ def download(item_id: int):
     user_id = session['user_id']
     kind = request.args.get('type') or request.args.get('kind')
     fmt = (request.args.get('format') or 'md').strip().lower()
-    item = _fetch_library_item(item_id, user_id, kind)
-    if not item:
-        abort(404)
+    try:
+        item = _fetch_library_item(item_id, user_id, kind)
+        if not item:
+            flash('That library item was not found, or you do not have access to download it.', 'error')
+            return redirect(url_for('pastoral.illustrations.library'))
 
-    item_kind = item.get('type') or 'illustration'
-    item['tag_list'] = _safe_load_tags(item.get('tags'))
-    base = safe_filename(item.get('title') or f'{item_kind}_{item_id}')
+        item_kind = item.get('type') or 'illustration'
+        item['tag_list'] = _safe_load_tags(item.get('tags'))
+        base = safe_filename(item.get('title') or f'{item_kind}_{item_id}')
 
-    log_change(
-        user_id,
-        'export',
-        item_id,
-        item.get('title'),
-        f'Downloaded {item_kind} as {fmt}',
-    )
+        try:
+            log_change(
+                user_id,
+                'export',
+                item_id,
+                item.get('title'),
+                f'Downloaded {item_kind} as {fmt}',
+            )
+        except Exception as log_exc:
+            print(f'illustrations.download log_change: {log_exc}')
 
-    if fmt in ('docx', 'doc', 'word'):
-        doc = illustration_to_docx(item, kind=item_kind)
-        return send_docx_download(doc, f'{base}.docx')
+        if fmt in ('docx', 'doc', 'word'):
+            doc = illustration_to_docx(item, kind=item_kind)
+            return send_docx_download(doc, f'{base}.docx')
 
-    body = format_illustration_markdown(item, kind=item_kind)
-    return send_markdown_download(body, f'{base}.md')
+        body = format_illustration_markdown(item, kind=item_kind)
+        return send_markdown_download(body, f'{base}.md')
+    except Exception as exc:
+        print(f'illustrations.download error item={item_id}: {exc}')
+        flash(f'Could not build download: {exc}', 'error')
+        return redirect(url_for('pastoral.illustrations.library'))
 
 
 @illustrations_bp.route('/download/all')
@@ -547,61 +577,77 @@ def download_all():
     fmt = (request.args.get('format') or 'md').strip().lower()
     as_docx = fmt in ('docx', 'doc', 'word')
 
-    db = get_db()
-    cur = db.cursor(pymysql.cursors.DictCursor)
+    try:
+        db = get_db()
+        cur = db.cursor(pymysql.cursors.DictCursor)
 
-    cur.execute(
-        """
-        SELECT il.*,
-               'illustration' AS type,
-               il.source AS source_url,
-               CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
-        FROM illustration_library il
-        WHERE il.user_id = %s OR il.user_id IS NULL
-        ORDER BY il.created_at DESC
-        """,
-        (user_id,),
-    )
-    items = list(cur.fetchall() or [])
+        cur.execute(
+            """
+            SELECT il.*,
+                   'illustration' AS type,
+                   il.source AS source_url,
+                   CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
+            FROM illustration_library il
+            WHERE il.user_id = %s OR il.user_id IS NULL
+            ORDER BY il.created_at DESC
+            """,
+            (user_id,),
+        )
+        items = list(cur.fetchall() or [])
 
-    cur.execute(
-        """
-        SELECT pv.*, 'section' AS type, pv.source_url
-        FROM pastoral_vault pv
-        WHERE pv.user_id = %s OR pv.user_id IS NULL
-        ORDER BY pv.created_at DESC
-        """,
-        (user_id,),
-    )
-    items.extend(list(cur.fetchall() or []))
+        cur.execute(
+            """
+            SELECT pv.*, 'section' AS type, pv.source_url
+            FROM pastoral_vault pv
+            WHERE pv.user_id = %s OR pv.user_id IS NULL
+            ORDER BY pv.created_at DESC
+            """,
+            (user_id,),
+        )
+        items.extend(list(cur.fetchall() or []))
 
-    if not items:
-        flash('No library content to download yet.', 'error')
+        if not items:
+            flash('No library content to download yet.', 'error')
+            return redirect(url_for('pastoral.illustrations.library'))
+
+        files = []
+        for item in items:
+            try:
+                item['tag_list'] = _safe_load_tags(item.get('tags'))
+                kind = item.get('type') or 'illustration'
+                base = safe_filename(item.get('title') or f'{kind}_{item.get("id")}')
+                folder = 'illustrations' if kind == 'illustration' else 'vault_sections'
+                if as_docx:
+                    from app.models.pastoral.content_export import docx_bytes
+
+                    doc = illustration_to_docx(item, kind=kind)
+                    files.append((f'{folder}/{base}.docx', docx_bytes(doc).read()))
+                else:
+                    body = format_illustration_markdown(item, kind=kind)
+                    files.append((f'{folder}/{base}.md', body.encode('utf-8')))
+            except Exception as item_exc:
+                print(f'illustrations.download_all skip id={item.get("id")}: {item_exc}')
+                continue
+
+        if not files:
+            flash('Could not build any downloadable files from the library.', 'error')
+            return redirect(url_for('pastoral.illustrations.library'))
+
+        try:
+            log_change(
+                user_id,
+                'export_bulk',
+                None,
+                None,
+                f'Downloaded {len(files)} library items as {"docx" if as_docx else "md"} zip',
+            )
+        except Exception:
+            pass
+        return zip_named_bytes(files, 'MyVine_Illustrations_Library_{date}.zip')
+    except Exception as exc:
+        print(f'illustrations.download_all error: {exc}')
+        flash(f'Could not build library ZIP: {exc}', 'error')
         return redirect(url_for('pastoral.illustrations.library'))
-
-    files = []
-    for item in items:
-        item['tag_list'] = _safe_load_tags(item.get('tags'))
-        kind = item.get('type') or 'illustration'
-        base = safe_filename(item.get('title') or f'{kind}_{item.get("id")}')
-        folder = 'illustrations' if kind == 'illustration' else 'vault_sections'
-        if as_docx:
-            from app.models.pastoral.content_export import docx_bytes
-
-            doc = illustration_to_docx(item, kind=kind)
-            files.append((f'{folder}/{base}.docx', docx_bytes(doc).read()))
-        else:
-            body = format_illustration_markdown(item, kind=kind)
-            files.append((f'{folder}/{base}.md', body.encode('utf-8')))
-
-    log_change(
-        user_id,
-        'export_bulk',
-        None,
-        None,
-        f'Downloaded {len(files)} library items as {"docx" if as_docx else "md"} zip',
-    )
-    return zip_named_bytes(files, 'MyVine_Illustrations_Library_{date}.zip')
 
 
 @illustrations_bp.route('/delete/<int:item_id>', methods=['POST'])

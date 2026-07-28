@@ -168,17 +168,21 @@ def censor_text(text: Optional[str]) -> str:
     Replace any censored words/phrases in text with '*****'.
     Returns original text unchanged if no censored words are configured.
     Fresh DB query each call - always reflects current settings.
-    Registered as Jinja filter 'censor' in app/__init__.py.
+    Plain-string only (no HTML). Use jinja_censor_filter for templates.
     """
     if not text:
         return ""
+    # Work on plain text; collapse accidental HTML line-break tags to newlines
+    # so stored "<br>" spam / old bad data still censors as prose.
+    work = str(text)
+    work = re.sub(r'(?i)<br\s*/?>', '\n', work)
     words = get_censored_words()
     if not words:
-        return text
+        return work
 
     # Sort longer phrases first
     words = sorted(words, key=len, reverse=True)
-    censored = text
+    censored = work
     for word in words:
         if not word:
             continue
@@ -188,6 +192,67 @@ def censor_text(text: Optional[str]) -> str:
             pattern = re.compile(r"\b" + re.escape(word) + r"\b", re.IGNORECASE)
         censored = pattern.sub("*****", censored)
     return censored
+
+
+def normalize_user_plaintext(value) -> str:
+    """
+    Normalize user multi-line text for safe display.
+    - Real newlines (\n, \r\n)
+    - Literal &lt;br&gt; or raw <br> that got stored by mistake → newlines
+    """
+    if value is None:
+        return ''
+    text = str(value)
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    # HTML breaks from a previous nl2br pass: prefer one newline (eat optional \n after)
+    text = re.sub(r'(?i)<br\s*/?>\n?', '\n', text)
+    # Escaped break tags users literally see as &lt;br&gt;
+    text = re.sub(r'(?i)&lt;br\s*/?&gt;\n?', '\n', text)
+    # Collapse 3+ blank lines to a paragraph gap
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text
+
+
+def jinja_nl2br(value) -> 'Markup':
+    """
+    Escape user text and turn newlines into real HTML line breaks.
+    Safe against XSS. Tolerates text that already contains <br> as text.
+
+    Important: markupsafe.Markup.replace() escapes the *replacement* string.
+    So we must inject Markup('<br>…'), not a plain '<br>…', or users see
+    the literal characters &lt;br&gt; / <br> on the page (prayer bug).
+    """
+    from markupsafe import Markup, escape
+    if value is None or value == '':
+        return Markup('')
+    plain = normalize_user_plaintext(value)
+    # escape text, then insert real <br> breaks (Markup replacement is not re-escaped)
+    return escape(plain).replace('\n', Markup('<br>\n'))
+
+
+def jinja_censor(value):
+    """
+    Jinja filter: censor without destroying nl2br Markup.
+
+    Broken pipeline was:  text | nl2br | censor
+    → nl2br returns Markup with real <br>, old censor returned plain str,
+    → Jinja auto-escaped and users saw literal "<br>".
+
+    This filter:
+    - Plain str  → plain censored str (chain with | nl2br)
+    - Markup     → re-apply breaks as Markup after censoring
+    """
+    from markupsafe import Markup, escape
+    if value is None or value == '':
+        return Markup('') if isinstance(value, Markup) else ''
+
+    if isinstance(value, Markup):
+        plain = normalize_user_plaintext(str(value))
+        censored = censor_text(plain)
+        return escape(censored).replace('\n', Markup('<br>\n'))
+
+    # Plain string (or already pre-censored in a view): keep plain so |nl2br works
+    return censor_text(str(value))
 
 
 # ----------------------------------------------------------------------

@@ -30,7 +30,7 @@
     <section class="content-section">
         <h3 class="section-title">Sermon Notes</h3>
         <div class="card glass">
-            {{ (sermon.details or sermon.notes_content) | nl2br | safe }}
+            {{ (sermon.details or sermon.notes_content) | censor | nl2br }}
         </div>
     </section>
     {% endif %}
@@ -72,7 +72,7 @@
                 <div class="comment-item" style="margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1);">
                     <p><strong>{{ c.name | censor }}</strong>
                        <small style="color:#888;">{{ c.date }}</small></p>
-                    <p>{{ c.comment | nl2br | censor }}
+                    <p>{{ c.comment | censor | nl2br }}
                         {% if c.edited_by_moderator %}
                         <em style="color:#888; font-size:0.85rem;"> (edited by a moderator)</em>
                         {% endif %}
@@ -114,7 +114,7 @@
                 <div class="comment-item" style="margin-left:2rem; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1); border-left:3px solid var(--primary); padding-left:1rem;">
                     <p><strong>{{ reply.name | censor }}</strong>
                        <small style="color:#888;">{{ reply.date }}</small></p>
-                    <p>{{ reply.comment | nl2br | censor }}
+                    <p>{{ reply.comment | censor | nl2br }}
                         {% if reply.edited_by_moderator %}
                         <em style="color:#888; font-size:0.85rem;"> (edited by a moderator)</em>
                         {% endif %}

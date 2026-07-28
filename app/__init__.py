@@ -26,7 +26,7 @@ from app.builddb.builddb import build_all
 from .models.db import close_db
 from .models.owner import owner_exists
 from .models.settings import get_settings
-from app.utils.helpers import censor_text
+from app.utils.helpers import censor_text, jinja_nl2br, jinja_censor
 from app.models.pastoral.shared import is_in_pastoral_group
 from app.utils.permissions import user_has_permission
 from app.routes.the_gathering.dashboard.utils import format_manager_datetime
@@ -294,12 +294,10 @@ def create_app():
             print(f"[WATCHMAN] Session Role: {session.get('user_role', 'NONE')}")
             print(f"!"*70 + "\n")
     # Custom Jinja filters & context processors
-    @app.template_filter('nl2br')
-    def nl2br_filter(value: str) -> Markup:
-        if not value:
-            return Markup('')
-        return Markup(escape(value).replace('\n', '<br>\n'))
-    app.jinja_env.filters['censor'] = censor_text
+    # nl2br: safe newlines → real <br>. censor: must not re-escape Markup from nl2br
+    # (old |nl2br|censor showed literal "<br>" on prayers/dreams/etc.)
+    app.jinja_env.filters['nl2br'] = jinja_nl2br
+    app.jinja_env.filters['censor'] = jinja_censor
     @app.template_filter('relative_time')
     def relative_time_filter(value):
         if not value:
@@ -332,42 +330,54 @@ def create_app():
     app.jinja_env.filters['format_manager_datetime'] = format_manager_datetime
     @app.context_processor
     def inject_permissions():
-        from app.routes.members.utils import (
-            can_view_members,
-            can_manage_members,
-            can_manage_users,
+        """
+        Inject permission helpers into every template.
+        Never raise: a missing community util must not turn downloads/404s into 500s.
+        """
+        def _safe_import_bool(import_path: str, name: str):
+            """Return callable from module, or a False-returning stub."""
+            try:
+                mod = importlib.import_module(import_path)
+                fn = getattr(mod, name, None)
+                if callable(fn):
+                    return fn
+            except Exception as exc:
+                print(f"[inject_permissions] {import_path}.{name}: {exc}")
+            return lambda *a, **k: False
+
+        can_view_members = _safe_import_bool('app.routes.members.utils', 'can_view_members')
+        can_manage_members = _safe_import_bool('app.routes.members.utils', 'can_manage_members')
+        can_manage_users = _safe_import_bool('app.routes.members.utils', 'can_manage_users')
+        can_view_donations = _safe_import_bool('app.routes.donations.utils', 'can_view_donations')
+        can_manage_donations = _safe_import_bool('app.routes.donations.utils', 'can_manage_donations')
+        can_create_donations = _safe_import_bool('app.routes.donations.utils', 'can_create_donations')
+        can_edit_donations = _safe_import_bool('app.routes.donations.utils', 'can_edit_donations')
+        can_delete_donations = _safe_import_bool('app.routes.donations.utils', 'can_delete_donations')
+        can_manage_bills = _safe_import_bool('app.routes.bills.utils', 'can_manage_bills')
+        can_access_bills = _safe_import_bool('app.routes.bills.utils', 'can_access_bills')
+        can_create_bills = _safe_import_bool('app.routes.bills.utils', 'can_create_bills')
+        can_edit_bills = _safe_import_bool('app.routes.bills.utils', 'can_edit_bills')
+        can_delete_bills = _safe_import_bool('app.routes.bills.utils', 'can_delete_bills')
+        can_view_bills = _safe_import_bool('app.routes.bills.utils', 'can_view_bills')
+        can_access_accounting = _safe_import_bool('app.routes.accounting.utils', 'can_access_accounting')
+        can_view_accounting = _safe_import_bool('app.routes.accounting.utils', 'can_view_accounting')
+        can_create_accounting = _safe_import_bool('app.routes.accounting.utils', 'can_create_accounting')
+        can_edit_accounting = _safe_import_bool('app.routes.accounting.utils', 'can_edit_accounting')
+        can_delete_accounting = _safe_import_bool('app.routes.accounting.utils', 'can_delete_accounting')
+        can_manage_inventory = _safe_import_bool('app.routes.inventory.utils', 'can_manage_inventory')
+        can_manage_attendance = _safe_import_bool('app.routes.attendance.utils', 'can_manage_attendance')
+        can_manage_help = _safe_import_bool('app.routes.help.utils', 'can_manage_help')
+        can_create_prophecies = _safe_import_bool('app.routes.prophecies.utils', 'can_create_prophecies')
+        can_moderate_prophecies = _safe_import_bool('app.routes.prophecies.utils', 'can_moderate_prophecies')
+        can_create_dreams = _safe_import_bool('app.routes.dreams.utils', 'can_create_dreams')
+        can_moderate_dreams = _safe_import_bool('app.routes.dreams.utils', 'can_moderate_dreams')
+        can_create_prayers = _safe_import_bool('app.routes.prayers.utils', 'can_create_prayers')
+        can_moderate_prayers = _safe_import_bool('app.routes.prayers.utils', 'can_moderate_prayers')
+        can_create_community_content = _safe_import_bool(
+            'app.utils.community_participation', 'can_create_community_content'
         )
-        from app.routes.donations.utils import (
-            can_view_donations,
-            can_manage_donations,
-            can_create_donations,
-            can_edit_donations,
-            can_delete_donations,
-        )
-        from app.routes.bills.utils import (
-            can_manage_bills,
-            can_access_bills,
-            can_create_bills,
-            can_edit_bills,
-            can_delete_bills,
-            can_view_bills,
-        )
-        from app.routes.accounting.utils import (
-            can_access_accounting,
-            can_view_accounting,
-            can_create_accounting,
-            can_edit_accounting,
-            can_delete_accounting,
-        )
-        from app.routes.inventory.utils import can_manage_inventory
-        from app.routes.attendance.utils import can_manage_attendance
-        from app.routes.help.utils import can_manage_help
-        from app.routes.prophecies.utils import can_create_prophecies, can_moderate_prophecies
-        from app.routes.dreams.utils import can_create_dreams, can_moderate_dreams
-        from app.routes.prayers.utils import can_create_prayers, can_moderate_prayers
-        from app.utils.community_participation import (
-            can_create_community_content,
-            can_interact_community,
+        can_interact_community = _safe_import_bool(
+            'app.utils.community_participation', 'can_interact_community'
         )
 
         def can_access_volunteers_admin():

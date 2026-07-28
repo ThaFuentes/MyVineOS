@@ -30,7 +30,7 @@ Sermon by {{ sermon.uploader }} • {{ sermon.uploaded_at }}
         {% if sermon.details %}
         <div class="detail-section">
             <h3 class="detail-heading">Details / Notes</h3>
-            <div class="detail-content">{{ sermon.details | nl2br | censor }}</div>
+            <div class="detail-content">{{ sermon.details | censor | nl2br }}</div>
         </div>
         {% endif %}
 
@@ -62,7 +62,7 @@ Sermon by {{ sermon.uploader }} • {{ sermon.uploaded_at }}
                     <strong>{{ c.commenter_username or 'Anonymous' }}</strong>
                     • {{ c.date_added }}
                 </p>
-                <p>{{ c.comment | nl2br | censor }}</p>
+                <p>{{ c.comment | censor | nl2br }}</p>
 
                 <!-- Edit / Delete for owner or admin -->
                 {% if session.user_id and (c.user_id == session.user_id or session.user_role in ['Admin', 'Owner']) %}

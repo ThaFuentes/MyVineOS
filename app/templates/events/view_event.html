@@ -147,7 +147,7 @@ Detailed view of {{ event.event_name|title }}.
     {% if event.description %}
     <section class="content-section">
         <h3 class="section-title">Description</h3>
-        <div class="card glass">{{ event.description | nl2br | censor }}</div>
+        <div class="card glass">{{ event.description | censor | nl2br }}</div>
     </section>
     {% endif %}
 
@@ -190,7 +190,7 @@ Detailed view of {{ event.event_name|title }}.
                 {% if label == 'Cost/Fees' %}
                     ${{ "%.2f"|format(value) }}
                 {% else %}
-                    {{ value | nl2br | censor }}
+                    {{ value | censor | nl2br }}
                 {% endif %}
             </p>
             {% endfor %}
@@ -216,7 +216,7 @@ Detailed view of {{ event.event_name|title }}.
                 {% if label == 'Feedback Form Link' %}
                     <a href="{{ value }}" target="_blank" rel="noopener">{{ value }}</a>
                 {% else %}
-                    {{ value | nl2br | censor }}
+                    {{ value | censor | nl2br }}
                 {% endif %}
             </p>
             {% endfor %}
@@ -237,7 +237,7 @@ Detailed view of {{ event.event_name|title }}.
         <h3 class="section-title">Additional Details</h3>
         <div class="card glass">
             {% for label, value in additional_data %}
-            <p><strong>{{ label }}:</strong><br>{{ value | nl2br | censor }}</p>
+            <p><strong>{{ label }}:</strong><br>{{ value | censor | nl2br }}</p>
             {% endfor %}
         </div>
     </section>
@@ -254,7 +254,7 @@ Detailed view of {{ event.event_name|title }}.
             <div class="comment-item">
                 <p><strong>{{ comment.name | censor }}</strong>
                    <small style="color:#888;">{{ comment.created_at_nice }}</small></p>
-                <p>{{ comment.comment_text | nl2br | censor }}</p>
+                <p>{{ comment.comment_text | censor | nl2br }}</p>
 
                 <!-- Edit / Delete for owner or admin -->
                 {% if is_logged_in and (comment.user_id == session.user_id or user_has_permission('manage_events')) %}

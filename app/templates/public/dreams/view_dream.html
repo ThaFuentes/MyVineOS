@@ -32,7 +32,7 @@
     <section class="content-section">
         <h3 class="section-title">The Dream / Vision</h3>
         <div class="card glass">
-            {{ dream.description | nl2br | censor }}
+            {{ dream.description | censor | nl2br }}
         </div>
     </section>
     {% endif %}
@@ -42,7 +42,7 @@
     <section class="content-section">
         <h3 class="section-title">Additional Notes</h3>
         <div class="card glass">
-            {{ dream.notes | nl2br | censor }}
+            {{ dream.notes | censor | nl2br }}
         </div>
     </section>
     {% endif %}
@@ -68,7 +68,7 @@
                 <div class="comment-item" style="margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1);">
                     <p><strong>{{ comment.name | censor }}</strong>
                        <small style="color:#888;">{{ comment.date }}</small></p>
-                    <p>{{ comment.comment | nl2br | censor }}</p>
+                    <p>{{ comment.comment | censor | nl2br }}</p>
 
                     <!-- Reply button -->
                     <button onclick="toggleReplyForm({{ comment.id }})"
@@ -108,7 +108,7 @@
                 <div class="comment-item" style="margin-left:2rem; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1); border-left:3px solid var(--primary); padding-left:1rem;">
                     <p><strong>{{ reply.name | censor }}</strong>
                        <small style="color:#888;">{{ reply.date }}</small></p>
-                    <p>{{ reply.comment | nl2br | censor }}</p>
+                    <p>{{ reply.comment | censor | nl2br }}</p>
                 </div>
                 {% endfor %}
             {% endfor %}

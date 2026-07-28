@@ -26,7 +26,7 @@
       <strong>By:</strong> {{ event.creator_name or event.posted_by or 'Church' }}
     </div>
     {% if event.description %}
-    <p class="public-list-body">{{ event.description | truncate(220) | nl2br | censor }}</p>
+    <p class="public-list-body">{{ event.description | truncate(220) | censor | nl2br }}</p>
     {% endif %}
     {% if event.potluck_enabled %}
     <div style="font-size:0.85rem; color:var(--primary); opacity:0.9;">

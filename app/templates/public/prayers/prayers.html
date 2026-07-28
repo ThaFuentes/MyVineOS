@@ -62,7 +62,7 @@
       <strong>By:</strong> {{ prayer.creator_name or prayer.posted_by or 'Anonymous' }}
     </div>
     {% if prayer.description %}
-    <p class="public-list-body">{{ prayer.description | truncate(220) | nl2br | censor }}</p>
+    <p class="public-list-body">{{ prayer.description | truncate(220) | censor | nl2br }}</p>
     {% endif %}
     <div class="public-list-actions">
       <a href="{{ url_for('public.public_prayers.public_prayer_detail', prayer_id=prayer.id) }}" class="btn btn-primary">

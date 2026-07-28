@@ -52,7 +52,7 @@
       <strong>By:</strong> {{ pr.creator_name or pr.posted_by or 'Anonymous' }}
     </div>
     {% if pr.description %}
-    <p class="public-list-body">{{ pr.description | truncate(220) | nl2br | censor }}</p>
+    <p class="public-list-body">{{ pr.description | truncate(220) | censor | nl2br }}</p>
     {% endif %}
     <div class="public-list-actions">
       <a href="{{ url_for('public.public_prophecies.public_prophecy_detail', prophecy_id=pr.id) }}" class="btn btn-primary">

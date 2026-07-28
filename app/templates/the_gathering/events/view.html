@@ -73,7 +73,7 @@
         {% if event.description %}
         <div class="mb-5">
             <h5 class="text-light">Description</h5>
-            <div class="card glass p-4">{{ event.description | nl2br | safe }}</div>
+            <div class="card glass p-4">{{ event.description | censor | nl2br }}</div>
         </div>
         {% endif %}
 

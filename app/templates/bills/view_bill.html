@@ -56,8 +56,8 @@ Billing record and secure credential vault for {{ bill.bill_name }} - payment sc
     <section class="content-section">
         <h3 class="section-title">Description & Notes</h3>
         <div class="card glass">
-            {% if bill.description %}<p><strong>Description:</strong><br>{{ bill.description | nl2br | censor }}</p>{% endif %}
-            {% if bill.notes %}<p><strong>Internal Notes:</strong><br>{{ bill.notes | nl2br | censor }}</p>{% endif %}
+            {% if bill.description %}<p><strong>Description:</strong><br>{{ bill.description | censor | nl2br }}</p>{% endif %}
+            {% if bill.notes %}<p><strong>Internal Notes:</strong><br>{{ bill.notes | censor | nl2br }}</p>{% endif %}
         </div>
     </section>
     {% endif %}

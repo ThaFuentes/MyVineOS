@@ -52,7 +52,7 @@
       <strong>By:</strong> {{ d.creator_name or d.poster_name or 'Anonymous' }}
     </div>
     {% if d.description %}
-    <p class="public-list-body">{{ d.description | truncate(220) | nl2br | censor }}</p>
+    <p class="public-list-body">{{ d.description | truncate(220) | censor | nl2br }}</p>
     {% endif %}
     <div class="public-list-actions">
       <a href="{{ url_for('public.public_dreams.public_dream_detail', dream_id=d.id) }}" class="btn btn-primary">

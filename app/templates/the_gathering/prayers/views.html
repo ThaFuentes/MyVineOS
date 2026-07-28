@@ -67,7 +67,7 @@
         {% if prayer.prayer_text %}
         <div class="mb-5">
             <h5 class="text-light">Prayer Content</h5>
-            <div class="card glass p-4">{{ prayer.prayer_text | nl2br | safe }}</div>
+            <div class="card glass p-4">{{ prayer.prayer_text | censor | nl2br }}</div>
         </div>
         {% endif %}
 
