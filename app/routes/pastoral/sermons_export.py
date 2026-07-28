@@ -11,7 +11,7 @@
 #   - Audit-logged exports
 #   - Blueprint variable named export_bp to match existing import in pastoral/__init__.py
 
-from flask import Blueprint, render_template, send_file, session, request, abort, flash, redirect, url_for
+from flask import Blueprint, render_template, session, request, flash, redirect, url_for
 from io import BytesIO
 import re
 import zipfile
@@ -23,7 +23,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from . import pastoral_required
 from app.models.pastoral.sermons import get_visible_sermons, get_sermon_by_id, get_sermon_sections
-from app.models.pastoral.content_export import html_to_text, safe_filename
+from app.models.pastoral.content_export import (
+    html_to_text,
+    safe_filename,
+    send_docx_download,
+    zip_named_bytes,
+)
 from app.models.log import log_change
 
 export_bp = Blueprint('sermons_export', __name__, url_prefix='/sermons/export')
@@ -157,10 +162,6 @@ def single(sermon_id: int):
         sections = get_sermon_sections(sermon_id) or []
         doc = _generate_sermon_docx(sermon, sections)
 
-        bio = BytesIO()
-        doc.save(bio)
-        bio.seek(0)
-
         date_part = str(sermon.get('service_date') or 'NoDate')[:10]
         safe_title = safe_filename(sermon.get('title') or f'sermon_{sermon_id}')
         filename = f"{safe_title}_{date_part}.docx"
@@ -173,13 +174,8 @@ def single(sermon_id: int):
         except Exception as log_exc:
             print(f'sermons_export.single log: {log_exc}')
 
-        return send_file(
-            bio,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            max_age=0,
-        )
+        # Response(bytes) — not send_file(BytesIO): LiteSpeed raises fileno
+        return send_docx_download(doc, filename)
     except Exception as exc:
         print(f'sermons_export.single error sermon_id={sermon_id}: {exc}')
         flash(f'Could not build sermon download: {exc}', 'error')
@@ -210,32 +206,23 @@ def bulk():
         flash('No accessible sermons selected.', 'error')
         return redirect(url_for('pastoral.sermons_export.list'))
 
-    bio = BytesIO()
-    with zipfile.ZipFile(bio, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for sermon_id, sermon in valid_sermons:
-            sections = get_sermon_sections(sermon_id)
-            doc = _generate_sermon_docx(sermon, sections)
-
-            doc_bio = BytesIO()
-            doc.save(doc_bio)
-            doc_bio.seek(0)
-
-            date_part = str(sermon.get('service_date') or 'NoDate')[:10]
-            safe_title = safe_filename(sermon.get('title') or f'sermon_{sermon_id}')
-            filename = f"{safe_title}_{date_part}.docx"
-            zf.writestr(filename, doc_bio.read())
-
-    bio.seek(0)
+    files: list[tuple[str, bytes]] = []
+    for sermon_id, sermon in valid_sermons:
+        sections = get_sermon_sections(sermon_id)
+        doc = _generate_sermon_docx(sermon, sections)
+        doc_bio = BytesIO()
+        doc.save(doc_bio)
+        date_part = str(sermon.get('service_date') or 'NoDate')[:10]
+        safe_title = safe_filename(sermon.get('title') or f'sermon_{sermon_id}')
+        filename = f"{safe_title}_{date_part}.docx"
+        files.append((filename, doc_bio.getvalue()))
 
     try:
         log_change(user_id, 'export_bulk', None, None, f'Bulk exported {len(valid_sermons)} sermons')
     except Exception:
         pass
 
-    return send_file(
-        bio,
-        as_attachment=True,
-        download_name=f"MyVineChurch_Sermons_{datetime.now().strftime('%Y%m%d')}.zip",
-        mimetype='application/zip',
-        max_age=0,
+    return zip_named_bytes(
+        files,
+        f"MyVineChurch_Sermons_{{date}}.zip",
     )
