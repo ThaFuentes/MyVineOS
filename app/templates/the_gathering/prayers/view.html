@@ -59,7 +59,7 @@
         {% if prayer.prayer_text or prayer.description %}
         <div class="mb-4">
             <h5 class="text-light">Prayer Request</h5>
-            <div class="card glass p-4">{{ (prayer.prayer_text or prayer.description) | nl2br | censor }}</div>
+            <div class="card glass p-4">{{ (prayer.prayer_text or prayer.description) | censor | nl2br }}</div>
         </div>
         {% endif %}
     </div>

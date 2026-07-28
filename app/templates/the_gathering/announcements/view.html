@@ -84,7 +84,7 @@
         <!-- Full Content -->
         <div class="mb-5">
             <h5 class="text-light">Announcement Content</h5>
-            <div class="glass-panel">{{ announcement.content | nl2br | safe }}</div>
+            <div class="glass-panel">{{ announcement.content | censor | nl2br }}</div>
         </div>
 
         <!-- Created / Updated Info -->

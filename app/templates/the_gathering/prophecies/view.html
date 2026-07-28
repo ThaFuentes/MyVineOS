@@ -71,7 +71,7 @@
         <!-- Full Prophecy Content -->
         <div class="mb-5">
             <h5 class="text-light">Prophecy Content</h5>
-            <div class="glass-panel">{{ prophecy.prophecy_text | nl2br | safe }}</div>
+            <div class="glass-panel">{{ prophecy.prophecy_text | censor | nl2br }}</div>
         </div>
 
         <!-- Created / Updated Info -->

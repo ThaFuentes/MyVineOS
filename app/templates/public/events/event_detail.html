@@ -226,7 +226,7 @@
                 <div class="comment-item" style="margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1);">
                     <p><strong>{{ comment.name | censor }}</strong>
                        <small style="color:#888;">{{ comment.created_at_nice }}</small></p>
-                    <p>{{ comment.comment_text | nl2br | censor }}
+                    <p>{{ comment.comment_text | censor | nl2br }}
                         {% if comment.edited_by_moderator %}
                         <em style="color:#888; font-size:0.85rem;"> (edited by a moderator)</em>
                         {% endif %}
@@ -271,7 +271,7 @@
                 <div class="comment-item" style="margin-left:2rem; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid rgba(0,255,255,0.1); border-left:3px solid var(--primary); padding-left:1rem;">
                     <p><strong>{{ reply.name | censor }}</strong>
                        <small style="color:#888;">{{ reply.created_at_nice }}</small></p>
-                    <p>{{ reply.comment_text | nl2br | censor }}
+                    <p>{{ reply.comment_text | censor | nl2br }}
                         {% if reply.edited_by_moderator %}
                         <em style="color:#888; font-size:0.85rem;"> (edited by a moderator)</em>
                         {% endif %}

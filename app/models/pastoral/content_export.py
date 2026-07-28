@@ -15,14 +15,30 @@ from flask import Response, send_file
 
 
 def safe_filename(name: str, default: str = "content", max_len: int = 80) -> str:
-    """Filesystem-safe base name (no extension)."""
+    """Filesystem-safe base name (no extension). ASCII-friendly for download headers."""
     raw = (name or default).strip() or default
+    # Strip HTML if a title accidentally has tags
+    raw = re.sub(r"<[^>]+>", "", raw)
     raw = re.sub(r"[\\/:*?\"<>|\r\n]+", "-", raw)
     raw = re.sub(r"\s+", "_", raw)
+    raw = re.sub(r"_+", "_", raw).strip("._-")
+    # Keep mostly printable ASCII so Content-Disposition works on all hosts
+    raw = re.sub(r"[^\w.\-]+", "_", raw, flags=re.UNICODE)
     raw = re.sub(r"_+", "_", raw).strip("._-")
     if not raw:
         raw = default
     return raw[:max_len]
+
+
+def content_disposition_attachment(filename: str) -> str:
+    """RFC 5987-friendly Content-Disposition for picky browsers/hosts."""
+    safe = safe_filename(filename.rsplit(".", 1)[0] if "." in filename else filename)
+    ext = ""
+    if "." in filename:
+        ext = "." + filename.rsplit(".", 1)[-1].lower()
+    ascii_name = f"{safe}{ext}" if ext else safe
+    # Only quoted ASCII name — avoids broken headers on shared hosts
+    return f'attachment; filename="{ascii_name}"'
 
 
 def html_to_text(html: str | None) -> str:
@@ -236,22 +252,32 @@ def docx_bytes(doc: Document) -> BytesIO:
 def send_markdown_download(body: str, filename: str) -> Response:
     if not filename.lower().endswith(".md"):
         filename = f"{filename}.md"
+    # Ensure UTF-8 bytes; some hosts choke on Response(str) + attachment
+    data = body if isinstance(body, (bytes, bytearray)) else (body or "").encode("utf-8")
+    safe = safe_filename(filename[:-3] if filename.lower().endswith(".md") else filename) + ".md"
     return Response(
-        body,
-        mimetype="text/markdown; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        data,
+        mimetype="text/markdown",
+        headers={
+            "Content-Type": "text/markdown; charset=utf-8",
+            "Content-Disposition": content_disposition_attachment(safe),
+            "Content-Length": str(len(data)),
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
 def send_docx_download(doc: Document, filename: str) -> Response:
     if not filename.lower().endswith(".docx"):
         filename = f"{filename}.docx"
+    safe = safe_filename(filename[:-5] if filename.lower().endswith(".docx") else filename) + ".docx"
     bio = docx_bytes(doc)
     return send_file(
         bio,
         as_attachment=True,
-        download_name=filename,
+        download_name=safe,
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        max_age=0,
     )
 
 

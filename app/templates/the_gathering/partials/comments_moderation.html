@@ -61,7 +61,7 @@
                     <td><strong>#{{ comment.id }}</strong></td>
                     <td>{{ comment.name | censor }}</td>
                     <td style="max-width:400px;">
-                        <span id="comment-text-{{ comment.id }}">{{ comment.comment_text | nl2br | censor }}</span>
+                        <span id="comment-text-{{ comment.id }}">{{ comment.comment_text | censor | nl2br }}</span>
                         {% if comment.edited_by_moderator %}
                             <br><small class="text-warning"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edited by moderator</small>
                         {% endif %}

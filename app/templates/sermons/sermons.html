@@ -131,7 +131,7 @@ Staff and above can upload new sermons.
                             {% if s.details %}
                             <section class="detail-section">
                                 <h3 class="detail-heading">Details</h3>
-                                <div class="detail-content">{{ s.details|nl2br|censor }}</div>
+                                <div class="detail-content">{{ s.details| censor | nl2br }}</div>
                             </section>
                             {% endif %}
 

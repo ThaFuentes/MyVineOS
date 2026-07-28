@@ -27,7 +27,7 @@ Prayer request by {{ prayer.creator_name }} - {{ prayer.formatted_date }}
             on {{ prayer.formatted_date }}
         </p>
         <div class="prayer-body">
-            {{ prayer.description | nl2br | censor }}
+            {{ prayer.description | censor | nl2br }}
         </div>
     </div>
 
@@ -42,7 +42,7 @@ Prayer request by {{ prayer.creator_name }} - {{ prayer.formatted_date }}
                     <strong>{{ r.responder_name }}</strong>
                     - {{ r.formatted_date }}
                 </p>
-                <p>{{ r.prayer | nl2br | censor }}</p>
+                <p>{{ r.prayer | censor | nl2br }}</p>
 
                 <!-- Edit / Delete buttons (owner or moderator) -->
                 {% if is_logged_in and (r.user_id == session.user_id or user_has_permission('moderate_prayers') or session.user_role in ['Admin', 'Owner']) %}

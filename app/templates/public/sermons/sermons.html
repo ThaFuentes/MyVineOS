@@ -24,7 +24,7 @@
       <strong>By:</strong> {{ s.posted_by or s.creator_name or 'Church' }}
     </div>
     {% if s.notes_content or s.details %}
-    <p class="public-list-body">{{ (s.notes_content or s.details) | truncate(220) | nl2br | censor }}</p>
+    <p class="public-list-body">{{ (s.notes_content or s.details) | truncate(220) | censor | nl2br }}</p>
     {% endif %}
     <div class="public-list-actions">
       <a href="{{ url_for('public.public_sermons.public_sermon_detail', sermon_id=s.id) }}" class="btn btn-primary">
