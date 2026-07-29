@@ -333,6 +333,126 @@ def save_sermon_sections(sermon_id, sections_list):
     db.commit()
 
 
+def append_illustration_section(
+    sermon_id: int,
+    *,
+    title: str,
+    content_html: str,
+    scripture_reference: str = '',
+    source: str = '',
+    notes: str = '',
+    section_type: str = 'illustration',
+) -> dict:
+    """
+    Insert ONE new sermon section without full-replace.
+    Safe with autosave: does not DELETE existing sections first.
+    """
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute(
+        "SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM sermon_sections WHERE sermon_id = %s",
+        (sermon_id,),
+    )
+    sort_order = int((cur.fetchone() or {}).get('n') or 1)
+    cur.execute(
+        """
+        INSERT INTO sermon_sections (
+            sermon_id, sort_order, section_type, title, content,
+            scripture_reference, source, notes
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            sermon_id,
+            sort_order,
+            section_type or 'illustration',
+            (title or 'Illustration')[:500],
+            content_html or '',
+            scripture_reference or '',
+            source or '',
+            notes or '',
+        ),
+    )
+    section_id = cur.lastrowid
+    try:
+        cur.execute(
+            "UPDATE pastoral_sermons SET updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (sermon_id,),
+        )
+    except Exception:
+        pass
+    db.commit()
+    return {
+        'section_id': section_id,
+        'sort_order': sort_order,
+        'section_index': sort_order - 1,  # approximate 0-based if dense ordering
+    }
+
+
+def append_html_to_section_index(
+    sermon_id: int,
+    section_index: int | None,
+    html: str,
+    *,
+    source: str = '',
+    force_illustration_title: str | None = None,
+) -> dict:
+    """
+    Append HTML into an existing section by 0-based index (or last section).
+    Does NOT delete/replace other sections (autosave-safe).
+    """
+    sections = list(get_sermon_sections(sermon_id) or [])
+    if not sections:
+        # No sections yet — create one
+        r = append_illustration_section(
+            sermon_id,
+            title=force_illustration_title or 'Illustration',
+            content_html=html or '',
+            source=source or '',
+        )
+        return {**r, 'created': True}
+
+    if section_index is None or section_index < 0 or section_index >= len(sections):
+        section_index = len(sections) - 1
+    target = sections[section_index]
+    sid = target['id']
+    new_content = (target.get('content') or '') + (html or '')
+
+    db = get_db()
+    cur = db.cursor()
+    # Optionally retitle empty point sections when inserting an illustration
+    new_type = target.get('section_type') or 'point'
+    new_title = target.get('title') or ''
+    if force_illustration_title and (new_type == 'point') and not str(new_title).strip():
+        new_type = 'illustration'
+        new_title = force_illustration_title
+    new_source = target.get('source') or source or ''
+
+    cur.execute(
+        """
+        UPDATE sermon_sections
+        SET content = %s,
+            section_type = %s,
+            title = %s,
+            source = %s
+        WHERE id = %s AND sermon_id = %s
+        """,
+        (new_content, new_type, new_title, new_source, sid, sermon_id),
+    )
+    try:
+        cur.execute(
+            "UPDATE pastoral_sermons SET updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (sermon_id,),
+        )
+    except Exception:
+        pass
+    db.commit()
+    return {
+        'section_id': sid,
+        'section_index': section_index,
+        'created': False,
+    }
+
+
 def append_scripture_to_sermon(sermon_id, reference: str, text: str, translation: str | None = None) -> dict:
     """
     Append a scripture block into the sermon WITHOUT full section replace.
