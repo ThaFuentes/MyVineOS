@@ -131,8 +131,8 @@
                                 <h4 class="text-cyan mb-0">Sermon Sections</h4>
                                 <div class="sermon-quick-menu">
                                     <div class="sermon-quick-menu-actions d-flex flex-wrap gap-2 justify-content-end">
-                                        <button type="button" id="open-illustration-tray-btn" class="btn btn-primary btn-sm" title="Insert illustrations into this sermon">
-                                            <i class="fas fa-lightbulb me-1"></i>Add illustrations
+                                        <button type="button" id="open-illustration-tray-btn" class="btn btn-primary btn-sm" title="Show only docked illustrations ready for this sermon">
+                                            <i class="fas fa-bookmark me-1"></i>Docked
                                             <span id="sermon-dock-count-badge" class="badge bg-dark ms-1" style="display:none;">0</span>
                                         </button>
                                         {% if sermon and sermon.id %}
@@ -184,17 +184,17 @@
                                     </div>
                                 </div>
                                 <p class="help-text small mb-2" style="opacity:0.85;">
-                                    <strong>Ready for this sermon</strong> = docked in the library.
-                                    <strong>Vault</strong> = reusable section copies (not the same as illustrations).
+                                    Shows only what you <strong>docked</strong> for this sermon.
+                                    Type below only if you need something else from the full library.
                                 </p>
                                 <div class="mb-2">
                                     <input type="search" id="illustration-tray-search" class="form-control form-control-dark form-control-sm"
-                                           placeholder="Search full illustration library…">
+                                           placeholder="Optional: search full library (not shown until you type)…">
                                 </div>
                                 <div id="sermon-dock-list" class="d-grid gap-2"></div>
                                 <div id="illustration-tray-library" class="d-grid gap-2 mt-2"></div>
                                 <p id="sermon-dock-empty" class="text-muted small mb-0" style="display:none;">
-                                    Nothing ready yet. In the library, click <strong>Dock for sermon</strong>, or search above.
+                                    No docked illustrations yet. Open the full library and click <strong>Dock for sermon</strong>, or search above to pull one in.
                                 </p>
                             </div>
 
@@ -1207,9 +1207,16 @@
         async function searchLibraryIntoTray(q) {
             const box = document.getElementById('illustration-tray-library');
             if (!box) return;
-            box.innerHTML = '<span class="text-muted small">Searching…</span>';
+            q = (q || '').trim();
+            // Empty search = hide full library (only show docked/ready list)
+            if (!q) {
+                libraryCache = [];
+                box.innerHTML = '';
+                return;
+            }
+            box.innerHTML = '<span class="text-muted small">Searching library…</span>';
             try {
-                const url = '/pastoral/illustrations/list_json' + (q ? ('?q=' + encodeURIComponent(q)) : '');
+                const url = '/pastoral/illustrations/list_json?q=' + encodeURIComponent(q);
                 const resp = await fetch(url, { headers: csrfHeaders(false), credentials: 'same-origin' });
                 const items = await resp.json();
                 libraryCache = Array.isArray(items) ? items : (items.items || []);
@@ -1218,14 +1225,18 @@
             }
             box.innerHTML = '';
             if (!libraryCache.length) {
-                box.innerHTML = '<span class="text-muted small">No library matches.</span>';
+                box.innerHTML = '<span class="text-muted small">No library matches for “' + escapeHtml(q) + '”.</span>';
                 return;
             }
             const head = document.createElement('div');
-            head.className = 'small text-cyan fw-bold mt-1';
-            head.textContent = 'Library' + (q ? ' · “' + q + '”' : '');
+            head.className = 'small text-muted fw-bold mt-1';
+            head.textContent = 'From full library · “' + q + '” (' + libraryCache.length + ')';
             box.appendChild(head);
-            libraryCache.slice(0, 25).forEach((it) => box.appendChild(renderTrayItemRow(it)));
+            // Exclude already-docked ids so you don't see doubles
+            const dockedIds = new Set(dockCache.map((d) => d.id));
+            libraryCache.filter((it) => !dockedIds.has(it.id)).slice(0, 25).forEach((it) => {
+                box.appendChild(renderTrayItemRow(it));
+            });
         }
 
         function showDockPanel(show) {
@@ -1233,8 +1244,11 @@
             if (!panel) return;
             panel.style.display = show ? 'block' : 'none';
             if (show) {
-                refreshDockPanel();
-                searchLibraryIntoTray('');
+                const search = document.getElementById('illustration-tray-search');
+                if (search) search.value = '';
+                const libBox = document.getElementById('illustration-tray-library');
+                if (libBox) libBox.innerHTML = '';
+                refreshDockPanel(); // docked/ready only — not all 37
             }
         }
 
@@ -1321,19 +1335,24 @@
             if (!list) return;
             list.innerHTML = '<span class="text-muted small">Loading…</span>';
             if (!dockCache.length) await refreshDockPanel();
-            let lib = [];
-            try {
-                const url = '/pastoral/illustrations/list_json' + (q ? ('?q=' + encodeURIComponent(q)) : '');
-                const resp = await fetch(url, { headers: csrfHeaders(false), credentials: 'same-origin' });
-                const data = await resp.json();
-                lib = Array.isArray(data) ? data : (data.items || []);
-            } catch (e) { lib = []; }
 
-            const ql = (q || '').toLowerCase();
-            const docked = dockCache.filter((it) => !ql || (it.title || '').toLowerCase().includes(ql)
+            const ql = (q || '').trim().toLowerCase();
+            // Default: only docked/ready. Full library only when user types a search.
+            let docked = dockCache.filter((it) => !ql || (it.title || '').toLowerCase().includes(ql)
                 || (it.content || '').toLowerCase().includes(ql));
-            const seen = new Set(docked.map((d) => d.id));
-            const rest = lib.filter((it) => !seen.has(it.id));
+            let rest = [];
+            if (ql) {
+                try {
+                    const resp = await fetch('/pastoral/illustrations/list_json?q=' + encodeURIComponent(q.trim()), {
+                        headers: csrfHeaders(false),
+                        credentials: 'same-origin',
+                    });
+                    const data = await resp.json();
+                    const lib = Array.isArray(data) ? data : (data.items || []);
+                    const seen = new Set(docked.map((d) => d.id));
+                    rest = lib.filter((it) => !seen.has(it.id));
+                } catch (e) { rest = []; }
+            }
 
             list.innerHTML = '';
             const addGroup = (title, items) => {
@@ -1356,10 +1375,12 @@
                     list.appendChild(btn);
                 });
             };
-            addGroup('Ready for this sermon', docked);
-            addGroup('Illustration library', rest.slice(0, 40));
-            if (!docked.length && !rest.length) {
-                list.innerHTML = '<p class="text-muted small mb-0">No illustrations found. Create some in the Illustration Library first.</p>';
+            addGroup('Docked for this sermon (' + docked.length + ')', docked);
+            if (ql) addGroup('Library search', rest.slice(0, 40));
+            if (!docked.length && !ql) {
+                list.innerHTML = '<p class="text-muted small mb-0">No docked illustrations. Type above to search the full library, or dock items in the Illustration Library first.</p>';
+            } else if (ql && !docked.length && !rest.length) {
+                list.innerHTML = '<p class="text-muted small mb-0">No matches.</p>';
             }
         }
 
