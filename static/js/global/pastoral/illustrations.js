@@ -98,28 +98,35 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const resp = await fetch(`/pastoral/illustrations/insert/${sermonId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ illustration_id: parseInt(illusId) })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    item_id: parseInt(illusId, 10),
+                    illustration_id: parseInt(illusId, 10),
+                    as_new_section: true,
+                })
             });
 
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-            const data = await resp.json();
+            const data = await resp.json().catch(() => ({}));
             console.log('[ILLUSTRATIONS SIDEBAR] Insert response:', data);
 
-            const quill = window.SermonEditor?.getActiveQuill();
-            if (!quill) throw new Error('No active Quill editor found');
-            if (!data.html) throw new Error('No HTML returned from server');
+            if (!resp.ok || data.status !== 'success') {
+                throw new Error(data.message || `HTTP ${resp.status}`);
+            }
 
-            const range = quill.getSelection() || { index: quill.getLength() };
-            quill.clipboard.dangerouslyPasteHTML(range.index, data.html);
-            quill.setSelection(range.index + data.html.length);
-
-            console.log('[ILLUSTRATIONS SIDEBAR] Successfully inserted HTML into sermon');
-            alert('Illustration inserted successfully!');
+            // Server persisted a new section (append-only). Reload so autosave can't wipe it.
+            try { localStorage.removeItem('sermonDraft_' + sermonId); } catch (e) {}
+            alert(data.as_new_section
+                ? 'Illustration saved as a new section — reloading…'
+                : 'Illustration inserted — reloading…');
+            window.location.reload();
+            return;
         } catch (err) {
             console.error('[ILLUSTRATIONS SIDEBAR] Insert failed:', err);
-            alert('Failed to insert illustration – check console/network tab.');
+            alert('Failed to insert illustration: ' + (err.message || 'check console'));
         } finally {
             if (btn) {
                 btn.disabled = false;

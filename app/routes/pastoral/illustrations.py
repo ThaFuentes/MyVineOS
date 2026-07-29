@@ -785,7 +785,8 @@ def insert_into_sermon(sermon_id: int):
     """
     user_id = session['user_id']
     data = request.get_json(silent=True) or {}
-    item_id = data.get('item_id')
+    # Accept item_id or legacy illustration_id from older JS
+    item_id = data.get('item_id') or data.get('illustration_id')
     if not item_id:
         return jsonify({'status': 'error', 'message': 'No item selected'}), 400
     try:
@@ -806,7 +807,12 @@ def insert_into_sermon(sermon_id: int):
 
     html = _item_insert_html(item, item_id)
 
-    from app.models.pastoral.sermons import get_sermon_by_id, get_sermon_sections, save_sermon_sections
+    from app.models.pastoral.sermons import (
+        get_sermon_by_id,
+        get_sermon_sections,
+        append_illustration_section,
+        append_html_to_section_index,
+    )
 
     sermon = get_sermon_by_id(sermon_id, user_id)
     if not sermon:
@@ -814,33 +820,32 @@ def insert_into_sermon(sermon_id: int):
 
     sections = list(get_sermon_sections(sermon_id) or [])
     source_ref = item.get('source_url') or item.get('source', '') or ''
+    title = item.get('title') or 'Illustration'
+    created_new = False
     target_index = None
 
+    # Append-only writes — never full-replace (autosave was wiping dock inserts)
     if as_new or not sections:
-        sections.append({
-            'section_type': 'illustration',
-            'title': item.get('title') or 'Illustration',
-            'content': html,
-            'scripture_reference': item.get('scripture_reference') or '',
-            'source': source_ref,
-            'notes': '',
-        })
-        target_index = len(sections) - 1
+        result = append_illustration_section(
+            sermon_id,
+            title=title,
+            content_html=html,
+            scripture_reference=item.get('scripture_reference') or '',
+            source=source_ref,
+            section_type='illustration',
+        )
+        created_new = True
+        target_index = result.get('section_index')
     else:
-        if section_index is None or section_index < 0 or section_index >= len(sections):
-            section_index = len(sections) - 1
-        target = dict(sections[section_index])
-        target['content'] = (target.get('content') or '') + html
-        if not target.get('source') and source_ref:
-            target['source'] = source_ref
-        # If section type is still generic "point", label it illustration when empty title
-        if (target.get('section_type') or '') == 'point' and not (target.get('title') or '').strip():
-            target['section_type'] = 'illustration'
-            target['title'] = item.get('title') or 'Illustration'
-        sections[section_index] = target
-        target_index = section_index
-
-    save_sermon_sections(sermon_id, sections)
+        result = append_html_to_section_index(
+            sermon_id,
+            section_index,
+            html,
+            source=source_ref,
+            force_illustration_title=title,
+        )
+        created_new = bool(result.get('created'))
+        target_index = result.get('section_index')
 
     item_type = item.get('type', 'content')
     log_change(
@@ -855,10 +860,9 @@ def insert_into_sermon(sermon_id: int):
         'html': html,
         'persisted': True,
         'section_index': target_index,
-        'as_new_section': as_new or target_index is not None and (
-            section_index is None and as_new
-        ),
-        'title': item.get('title') or 'Illustration',
+        'as_new_section': bool(as_new or created_new),
+        'title': title,
+        'section_id': result.get('section_id'),
     })
 
 
@@ -878,7 +882,12 @@ def insert_docked_into_sermon(sermon_id: int):
     if not docked_ids:
         return jsonify({'status': 'error', 'message': 'Dock is empty. Dock items on the library cards first.'}), 400
 
-    from app.models.pastoral.sermons import get_sermon_by_id, get_sermon_sections, save_sermon_sections
+    from app.models.pastoral.sermons import (
+        get_sermon_by_id,
+        get_sermon_sections,
+        append_illustration_section,
+        append_html_to_section_index,
+    )
 
     sermon = get_sermon_by_id(sermon_id, user_id)
     if not sermon:
@@ -892,27 +901,30 @@ def insert_docked_into_sermon(sermon_id: int):
             continue
         html = _item_insert_html(item, iid)
         source_ref = item.get('source_url') or item.get('source', '') or ''
+        title = item.get('title') or 'Illustration'
+        # Append-only: each docked item becomes its own section (default)
+        # or appends to the last section — never DELETE+reinsert all
         if as_new or not sections:
-            sections.append({
-                'section_type': 'illustration',
-                'title': item.get('title') or 'Illustration',
-                'content': html,
-                'scripture_reference': item.get('scripture_reference') or '',
-                'source': source_ref,
-                'notes': '',
-            })
+            append_illustration_section(
+                sermon_id,
+                title=title,
+                content_html=html,
+                scripture_reference=item.get('scripture_reference') or '',
+                source=source_ref,
+                section_type='illustration',
+            )
+            sections = list(get_sermon_sections(sermon_id) or [])  # refresh length
         else:
-            last = dict(sections[-1])
-            last['content'] = (last.get('content') or '') + html
-            if not last.get('source') and source_ref:
-                last['source'] = source_ref
-            sections[-1] = last
+            append_html_to_section_index(
+                sermon_id,
+                len(sections) - 1,
+                html,
+                source=source_ref,
+            )
         inserted.append({'id': iid, 'title': item.get('title') or 'Untitled'})
 
     if not inserted:
         return jsonify({'status': 'error', 'message': 'None of the docked items could be loaded.'}), 404
-
-    save_sermon_sections(sermon_id, sections)
     log_change(
         user_id,
         'insert',

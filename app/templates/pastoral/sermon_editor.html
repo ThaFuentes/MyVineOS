@@ -795,6 +795,7 @@
         // Uses unified /autosave that creates draft record for new if meaningful content
         setInterval(() => {
             if (!isDirty) return;
+            if (pauseAutosaveForInsert) return; // dock/library insert in flight — do not full-replace
             const full = collectFullDraftData();
             saveDraftToLocal(full);
             if (!hasMeaningfulContent()) return;
@@ -854,6 +855,8 @@
                 try {
                     const d = collectFullDraftData();
                     localStorage.setItem(getDraftStorageKey(), JSON.stringify(d));
+                    // Never beacon-autosave while dock insert is reloading — would wipe new sections
+                    if (pauseAutosaveForInsert) return;
                     if (hasMeaningfulContent() && currentSermonId && navigator.sendBeacon) {
                         const p = { sermon_id: currentSermonId, sermon: collectSermonData(), sections: collectSections() };
                         navigator.sendBeacon('/pastoral/sermons/autosave', new Blob([JSON.stringify(p)], {type: 'application/json'}));
@@ -995,6 +998,8 @@
 
         // ----- Illustrations library + Sermon dock (docked items → sections) -----
         let dockCache = [];
+        // Block autosave from wiping dock inserts (server append is source of truth until reload)
+        let pauseAutosaveForInsert = false;
 
         function csrfHeaders(json) {
             const h = {
@@ -1043,6 +1048,7 @@
             let html = '<div class="inserted-content"><h3>' + (item.title || 'Illustration') + '</h3><blockquote>'
                 + (item.content || '') + '</blockquote></div>';
             if (currentSermonId && item.id) {
+                pauseAutosaveForInsert = true;
                 try {
                     const res = await fetch('/pastoral/illustrations/insert/' + currentSermonId, {
                         method: 'POST',
@@ -1053,19 +1059,35 @@
                             as_new_section: !!asNewSection,
                         }),
                     });
-                    const data = await res.json();
-                    if (data.status === 'success' && data.html) {
-                        html = data.html;
+                    const data = await res.json().catch(() => ({}));
+                    if (data.status === 'success') {
+                        // Clear stale local draft so reload doesn't rehydrate without the new section
+                        try { localStorage.removeItem(getDraftStorageKey()); } catch (e) {}
                         if (asNewSection || data.as_new_section) {
-                            // Reload is simplest so new section card appears with server content
                             showToast('Added as a new illustration section — reloading…', true);
-                            setTimeout(() => window.location.reload(), 450);
+                            setTimeout(() => window.location.reload(), 350);
                             return;
                         }
+                        if (data.html) html = data.html;
+                        // Into existing section: update DOM + hard reload so autosave can't clobber DB
+                        const cards = sectionCards();
+                        let idx = sectionIndex;
+                        if (idx == null || idx < 0 || idx >= cards.length) idx = cards.length - 1;
+                        if (cards[idx]) applyHtmlToSectionCard(cards[idx], html, item.content || item.title);
+                        showToast('Inserted into section ' + (idx + 1) + ' — reloading to confirm…', true);
+                        setTimeout(() => window.location.reload(), 400);
+                        return;
                     } else if (data.message) {
                         showToast(data.message, false);
+                        pauseAutosaveForInsert = false;
+                    } else {
+                        showToast('Could not insert illustration (server error)', false);
+                        pauseAutosaveForInsert = false;
                     }
-                } catch (e) { /* client paste fallback */ }
+                } catch (e) {
+                    pauseAutosaveForInsert = false;
+                    showToast('Network error inserting illustration', false);
+                }
             } else if (asNewSection) {
                 document.getElementById('add-section-bottom-btn')?.click();
                 setTimeout(() => {
@@ -1191,20 +1213,24 @@
                 return;
             }
             if (!confirm('Insert all ' + dockCache.length + ' docked item(s) as new Illustration sections?')) return;
+            pauseAutosaveForInsert = true;
             try {
                 const res = await fetch('/pastoral/illustrations/insert_docked/' + currentSermonId, {
                     method: 'POST',
                     headers: csrfHeaders(true),
                     body: JSON.stringify({ mode: 'new_sections', clear_dock: false }),
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (data.status === 'success') {
+                    try { localStorage.removeItem(getDraftStorageKey()); } catch (e) {}
                     showToast('Inserted ' + data.count + ' item(s) as new sections — reloading…', true);
-                    setTimeout(() => window.location.reload(), 500);
+                    setTimeout(() => window.location.reload(), 350);
                 } else {
+                    pauseAutosaveForInsert = false;
                     showToast(data.message || 'Could not insert docked items', false);
                 }
             } catch (e) {
+                pauseAutosaveForInsert = false;
                 showToast('Network error inserting docked items', false);
             }
         });
