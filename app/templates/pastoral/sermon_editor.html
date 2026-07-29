@@ -131,11 +131,8 @@
                                 <h4 class="text-cyan mb-0">Sermon Sections</h4>
                                 <div class="sermon-quick-menu">
                                     <div class="sermon-quick-menu-actions d-flex flex-wrap gap-2 justify-content-end">
-                                        <button type="button" id="insert-from-illustrations-btn" class="btn btn-primary btn-sm" title="Browse full library">
-                                            <i class="fas fa-book me-1"></i>Illustrations
-                                        </button>
-                                        <button type="button" id="open-sermon-dock-btn" class="btn btn-cyan btn-sm" title="Insert items you docked in the Illustrations Library">
-                                            <i class="fas fa-bookmark me-1"></i>Sermon dock
+                                        <button type="button" id="open-illustration-tray-btn" class="btn btn-primary btn-sm" title="Insert illustrations into this sermon">
+                                            <i class="fas fa-lightbulb me-1"></i>Add illustrations
                                             <span id="sermon-dock-count-badge" class="badge bg-dark ms-1" style="display:none;">0</span>
                                         </button>
                                         {% if sermon and sermon.id %}
@@ -169,31 +166,68 @@
                                 </div>
                             </div>
 
-                            {# Dock tray: items bookmarked in Illustrations Library #}
+                            {# Illustration tray: docked (ready) + library search — no prompt() #}
                             <div id="sermon-dock-panel" class="glass-panel mb-3" style="display:none; padding:0.85rem 1rem; border-left:4px solid var(--primary, #4dffc8);">
                                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                                     <div>
-                                        <strong class="text-cyan"><i class="fas fa-bookmark me-1"></i>Sermon dock</strong>
-                                        <span class="text-muted small ms-1">Items you docked in the library — insert into a section below</span>
+                                        <strong class="text-cyan"><i class="fas fa-lightbulb me-1"></i>Illustration tray</strong>
+                                        <span class="text-muted small ms-1">Insert into a <em>new section</em>, or open a section’s <strong>Add illustration</strong></span>
                                     </div>
                                     <div class="d-flex flex-wrap gap-2">
-                                        <button type="button" id="dock-insert-all-new-btn" class="btn btn-sm btn-primary" title="Each docked item becomes its own Illustration section">
-                                            Insert all as new sections
+                                        <button type="button" id="dock-insert-all-new-btn" class="btn btn-sm btn-primary">
+                                            Insert all ready → new sections
                                         </button>
                                         <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
-                                            Open library
+                                            Full library
                                         </a>
                                         <button type="button" id="sermon-dock-close-btn" class="btn btn-sm btn-outline-secondary">Hide</button>
                                     </div>
                                 </div>
-                                <p class="help-text small mb-2" style="opacity:0.8;">
-                                    Tip: on each section use <strong>From dock</strong> to put an item into <em>that</em> section, or pick a section number below.
+                                <p class="help-text small mb-2" style="opacity:0.85;">
+                                    <strong>Ready for this sermon</strong> = docked in the library.
+                                    <strong>Vault</strong> = reusable section copies (not the same as illustrations).
                                 </p>
+                                <div class="mb-2">
+                                    <input type="search" id="illustration-tray-search" class="form-control form-control-dark form-control-sm"
+                                           placeholder="Search full illustration library…">
+                                </div>
                                 <div id="sermon-dock-list" class="d-grid gap-2"></div>
+                                <div id="illustration-tray-library" class="d-grid gap-2 mt-2"></div>
                                 <p id="sermon-dock-empty" class="text-muted small mb-0" style="display:none;">
-                                    Dock is empty. In Illustrations Library, click <strong>Dock for sermon</strong> on a card, then come back here.
+                                    Nothing ready yet. In the library, click <strong>Dock for sermon</strong>, or search above.
                                 </p>
                             </div>
+
+                            {# Modern picker (replaces prompt) #}
+                            <div id="illustration-picker-modal" class="illustration-picker-modal" style="display:none;" aria-hidden="true">
+                                <div class="illustration-picker-backdrop" data-close-picker></div>
+                                <div class="illustration-picker-dialog glass-panel" role="dialog" aria-labelledby="illustration-picker-title">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                        <h5 id="illustration-picker-title" class="text-cyan mb-0">Add illustration</h5>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-close-picker>Close</button>
+                                    </div>
+                                    <p id="illustration-picker-hint" class="small text-muted mb-2"></p>
+                                    <input type="search" id="illustration-picker-search" class="form-control form-control-dark form-control-sm mb-2"
+                                           placeholder="Filter…">
+                                    <div id="illustration-picker-list" class="illustration-picker-list"></div>
+                                </div>
+                            </div>
+                            <style>
+                              .illustration-picker-modal { position: fixed; inset: 0; z-index: 2000; }
+                              .illustration-picker-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+                              .illustration-picker-dialog {
+                                position: relative; z-index: 1; max-width: 520px; width: calc(100% - 2rem);
+                                margin: 8vh auto; max-height: 80vh; overflow: auto; padding: 1rem 1.1rem;
+                              }
+                              .illustration-picker-list { display: grid; gap: .5rem; }
+                              .illustration-picker-item {
+                                text-align: left; width: 100%; border: 1px solid rgba(255,255,255,.12);
+                                background: rgba(0,0,0,.25); color: inherit; border-radius: .5rem; padding: .65rem .75rem;
+                              }
+                              .illustration-picker-item:hover { border-color: var(--primary, #4dffc8); }
+                              .illustration-picker-item strong { display: block; margin-bottom: .2rem; }
+                              .illustration-picker-item small { opacity: .75; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+                            </style>
 
                             <div id="sections-container">
                                 {% for section in sections %}
@@ -474,6 +508,7 @@
 
         // Status helpers
         const markDirty = () => {
+            if (window.__pauseAutosaveForInsert) return;
             if (!isDirty) {
                 isDirty = true;
                 saveStatus.textContent = 'Unsaved changes';
@@ -488,13 +523,31 @@
         }
 
         function scheduleLocalDraftSave() {
+            if (window.__pauseAutosaveForInsert) return;
             clearTimeout(window.__draftTimer);
             window.__draftTimer = setTimeout(() => {
+                if (window.__pauseAutosaveForInsert) return;
                 try {
                     const d = collectFullDraftData();
                     localStorage.setItem(getDraftStorageKey(), JSON.stringify(d));
                 } catch (e) {}
             }, 650);
+        }
+
+        function clearLocalSermonDraft() {
+            try {
+                localStorage.removeItem(getDraftStorageKey());
+                localStorage.removeItem('sermonDraft_new');
+            } catch (e) {}
+        }
+
+        function reloadAfterIllustrationInsert(msg) {
+            window.__pauseAutosaveForInsert = true;
+            clearLocalSermonDraft();
+            try { sessionStorage.setItem('skipSermonDraftHydrate', '1'); } catch (e) {}
+            isDirty = false;
+            if (msg) showToast(msg, true);
+            setTimeout(() => window.location.reload(), 300);
         }
 
         // Defined early so markDirty/schedule on first keystroke never ReferenceErrors (hoisted for safety)
@@ -711,11 +764,7 @@
             const card = e.target.closest('.section-card');
             if (!card) return;
 
-            if (e.target.closest('.save-section-vault-and-sermon')) {
-                e.preventDefault();
-                const root = card.querySelector('[data-section-root]') || card;
-                saveVaultAndSermonFromRoot(root, { alreadyInSermon: true });
-            } else if (e.target.closest('.save-section-to-vault')) {
+            if (e.target.closest('.save-section-to-vault')) {
                 e.preventDefault();
                 const root = card.querySelector('[data-section-root]') || card;
                 saveSectionToVault(readSectionFromRoot(root));
@@ -795,7 +844,7 @@
         // Uses unified /autosave that creates draft record for new if meaningful content
         setInterval(() => {
             if (!isDirty) return;
-            if (pauseAutosaveForInsert) return; // dock/library insert in flight — do not full-replace
+            if (window.__pauseAutosaveForInsert) return;
             const full = collectFullDraftData();
             saveDraftToLocal(full);
             if (!hasMeaningfulContent()) return;
@@ -856,7 +905,7 @@
                     const d = collectFullDraftData();
                     localStorage.setItem(getDraftStorageKey(), JSON.stringify(d));
                     // Never beacon-autosave while dock insert is reloading — would wipe new sections
-                    if (pauseAutosaveForInsert) return;
+                    if (window.__pauseAutosaveForInsert) return;
                     if (hasMeaningfulContent() && currentSermonId && navigator.sendBeacon) {
                         const p = { sermon_id: currentSermonId, sermon: collectSermonData(), sections: collectSections() };
                         navigator.sendBeacon('/pastoral/sermons/autosave', new Blob([JSON.stringify(p)], {type: 'application/json'}));
@@ -996,10 +1045,12 @@
             }
         });
 
-        // ----- Illustrations library + Sermon dock (docked items → sections) -----
+        // ----- Illustration tray + picker (no prompt()) -----
         let dockCache = [];
-        // Block autosave from wiping dock inserts (server append is source of truth until reload)
+        let libraryCache = [];
         let pauseAutosaveForInsert = false;
+        window.__pauseAutosaveForInsert = false;
+        let pickerTargetSectionIndex = null; // null = new section
 
         function csrfHeaders(json) {
             const h = {
@@ -1019,7 +1070,7 @@
         }
 
         function sectionCards() {
-            return [...document.querySelectorAll('#sections-container > .section-card')];
+            return [...document.querySelectorAll('#sections-container > .section-card:not([data-template])')];
         }
 
         function sectionIndexOfCard(card) {
@@ -1040,78 +1091,82 @@
             card.classList.add('section-card-highlight');
             setTimeout(() => card.classList.remove('section-card-highlight'), 2200);
             try { card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
-            markDirty();
         }
 
         async function insertItemIntoSection(item, sectionIndex, asNewSection) {
             if (!item) return;
-            let html = '<div class="inserted-content"><h3>' + (item.title || 'Illustration') + '</h3><blockquote>'
-                + (item.content || '') + '</blockquote></div>';
-            if (currentSermonId && item.id) {
-                pauseAutosaveForInsert = true;
-                try {
-                    const res = await fetch('/pastoral/illustrations/insert/' + currentSermonId, {
-                        method: 'POST',
-                        headers: csrfHeaders(true),
-                        body: JSON.stringify({
-                            item_id: item.id,
-                            section_index: asNewSection ? null : sectionIndex,
-                            as_new_section: !!asNewSection,
-                        }),
-                    });
-                    const data = await res.json().catch(() => ({}));
-                    if (data.status === 'success') {
-                        // Clear stale local draft so reload doesn't rehydrate without the new section
-                        try { localStorage.removeItem(getDraftStorageKey()); } catch (e) {}
-                        if (asNewSection || data.as_new_section) {
-                            showToast('Added as a new illustration section — reloading…', true);
-                            setTimeout(() => window.location.reload(), 350);
-                            return;
-                        }
-                        if (data.html) html = data.html;
-                        // Into existing section: update DOM + hard reload so autosave can't clobber DB
-                        const cards = sectionCards();
-                        let idx = sectionIndex;
-                        if (idx == null || idx < 0 || idx >= cards.length) idx = cards.length - 1;
-                        if (cards[idx]) applyHtmlToSectionCard(cards[idx], html, item.content || item.title);
-                        showToast('Inserted into section ' + (idx + 1) + ' — reloading to confirm…', true);
-                        setTimeout(() => window.location.reload(), 400);
-                        return;
-                    } else if (data.message) {
-                        showToast(data.message, false);
-                        pauseAutosaveForInsert = false;
-                    } else {
-                        showToast('Could not insert illustration (server error)', false);
-                        pauseAutosaveForInsert = false;
-                    }
-                } catch (e) {
-                    pauseAutosaveForInsert = false;
-                    showToast('Network error inserting illustration', false);
+            if (!currentSermonId) {
+                showToast('Save the sermon once (title + Save), then add illustrations.', false);
+                return;
+            }
+            if (!item.id) {
+                showToast('That illustration has no id — reopen the library tray.', false);
+                return;
+            }
+            pauseAutosaveForInsert = true;
+            window.__pauseAutosaveForInsert = true;
+            isDirty = false;
+            clearLocalSermonDraft();
+            try {
+                const res = await fetch('/pastoral/illustrations/insert/' + currentSermonId, {
+                    method: 'POST',
+                    headers: csrfHeaders(true),
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        item_id: item.id,
+                        illustration_id: item.id,
+                        section_index: asNewSection ? null : sectionIndex,
+                        as_new_section: !!asNewSection,
+                    }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.status === 'success') {
+                    closeIllustrationPicker();
+                    reloadAfterIllustrationInsert(
+                        asNewSection || data.as_new_section
+                            ? 'Illustration added as a new section'
+                            : 'Illustration added to the section'
+                    );
+                    return;
                 }
-            } else if (asNewSection) {
-                document.getElementById('add-section-bottom-btn')?.click();
-                setTimeout(() => {
-                    const cards = sectionCards();
-                    const card = cards[cards.length - 1];
-                    applyHtmlToSectionCard(card, html, item.content || item.title);
-                    const typeSel = card?.querySelector('.section-type');
-                    if (typeSel) typeSel.value = 'illustration';
-                    const titleEl = card?.querySelector('.section-title');
-                    if (titleEl && !titleEl.value) titleEl.value = item.title || 'Illustration';
-                    showToast('Inserted into new section (save the sermon to keep it)', true);
-                }, 120);
-                return;
+                pauseAutosaveForInsert = false;
+                window.__pauseAutosaveForInsert = false;
+                showToast(data.message || data.error || ('Insert failed (' + res.status + ')'), false);
+            } catch (e) {
+                pauseAutosaveForInsert = false;
+                window.__pauseAutosaveForInsert = false;
+                showToast('Network error inserting illustration', false);
             }
+        }
+
+        function renderTrayItemRow(it, { defaultNew } = {}) {
+            const row = document.createElement('div');
+            row.className = 'd-flex flex-wrap align-items-center gap-2 py-2 border-bottom border-secondary border-opacity-25';
+            const label = document.createElement('span');
+            label.className = 'flex-grow-1';
+            label.style.minWidth = '140px';
+            const preview = (it.content || '').replace(/<[^>]+>/g, ' ').trim().slice(0, 90);
+            label.innerHTML = '<strong>' + escapeHtml(it.title || 'Untitled') + '</strong>'
+                + (preview ? '<br><small class="text-muted">' + escapeHtml(preview) + (preview.length >= 90 ? '…' : '') + '</small>' : '');
+            row.appendChild(label);
+
+            const btnNew = document.createElement('button');
+            btnNew.type = 'button';
+            btnNew.className = 'btn btn-sm btn-primary';
+            btnNew.textContent = 'New section';
+            btnNew.addEventListener('click', () => insertItemIntoSection(it, null, true));
+            row.appendChild(btnNew);
+
             const cards = sectionCards();
-            if (!cards.length) {
-                document.getElementById('add-section-bottom-btn')?.click();
-                setTimeout(() => insertItemIntoSection(item, 0, false), 120);
-                return;
+            if (cards.length) {
+                const btnLast = document.createElement('button');
+                btnLast.type = 'button';
+                btnLast.className = 'btn btn-sm btn-outline-cyan';
+                btnLast.textContent = 'Into last section';
+                btnLast.addEventListener('click', () => insertItemIntoSection(it, cards.length - 1, false));
+                row.appendChild(btnLast);
             }
-            let idx = sectionIndex;
-            if (idx == null || idx < 0 || idx >= cards.length) idx = cards.length - 1;
-            applyHtmlToSectionCard(cards[idx], html, item.content || item.title);
-            showToast('Inserted into section ' + (idx + 1) + (currentSermonId ? ' (saved)' : ' — save the sermon'), true);
+            return row;
         }
 
         async function refreshDockPanel() {
@@ -1120,7 +1175,10 @@
             const badge = document.getElementById('sermon-dock-count-badge');
             if (!list) return dockCache;
             try {
-                const resp = await fetch('/pastoral/illustrations/dock_json', { headers: csrfHeaders(false) });
+                const resp = await fetch('/pastoral/illustrations/dock_json', {
+                    headers: csrfHeaders(false),
+                    credentials: 'same-origin',
+                });
                 const data = await resp.json();
                 dockCache = data.items || [];
             } catch (e) {
@@ -1135,157 +1193,212 @@
                 }
             }
             list.innerHTML = '';
-            if (!dockCache.length) {
-                if (empty) empty.style.display = 'block';
-                return dockCache;
+            if (dockCache.length) {
+                const head = document.createElement('div');
+                head.className = 'small text-cyan fw-bold';
+                head.textContent = 'Ready for this sermon (' + dockCache.length + ')';
+                list.appendChild(head);
+                dockCache.forEach((it) => list.appendChild(renderTrayItemRow(it, { defaultNew: true })));
             }
-            if (empty) empty.style.display = 'none';
-            const nSections = sectionCards().length;
-            dockCache.forEach((it) => {
-                const row = document.createElement('div');
-                row.className = 'd-flex flex-wrap align-items-center gap-2 py-1 border-bottom border-secondary border-opacity-25';
-                const label = document.createElement('span');
-                label.className = 'flex-grow-1';
-                label.style.minWidth = '140px';
-                label.innerHTML = '<strong>' + (it.title || 'Untitled') + '</strong>'
-                    + ' <span class="text-muted small">(' + (it.type || 'illustration') + ')</span>';
-                row.appendChild(label);
-
-                const sel = document.createElement('select');
-                sel.className = 'form-select form-select-sm form-control-dark';
-                sel.style.maxWidth = '11rem';
-                sel.innerHTML = '<option value="new">New section</option>';
-                for (let i = 0; i < nSections; i++) {
-                    const opt = document.createElement('option');
-                    opt.value = String(i);
-                    opt.textContent = 'Section ' + (i + 1);
-                    if (i === nSections - 1 && nSections > 0) opt.selected = true;
-                    sel.appendChild(opt);
-                }
-                row.appendChild(sel);
-
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'btn btn-sm btn-primary';
-                btn.innerHTML = '<i class="fas fa-plus me-1"></i>Insert';
-                btn.addEventListener('click', async () => {
-                    const v = sel.value;
-                    if (v === 'new') {
-                        await insertItemIntoSection(it, null, true);
-                    } else {
-                        await insertItemIntoSection(it, parseInt(v, 10), false);
-                    }
-                });
-                row.appendChild(btn);
-                list.appendChild(row);
-            });
+            if (empty) empty.style.display = dockCache.length ? 'none' : 'block';
             return dockCache;
+        }
+
+        async function searchLibraryIntoTray(q) {
+            const box = document.getElementById('illustration-tray-library');
+            if (!box) return;
+            box.innerHTML = '<span class="text-muted small">Searching…</span>';
+            try {
+                const url = '/pastoral/illustrations/list_json' + (q ? ('?q=' + encodeURIComponent(q)) : '');
+                const resp = await fetch(url, { headers: csrfHeaders(false), credentials: 'same-origin' });
+                const items = await resp.json();
+                libraryCache = Array.isArray(items) ? items : (items.items || []);
+            } catch (e) {
+                libraryCache = [];
+            }
+            box.innerHTML = '';
+            if (!libraryCache.length) {
+                box.innerHTML = '<span class="text-muted small">No library matches.</span>';
+                return;
+            }
+            const head = document.createElement('div');
+            head.className = 'small text-cyan fw-bold mt-1';
+            head.textContent = 'Library' + (q ? ' · “' + q + '”' : '');
+            box.appendChild(head);
+            libraryCache.slice(0, 25).forEach((it) => box.appendChild(renderTrayItemRow(it)));
         }
 
         function showDockPanel(show) {
             const panel = document.getElementById('sermon-dock-panel');
             if (!panel) return;
             panel.style.display = show ? 'block' : 'none';
-            if (show) refreshDockPanel();
+            if (show) {
+                refreshDockPanel();
+                searchLibraryIntoTray('');
+            }
         }
 
-        document.getElementById('open-sermon-dock-btn')?.addEventListener('click', async () => {
+        document.getElementById('open-illustration-tray-btn')?.addEventListener('click', async () => {
             const panel = document.getElementById('sermon-dock-panel');
             const open = panel && panel.style.display !== 'none';
-            if (open) {
-                showDockPanel(false);
-            } else {
-                showDockPanel(true);
-            }
+            showDockPanel(!open);
         });
         document.getElementById('sermon-dock-close-btn')?.addEventListener('click', () => showDockPanel(false));
 
+        let traySearchTimer;
+        document.getElementById('illustration-tray-search')?.addEventListener('input', (e) => {
+            clearTimeout(traySearchTimer);
+            traySearchTimer = setTimeout(() => searchLibraryIntoTray((e.target.value || '').trim()), 280);
+        });
+
         document.getElementById('dock-insert-all-new-btn')?.addEventListener('click', async () => {
             if (!currentSermonId) {
-                showToast('Save the sermon once first, then insert docked items.', false);
+                showToast('Save the sermon once first, then insert illustrations.', false);
                 return;
             }
+            if (!dockCache.length) await refreshDockPanel();
             if (!dockCache.length) {
-                await refreshDockPanel();
-            }
-            if (!dockCache.length) {
-                showToast('Dock is empty. Dock items in the Illustrations Library first.', false);
+                showToast('Nothing is docked yet. Search the library above, or dock items in the full library.', false);
                 return;
             }
-            if (!confirm('Insert all ' + dockCache.length + ' docked item(s) as new Illustration sections?')) return;
+            if (!confirm('Insert all ' + dockCache.length + ' ready item(s) as new sections?')) return;
             pauseAutosaveForInsert = true;
+            window.__pauseAutosaveForInsert = true;
+            isDirty = false;
+            clearLocalSermonDraft();
             try {
                 const res = await fetch('/pastoral/illustrations/insert_docked/' + currentSermonId, {
                     method: 'POST',
                     headers: csrfHeaders(true),
+                    credentials: 'same-origin',
                     body: JSON.stringify({ mode: 'new_sections', clear_dock: false }),
                 });
                 const data = await res.json().catch(() => ({}));
-                if (data.status === 'success') {
-                    try { localStorage.removeItem(getDraftStorageKey()); } catch (e) {}
-                    showToast('Inserted ' + data.count + ' item(s) as new sections — reloading…', true);
-                    setTimeout(() => window.location.reload(), 350);
+                if (res.ok && data.status === 'success') {
+                    reloadAfterIllustrationInsert('Inserted ' + data.count + ' illustration section(s)');
                 } else {
                     pauseAutosaveForInsert = false;
-                    showToast(data.message || 'Could not insert docked items', false);
+                    window.__pauseAutosaveForInsert = false;
+                    showToast(data.message || 'Could not insert illustrations', false);
                 }
             } catch (e) {
                 pauseAutosaveForInsert = false;
-                showToast('Network error inserting docked items', false);
+                window.__pauseAutosaveForInsert = false;
+                showToast('Network error inserting illustrations', false);
             }
         });
 
-        // Per-section "From dock" button
+        // ----- Picker modal (per-section Add illustration) -----
+        function closeIllustrationPicker() {
+            const modal = document.getElementById('illustration-picker-modal');
+            if (!modal) return;
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            pickerTargetSectionIndex = null;
+        }
+
+        function openIllustrationPicker(sectionIndex) {
+            pickerTargetSectionIndex = sectionIndex;
+            const modal = document.getElementById('illustration-picker-modal');
+            const hint = document.getElementById('illustration-picker-hint');
+            const list = document.getElementById('illustration-picker-list');
+            const search = document.getElementById('illustration-picker-search');
+            if (!modal || !list) return;
+            if (hint) {
+                hint.textContent = sectionIndex == null
+                    ? 'Pick an illustration to add as a new section.'
+                    : ('Pick an illustration to insert into section ' + (sectionIndex + 1) + '.');
+            }
+            if (search) search.value = '';
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+            fillIllustrationPicker('');
+            setTimeout(() => search?.focus(), 50);
+        }
+
+        async function fillIllustrationPicker(q) {
+            const list = document.getElementById('illustration-picker-list');
+            if (!list) return;
+            list.innerHTML = '<span class="text-muted small">Loading…</span>';
+            if (!dockCache.length) await refreshDockPanel();
+            let lib = [];
+            try {
+                const url = '/pastoral/illustrations/list_json' + (q ? ('?q=' + encodeURIComponent(q)) : '');
+                const resp = await fetch(url, { headers: csrfHeaders(false), credentials: 'same-origin' });
+                const data = await resp.json();
+                lib = Array.isArray(data) ? data : (data.items || []);
+            } catch (e) { lib = []; }
+
+            const ql = (q || '').toLowerCase();
+            const docked = dockCache.filter((it) => !ql || (it.title || '').toLowerCase().includes(ql)
+                || (it.content || '').toLowerCase().includes(ql));
+            const seen = new Set(docked.map((d) => d.id));
+            const rest = lib.filter((it) => !seen.has(it.id));
+
+            list.innerHTML = '';
+            const addGroup = (title, items) => {
+                if (!items.length) return;
+                const h = document.createElement('div');
+                h.className = 'small text-cyan fw-bold mt-1';
+                h.textContent = title;
+                list.appendChild(h);
+                items.forEach((it) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'illustration-picker-item';
+                    const preview = (it.content || '').replace(/<[^>]+>/g, ' ').trim().slice(0, 140);
+                    btn.innerHTML = '<strong>' + escapeHtml(it.title || 'Untitled') + '</strong>'
+                        + (preview ? '<small>' + escapeHtml(preview) + '</small>' : '');
+                    btn.addEventListener('click', () => {
+                        const asNew = pickerTargetSectionIndex == null;
+                        insertItemIntoSection(it, pickerTargetSectionIndex, asNew);
+                    });
+                    list.appendChild(btn);
+                });
+            };
+            addGroup('Ready for this sermon', docked);
+            addGroup('Illustration library', rest.slice(0, 40));
+            if (!docked.length && !rest.length) {
+                list.innerHTML = '<p class="text-muted small mb-0">No illustrations found. Create some in the Illustration Library first.</p>';
+            }
+        }
+
+        let pickerSearchTimer;
+        document.getElementById('illustration-picker-search')?.addEventListener('input', (e) => {
+            clearTimeout(pickerSearchTimer);
+            pickerSearchTimer = setTimeout(() => fillIllustrationPicker((e.target.value || '').trim()), 250);
+        });
+        document.querySelectorAll('[data-close-picker]').forEach((el) => {
+            el.addEventListener('click', closeIllustrationPicker);
+        });
+
+        // Per-section "Add illustration" — modern picker, not prompt()
         document.addEventListener('click', async (e) => {
-            const btn = e.target.closest('.insert-from-dock-btn');
+            const btn = e.target.closest('.add-illustration-to-section-btn');
             if (!btn) return;
             e.preventDefault();
             const card = btn.closest('.section-card');
             if (!card || card.hasAttribute('data-template')) return;
-            if (!dockCache.length) await refreshDockPanel();
-            if (!dockCache.length) {
-                showToast('Dock is empty. Open Illustrations Library and click “Dock for sermon”.', false);
-                showDockPanel(true);
+            if (!currentSermonId) {
+                showToast('Save the sermon once first, then add illustrations.', false);
                 return;
             }
-            const titles = dockCache.map((it, i) => (i + 1) + '. ' + (it.title || 'Untitled')).join('\n');
-            const choice = prompt('Insert which docked item into THIS section?\n\n' + titles + '\n\nEnter number:');
-            if (!choice) return;
-            const idx = parseInt(choice, 10) - 1;
-            if (isNaN(idx) || !dockCache[idx]) return;
-            const secIdx = sectionIndexOfCard(card);
-            await insertItemIntoSection(dockCache[idx], secIdx, false);
-        });
-
-        // Insert from full Illustrations list (not only dock)
-        const insertIllusBtn = document.getElementById('insert-from-illustrations-btn');
-        if (insertIllusBtn) insertIllusBtn.addEventListener('click', async () => {
-            try {
-                const resp = await fetch('/pastoral/illustrations/list_json');
-                const items = await resp.json();
-                if (!items.length) {
-                    showToast('No illustrations yet. Save some from sections or library.', true);
-                    window.open('/pastoral/illustrations/library', '_blank');
-                    return;
-                }
-                const titles = items.map((it, i) => `${i+1}. ${it.title}`).join('\n');
-                const choice = prompt('Enter number to insert into the LAST section:\n' + titles + '\n\n(Tip: use Sermon dock + “From dock” on a section for precise placement)');
-                if (!choice) return;
-                const idx = parseInt(choice) - 1;
-                if (isNaN(idx) || !items[idx]) return;
-                const cards = sectionCards();
-                await insertItemIntoSection(items[idx], cards.length ? cards.length - 1 : 0, false);
-            } catch(e) {
-                showToast('Could not load library. Open Illustrations Library.', false);
-                window.open('/pastoral/illustrations/library', '_blank');
-            }
+            openIllustrationPicker(sectionIndexOfCard(card));
         });
 
         // Badge count on load
         refreshDockPanel();
 
-        // === ROBUST RECOVERY HYDRATE: if laptop lid closed or no explicit save, restore EVERYTHING from local draft ===
+        // === Local draft recovery — NEVER overwrite newer server inserts ===
         function hydrateFromLocalDraft() {
+            try {
+                if (sessionStorage.getItem('skipSermonDraftHydrate') === '1') {
+                    sessionStorage.removeItem('skipSermonDraftHydrate');
+                    clearLocalSermonDraft();
+                    return;
+                }
+            } catch (e) {}
+
             let key = getDraftStorageKey();
             let draftStr = localStorage.getItem(key);
             if (!draftStr && !currentSermonId) {
@@ -1298,12 +1411,22 @@
             const hasWork = (draft.title && draft.title.trim().length > 0) || (draft.sections && draft.sections.length > 0);
             if (!hasWork) return;
 
-            // Overwrite fields with local draft (this is the "sermons save as is" guarantee)
+            const serverCount = sectionCards().length;
+            const draftCount = (draft.sections && draft.sections.length) || 0;
+            // Server has more sections (e.g. illustration inserts) — keep server, drop stale draft
+            if (serverCount > 0 && draftCount < serverCount) {
+                clearLocalSermonDraft();
+                return;
+            }
+            // Draft older than 2 days — ignore
+            if (Date.now() - Number(draft.ts) > 2 * 24 * 3600 * 1000) {
+                clearLocalSermonDraft();
+                return;
+            }
+
             const setVal = (id, val) => {
                 const el = document.getElementById(id);
-                if (el != null && val != null) {
-                    el.value = val;
-                }
+                if (el != null && val != null) el.value = val;
             };
             setVal('sermon-title', draft.title);
             setVal('sermon-primary-passage', draft.primary_passage);
@@ -1318,7 +1441,6 @@
             setVal('sermon-conclusion-text', draft.conclusion_text);
             setVal('sermon-notes', draft.notes);
 
-            // Rebuild sections from draft (full content preserved)
             if (draft.sections && draft.sections.length) {
                 container.innerHTML = '';
                 draft.sections.forEach(sec => {
@@ -1340,10 +1462,9 @@
             saveStatus.textContent = 'Recovered from auto-backup';
             saveStatus.classList.remove('text-success');
             saveStatus.classList.add('text-warning');
-            // one time notice
             setTimeout(() => {
                 if (typeof showToast === 'function') {
-                    showToast('Work restored from local auto-save (lid close safe). Use Save Sermon to commit to server.', true);
+                    showToast('Work restored from local auto-save. Use Save Sermon to commit to server.', true);
                 }
             }, 900);
         }
