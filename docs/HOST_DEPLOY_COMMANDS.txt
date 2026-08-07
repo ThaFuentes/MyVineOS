@@ -54,7 +54,8 @@ git fetch origin
 # REQUIRED for almost every UI / template / theme deploy:
 git checkout origin/main -- app/ static/
 
-# REQUIRED when security / CSRF / login pipeline changed:
+# REQUIRED when security / CSRF / login / reputation pipeline changed:
+# (e.g. reputation max score, bad-request penalties, CSRF soft-allow)
 git checkout origin/main -- poweredbytop/
 
 # OPTIONAL — only if you intentionally want these from the repo:

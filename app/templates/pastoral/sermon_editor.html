@@ -7,8 +7,8 @@
 #   • Manual save = full form submit (includes collaborators).
 #   • Save status with timestamp.
 #   • Skips blank sections on save.
-#   • Unified section builder: one form for inline cards, New Section modal, and 1-click Vault save (no duplicate modal).
-#   • Vault quick-save on sections (no insert-from-vault modal on this page).
+#   • Unified section builder: one form for inline cards; Add Section at top, per-card, and bottom.
+#   • One "Save to Illustrations" action (Illustrations Library = vault of reusable blocks).
 #   • Collaborators, reorder, delete, dynamic headers - all stable.
 #   • Fixed Jinja syntax error (proper endblock matching).
 #}
@@ -128,7 +128,13 @@
                         <!-- Sermon Sections -->
                         <div class="mb-5 sermon-sections-block">
                             <div class="sermon-sections-toolbar d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
-                                <h4 class="text-cyan mb-0">Sermon Sections</h4>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <h4 class="text-cyan mb-0">Sermon Sections</h4>
+                                    <button type="button" id="add-section-top-btn" class="btn btn-success btn-sm add-section-btn"
+                                            title="Add a new section (uses first empty, or appends at the end)">
+                                        <i class="fas fa-plus me-1"></i>Add Section
+                                    </button>
+                                </div>
                                 <div class="sermon-quick-menu">
                                     <div class="sermon-quick-menu-actions d-flex flex-wrap gap-2 justify-content-end">
                                         <button type="button" id="open-illustration-tray-btn" class="btn btn-primary btn-sm" title="Show only docked illustrations ready for this sermon">
@@ -235,10 +241,12 @@
                                 {% endfor %}
                             </div>
                             <div class="sections-add-footer text-center py-4 mt-3">
-                                <button type="button" id="add-section-bottom-btn" class="btn btn-success btn-lg px-5">
+                                <button type="button" id="add-section-bottom-btn" class="btn btn-success btn-lg px-5 add-section-btn">
                                     <i class="fas fa-plus me-2"></i>Add Sermon Section
                                 </button>
-                                <p class="text-muted small mt-2 mb-0">Goes to the first empty section, or adds a new one here and scrolls to it.</p>
+                                <p class="text-muted small mt-2 mb-0">
+                                    Also available at the top of this list, and as <strong>Add section below</strong> on every section.
+                                </p>
                             </div>
                         </div>
 
@@ -401,9 +409,10 @@
             };
         }
 
-        async function saveSectionToVault(data, options = {}) {
+        /** Save section copy into Illustrations Library (pastoral vault backend — same place as library cards). */
+        async function saveSectionToIllustrations(data, options = {}) {
             if (isSectionCompletelyEmpty(data)) {
-                showToast('Add a title, content, notes, or tags before saving to Vault.', false);
+                showToast('Add a title, content, notes, or tags before saving to Illustrations.', false);
                 return false;
             }
             try {
@@ -415,31 +424,20 @@
                 const result = await resp.json();
                 if (result.status === 'success') {
                     if (!options.suppressToast) {
-                        showToast('Saved to Vault - reusable in any sermon.', true);
+                        showToast('Saved to Illustrations Library — reusable in any sermon.', true);
                     }
                     return true;
                 }
-                showToast(result.message || 'Vault save failed.', false);
+                showToast(result.message || 'Could not save to Illustrations.', false);
                 return false;
             } catch (e) {
-                showToast('Network error saving to Vault.', false);
+                showToast('Network error saving to Illustrations.', false);
                 return false;
             }
         }
 
-        async function saveVaultAndSermonFromRoot(root, opts = {}) {
-            const data = readSectionFromRoot(root);
-            const ok = await saveSectionToVault(data, { suppressToast: true });
-            if (!ok) return false;
-            if (!opts.alreadyInSermon) {
-                appendSectionCard(data);
-                showToast('Saved to Vault and added to this sermon.', true);
-            } else {
-                markDirty();
-                showToast('Saved to Vault - section remains in this sermon.', true);
-            }
-            return true;
-        }
+        // Back-compat alias (older call sites)
+        const saveSectionToVault = saveSectionToIllustrations;
 
         function applySectionToRoot(root, data) {
             if (!root) return;
@@ -455,7 +453,12 @@
             if (quillEl) quillEl.innerHTML = data.content || '<p></p>';
         }
 
-        function appendSectionCard(data) {
+        /**
+         * Clone blank/prefilled section card into the sermon.
+         * @param {object} data - field values
+         * @param {{ afterCard?: Element }} opts - insert after a specific card (else append at end)
+         */
+        function appendSectionCard(data, opts) {
             if (!container) return null;
             let template = document.querySelector('#section-template-host .section-card[data-template]')
                 || document.querySelector('.section-card[data-template]');
@@ -474,7 +477,16 @@
             newCard.removeAttribute('hidden');
             const root = newCard.querySelector('[data-section-root]') || newCard;
             applySectionToRoot(root, data || {});
-            container.appendChild(newCard);
+            const afterCard = opts && opts.afterCard;
+            if (afterCard && afterCard.parentNode === container) {
+                if (afterCard.nextSibling) {
+                    container.insertBefore(newCard, afterCard.nextSibling);
+                } else {
+                    container.appendChild(newCard);
+                }
+            } else {
+                container.appendChild(newCard);
+            }
             const quillEl = sectionQuillEl(root);
             if (quillEl) {
                 // Fresh host for Quill (cloned ql-container breaks init)
@@ -749,25 +761,47 @@
             scrollToSectionCard(target);
         }
 
-        const sectionsAddFooter = document.querySelector('.sections-add-footer');
-        if (sectionsAddFooter) {
-            sectionsAddFooter.addEventListener('click', e => {
-                const btn = e.target.closest('#add-section-bottom-btn');
-                if (!btn) return;
+        function insertSectionAfterCard(card) {
+            if (!container || !card) return;
+            const target = appendSectionCard({}, { afterCard: card });
+            if (!target) {
+                showToast('Could not add a section. Refresh and try again.', false);
+                return;
+            }
+            scrollToSectionCard(target);
+        }
+
+        // Top + bottom "Add Section" (class .add-section-btn)
+        document.addEventListener('click', e => {
+            const addBtn = e.target.closest('.add-section-btn');
+            if (!addBtn) return;
+            // Per-card "Add section below" is handled separately
+            if (addBtn.classList.contains('add-section-after-btn')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            focusOrAddSection();
+        });
+
+        // Reorder / remove / save to Illustrations / insert below
+        container.addEventListener('click', e => {
+            const afterBtn = e.target.closest('.add-section-after-btn');
+            if (afterBtn) {
                 e.preventDefault();
                 e.stopPropagation();
-                focusOrAddSection();
-            });
-        }
-        // Reorder/remove
-        container.addEventListener('click', e => {
+                const card = afterBtn.closest('.section-card');
+                if (card && !card.hasAttribute('data-template')) {
+                    insertSectionAfterCard(card);
+                }
+                return;
+            }
+
             const card = e.target.closest('.section-card');
             if (!card) return;
 
-            if (e.target.closest('.save-section-to-vault')) {
+            if (e.target.closest('.save-to-illustrations') || e.target.closest('.save-section-to-vault')) {
                 e.preventDefault();
                 const root = card.querySelector('[data-section-root]') || card;
-                saveSectionToVault(readSectionFromRoot(root));
+                saveSectionToIllustrations(readSectionFromRoot(root));
             } else if (e.target.closest('.remove-section')) {
                 if (confirm('Permanently delete this section?')) {
                     card.remove();
@@ -1006,44 +1040,8 @@
             }
         });
 
-        // Per section: Save to Illustrations Library (text reuse, not images)
-        document.addEventListener('click', async function(e) {
-            const btn = e.target.closest('.save-to-illustrations');
-            if (!btn) return;
-            e.preventDefault();
-            const card = btn.closest('.section-card');
-            if (!card) return;
-            const title = (card.querySelector('.section-title')?.value || 'Untitled Illustration').trim();
-            // Get content from quill if present, else textarea
-            let content = '';
-            const root = card.querySelector('[data-section-root]') || card;
-            const quillEl = sectionQuillEl(root);
-            if (quillEl && window.Quill && Quill.find(quillEl)) {
-                content = Quill.find(quillEl).root.innerHTML;
-            } else {
-                content = card.querySelector('.section-source')?.value || card.querySelector('textarea')?.value || '';
-            }
-            const source = card.querySelector('.section-source')?.value || '';
-            if (!content || content === '<p><br></p>') {
-                showToast('Section has no content to save', false);
-                return;
-            }
-            try {
-                const res = await fetch('/pastoral/illustrations/quick_add', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ title: title, content: content, source: source, tags: 'sermon,illustration' })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    showToast('Saved to Illustrations Library! Reusable now.', true);
-                } else {
-                    showToast(data.error || 'Failed to save', false);
-                }
-            } catch(err) {
-                showToast('Error saving to library', false);
-            }
-        });
+        // Per-section "Save to Illustrations" is handled on #sections-container click
+        // (one library: Illustrations = vault of reusable sections/stories)
 
         // ----- Illustration tray + picker (no prompt()) -----
         let dockCache = [];

@@ -276,7 +276,7 @@ def save_section_ajax():
     if not title and empty_content and not notes:
         return jsonify({
             'status': 'error',
-            'message': 'Add a title, content, or private notes to save to Vault'
+            'message': 'Add a title, content, or private notes to save to Illustrations'
         }), 400
 
     if not title:
