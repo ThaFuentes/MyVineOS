@@ -32,13 +32,9 @@
                     title="Insert an illustration into this section (library / docked)">
                 <i class="fas fa-plus me-1"></i>Add illustration
             </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary save-section-to-vault"
-                    title="Copy this section to your reusable Vault (does not remove it from the sermon)">
-                <i class="fas fa-archive me-1"></i>Copy to vault
-            </button>
             <button type="button" class="btn btn-sm btn-outline-cyan save-to-illustrations"
-                    title="Copy text to Illustration Library for reuse later">
-                <i class="fas fa-lightbulb me-1"></i>Save as illustration
+                    title="Save a copy to the Illustrations Library (vault) for reuse — keeps this section in the sermon">
+                <i class="fas fa-lightbulb me-1"></i>Save to Illustrations
             </button>
             <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove section">
                 <i class="fas fa-trash"></i>
@@ -48,5 +44,13 @@
 
     <div class="card-body section-form-root" data-section-root>
         {% include "pastoral/sermon_section_fields.html" %}
+    </div>
+
+    {# Quick insert — always near the section you're editing, not only at page bottom #}
+    <div class="section-insert-between">
+        <button type="button" class="btn btn-sm btn-success add-section-after-btn"
+                title="Insert a new blank section right below this one">
+            <i class="fas fa-plus me-1"></i>Add section below
+        </button>
     </div>
 </div>

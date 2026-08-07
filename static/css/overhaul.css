@@ -913,6 +913,33 @@ body.standalone .top-bar {
   border-top: 1px dashed rgba(0, 255, 255, 0.2);
 }
 
+/* Insert new section right under the card you're working on */
+.section-insert-between {
+  display: flex;
+  justify-content: center;
+  padding: 0.35rem 0 0.15rem;
+  margin: 0 0 0.35rem;
+  border-top: 1px dashed rgba(0, 255, 255, 0.12);
+  opacity: 0.72;
+  transition: opacity 0.15s ease;
+}
+
+.section-card:hover > .section-insert-between,
+.section-insert-between:focus-within {
+  opacity: 1;
+}
+
+.section-insert-between .add-section-after-btn {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.85rem;
+  border-style: dashed;
+}
+
+#add-section-top-btn {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* Floating status message (no Bootstrap toast — avoids layout bleed) */
 .sermon-toast-popup {
   display: none;

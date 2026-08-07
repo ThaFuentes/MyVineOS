@@ -33,8 +33,9 @@
     </div>
     <div class="col-12 col-md-12 col-lg-3">
       <div class="input-group">
-        <label class="fw-bold text-cyan small">Vault Visibility</label>
-        <select class="form-select form-control-dark section-vault-visibility">
+        <label class="fw-bold text-cyan small">Library sharing</label>
+        <select class="form-select form-control-dark section-vault-visibility"
+                title="When you save to Illustrations, who can see it">
           <option value="private" {{ 'selected' if section.vault_visibility|default('private') == 'private' }}>Private (only me)</option>
           <option value="pastoral_group" {{ 'selected' if section.vault_visibility == 'pastoral_group' }}>Shared with Pastoral Group</option>
         </select>
@@ -56,7 +57,7 @@
   </div>
 
   <div class="input-group">
-    <label class="fw-bold text-cyan small">Vault Tags <span class="text-muted fw-normal">(comma-separated)</span></label>
+    <label class="fw-bold text-cyan small">Tags <span class="text-muted fw-normal">(Illustrations library, comma-separated)</span></label>
     <input type="text" class="form-control form-control-dark section-vault-tags"
            value="{{ section.vault_tags }}"
            placeholder="grace, testimony, application, easter-2026">
@@ -85,7 +86,7 @@
   </div>
 
   <div class="input-group mb-0">
-    <label class="fw-bold text-cyan small">Private Notes <span class="text-muted fw-normal">(preaching cues - not stored in Vault body)</span></label>
+    <label class="fw-bold text-cyan small">Private Notes <span class="text-muted fw-normal">(preaching cues — saved with the section in Illustrations)</span></label>
     <textarea class="form-control form-control-dark section-notes section-field-notes section-field-wide" rows="5"
               placeholder="Delivery reminders, timing, emphasis, stage directions - full width for your prep">{{ section.notes }}</textarea>
   </div>
