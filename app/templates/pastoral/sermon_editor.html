@@ -453,11 +453,8 @@
             if (quillEl) quillEl.innerHTML = data.content || '<p></p>';
         }
 
-        /**
-         * Clone blank/prefilled section card into the sermon.
-         * @param {object} data - field values
-         * @param {{ afterCard?: Element }} opts - insert after a specific card (else append at end)
-         */
+        // Clone blank/prefilled section card into the sermon.
+        // data = field values; opts.afterCard = DOM element to insert after (else append).
         function appendSectionCard(data, opts) {
             if (!container) return null;
             let template = document.querySelector('#section-template-host .section-card[data-template]')
