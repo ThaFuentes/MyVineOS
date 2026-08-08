@@ -13,15 +13,29 @@ def logger(msg):
     """Simple logger - plain ascii only"""
     print(msg)
 # ====================== REAL IP DETECTION ======================
-def get_real_ip(req):
-    """Get real client IP from headers or remote_addr (never empty for DB NOT NULL)."""
-    raw = (
-        req.headers.get("CF-Connecting-IP") or
-        req.headers.get("X-Real-IP") or
-        (req.headers.get("X-Forwarded-For") or "").split(",")[0] or
-        req.remote_addr or
-        ""
-    )
+def get_real_ip(req=None):
+    """Get real client IP from headers or remote_addr (never empty for DB NOT NULL).
+    req optional — uses flask.request when omitted (device_print / pipeline helpers).
+    """
+    if req is None:
+        try:
+            from flask import has_request_context, request as flask_request
+            if has_request_context():
+                req = flask_request
+        except Exception:
+            req = None
+    if req is None:
+        return "0.0.0.0"
+    try:
+        raw = (
+            req.headers.get("CF-Connecting-IP") or
+            req.headers.get("X-Real-IP") or
+            (req.headers.get("X-Forwarded-For") or "").split(",")[0] or
+            getattr(req, "remote_addr", None) or
+            ""
+        )
+    except Exception:
+        return "0.0.0.0"
     ip = (raw or "").strip()
     return ip if ip else "0.0.0.0"
 # ====================== INTERNAL REQUEST BYPASS ======================

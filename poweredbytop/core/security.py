@@ -411,6 +411,44 @@ def run_full_security_pipeline():
     except Exception:
         vetted = False
 
+    # ---- Device fingerprint (office-safe hard block) ----
+    # NEVER hard-block auth entry (login/register/2FA must stay open).
+    # Device ban follows the browser; IP ban alone must NOT lock clean church users
+    # on shared Wi‑Fi. CSRF below is unchanged (login/mobile-safe).
+    device_fp = None
+    if not is_auth_entry:
+        try:
+            from poweredbytop.security.device_print import (
+                is_device_banned,
+                record_device_sighting,
+            )
+            uid = session.get("user_id")
+            try:
+                uid = int(uid) if uid is not None else None
+            except (TypeError, ValueError):
+                uid = None
+            dinfo = record_device_sighting(
+                user_id=uid,
+                path=path,
+                method=getattr(request, "method", "GET"),
+            )
+            device_fp = (dinfo or {}).get("device_fp")
+            try:
+                g.pbt_device_fp = device_fp
+            except Exception:
+                pass
+            db_ban = is_device_banned(device_fp)
+            if db_ban.get("is_banned"):
+                log_security_event(
+                    "banned_device_block",
+                    f"Device ban fp={(device_fp or '')[:12]} until={db_ban.get('ban_until')}",
+                    severity="high",
+                )
+                increment_attack_stat("banned_device_block", penalize=False)
+                return False
+        except Exception as dev_err:
+            logger(f"device print failed (allowing request): {dev_err}")
+
     # UA hard-block: tools/scrapers only. Never block members, auth, or known browsers.
     if not is_auth_entry and not member and not vetted:
         if is_allowed_crawler(ua):
