@@ -35,10 +35,16 @@ def init_security(app: Flask) -> Flask:
             build_pbt_tables(verbose=DEBUG_MODE)
         except Exception as build_err:
             logger(" PoweredByTop pbt table build warning (tables may already exist or DB unavailable): " + str(build_err))
+        try:
+            from poweredbytop.security.device_print import ensure_device_tables
+            ensure_device_tables()
+        except Exception as dev_err:
+            logger(" device tables warning (non-fatal): " + str(dev_err))
     else:
         logger("[pbt] Skipping pbt table build due to SKIP_* / TESTING env.")
 
-    # Attach full security pipeline (this replaces all old middleware/db_guard)
+    # Attach full security pipeline — Vine CSRF stays in core.security (login/mobile-safe)
+    # Device-first hard blocks are inside run_full_security_pipeline; auth entry never blocked.
     @app.before_request
     def pbt_before_request():
         return before_request_security()

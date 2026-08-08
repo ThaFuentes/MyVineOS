@@ -81,7 +81,8 @@ def build_all(verbose: bool = False, cursor=None) -> None:
 
     # Explicit safe order (reputation first as it's core)
     ordered_names = [
-        'security_scorer',   # pbt_reputation
+        'security_scorer',
+        'security_device_prints',   # pbt_reputation
         'security_events',   # pbt_security_events
         'security_stats',    # pbt_attack_stats
         'security_traffic',  # pbt_traffic

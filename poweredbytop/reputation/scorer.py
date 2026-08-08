@@ -234,6 +234,11 @@ def record_bad_behavior(ip: str, reason: str = "suspicious"):
     db.commit()
 
 def ban_ip(ip: str, reason: str, permanent: bool = False, hours: int = 1):
+    """
+    Record IP ban for console/history AND ban current device fingerprint.
+    Hard blocks in the pipeline prefer the device so shared church Wi‑Fi
+    does not lock every member when only one device is abusive.
+    """
     db = get_security_db()
     if db is None:
         return
@@ -258,6 +263,21 @@ def ban_ip(ip: str, reason: str, permanent: bool = False, hours: int = 1):
             WHERE ip=%s
         """, (ban_until, reason, ip))
     db.commit()
+    # Prefer device-scoped enforcement (login-safe pipeline checks device ban)
+    try:
+        from poweredbytop.security.device_print import ban_device, build_device_fingerprint
+
+        fp = build_device_fingerprint(ip).get("device_fp")
+        if fp:
+            ban_device(
+                fp,
+                reason=f"device-scoped: {reason or 'ban'}",
+                hours=max(1, int(hours or 6)),
+                permanent=bool(permanent),
+            )
+    except Exception as exc:
+        logger(f"[REPUTATION] device ban alongside IP ban failed: {exc}")
+
 
 
 def unban_ip(ip: str, restore_score: int | None = 80) -> bool:
