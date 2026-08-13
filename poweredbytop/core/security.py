@@ -111,11 +111,26 @@ def log_security_event(event_type: str, details: str, severity: str = "medium"):
         if (severity or "").lower() in ("low", "info") or "false_positive" in (event_type or ""):
             notes = "[likely-false-positive] " + notes
         cursor = db.cursor()
-        cursor.execute("""
-            INSERT INTO pbt_security_events
-            (event_type, ip, reputation_score, behavior_grade, notes)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (event_type, ip, 100, grade, notes))
+        uid = None
+        try:
+            from flask import has_request_context, session as sess
+
+            if has_request_context() and sess.get("user_id"):
+                uid = int(sess.get("user_id"))
+        except Exception:
+            uid = None
+        try:
+            cursor.execute("""
+                INSERT INTO pbt_security_events
+                (event_type, ip, reputation_score, behavior_grade, notes, user_id)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (event_type, ip, 100, grade, notes, uid))
+        except Exception:
+            cursor.execute("""
+                INSERT INTO pbt_security_events
+                (event_type, ip, reputation_score, behavior_grade, notes)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (event_type, ip, 100, grade, notes))
         db.commit()
         logger("SECURITY EVENT | TYPE=" + event_type + " | IP=" + ip[:8] + "...")
     except Exception as e:
@@ -410,6 +425,20 @@ def run_full_security_pipeline():
         vetted = bool(is_vetted())
     except Exception:
         vetted = False
+
+    # Operator allowlist — multi-domain fleet hops are normal, never hard-block
+    try:
+        from poweredbytop.utils.helpers import is_trusted_ip
+
+        if is_trusted_ip(ip):
+            try:
+                if not is_vetted():
+                    mark_as_vetted()
+            except Exception:
+                pass
+            return True
+    except Exception:
+        pass
 
     # ---- Device fingerprint (office-safe hard block) ----
     # NEVER hard-block auth entry (login/register/2FA must stay open).

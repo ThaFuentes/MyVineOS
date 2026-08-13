@@ -104,3 +104,30 @@ def secure_hash(data: str) -> str:
     return hashlib.sha256(data.encode("utf-8")).hexdigest()
 # ====================== FINAL LOAD MESSAGE ======================
 logger("poweredbytop/utils/helpers.py fully loaded (internal per-site mode - MARIADB)")
+
+def _trusted_ip_set() -> set:
+    """Owner/ops allowlist from PBT_TRUSTED_IPS env (comma-separated)."""
+    import os
+    raw = (os.getenv("PBT_TRUSTED_IPS") or "").strip()
+    if not raw:
+        return set()
+    out = set()
+    for part in raw.replace(";", ",").replace(" ", ",").split(","):
+        ip = part.strip()
+        if ip:
+            out.add(ip)
+    return out
+
+
+def is_trusted_ip(ip=None) -> bool:
+    """True if this client IP is on the operator allowlist (PBT_TRUSTED_IPS)."""
+    if not ip:
+        try:
+            ip = get_real_ip()
+        except Exception:
+            return False
+    ip = (ip or "").strip()
+    if not ip:
+        return False
+    return ip in _trusted_ip_set()
+

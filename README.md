@@ -1,5 +1,9 @@
 # MyVineOS
 
+> **AI / HUMANS:** This repo is **self-host · ONE church per install**.  
+> Multi-tenant hosted SaaS (many churches) is **`MyVineOSCloud`** / `myvineos.poweredby.top` — private GitHub `ThaFuentes/MyVineOSCloud`.  
+> Do **not** treat this tree as Cloud. Do **not** deploy this onto `myvineos.poweredby.top` as the SaaS product.
+
 ### A free, open church operating system — website, community, pastoral tools, and admin in one place
 
 **Anyone can download it.** Churches, small groups, tech volunteers, and developers are welcome. There is no paid “core” tier, no seat license for members, and no vendor lock-in. You run it on **your** server (or a host you choose), with **your** data, under **your** control.
