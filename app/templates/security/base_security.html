@@ -58,6 +58,7 @@
   {% set ep = request.endpoint or '' %}
   <nav class="sec-nav" aria-label="Security sections">
     <a href="{{ url_for('security.dashboard') }}" class="{{ 'active' if ep == 'security.dashboard' else '' }}">Overview</a>
+    <a href="{{ url_for('security.threat_map') }}" class="{{ 'active' if ep and ep.startswith('security.threat_map') else '' }}">Threat map</a>
     <a href="{{ url_for('security.events') }}" class="{{ 'active' if ep == 'security.events' else '' }}">Attack events</a>
     <a href="{{ url_for('security.bans') }}" class="{{ 'active' if ep == 'security.bans' else '' }}">IP bans</a>
     <a href="{{ url_for('security.account_locks') }}" class="{{ 'active' if ep == 'security.account_locks' else '' }}">Account locks</a>

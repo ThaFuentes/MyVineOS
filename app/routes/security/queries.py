@@ -15,6 +15,80 @@ def _sec():
     return get_security_db()
 
 
+def _close(conn) -> None:
+    """Church security DB lives on flask.g — do not close mid-request."""
+    return
+
+
+def _fmt_ts(dt) -> str:
+    if dt is None or dt == "" or dt == "—":
+        return "—"
+    try:
+        from app.utils.time_utils import format_church
+
+        return format_church(dt, fmt="%Y-%m-%d %H:%M:%S")
+    except Exception:
+        pass
+    if hasattr(dt, "strftime"):
+        try:
+            return dt.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            return str(dt)
+    return str(dt)
+
+
+_SKIP_EVENT_TYPES = frozenset(
+    {
+        "exception",
+        "full_pass",
+        "internal_bypass",
+        "pass",
+        "good_behavior",
+        "vetted",
+        "not_vetted",
+        "attack_path_soft_established",
+        "attacker_ua_soft_established",
+        "device_ban_soft_established",
+        "ip_ban_soft_allow",
+    }
+)
+
+
+def _canonical_attack_type(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    key = str(raw).strip().lower()
+    if not key or key in _SKIP_EVENT_TYPES:
+        return None
+    mapping = {
+        "attack_path_probe": "attack_path_probe",
+        "early_block_attack_path": "attack_path_probe",
+        "known_attacker_ua": "known_attacker_ua",
+        "early_block_attacker_ua": "known_attacker_ua",
+        "honeypot": "honeypot",
+        "token_attack": "token_attack",
+        "rate_limit": "rate_limit",
+        "rate_limit_exceeded": "rate_limit",
+        "rate_limited_request": "rate_limit",
+        "ddos_attempts": "ddos_attempts",
+        "brute_force": "brute_force",
+        "failed_login": "failed_login",
+    }
+    if key in mapping:
+        return mapping[key]
+    if "honeypot" in key or "unlinked" in key:
+        return "honeypot"
+    if "ddos" in key:
+        return "ddos_attempts"
+    if "brute" in key:
+        return "brute_force"
+    if "rate" in key:
+        return "rate_limit"
+    if "token" in key or "csrf" in key:
+        return "token_attack"
+    return key[:64]
+
+
 def summary_stats() -> dict:
     out = {
         'events_24h': 0,
