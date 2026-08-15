@@ -25,7 +25,7 @@
     <div class="welcome-feature-grid">
       {% for item in features %}
       <article class="glass-panel welcome-feature-card">
-        {% if item.url %}
+        {% if item.url and item.filename %}
         <div class="welcome-feature-photo" style="background-image:url('{{ item.url }}');" role="img" aria-label="{{ item.title }}"></div>
         {% endif %}
         <div class="welcome-feature-body">

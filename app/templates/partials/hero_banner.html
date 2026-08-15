@@ -1,16 +1,15 @@
 {# Expects: images, mode, interval, title, lede. Optional: kicker, ctas #}
-{% set hero_has_photos = mode in ('image', 'rotating') and images %}
+{% set photo_list = images|default([]) %}
+{% set hero_has_photos = mode in ('image', 'rotating') and photo_list|selectattr('url')|list|length > 0 %}
 {% set hero_ctas = ctas if ctas is defined else [] %}
-<section class="site-hero site-hero--welcome {% if not hero_has_photos %}site-hero--theme{% endif %}"
-         {% if hero_has_photos %}data-hero data-interval="{{ (interval|default(6)) * 1000 }}"{% endif %}>
-  {% if hero_has_photos %}
+{% if hero_has_photos %}
+<section class="site-hero site-hero--welcome" data-hero data-interval="{{ (interval|default(6)) * 1000 }}">
   <div class="site-hero-slides" aria-hidden="true">
-    {% for img in images %}
+    {% for img in photo_list if img.url %}
     <div class="site-hero-slide {% if loop.first %}is-active{% endif %}"
          style="background-image:url('{{ img.url }}');"></div>
     {% endfor %}
   </div>
-  {% endif %}
   <div class="site-hero-scrim"></div>
   <div class="site-hero-body">
     {% if kicker %}<p class="site-hero-kicker">{{ kicker }}</p>{% endif %}
@@ -26,7 +25,23 @@
     </div>
     {% endif %}
   </div>
-  {% if mode == 'rotating' and images|length > 1 %}
+  {% if mode == 'rotating' and photos|length > 1 %}
   <div class="site-hero-dots" aria-label="Slideshow"></div>
   {% endif %}
 </section>
+{% else %}
+<section class="public-page-header welcome-plain-hero">
+  {% if kicker %}<p class="site-hero-kicker">{{ kicker }}</p>{% endif %}
+  <h1 class="page-title">{{ title }}</h1>
+  {% if lede %}<p class="page-description">{{ lede }}</p>{% endif %}
+  {% if hero_ctas %}
+  <div class="site-hero-actions" style="justify-content:center; margin-top:0.85rem;">
+    {% for cta in hero_ctas %}
+    {% if cta.url and cta.label %}
+    <a href="{{ cta.url }}" class="btn {{ 'btn-primary' if loop.first else 'btn-secondary' }}">{{ cta.label }}</a>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
