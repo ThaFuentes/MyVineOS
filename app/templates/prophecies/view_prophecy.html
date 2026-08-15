@@ -21,7 +21,7 @@ Prophecy detail - {{ prophecy.visibility|capitalize }} visibility
           {{ prophecy.title|title }}
       </h1>
       <p style="color: var(--text-muted); font-size:0.9rem;">
-          Shared on {{ prophecy.date_posted.strftime('%B %d, %Y at %I:%M %p') if prophecy.date_posted else 'Unknown' }}
+          Shared on {% set posted = prophecy.date_posted or prophecy.created_at %}{{ posted.strftime('%B %d, %Y at %I:%M %p') if posted and posted.strftime is defined else (posted or 'Unknown') }}
           - By {{ prophecy.poster_name or 'Anonymous' }}
           - <strong>{{ prophecy.visibility|capitalize }}</strong>
       </p>

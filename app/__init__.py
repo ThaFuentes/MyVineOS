@@ -534,6 +534,14 @@ def create_app():
         return dict(church_display_name=name or None)
 
     @app.context_processor
+    def inject_guest_captcha():
+        try:
+            from app.utils.guest_guard import guest_challenge_context
+            return guest_challenge_context()
+        except Exception:
+            return dict(show_guest_captcha=False, guest_captcha_a=None, guest_captcha_b=None)
+
+    @app.context_processor
     def inject_appearance():
         try:
             from flask import g as flask_g
