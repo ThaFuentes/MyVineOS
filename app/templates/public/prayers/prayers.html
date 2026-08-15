@@ -39,6 +39,7 @@
              value="{{ request.form.get('contributor_name', '') }}"
              placeholder="Anonymous if left blank">
     </div>
+    {% include 'partials/guest_captcha.html' %}
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">Submit prayer request</button>

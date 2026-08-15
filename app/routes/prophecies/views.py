@@ -60,8 +60,11 @@ def list_prophecies():
 
     sql += " ORDER BY p.created_at DESC"
 
-    cur.execute(sql, params)
-    prophecy_data = cur.fetchall()
+    try:
+        cur.execute(sql, params)
+        prophecy_data = cur.fetchall()
+    except Exception:
+        prophecy_data = []
 
     for p in prophecy_data:
         p['title'] = censor_text(p['title'])

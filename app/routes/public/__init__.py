@@ -53,7 +53,22 @@ public_bp.register_blueprint(prophecies_bp)
 from .sermons import sermons_bp
 public_bp.register_blueprint(sermons_bp)
 
-# print(" public routes initialized under /public/ with clean nested endpoints (public.public_xxx.*)")
+@public_bp.before_request
+def block_guest_bot_posts():
+    """Captcha + honeypot for guest prayer/comment posts. Signed-in members skip."""
+    from urllib.parse import urlparse
+    from app.utils.guest_guard import should_guard_public_post, allow_guest_post
+
+    if not should_guard_public_post():
+        return None
+    if allow_guest_post(request.form):
+        return None
+    back = request.referrer or ''
+    host = request.host or ''
+    parsed = urlparse(back) if back else None
+    if not back or (parsed and parsed.netloc and parsed.netloc != host):
+        back = url_for('public.public_dashboard.public_dashboard')
+    return redirect(back)
 
 # ----------------------------------------------------------------------
 # Donate (online giving public page)
@@ -64,10 +79,35 @@ public_bp.register_blueprint(sermons_bp)
 @public_bp.route('/donate')
 def donate():
     """Public-facing donate / online giving landing."""
-    # For now, send users to the rich public community feed (where they can see announcements etc.)
-    # and give a helpful flash. Future: dedicated page listing Stripe/PayPal/Venmo/QR options from DB.
-    flash('Thank you for supporting the ministry! Online giving options and links are available from our team or will appear here soon.', 'info')
-    return redirect(url_for('public.public_dashboard.public_dashboard'))
+    from flask import render_template, request
+    from app.routes.settings import load_settings, load_online_options
+    from app.models.db import get_db
+    import pymysql
+
+    settings = load_settings()
+    options = [o for o in (load_online_options() or []) if o.get('enabled')]
+    event = None
+    amount = None
+    event_id = request.args.get('event_id', type=int)
+    if event_id:
+        db = get_db()
+        cur = db.cursor(pymysql.cursors.DictCursor)
+        cur.execute("SELECT id, event_name, cost_fees FROM events WHERE id = %s", (event_id,))
+        event = cur.fetchone()
+    try:
+        if request.args.get('amount'):
+            amount = float(request.args.get('amount'))
+        elif event and event.get('cost_fees'):
+            amount = float(event['cost_fees'])
+    except (TypeError, ValueError):
+        amount = None
+    return render_template(
+        'public/donate.html',
+        settings=settings,
+        online_options=options,
+        event=event,
+        amount=amount,
+    )
 
 
 @public_bp.route('/promotions')

@@ -1,0 +1,13 @@
+{# Guest-only spam check. Hidden for signed-in members. #}
+{% if show_guest_captcha|default(false) %}
+<div class="form-group guest-captcha">
+  <label>Quick check: what is {{ guest_captcha_a }} + {{ guest_captcha_b }}?</label>
+  <input type="number" name="guest_captcha" required
+         inputmode="numeric" autocomplete="off" min="0" max="30">
+  <p class="help-text">A short check to keep automated posts out. Signed-in members skip this.</p>
+</div>
+<div class="guest-hp" aria-hidden="true">
+  <label>Website</label>
+  <input type="text" name="website" tabindex="-1" autocomplete="off">
+</div>
+{% endif %}

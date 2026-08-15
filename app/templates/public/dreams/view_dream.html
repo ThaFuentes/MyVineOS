@@ -95,6 +95,7 @@
                                           style="width:100%; padding:1rem; background:rgba(255,255,255,0.1); border:1px solid var(--primary); color:white; border-radius:8px;"
                                           placeholder="Write your reply..."></textarea>
                             </div>
+                            {% include 'partials/guest_captcha.html' %}
                             <button type="submit"
                                     style="padding:0.8rem 2rem; background:var(--primary); color:#000; font-weight:bold; border:none; border-radius:8px; cursor:pointer;">
                                 Post Reply
@@ -134,6 +135,7 @@
                         style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); color: white; border-radius: 8px;"
                         placeholder="Share your thoughts or interpretation..." required></textarea>
             </div>
+            {% include 'partials/guest_captcha.html' %}
             <button type="submit"
                     style="padding: 1rem 2.5rem; background: var(--primary); color: #000; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
               Post Comment

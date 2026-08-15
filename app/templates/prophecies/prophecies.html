@@ -16,14 +16,17 @@
         <h2>{{ p.title }}</h2>
         <p class="member-post-meta">
           {{ p.poster_name or 'Someone' }}
-          {% if p.date_posted %}
-            · {{ p.date_posted.strftime('%B %d, %Y') if p.date_posted.strftime is defined else p.date_posted }}
+          {% set posted = p.date_posted or p.created_at %}
+          {% if posted %}
+            · {{ posted.strftime('%B %d, %Y') if posted.strftime is defined else posted }}
           {% endif %}
         </p>
         {% if p.description %}
         <p class="member-post-body">{{ p.description | truncate(220) }}</p>
         {% endif %}
-        {% if p.comments %}
+        {% if p.comment_count %}
+        <p class="member-post-foot">{{ p.comment_count }} comment{{ 's' if p.comment_count != 1 else '' }}</p>
+        {% elif p.comments %}
         <p class="member-post-foot">{{ p.comments|length }} comment{{ 's' if p.comments|length != 1 else '' }}</p>
         {% endif %}
       </a>

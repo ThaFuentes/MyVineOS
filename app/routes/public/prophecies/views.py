@@ -63,8 +63,10 @@ def public_prophecies():
                 flash('Failed to submit. Please try again.', 'error')
         return redirect(url_for('public.public_prophecies.public_prophecies'))
 
-    # Guest view only
-    prophecies = get_public_prophecies()
+    try:
+        prophecies = get_public_prophecies() or []
+    except Exception:
+        prophecies = []
     prophecies = censor_public_content(prophecies)
 
     # Prepare data for template - SAFE date formatting + creator_name fallback
