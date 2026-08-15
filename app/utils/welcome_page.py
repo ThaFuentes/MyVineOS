@@ -3,7 +3,7 @@
 
 from datetime import date, datetime
 
-from flask import g, render_template
+from flask import g, render_template, session
 
 from app.routes.auth.queries import get_welcome_overview
 from app.utils.appearance import appearance_context, safe_url_for
@@ -47,7 +47,10 @@ def render_welcome_page():
     look['welcome_feed_preview'] = []
     try:
         from app.routes.public.public_dashboard.queries import get_public_dashboard_feed
-        preview = get_public_dashboard_feed(limit=3)
+        preview = get_public_dashboard_feed(
+            limit=3,
+            include_members=bool(session.get('user_id')),
+        )
         type_labels = {
             'event': 'Event', 'prayer': 'Prayer', 'sermon': 'Sermon',
             'announcement': 'Update', 'dream': 'Dream', 'prophecy': 'Prophecy',

@@ -38,7 +38,9 @@ DETAIL_ENDPOINTS = {
 }
 
 
-def _detail_url(item):
+def _detail_url(item, member_view=False):
+    if member_view and item.get('type') == 'prayer' and item.get('visibility') == 'private':
+        return safe_url_for('prayers.view_prayer', '', prayer_id=item.get('id'))
     spec = DETAIL_ENDPOINTS.get(item.get('type'))
     if not spec or not item.get('id'):
         return ''
@@ -63,12 +65,13 @@ def _date_group(dt, today):
     return 'Earlier'
 
 
-def _build_public_feed(type_filter=None, when_filter=None, limit=40):
+def _build_public_feed(type_filter=None, when_filter=None, limit=40, include_members=False):
     """Prepare the community feed cards for rendering."""
     feed = get_public_dashboard_feed(
         limit=limit,
         type_filter=type_filter,
         when_filter=when_filter,
+        include_members=include_members,
     )
     feed = censor_public_content(feed)
     today = date.today()
@@ -92,7 +95,7 @@ def _build_public_feed(type_filter=None, when_filter=None, limit=40):
             item['formatted_date'] = ''
             item['formatted_time'] = ''
             item['group'] = 'Earlier'
-        item['detail_url'] = _detail_url(item)
+        item['detail_url'] = _detail_url(item, member_view=include_members)
 
     return feed
 
@@ -115,12 +118,18 @@ def public_community():
     if when_filter not in WHEN_FILTERS:
         when_filter = 'all'
 
-    feed = _build_public_feed(type_filter=type_filter or None, when_filter=when_filter)
+    feed = _build_public_feed(
+        type_filter=type_filter or None,
+        when_filter=when_filter,
+        include_members=bool(session.get('user_id')),
+    )
     compose_types = []
     if session.get('user_id'):
         try:
-            from app.utils.compose import available_compose_types
-            compose_types = available_compose_types()
+            from flask import current_app
+            if 'compose.compose_create' in current_app.view_functions:
+                from app.utils.compose import available_compose_types
+                compose_types = available_compose_types()
         except Exception:
             compose_types = []
     def feed_href(kind='', when='all'):

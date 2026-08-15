@@ -58,8 +58,43 @@ def _matches_when(item, when_filter, today):
     return True
 
 
-def get_public_dashboard_feed(limit=40, type_filter=None, when_filter=None):
-    """Build a date-sorted public feed. Optional type/when filters keep section pages intact."""
+def _safe_rows(loader):
+    try:
+        return loader() or []
+    except Exception:
+        return []
+
+
+def _feed_prayers(include_members=False):
+    """Public prayers for guests; members also see private church prayer requests."""
+    try:
+        if not include_members:
+            return get_public_prayers() or []
+        db = get_db()
+        cur = db.cursor(pymysql.cursors.DictCursor)
+        cur.execute("""
+            SELECT
+                p.id,
+                p.title,
+                p.description,
+                p.date_posted,
+                p.visibility,
+                COALESCE(u.username, p.contributor_name, 'Anonymous') AS creator_name
+            FROM prayers p
+            LEFT JOIN users u ON COALESCE(p.user_id, p.created_by) = u.id
+            WHERE p.visibility IN ('public', 'private')
+              AND COALESCE(p.status, 'approved') != 'rejected'
+            ORDER BY p.date_posted DESC
+        """)
+        rows = cur.fetchall() or []
+        cur.close()
+        return rows
+    except Exception:
+        return _safe_rows(get_public_prayers)
+
+
+def get_public_dashboard_feed(limit=40, type_filter=None, when_filter=None, include_members=False):
+    """Build a date-sorted feed. One source failing must not empty the rest."""
     feed = []
     type_filter = (type_filter or '').strip().lower() or None
     if type_filter not in FEED_TYPES:
@@ -67,38 +102,33 @@ def get_public_dashboard_feed(limit=40, type_filter=None, when_filter=None):
     when_filter = (when_filter or 'all').strip().lower()
     if when_filter not in WHEN_FILTERS:
         when_filter = 'all'
-    per_type = 24 if type_filter else 10
+    per_type = 24 if type_filter else 12
 
     def take(rows, kind, title_key, body_key, date_key, extra_date=None):
         if type_filter and type_filter != kind:
             return
         for row in (rows or [])[:per_type]:
-            row['type'] = kind
-            row['title'] = row.get(title_key) or row.get('title') or 'Untitled'
-            row['body'] = row.get(body_key)
-            row['datetime'] = row.get(date_key) or (row.get(extra_date) if extra_date else None)
-            row['sort_dt'] = parse_feed_datetime(row.get('datetime'))
+            item = dict(row)
+            item['type'] = kind
+            item['title'] = item.get(title_key) or item.get('title') or 'Untitled'
+            item['body'] = item.get(body_key)
+            item['datetime'] = item.get(date_key) or (item.get(extra_date) if extra_date else None)
+            item['sort_dt'] = parse_feed_datetime(item.get('datetime'))
             if kind != 'prayer':
                 try:
-                    row['comments'] = get_recent_comments(kind, row['id'])
+                    item['comments'] = get_recent_comments(kind, item.get('id'))
                 except Exception:
-                    row['comments'] = []
+                    item['comments'] = []
             else:
-                row['comments'] = []
-            feed.append(row)
+                item['comments'] = []
+            feed.append(item)
 
-    try:
-        take(get_public_events(), 'event', 'event_name', 'description', 'event_date', 'created_at')
-        take(get_public_sermons(), 'sermon', 'title', None, 'uploaded_at', 'created_at')
-        take(get_public_announcements(), 'announcement', 'title', 'content', 'created_at')
-        take(get_public_dreams(), 'dream', 'title', 'description', 'date_posted')
-        take(get_public_prophecies(), 'prophecy', 'title', 'description', 'created_at')
-        try:
-            take(get_public_prayers(), 'prayer', 'title', 'description', 'date_posted')
-        except Exception:
-            pass
-    except Exception:
-        pass
+    take(_safe_rows(get_public_events), 'event', 'event_name', 'description', 'event_date', 'created_at')
+    take(_safe_rows(get_public_sermons), 'sermon', 'title', None, 'uploaded_at', 'created_at')
+    take(_safe_rows(get_public_announcements), 'announcement', 'title', 'content', 'created_at')
+    take(_safe_rows(get_public_dreams), 'dream', 'title', 'description', 'date_posted')
+    take(_safe_rows(get_public_prophecies), 'prophecy', 'title', 'description', 'created_at')
+    take(_feed_prayers(include_members), 'prayer', 'title', 'description', 'date_posted')
 
     today = date.today()
     filtered = [item for item in feed if _matches_when(item, when_filter, today)]
