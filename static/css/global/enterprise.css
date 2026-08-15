@@ -230,6 +230,44 @@
   opacity: 0.75;
 }
 
+.member-feed {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 720px;
+}
+.member-post { padding: 0; overflow: hidden; }
+.member-post-hit {
+  display: block;
+  padding: 1rem 1.05rem 0.95rem;
+  color: inherit;
+  text-decoration: none;
+}
+.member-post-full { padding: 1.1rem 1.15rem; }
+.member-post h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--primary);
+  line-height: 1.3;
+}
+.member-post-meta {
+  margin: 0.3rem 0 0;
+  font-size: 0.88rem;
+  opacity: 0.7;
+}
+.member-post-body {
+  margin: 0.55rem 0 0;
+  line-height: 1.55;
+  opacity: 0.9;
+}
+.member-post-foot {
+  margin: 0.55rem 0 0;
+  font-size: 0.82rem;
+  opacity: 0.65;
+}
+.member-post .entity-actions {
+  padding: 0 1.05rem 0.85rem;
+}
+
 .desktop-table { display: none; }
 
 @media (min-width: 900px) {
