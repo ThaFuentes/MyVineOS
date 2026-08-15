@@ -41,14 +41,31 @@ git remote -v
 
 
 ================================================================================
-3) Fetch latest from GitHub
+3) BACK UP what is live now (do this BEFORE every pull)
+================================================================================
+
+# Keeps a dated copy of the running app so you can revert if the new pull
+# misbehaves. Does not touch .env, uploads/, passenger, or .htaccess.
+
+STAMP=$(date +%Y%m%d_%H%M%S)
+mkdir -p /home/ua882038/backups/myvinechurch.online
+tar -C /home/ua882038/public_html/myvinechurch.online \
+  -czf /home/ua882038/backups/myvinechurch.online/predeploy_${STAMP}.tgz \
+  app static poweredbytop
+
+echo "Backup saved:"
+ls -lh /home/ua882038/backups/myvinechurch.online/predeploy_${STAMP}.tgz
+
+
+================================================================================
+4) Fetch latest from GitHub
 ================================================================================
 
 git fetch origin
 
 
 ================================================================================
-4) Update only the folders that ship from git (safe for host config)
+5) Update only the folders that ship from git (safe for host config)
 ================================================================================
 
 # REQUIRED for almost every UI / template / theme deploy:
@@ -63,14 +80,14 @@ git checkout origin/main -- poweredbytop/
 
 
 ================================================================================
-5) Clear the Passenger / app error log (recommended)
+6) Clear the Passenger / app error log (recommended)
 ================================================================================
 
 > stderr.log
 
 
 ================================================================================
-6) Restart the app (Passenger)
+7) Restart the app (Passenger)
 ================================================================================
 
 mkdir -p tmp
@@ -81,7 +98,7 @@ touch tmp/restart.txt
 
 
 ================================================================================
-7) Browser
+8) Browser
 ================================================================================
 
 Hard refresh so old CSS/JS is not cached:
@@ -94,15 +111,36 @@ Optional check in DevTools → Network:
 
 
 ================================================================================
-ONE-SHOT copy/paste (usual full UI + security update)
+ONE-SHOT copy/paste (backup, then usual UI + security update)
 ================================================================================
 
 cd /home/ua882038/public_html/myvinechurch.online
+STAMP=$(date +%Y%m%d_%H%M%S)
+mkdir -p /home/ua882038/backups/myvinechurch.online
+tar -C /home/ua882038/public_html/myvinechurch.online \
+  -czf /home/ua882038/backups/myvinechurch.online/predeploy_${STAMP}.tgz \
+  app static poweredbytop
 git fetch origin
 git checkout origin/main -- app/ static/ poweredbytop/
 > stderr.log
 mkdir -p tmp
 touch tmp/restart.txt
+echo "Backup: /home/ua882038/backups/myvinechurch.online/predeploy_${STAMP}.tgz"
+
+
+================================================================================
+REVERT to the backup you just made
+================================================================================
+
+# Replace STAMP with the folder name printed after deploy, e.g. 20260814_214500
+cd /home/ua882038/public_html/myvinechurch.online
+tar -C /home/ua882038/public_html/myvinechurch.online \
+  -xzf /home/ua882038/backups/myvinechurch.online/predeploy_STAMP.tgz
+> stderr.log
+mkdir -p tmp
+touch tmp/restart.txt
+
+# Then hard-refresh the browser. Uploads, .env, and passenger files stay as they are.
 
 
 ================================================================================

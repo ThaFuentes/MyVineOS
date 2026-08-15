@@ -27,6 +27,7 @@
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/enterprise.css') }}?v=20260814welcome">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/public/base_public.css') }}?v=20260711n">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -108,6 +109,7 @@
 
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/enterprise.js') }}?v=20260813ui"></script>
     <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260715theme"></script>
   {% endblock %}
 </body>

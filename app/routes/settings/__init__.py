@@ -173,3 +173,4 @@ from . import custom_modules
 from . import modules
 from . import campuses
 from . import promotions
+from . import appearance

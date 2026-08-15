@@ -1,0 +1,32 @@
+{# Expects: images, mode, interval, title, lede. Optional: kicker, ctas #}
+{% set hero_has_photos = mode in ('image', 'rotating') and images %}
+{% set hero_ctas = ctas if ctas is defined else [] %}
+<section class="site-hero site-hero--welcome {% if not hero_has_photos %}site-hero--theme{% endif %}"
+         {% if hero_has_photos %}data-hero data-interval="{{ (interval|default(6)) * 1000 }}"{% endif %}>
+  {% if hero_has_photos %}
+  <div class="site-hero-slides" aria-hidden="true">
+    {% for img in images %}
+    <div class="site-hero-slide {% if loop.first %}is-active{% endif %}"
+         style="background-image:url('{{ img.url }}');"></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="site-hero-scrim"></div>
+  <div class="site-hero-body">
+    {% if kicker %}<p class="site-hero-kicker">{{ kicker }}</p>{% endif %}
+    <h1>{{ title }}</h1>
+    {% if lede %}<p>{{ lede }}</p>{% endif %}
+    {% if hero_ctas %}
+    <div class="site-hero-actions">
+      {% for cta in hero_ctas %}
+      {% if cta.url and cta.label %}
+      <a href="{{ cta.url }}" class="btn {{ 'btn-primary' if loop.first else 'btn-secondary' }}">{{ cta.label }}</a>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% if mode == 'rotating' and images|length > 1 %}
+  <div class="site-hero-dots" aria-label="Slideshow"></div>
+  {% endif %}
+</section>

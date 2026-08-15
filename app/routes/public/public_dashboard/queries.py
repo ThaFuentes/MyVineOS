@@ -8,6 +8,8 @@
 # - All other types unchanged and working.
 # - Production-clean version.
 
+from datetime import date, datetime, timedelta
+
 from app.models.db import get_db
 import pymysql.cursors
 
@@ -17,69 +19,91 @@ from app.routes.public.sermons.queries import get_public_sermons
 from app.routes.public.announcements.queries import get_public_announcements
 from app.routes.public.dreams.queries import get_public_dreams
 from app.routes.public.prophecies.queries import get_public_prophecies
+from app.routes.public.prayers.queries import get_public_prayers
+
+FEED_TYPES = ('event', 'prayer', 'sermon', 'announcement', 'dream', 'prophecy')
+WHEN_FILTERS = ('all', 'upcoming', 'week', 'month')
 
 
-def get_public_dashboard_feed(limit=30):
-    """Build the rich homepage feed with smart priority ordering and recent comment previews on every item."""
+def parse_feed_datetime(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        return datetime.combine(value, datetime.min.time())
+    if isinstance(value, str):
+        raw = value.strip()
+        for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
+            try:
+                return datetime.strptime(raw[:19] if ' ' in raw else raw[:10], fmt)
+            except ValueError:
+                continue
+    return None
+
+
+def _matches_when(item, when_filter, today):
+    if not when_filter or when_filter == 'all':
+        return True
+    dt = item.get('sort_dt')
+    if not dt:
+        return when_filter == 'all'
+    day = dt.date()
+    if when_filter == 'upcoming':
+        return day >= today
+    if when_filter == 'week':
+        return (today - timedelta(days=7)) <= day <= (today + timedelta(days=7))
+    if when_filter == 'month':
+        return (today - timedelta(days=30)) <= day <= (today + timedelta(days=30))
+    return True
+
+
+def get_public_dashboard_feed(limit=40, type_filter=None, when_filter=None):
+    """Build a date-sorted public feed. Optional type/when filters keep section pages intact."""
     feed = []
-    db = get_db()
-    cur = db.cursor(pymysql.cursors.DictCursor)
+    type_filter = (type_filter or '').strip().lower() or None
+    if type_filter not in FEED_TYPES:
+        type_filter = None
+    when_filter = (when_filter or 'all').strip().lower()
+    if when_filter not in WHEN_FILTERS:
+        when_filter = 'all'
+    per_type = 24 if type_filter else 10
+
+    def take(rows, kind, title_key, body_key, date_key, extra_date=None):
+        if type_filter and type_filter != kind:
+            return
+        for row in (rows or [])[:per_type]:
+            row['type'] = kind
+            row['title'] = row.get(title_key) or row.get('title') or 'Untitled'
+            row['body'] = row.get(body_key)
+            row['datetime'] = row.get(date_key) or (row.get(extra_date) if extra_date else None)
+            row['sort_dt'] = parse_feed_datetime(row.get('datetime'))
+            if kind != 'prayer':
+                try:
+                    row['comments'] = get_recent_comments(kind, row['id'])
+                except Exception:
+                    row['comments'] = []
+            else:
+                row['comments'] = []
+            feed.append(row)
 
     try:
-        # 1. Upcoming Events (highest priority)
-        events = get_public_events()
-        for e in events[:8]:
-            e['type'] = 'event'
-            e['title'] = e.get('event_name')
-            e['body'] = e.get('description') or f"Event on {e.get('event_date')}"
-            e['datetime'] = e.get('event_date') or e.get('created_at')
-            e['comments'] = get_recent_comments('event', e['id'])
-            feed.append(e)
-
-        # 2. Newest Sermons
-        sermons = get_public_sermons()
-        for s in sermons[:6]:
-            s['type'] = 'sermon'
-            s['body'] = None
-            s['datetime'] = s.get('uploaded_at') or s.get('created_at')
-            s['comments'] = get_recent_comments('sermon', s['id'])
-            feed.append(s)
-
-        # 3. Recent Announcements
-        announcements = get_public_announcements()
-        for a in announcements[:6]:
-            a['type'] = 'announcement'
-            a['body'] = a.get('content')
-            a['datetime'] = a.get('created_at')
-            a['comments'] = get_recent_comments('announcement', a['id'])
-            feed.append(a)
-
-        # 4. Latest Dreams
-        dreams = get_public_dreams()
-        for d in dreams[:5]:
-            d['type'] = 'dream'
-            d['body'] = d.get('description')
-            d['datetime'] = d.get('date_posted')
-            d['comments'] = get_recent_comments('dream', d['id'])
-            feed.append(d)
-
-        # 5. Latest Prophecies
-        prophecies = get_public_prophecies()
-        for p in prophecies[:5]:
-            p['type'] = 'prophecy'
-            p['body'] = p.get('description')
-            p['datetime'] = p.get('created_at')
-            p['comments'] = get_recent_comments('prophecy', p['id'])
-            feed.append(p)
-
-        # Sort newest/upcoming first
-        feed.sort(key=lambda x: str(x.get('datetime') or '0000-00-00'), reverse=True)
-
+        take(get_public_events(), 'event', 'event_name', 'description', 'event_date', 'created_at')
+        take(get_public_sermons(), 'sermon', 'title', None, 'uploaded_at', 'created_at')
+        take(get_public_announcements(), 'announcement', 'title', 'content', 'created_at')
+        take(get_public_dreams(), 'dream', 'title', 'description', 'date_posted')
+        take(get_public_prophecies(), 'prophecy', 'title', 'description', 'created_at')
+        try:
+            take(get_public_prayers(), 'prayer', 'title', 'description', 'date_posted')
+        except Exception:
+            pass
     except Exception:
-        pass  # Silent fail - feed will still render
+        pass
 
-    cur.close()
-    return feed[:limit]
+    today = date.today()
+    filtered = [item for item in feed if _matches_when(item, when_filter, today)]
+    filtered.sort(key=lambda x: x.get('sort_dt') or datetime.min, reverse=True)
+    return filtered[:limit]
 
 
 def get_recent_comments(content_type, content_id, limit=3):

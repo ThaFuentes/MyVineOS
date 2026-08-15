@@ -41,6 +41,7 @@
 
   <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260716nav2">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/enterprise.css') }}?v=20260814welcome">
   <!-- Large text / elderly-friendly: cards grow & wrap (Display page text size) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/dashboard_tiles.css') }}?v=20260716a11y">
@@ -150,6 +151,7 @@
 
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=20260716nav2"></script>
+    <script src="{{ url_for('static', filename='js/enterprise.js') }}?v=20260813ui"></script>
     <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260715theme"></script>
     <script>
       function updateClock() {

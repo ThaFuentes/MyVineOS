@@ -21,6 +21,8 @@
 <nav class="settings-nav" aria-label="Settings sections">
     <a href="{{ url_for('settings.general') }}"
        class="settings-nav-link {{ 'active' if request.endpoint == 'settings.general' else '' }}">Church & General</a>
+    <a href="{{ url_for('settings.appearance') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'settings.appearance' else '' }}">Welcome page</a>
     <a href="{{ url_for('settings.campuses') }}"
        class="settings-nav-link {{ 'active' if request.endpoint == 'settings.campuses' else '' }}">Campuses / Branches</a>
     <a href="{{ url_for('settings.timezone') }}"
