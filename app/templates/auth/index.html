@@ -3,47 +3,112 @@
 {% block title %}Welcome{% endblock %}
 
 {% block content %}
-<section class="public-page-header" style="padding-top:0.5rem;">
-  <h1 class="page-title">
-    {% if g.settings.get('church_name') %}Welcome to {{ g.settings.get('church_name') }}{% else %}Welcome{% endif %}
-  </h1>
-  <p class="page-description">
-    A loving community rooted in faith, growing together in Christ.
-    Explore our events, prayers, sermons, and more. Members can sign in using the Login button above.
-  </p>
-</section>
+{% set look = appearance or {} %}
+{% set title = ('Welcome to ' + g.settings.get('church_name')) if g.settings.get('church_name') else 'Welcome' %}
+{% set lede = look.welcome_tagline if look else 'A loving community rooted in faith, growing together in Christ. Explore events, prayers, sermons, and more.' %}
+{% set kicker = look.welcome_kicker if look else '' %}
+{% set images = welcome_hero_images if welcome_hero_images is defined else [] %}
+{% set mode = look.welcome_hero_mode if look else 'theme' %}
+{% set interval = look.welcome_hero_interval_sec if look else 6 %}
+{% set ctas = welcome_ctas if welcome_ctas is defined else [] %}
+{% set features = welcome_features if welcome_features is defined else [] %}
+{% set quick_links = welcome_quick_links if welcome_quick_links is defined else [] %}
+{% include 'partials/hero_banner.html' %}
 
-<div style="max-width:1100px; margin:0 auto; display:grid; gap:0.85rem; padding-bottom:1.5rem;">
+<div class="welcome-home">
 
-  <section class="glass-panel">
-    <h2 class="section-title" style="margin-bottom:0.35rem;">Upcoming services</h2>
-    <p class="page-description" style="margin:0 0 0.85rem; text-align:left;">
-      The next two Sundays — custom weeks from Pastoral Planning or your standard schedule.
-    </p>
-    {% if upcoming_services %}
-    <div style="display:grid; gap:0.65rem;">
-      {% for service in upcoming_services %}
-      <article class="item-card" style="margin:0; border-color:{% if service.is_override %}rgba(77,255,200,0.35){% else %}var(--primary-border, rgba(0,255,255,0.15)){% endif %};">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.4rem;">
-          <strong style="font-size:1.05rem;">{{ service.title }}</strong>
-          <span style="color:var(--primary); font-weight:600; font-size:0.9rem;">{{ service.date_label }}</span>
+  {% if look.get('welcome_show_featured', True) and features %}
+  <section class="welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">{{ look.welcome_featured_heading or 'This week at our church' }}</h2>
+    </div>
+    <div class="welcome-feature-grid">
+      {% for item in features %}
+      <article class="glass-panel welcome-feature-card">
+        {% if item.url %}
+        <div class="welcome-feature-photo" style="background-image:url('{{ item.url }}');" role="img" aria-label="{{ item.title }}"></div>
+        {% endif %}
+        <div class="welcome-feature-body">
+          <h3>{{ item.title }}</h3>
+          {% if item.body %}<p>{{ item.body }}</p>{% endif %}
+          {% if item.link_url %}
+          <a href="{{ item.link_url }}" class="btn btn-secondary">{{ item.link_label or 'Learn more' }}</a>
+          {% endif %}
         </div>
-        <p style="margin:0.4rem 0 0; opacity:0.85; font-size:0.92rem;">
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% set feed_preview = welcome_feed_preview if welcome_feed_preview is defined else [] %}
+  {% if feed_preview %}
+  <section class="welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">Latest</h2>
+      {% if welcome_feed_url %}
+      <a href="{{ welcome_feed_url }}" class="btn btn-secondary welcome-inline-btn">Open feed</a>
+      {% endif %}
+    </div>
+    <div class="welcome-stack">
+      {% for item in feed_preview %}
+      <a {% if item.detail_url %}href="{{ item.detail_url }}"{% endif %} class="welcome-item welcome-item-link">
+        <div class="welcome-item-top">
+          <strong>{{ item.title }}</strong>
+          <span class="welcome-item-date">{{ item.type_label }}{% if item.formatted_date %} · {{ item.formatted_date }}{% endif %}</span>
+        </div>
+        {% if item.body %}
+        <p class="welcome-item-meta">{{ item.body | truncate(110) }}</p>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if look.get('welcome_show_quick_links', True) and quick_links %}
+  <nav class="welcome-quick-links" aria-label="Popular pages">
+    {% for link in quick_links %}
+    {% if link.url %}
+    <a href="{{ link.url }}" class="welcome-quick-link">
+      <i class="fa-solid {{ link.icon }}" aria-hidden="true"></i>
+      <span>{{ link.label }}</span>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% if look.get('welcome_show_services', True) %}
+  <section class="glass-panel welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">Upcoming services</h2>
+    </div>
+    <p class="welcome-block-lede">The next two Sundays — custom weeks from Pastoral Planning or your standard schedule.</p>
+    {% if upcoming_services %}
+    <div class="welcome-stack">
+      {% for service in upcoming_services %}
+      <article class="welcome-item {% if service.is_override %}is-special{% endif %}">
+        <div class="welcome-item-top">
+          <strong>{{ service.title }}</strong>
+          <span class="welcome-item-date">{{ service.date_label }}</span>
+        </div>
+        <p class="welcome-item-meta">
           {% if service.start_time %}Service: {{ service.start_time }}{% endif %}
           {% if service.worship_start_time %}{% if service.start_time %} · {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
           {% if service.preacher %} · <strong>{{ service.preacher }}</strong>{% endif %}
-          {% if service.is_override %} · <span style="color:var(--primary);">Custom week</span>{% endif %}
+          {% if service.is_override %} · <span class="welcome-item-flag">Custom week</span>{% endif %}
         </p>
         {% if service.roles %}
-        <p style="margin:0.4rem 0 0; opacity:0.7; font-size:0.85rem;">
+        <p class="welcome-item-roles">
           {% for r in service.roles %}
-            <span style="margin-right:0.75rem;">{{ r.role_name }}: {{ r.name }}</span>
+            <span>{{ r.role_name }}: {{ r.name }}</span>
           {% endfor %}
         </p>
         {% endif %}
         {% if service.notes %}
-        <div style="margin-top:0.65rem; padding-top:0.65rem; border-top:1px solid rgba(255,255,255,0.08); font-size:0.9rem; line-height:1.5; opacity:0.9;">
-          <div style="color:var(--primary); font-size:0.75rem; font-weight:700; margin-bottom:0.3rem; letter-spacing:0.04em;">ORDER OF SERVICE / NOTES</div>
+        <div class="welcome-item-notes">
+          <div class="welcome-item-notes-label">Order of service / notes</div>
           <div class="service-notes-body">{{ service.notes | safe }}</div>
         </div>
         {% endif %}
@@ -51,71 +116,81 @@
       {% endfor %}
     </div>
     {% else %}
-    <p style="margin:0; opacity:0.7; font-style:italic;">Upcoming service dates will appear here once set up in the Pastoral area.</p>
+    <p class="welcome-empty">Upcoming service dates will appear here once set up in the Pastoral area.</p>
     {% endif %}
   </section>
+  {% endif %}
 
-  <section class="glass-panel">
-    <h2 class="section-title" style="margin-bottom:0.75rem;">About our church</h2>
-    <div style="display:grid; gap:0.75rem; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+  {% if look.get('welcome_show_about', True) %}
+  <section class="glass-panel welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">About our church</h2>
+    </div>
+    <div class="welcome-about-grid">
       {% if g.settings.get('pastor') %}
-      <div class="item-card" style="margin:0;">
-        <strong style="color:var(--primary); font-size:0.85rem;">Pastor / Leader</strong>
-        <p style="margin:0.35rem 0 0;">{{ g.settings.get('pastor') }}</p>
+      <div class="welcome-about-card">
+        <strong>Pastor / Leader</strong>
+        <p>{{ g.settings.get('pastor') }}</p>
       </div>
       {% endif %}
       {% if g.settings.get('address') %}
-      <div class="item-card" style="margin:0;">
-        <strong style="color:var(--primary); font-size:0.85rem;">Location</strong>
-        <p style="margin:0.35rem 0 0;">{{ g.settings.get('address') | nl2br }}</p>
+      <div class="welcome-about-card">
+        <strong>Location</strong>
+        <p>{{ g.settings.get('address') | nl2br }}</p>
       </div>
       {% endif %}
       {% if g.settings.get('phone_number') %}
-      <div class="item-card" style="margin:0;">
-        <strong style="color:var(--primary); font-size:0.85rem;">Phone</strong>
-        <p style="margin:0.35rem 0 0;">{{ g.settings.get('phone_number') }}</p>
+      <div class="welcome-about-card">
+        <strong>Phone</strong>
+        <p>{{ g.settings.get('phone_number') }}</p>
       </div>
       {% endif %}
     </div>
     {% if not g.settings.get('pastor') and not g.settings.get('address') and not g.settings.get('phone_number') %}
-    <p style="margin:0; opacity:0.7; font-style:italic;">Church details will appear here once configured in Settings.</p>
+    <p class="welcome-empty">Church details will appear here once configured in Settings.</p>
     {% endif %}
   </section>
+  {% endif %}
 
-  <section class="glass-panel">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.65rem; margin-bottom:0.75rem;">
-      <h2 class="section-title" style="margin:0;">Upcoming events</h2>
-      <a href="{{ url_for('public.public_events.public_events') }}" class="btn btn-secondary" style="padding:0.4rem 0.85rem; font-size:0.85rem; min-height:auto;">View all</a>
+  {% if look.get('welcome_show_events', True) %}
+  <section class="glass-panel welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">Upcoming events</h2>
+      {% if welcome_events_url %}
+      <a href="{{ welcome_events_url }}" class="btn btn-secondary welcome-inline-btn">View all</a>
+      {% endif %}
     </div>
     {% if upcoming_events %}
-    <div style="display:grid; gap:0.65rem;">
+    <div class="welcome-stack">
       {% for event in upcoming_events %}
-      <a href="{{ url_for('public.public_events.public_event_detail', event_id=event.id) }}"
-         class="item-card"
-         style="margin:0; display:block; text-decoration:none; color:inherit;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.4rem;">
-          <strong style="font-size:1.05rem; color:var(--primary);">{{ event.event_name }}</strong>
-          <span style="opacity:0.8; font-size:0.9rem;">
+      {% set event_href = event.detail_url or welcome_events_url %}
+      <a {% if event_href %}href="{{ event_href }}"{% endif %} class="welcome-item welcome-item-link">
+        <div class="welcome-item-top">
+          <strong>{{ event.event_name }}</strong>
+          <span class="welcome-item-date">
             {{ event.formatted_date }}{% if event.formatted_time %} · {{ event.formatted_time }}{% endif %}
           </span>
         </div>
         {% if event.description %}
-        <p style="margin:0.4rem 0 0; opacity:0.8; font-size:0.92rem;">{{ event.description | truncate(120) }}</p>
+        <p class="welcome-item-meta">{{ event.description | truncate(120) }}</p>
         {% endif %}
       </a>
       {% endfor %}
     </div>
     {% else %}
-    <p style="margin:0; opacity:0.7; font-style:italic;">No upcoming public events scheduled. Check back soon!</p>
+    <p class="welcome-empty">No upcoming public events scheduled. Check back soon!</p>
     {% endif %}
   </section>
+  {% endif %}
 
-  <p class="page-description" style="text-align:center; margin:0.25rem auto 0;">
+  <p class="welcome-browse-note">
     Use the navigation above to browse Events, Sermons, Announcements, Prayers, and more without signing in.
   </p>
 
-  <p class="bible-verse" style="text-align:center; font-size:1rem; max-width:36rem; margin:0.25rem auto 1rem; font-style:italic; opacity:0.85; line-height:1.55;">
-    "I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit." — John 15:5
+  {% if look.get('welcome_show_verse', True) %}
+  <p class="bible-verse welcome-verse">
+    {{ look.welcome_verse if look else '"I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit." — John 15:5' }}
   </p>
+  {% endif %}
 </div>
 {% endblock %}

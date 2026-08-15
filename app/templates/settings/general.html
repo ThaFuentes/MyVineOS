@@ -6,7 +6,9 @@
     <h2 class="section-title">Church Details</h2>
     <p class="help-text">
         These details appear on the public welcome page, headers, and footers.
-        <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" style="color:var(--primary);">Preview welcome page -></a>
+        <a href="{{ url_for('auth.auth_index') }}" style="color:var(--primary);">Preview welcome page -></a>
+        To change photos, highlights, and which sections appear on the front page, open
+        <a href="{{ url_for('settings.appearance') }}" style="color:var(--primary);">Welcome page</a>.
     </p>
 
     <!-- Live preview of public-facing info -->

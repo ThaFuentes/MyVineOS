@@ -534,6 +534,22 @@ def create_app():
         return dict(church_display_name=name or None)
 
     @app.context_processor
+    def inject_appearance():
+        try:
+            from flask import g as flask_g
+            from app.utils.appearance import appearance_context
+            return appearance_context(flask_g.get('settings') or {})
+        except Exception:
+            return dict(
+                appearance=None,
+                welcome_hero_images=[],
+                login_hero_images=[],
+                welcome_features=[],
+                welcome_ctas=[],
+                welcome_quick_links=[],
+            )
+
+    @app.context_processor
     def inject_current_user():
         """Lightweight session user for templates that reference current_user."""
         uid = session.get('user_id')

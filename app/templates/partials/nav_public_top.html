@@ -5,7 +5,8 @@
   <a href="{{ url_for('dashboard.dashboard') }}" class="{{ 'active' if ep == 'dashboard.dashboard' else '' }}">Home</a>
   <a href="{{ url_for('public.public_dashboard.public_community') }}" class="{{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">Community Feed</a>
 {% else %}
-  <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="{{ 'active' if ep in ('auth.auth_index', 'public.public_dashboard.public_dashboard', 'public.public_dashboard.public_community') else '' }}">Welcome</a>
+  <a href="{{ url_for('public.public_dashboard.public_dashboard') }}" class="{{ 'active' if ep in ('auth.auth_index', 'public.public_dashboard.public_dashboard') else '' }}">Welcome</a>
+  <a href="{{ url_for('public.public_dashboard.public_community') }}" class="{{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">Feed</a>
 {% endif %}
 <a href="{{ url_for('bible.member_study') }}" class="{{ 'active' if ep.startswith('bible.') else '' }}">Bible</a>
 <a href="{{ url_for('public.public_events.public_events') }}" class="{{ 'active' if ep.startswith('public.public_events') else '' }}">Events</a>
