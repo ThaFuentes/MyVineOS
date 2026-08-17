@@ -19,6 +19,8 @@ def create_tables(cursor):
         'fund_label': "VARCHAR(120) NULL",
         'is_recurring': "TINYINT(1) NOT NULL DEFAULT 0",
         'recurring_id': "INT UNSIGNED NULL",
+        'event_id': "INT UNSIGNED NULL",
+        'event_registration_id': "INT UNSIGNED NULL",
     }.items():
         if name not in cols:
             print(f"Migration: Adding donations.{name}")
@@ -28,6 +30,14 @@ def create_tables(cursor):
         cursor.execute(
             "CREATE UNIQUE INDEX idx_donations_external ON donations(processor, external_id)"
         )
+    except Exception:
+        pass
+    try:
+        cursor.execute("CREATE INDEX idx_donations_event ON donations(event_id)")
+    except Exception:
+        pass
+    try:
+        cursor.execute("CREATE INDEX idx_donations_event_reg ON donations(event_registration_id)")
     except Exception:
         pass
 

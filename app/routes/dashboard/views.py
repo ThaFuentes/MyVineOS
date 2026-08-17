@@ -273,6 +273,16 @@ def dashboard():
     # Template selection
     template = 'dashboard/dashboard.html' if is_logged_in else 'public/public_dashboard.html'
 
+    activity_feed = []
+    compose_types = []
+    if is_logged_in:
+        from app.utils.activity_feed import build_member_feed
+        from app.utils.compose import available_compose_types
+        activity_feed = build_member_feed(
+            prayers, dreams, prophecies, sermons, announcements, events
+        )
+        compose_types = available_compose_types()
+
     return render_template(
         template,
         username=username if is_logged_in else None,
@@ -286,4 +296,6 @@ def dashboard():
         announcements=announcements,
         widgets=widgets,
         upcoming_services=upcoming_services,
+        activity_feed=activity_feed,
+        compose_types=compose_types,
     )

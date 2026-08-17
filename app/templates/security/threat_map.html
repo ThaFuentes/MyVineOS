@@ -2,7 +2,7 @@
 
 {% block extra_css %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='security/threat-map/threat-map.css') }}?v=church1">
+<link rel="stylesheet" href="{{ url_for('static', filename='security/threat-map/threat-map.css') }}?v=church2">
 {% endblock %}
 
 {% block security_content %}
@@ -99,5 +99,5 @@
 <script>window.TM_HOME = {{ (home_pin or {})|tojson }};</script>
 <script src="{{ url_for('static', filename='security/threat-map/vendor/d3.min.js') }}"></script>
 <script src="{{ url_for('static', filename='security/threat-map/vendor/topojson-client.min.js') }}"></script>
-<script src="{{ url_for('static', filename='security/threat-map/threat-map.js') }}?v=church1"></script>
+<script src="{{ url_for('static', filename='security/threat-map/threat-map.js') }}?v=church2"></script>
 {% endblock %}

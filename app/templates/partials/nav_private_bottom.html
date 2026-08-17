@@ -51,6 +51,9 @@
     <button type="button" class="nav-sheet-close" data-nav-sheet-close aria-label="Close">×</button>
   </header>
   <div class="nav-sheet-body">
+    <a href="{{ url_for('public.public_dashboard.public_community') }}" class="nav-sheet-link {{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">
+      <i class="fa-solid fa-rss" aria-hidden="true"></i> Community Feed
+    </a>
     <a href="{{ url_for('events.events') }}" class="nav-sheet-link {{ 'active' if ep.startswith('events.') else '' }}">
       <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Events
     </a>

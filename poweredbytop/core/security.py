@@ -50,6 +50,52 @@ CSRF_TOKEN_MAX_AGE_SECONDS = 8 * 60 * 60
 # instead of treating multi-tab / long sermon edits as "attacks".
 CSRF_MEMBER_GRACE_SECONDS = 24 * 60 * 60
 
+# Log-only recon + extra tool UAs. Auth and members are never hard-blocked here.
+KNOWN_ATTACKER_UAS = (
+    "l9scan", "leakix", "headlesschrome", "cms-checker", "palo alto",
+    "gptbot", "oai-searchbot", "python-urllib", "sqlmap", "nikto",
+    "masscan", "zgrab", "nuclei", "httpx", "acunetix", "nessus",
+    "openvas", "wpscan", "burpsuite", "owasp zap", "netsparker",
+    "invicti", "w3af", "gobuster", "feroxbuster", "dirbuster",
+    "commix", "whatweb",
+)
+RECON_SCANNER_UAS = (
+    "pentest-tools", "ptst/", "sucuri sitecheck", "securityheaders",
+    "ssllabs", "qualys ssl", "httpobservatory", "observatory.mozilla",
+    "detectify", "intruder.io", "immuniweb",
+)
+KNOWN_ATTACK_PATHS = (
+    "/.env", "/.git", "/.git/config", "/.git/HEAD",
+    "/console/", "/actuator/", "/actuator/env",
+    "/swagger", "/swagger-ui", "/swagger.json", "/v2/api-docs", "/v3/api-docs",
+    "/graphql", "/api/graphql", "/gql",
+    "/telescope/", "/debug/", "/trace.axd",
+    "/server-status", "/wp-login.php", "/xmlrpc.php",
+    "/.DS_Store", "/config.json", "/.vscode/", "/@vite/env",
+)
+
+
+def _ua_has_any(ua: str, tags) -> bool:
+    if not ua:
+        return False
+    low = ua.lower()
+    return any(tag in low for tag in tags)
+
+
+def is_known_attacker_ua(ua: str) -> bool:
+    return _ua_has_any(ua, KNOWN_ATTACKER_UAS)
+
+
+def is_recon_scanner_ua(ua: str) -> bool:
+    return _ua_has_any(ua, RECON_SCANNER_UAS)
+
+
+def is_suspicious_attack_path(path: str) -> bool:
+    if not path:
+        return False
+    low = path.lower()
+    return any(low.startswith(bad) for bad in KNOWN_ATTACK_PATHS)
+
 # ====================== EXACT DB LOGGING ======================
 def _safe_ip() -> str:
     try:
@@ -420,6 +466,13 @@ def run_full_security_pipeline():
             log_security_event("https_required_soft", "Member POST over HTTP allowed (proxy/dev)", severity="low")
 
     ua = request.headers.get("User-Agent", "") or ""
+    if is_recon_scanner_ua(ua):
+        log_security_event("recon_scanner", f"Header/TLS checker UA path={path[:80]}", severity="low")
+    if is_suspicious_attack_path(path) and not member and not is_auth_entry:
+        log_security_event("attack_path", f"Probe path={path[:120]}", severity="high")
+        increment_attack_stat("attack_path", penalize=False)
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            return False
     vetted = False
     try:
         vetted = bool(is_vetted())
@@ -482,7 +535,7 @@ def run_full_security_pipeline():
     if not is_auth_entry and not member and not vetted:
         if is_allowed_crawler(ua):
             pass
-        elif is_suspicious_user_agent(ua):
+        elif is_known_attacker_ua(ua) or is_suspicious_user_agent(ua):
             log_security_event("suspicious_ua", "Bot/scraper UA detected")
             increment_attack_stat("bot_attempt")
             # Only hard-block tool UAs on mutations; allow GET so church sites stay readable
@@ -519,7 +572,10 @@ def run_full_security_pipeline():
             return False
 
     # CSRF for state changing requests — classify before treating as an "attack"
-    if request.method in ("POST", "PUT", "DELETE", "PATCH") and CSRF_PROTECTION:
+    # PWA install preference — same-origin JSON, no session mutation
+    if (request.path or "").startswith("/pwa/"):
+        pass
+    elif request.method in ("POST", "PUT", "DELETE", "PATCH") and CSRF_PROTECTION:
         csrf_token = (
             request.form.get("csrf_token")
             or request.headers.get("X-CSRF-Token")

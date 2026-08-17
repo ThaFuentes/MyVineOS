@@ -13,9 +13,43 @@ def logger(msg):
     """Simple logger - plain ascii only"""
     print(msg)
 # ====================== REAL IP DETECTION ======================
+def _parse_ip(raw):
+    text = (raw or "").strip().strip("[]")
+    if not text:
+        return None
+    try:
+        import ipaddress
+
+        return ipaddress.ip_address(text.split("%")[0])
+    except Exception:
+        return None
+
+
+def _ip_is_public_enough(addr) -> bool:
+    """True for internet / CGNAT. False for loopback and true RFC1918 / ULA."""
+    if addr is None:
+        return False
+    if addr.is_unspecified or addr.is_loopback or addr.is_link_local:
+        return False
+    if addr.version == 4:
+        n = int(addr)
+        if (n >> 24) == 10:
+            return False
+        if 2752 <= (n >> 20) <= 2753:
+            return False
+        if (n >> 16) == 0xC0A8:
+            return False
+        return True
+    if addr.version == 6:
+        return (int(addr) >> 121) != 126
+    return True
+
+
 def get_real_ip(req=None):
-    """Get real client IP from headers or remote_addr (never empty for DB NOT NULL).
-    req optional — uses flask.request when omitted (device_print / pipeline helpers).
+    """Client IP. Prefer the first public address in CF / X-Real-IP / XFF.
+
+    HostM often prepends 127.0.0.1 or a LAN hop. Taking that first hop
+    made every church event look like LAN on the threat map.
     """
     if req is None:
         try:
@@ -27,17 +61,30 @@ def get_real_ip(req=None):
     if req is None:
         return "0.0.0.0"
     try:
-        raw = (
-            req.headers.get("CF-Connecting-IP") or
-            req.headers.get("X-Real-IP") or
-            (req.headers.get("X-Forwarded-For") or "").split(",")[0] or
-            getattr(req, "remote_addr", None) or
-            ""
-        )
+        candidates = []
+        for h in ("CF-Connecting-IP", "X-Real-IP", "True-Client-IP"):
+            v = req.headers.get(h)
+            if v:
+                candidates.append(v)
+        xff = req.headers.get("X-Forwarded-For") or ""
+        for part in xff.split(","):
+            if part.strip():
+                candidates.append(part)
+        ra = getattr(req, "remote_addr", None)
+        if ra:
+            candidates.append(ra)
+        first_valid = None
+        for raw in candidates:
+            addr = _parse_ip(raw)
+            if addr is None:
+                continue
+            if first_valid is None:
+                first_valid = str(addr)
+            if _ip_is_public_enough(addr):
+                return str(addr)
+        return first_valid or "0.0.0.0"
     except Exception:
         return "0.0.0.0"
-    ip = (raw or "").strip()
-    return ip if ip else "0.0.0.0"
 # ====================== INTERNAL REQUEST BYPASS ======================
 def is_internal_request(req):
     """Bypass for internal paths (static, health, favicon)"""

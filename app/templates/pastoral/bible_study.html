@@ -4,7 +4,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713f">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260722notes2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260816strongs">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -78,6 +78,16 @@
                 {% endif %}
             </select>
             <span id="bible-source-badge" class="badge bg-secondary" style="display:none;"></span>
+            <label class="bible-hl-default-wrap small" title="Default highlight color">
+                <span class="bible-hl-default-label">Color</span>
+                <select id="bible-hl-color-toolbar" class="form-select form-select-sm form-control-dark" style="width:auto;display:inline-block;">
+                    {% for c in highlight_colors %}
+                    <option value="{{ c }}">{{ c|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="button" id="bible-fav-chapter" class="btn btn-sm btn-outline-secondary" title="Favorite this chapter">♡ Ch</button>
+            <button type="button" id="bible-fav-book" class="btn btn-sm btn-outline-secondary" title="Favorite this book">♡ Book</button>
             <button type="button" id="bible-back-chapter" class="btn btn-sm btn-outline-secondary" style="display:none;"><- Chapter</button>
             <button type="button" id="bible-prev-chapter" class="btn btn-sm btn-outline-secondary" disabled>Prev</button>
             <button type="button" id="bible-next-chapter" class="btn btn-sm btn-outline-secondary" disabled>Next</button>
@@ -94,6 +104,7 @@
                 <option value="{{ c }}">{{ c|capitalize }}</option>
                 {% endfor %}
             </select>
+            <button type="button" id="bible-fav-verse" class="btn btn-sm btn-outline-secondary" title="Favorite selected verse">♡ Favorite</button>
             <button type="button" id="bible-hl-btn" class="btn btn-sm btn-warning" title="Highlight selected verses">Highlight</button>
             <button type="button" id="bible-hl-clear-btn" class="btn btn-sm btn-outline-secondary" title="Clear highlight on selection">Clear HL</button>
             <button type="button" id="bible-copy-sel-btn" class="btn btn-sm btn-outline-secondary" title="Copy selected verses to clipboard">Copy selection</button>
@@ -292,6 +303,7 @@
       onlineTranslations: {{ url_for('pastoral.bible.online_translations')|tojson }},
       highlight: {{ url_for('pastoral.bible.bible_highlight_save')|tojson }},
       highlightClear: {{ url_for('pastoral.bible.bible_highlight_clear')|tojson }},
+      favorite: {{ url_for('pastoral.bible.bible_favorite_toggle')|tojson }},
       note: {{ url_for('pastoral.bible.bible_note_save')|tojson }},
       notesList: {{ url_for('pastoral.bible.bible_notes_list')|tojson }},
       notesDownload: {{ url_for('pastoral.bible.bible_notes_download_bulk')|tojson }},
@@ -302,5 +314,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260722notes2"></script>
+<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260816strongs"></script>
 {% endblock %}

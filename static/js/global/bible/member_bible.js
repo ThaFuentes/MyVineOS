@@ -569,7 +569,7 @@
     let html = '';
     (data.verses || []).forEach((v) => {
       const ref = `${data.book} ${data.chapter}:${v.verse}`;
-      const strongs = (data.strongs && data.strongs[v.verse]) || [];
+      const strongs = (data.strongs && (data.strongs[v.verse] || data.strongs[String(v.verse)])) || [];
       const hl = highlightClass(v.verse, highlights);
       const isFav = favoriteVerses.has(v.verse);
       const hasNote = noted.has(v.verse);
@@ -599,13 +599,33 @@
   function linkStrongs(text, strongsList) {
     if (!strongsList?.length) return escapeHtml(text);
     let result = escapeHtml(text);
-    strongsList.forEach((s) => {
-      if (!s.surface_word) return;
-      const re = new RegExp(`\\b(${escapeRegex(s.surface_word)})\\b`, 'i');
-      result = result.replace(re, (m) =>
-        `<span class="member-bible-strongs-word" data-strongs="${s.strongs_number}" title="${s.strongs_number}">${m}</span>`
-      );
+    const used = new Set();
+    const sorted = [...strongsList].sort((a, b) =>
+      String(b.surface_word || '').length - String(a.surface_word || '').length
+    );
+    sorted.forEach((s) => {
+      const word = (s.surface_word || '').trim();
+      const num = (s.strongs_number || '').trim();
+      if (!word || !num) return;
+      const re = new RegExp(`(?<![\\w-])(${escapeRegex(word)})(?![\\w-])`, 'i');
+      let replaced = false;
+      result = result.replace(re, (m) => {
+        if (replaced) return m;
+        replaced = true;
+        used.add(num);
+        const tip = [num, s.transliteration, s.lemma].filter(Boolean).join(' · ');
+        return `<button type="button" class="member-bible-strongs-word" data-strongs="${escapeAttr(num)}" title="${escapeAttr(tip)}">${m}<sup class="strongs-num">${escapeHtml(num)}</sup></button>`;
+      });
     });
+    const leftover = strongsList.filter((s) => s.strongs_number && !used.has(s.strongs_number));
+    if (leftover.length) {
+      result += '<span class="strongs-chips">';
+      leftover.forEach((s) => {
+        const tip = [s.strongs_number, s.transliteration, s.lemma].filter(Boolean).join(' · ');
+        result += `<button type="button" class="strongs-chip" data-strongs="${escapeAttr(s.strongs_number)}" title="${escapeAttr(tip)}">${escapeHtml(s.surface_word || s.lemma || s.strongs_number)}</button>`;
+      });
+      result += '</span>';
+    }
     return result;
   }
 
@@ -648,9 +668,10 @@
   function bindMainChapterEvents() {
     const content = main();
     if (!content) return;
-    content.querySelectorAll('.member-bible-strongs-word').forEach((node) => {
+    content.querySelectorAll('.member-bible-strongs-word, .strongs-chip').forEach((node) => {
       node.addEventListener('click', (e) => {
         e.stopPropagation();
+        e.preventDefault();
         showStrongs(node.dataset.strongs);
       });
     });
@@ -723,7 +744,8 @@
           || e.target.closest('.member-note-marker')
           || e.target.closest('.member-hl-swatches')
           || e.target.closest('.member-xrefs')
-          || e.target.closest('.member-bible-strongs-word')) return;
+          || e.target.closest('.member-bible-strongs-word')
+          || e.target.closest('.strongs-chip')) return;
         const v = parseInt(line.dataset.verse, 10);
         if (!v) return;
         if (e.shiftKey && selectedVerses.size) {
@@ -1444,23 +1466,76 @@
     }
   }
 
+  function ensureStrongsPopup() {
+    let root = el('member-strongs-popup');
+    if (root) return root;
+    root = document.createElement('div');
+    root.id = 'member-strongs-popup';
+    root.className = 'bible-strongs-popup';
+    root.setAttribute('aria-hidden', 'true');
+    root.innerHTML = `
+      <div class="bible-strongs-card" role="dialog" aria-modal="true" aria-labelledby="member-strongs-title">
+        <button type="button" class="bible-strongs-close" data-strongs-close aria-label="Close">&times;</button>
+        <p class="bible-strongs-kicker">Strong’s</p>
+        <h3 id="member-strongs-title" class="bible-strongs-title">—</h3>
+        <p class="bible-strongs-meta" data-strongs-meta></p>
+        <ol class="bible-strongs-senses" data-strongs-senses></ol>
+        <p class="bible-strongs-full small text-muted" data-strongs-full></p>
+        <ul class="bible-strongs-occ small" data-strongs-occ></ul>
+      </div>`;
+    document.body.appendChild(root);
+    root.addEventListener('click', (e) => {
+      if (e.target === root || e.target.closest('[data-strongs-close]')) {
+        root.classList.remove('open');
+        root.setAttribute('aria-hidden', 'true');
+      }
+    });
+    return root;
+  }
+
   async function showStrongs(number) {
-    const content = main();
-    if (!content) return;
-    content.innerHTML = '<p class="small text-muted">Loading Strong\'s…</p>';
-    closeFlyouts();
-    setMainView('strongs');
-    if (el('member-bible-title')) el('member-bible-title').textContent = `Strong's ${number}`;
+    if (!number) return;
+    const root = ensureStrongsPopup();
+    root.classList.add('open');
+    root.setAttribute('aria-hidden', 'false');
+    root.querySelector('#member-strongs-title').textContent = number;
+    root.querySelector('[data-strongs-meta]').textContent = 'Loading…';
+    root.querySelector('[data-strongs-senses]').innerHTML = '';
+    root.querySelector('[data-strongs-full]').textContent = '';
+    root.querySelector('[data-strongs-occ]').innerHTML = '';
     try {
       const resp = await fetch(`${base}/strongs/${encodeURIComponent(number)}`);
       if (!resp.ok) throw new Error('missing');
       const data = await resp.json();
-      let html = `<h3>${escapeHtml(data.number)}</h3>`;
-      html += `<p><em>${escapeHtml(data.transliteration || '')}</em> (${escapeHtml(data.language || '')})</p>`;
-      html += `<p>${escapeHtml(data.definition || '')}</p>`;
-      content.innerHTML = html;
+      root.querySelector('#member-strongs-title').textContent =
+        `${data.number || number}  ·  ${data.transliteration || data.lemma || ''}`;
+      root.querySelector('[data-strongs-meta]').textContent =
+        [data.lemma, data.language].filter(Boolean).join(' · ');
+      const senses = (data.senses && data.senses.length)
+        ? data.senses
+        : (data.definition ? [data.definition] : ['No gloss on file.']);
+      root.querySelector('[data-strongs-senses]').innerHTML = senses
+        .map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+      if (data.definition && senses.length > 1) {
+        root.querySelector('[data-strongs-full]').textContent = data.definition;
+      }
+      const occ = data.occurrences || [];
+      if (occ.length) {
+        root.querySelector('[data-strongs-occ]').innerHTML = occ.slice(0, 12).map((o) =>
+          `<li><a href="#" data-goto="${escapeAttr(o.book)}|${o.chapter}|${o.verse}">${escapeHtml(o.book)} ${o.chapter}:${o.verse}</a>${o.surface_word ? ' · ' + escapeHtml(o.surface_word) : ''}</li>`
+        ).join('');
+        root.querySelectorAll('[data-goto]').forEach((a) => {
+          a.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            const [book, ch, v] = a.dataset.goto.split('|');
+            root.classList.remove('open');
+            currentBook = book;
+            loadChapter(parseInt(ch, 10)).then(() => scrollToVerse(parseInt(v, 10)));
+          });
+        });
+      }
     } catch (e) {
-      content.innerHTML = '<p class="text-muted">Strong\'s entry not found.</p>';
+      root.querySelector('[data-strongs-meta]').textContent = 'Strong’s entry not found.';
     }
   }
 
@@ -1668,6 +1743,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeXrefPopup();
+        el('member-strongs-popup')?.classList.remove('open');
         closeFlyouts();
         closeNoteModal();
       }

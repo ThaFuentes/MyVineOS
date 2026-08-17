@@ -102,19 +102,54 @@ def _lookup_ipv4(n: int) -> str:
     return "XX"
 
 
+def _is_loopback_or_unspecified(addr) -> bool:
+    return bool(addr.is_loopback or addr.is_unspecified or addr.is_link_local)
+
+
+def _is_true_lan(addr) -> bool:
+    """RFC1918 / IPv6 ULA only. Not CGNAT (100.64/10) and not 'reserved' junk."""
+    if addr.version == 4:
+        n = int(addr)
+        if (n >> 24) == 10:
+            return True
+        if 2752 <= (n >> 20) <= 2753:  # 172.16.0.0/12
+            return True
+        if (n >> 16) == 0xC0A8:  # 192.168.0.0/16
+            return True
+        return False
+    if addr.version == 6:
+        # fc00::/7 unique local
+        return (int(addr) >> 121) == 126
+    return False
+
+
+def is_map_junk_ip(ip: str) -> bool:
+    """Loopback / unspecified — HostM, cron, missing XFF. Not an attacker."""
+    raw = (ip or "").strip()
+    if not raw:
+        return True
+    try:
+        addr = ipaddress.ip_address(raw.split("%")[0].strip("[]"))
+    except ValueError:
+        return True
+    return _is_loopback_or_unspecified(addr)
+
+
 def country_for_ip(ip: str) -> str:
     raw = (ip or "").strip()
     if not raw:
-        return "XX"
+        return "LO"
     try:
-        addr = ipaddress.ip_address(raw.split("%")[0])
+        addr = ipaddress.ip_address(raw.split("%")[0].strip("[]"))
     except ValueError:
         return "XX"
-    if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+    if _is_loopback_or_unspecified(addr):
+        return "LO"
+    if _is_true_lan(addr):
         return "ZZ"
     if addr.version == 4:
         return _lookup_ipv4(int(addr))
-    # IPv6: country grain not in the packed v4 table
+    # IPv6: country grain not in the packed v4 table (not LAN)
     return "XX"
 
 
@@ -164,3 +199,36 @@ def fill_missing_ips(conn, ips: list[str], *, limit: int = 200) -> int:
     if wrote:
         conn.commit()
     return wrote
+
+
+def refresh_wrong_lan(conn, *, limit: int = 400) -> int:
+    """Re-stamp ZZ/XX rows that were CGNAT, loopback, or a public IP mis-tagged LAN."""
+    ensure_ip_geo_table(conn)
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT ip, country_iso2 FROM pbt_ip_geo
+            WHERE country_iso2 IN ('ZZ', 'XX', 'LO')
+            ORDER BY resolved_at ASC
+            LIMIT %s
+            """,
+            (int(limit),),
+        )
+    except Exception:
+        return 0
+    n = 0
+    for r in cur.fetchall() or []:
+        ip = (r.get("ip") if isinstance(r, dict) else r[0]) or ""
+        old = ((r.get("country_iso2") if isinstance(r, dict) else r[1]) or "").upper()
+        cc = country_for_ip(ip)
+        if cc == old:
+            continue
+        cur.execute(
+            "UPDATE pbt_ip_geo SET country_iso2=%s, source='reclass', resolved_at=NOW() WHERE ip=%s",
+            (cc, ip),
+        )
+        n += 1
+    if n:
+        conn.commit()
+    return n

@@ -364,12 +364,11 @@ def request_audit_context() -> dict[str, Any]:
         method = (request.method or "GET")[:10]
     user_id = None
     try:
-        from flask_login import current_user
-
-        if getattr(current_user, "is_authenticated", False):
-            user_id = int(current_user.id)
+        from flask import session as flask_session
+        uid = flask_session.get("user_id")
+        user_id = int(uid) if uid is not None else None
     except Exception:
-        pass
+        user_id = None
     return {
         "ip": info.get("ip"),
         "device_fp": info.get("device_fp"),
