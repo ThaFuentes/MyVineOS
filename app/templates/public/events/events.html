@@ -25,6 +25,9 @@
       <strong>Location:</strong> {{ event.location }}<br>
       <strong>By:</strong> {{ event.creator_name or event.posted_by or 'Church' }}
     </div>
+    {% if event.cost_fees and event.cost_fees > 0 %}
+    <p style="margin:0.35rem 0 0; color:var(--primary); font-weight:600;">${{ '%.2f'|format(event.cost_fees) }} — pay online</p>
+    {% endif %}
     {% if event.description %}
     <p class="public-list-body">{{ event.description | truncate(220) | censor | nl2br }}</p>
     {% endif %}

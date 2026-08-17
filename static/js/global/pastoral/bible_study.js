@@ -16,6 +16,9 @@
   let allNotesCache = [];
   let notesPanelTab = 'passage'; // 'passage' | 'all'
   let selectedVerses = new Set();
+  let favoriteVerses = new Set();
+  let favChapter = false;
+  let favBook = false;
   let lastSource = null;
   let chapterPage = 0;
   const CHAPTERS_PER_PAGE = 20;
@@ -170,6 +173,13 @@
     const noteLabel = opts.hasNote ? 'Edit note' : 'Note';
     return `
       <div class="content-actions">
+        <button type="button" class="btn btn-warning btn-sm" data-act="highlight"
+          data-verse="${opts.verse || ''}" title="Highlight this verse">Highlight</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-act="hl-clear"
+          data-verse="${opts.verse || ''}" title="Clear highlight">Clear</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm bible-verse-heart${opts.isFav ? ' on' : ''}" data-act="fav"
+          data-verse="${opts.verse || ''}" data-text="${text}"
+          title="Favorite this verse">${opts.isFav ? '♥' : '♡'}</button>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-act="copy"
           data-ref="${ref}" data-text="${text}"
           title="Copy this verse reference and text to the clipboard">Copy</button>
@@ -191,6 +201,33 @@
 
   function bindActionButtons(root) {
     if (!root) return;
+    root.querySelectorAll('[data-act="highlight"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const v = parseInt(btn.dataset.verse, 10);
+        if (!v) return;
+        selectedVerses = new Set([v]);
+        updateSelectionBar();
+        applyHighlight();
+      });
+    });
+    root.querySelectorAll('[data-act="hl-clear"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const v = parseInt(btn.dataset.verse, 10);
+        if (!v) return;
+        selectedVerses = new Set([v]);
+        clearHighlight();
+      });
+    });
+    root.querySelectorAll('[data-act="fav"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const v = parseInt(btn.dataset.verse, 10);
+        if (!v) return;
+        toggleFavorite('verse', { verse: v, text: btn.dataset.text || '' });
+      });
+    });
     root.querySelectorAll('[data-act="copy"]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -795,6 +832,11 @@
       }
       renderVersePicker(data.verses);
       currentNotes = data.notes || [];
+      const favs = data.favorites || {};
+      favoriteVerses = new Set(favs.verses || []);
+      favChapter = !!favs.chapter;
+      favBook = !!favs.book;
+      updateFavButtons();
       renderChapter(data);
       if (notesPanelTab === 'all') loadAllNotesPanel();
       else renderNotesPanel(currentNotes, { mode: 'passage' });
@@ -882,10 +924,11 @@
     let html = '';
     (data.verses || []).forEach((v) => {
       const ref = `${data.book} ${data.chapter}:${v.verse}`;
-      const strongs = (data.strongs && data.strongs[v.verse]) || [];
+      const strongs = (data.strongs && (data.strongs[v.verse] || data.strongs[String(v.verse)])) || [];
       const hl = highlightClassForVerse(v.verse, highlights);
       const hasNote = noted.has(v.verse);
-      html += `<div class="bible-verse-line${hl}${hasNote ? ' has-note' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
+      const isFav = favoriteVerses.has(v.verse);
+      html += `<div class="bible-verse-line${hl}${hasNote ? ' has-note' : ''}${isFav ? ' is-favorite' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
       html += `<span class="bible-verse-num">${v.verse}</span>`;
       if (hasNote) {
         html += `<button type="button" class="bible-note-marker" data-open-note-verse="${v.verse}" title="Open your note on this verse" aria-label="Open note">📝</button>`;
@@ -899,6 +942,7 @@
         chapter: data.chapter,
         verse: v.verse,
         hasNote,
+        isFav,
       });
       html += '</div>';
     });
@@ -1321,9 +1365,10 @@
 
   function bindChapterEvents() {
     const reader = main();
-    reader?.querySelectorAll('.strongs-word').forEach((node) => {
+    reader?.querySelectorAll('.strongs-word, .strongs-chip').forEach((node) => {
       node.addEventListener('click', (e) => {
         e.stopPropagation();
+        e.preventDefault();
         showStrongs(node.dataset.strongs);
       });
     });
@@ -1348,6 +1393,7 @@
       line.addEventListener('click', (e) => {
         if (e.target.closest('.content-actions')
           || e.target.closest('.strongs-word')
+          || e.target.closest('.strongs-chip')
           || e.target.closest('.bible-xrefs')
           || e.target.closest('.bible-note-marker')) return;
         const v = parseInt(line.dataset.verse, 10);
@@ -1377,10 +1423,67 @@
     bindActionButtons(reader);
   }
 
+  function updateFavButtons() {
+    const ch = el('bible-fav-chapter');
+    const bk = el('bible-fav-book');
+    if (ch) {
+      ch.textContent = favChapter ? '♥ Ch' : '♡ Ch';
+      ch.classList.toggle('on', favChapter);
+    }
+    if (bk) {
+      bk.textContent = favBook ? '♥ Book' : '♡ Book';
+      bk.classList.toggle('on', favBook);
+    }
+  }
+
+  async function toggleFavorite(scope, extra = {}) {
+    const body = {
+      scope,
+      book: currentBook,
+      chapter: scope === 'book' ? 0 : currentChapter,
+      verse: scope === 'verse' ? (extra.verse || Array.from(selectedVerses)[0] || 0) : 0,
+      translation: annotationKey || getTranslation(),
+      scripture_text: extra.text || '',
+    };
+    if (scope === 'verse' && !body.verse) return toast('Select a verse first');
+    try {
+      const resp = await fetch(urls.favorite || `${api}/favorite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!data.ok) throw new Error(data.error || 'Failed');
+      if (scope === 'verse') {
+        if (data.favorited) favoriteVerses.add(body.verse);
+        else favoriteVerses.delete(body.verse);
+        const line = main()?.querySelector(`.bible-verse-line[data-verse="${body.verse}"]`);
+        const heart = line?.querySelector('[data-act="fav"]');
+        if (line) line.classList.toggle('is-favorite', !!data.favorited);
+        if (heart) {
+          heart.textContent = data.favorited ? '♥' : '♡';
+          heart.classList.toggle('on', !!data.favorited);
+        }
+      } else if (scope === 'chapter') {
+        favChapter = !!data.favorited;
+      } else if (scope === 'book') {
+        favBook = !!data.favorited;
+      }
+      updateFavButtons();
+      toast(data.favorited ? `Favorited ${data.label || scope}` : `Removed from favorites`);
+    } catch (e) {
+      toast(e.message || 'Could not update favorite');
+    }
+  }
+
   async function applyHighlight() {
     if (!selectedVerses.size) return toast('Select a verse first');
     const nums = Array.from(selectedVerses).sort((a, b) => a - b);
-    const color = el('bible-hl-color')?.value || 'yellow';
+    const color = el('bible-hl-color')?.value || el('bible-hl-color-toolbar')?.value || 'yellow';
     const resp = await fetch(urls.highlight || `${api}/highlight`, {
       method: 'POST',
       headers: {
@@ -1658,15 +1761,35 @@
   }
 
   function linkStrongsInVerse(text, strongsList) {
-    if (!strongsList.length) return escapeHtml(text);
+    if (!strongsList || !strongsList.length) return escapeHtml(text);
     let result = escapeHtml(text);
-    strongsList.forEach((s) => {
-      if (!s.surface_word) return;
-      const re = new RegExp(`\\b(${escapeRegex(s.surface_word)})\\b`, 'i');
-      result = result.replace(re, (m) =>
-        `<span class="strongs-word" data-strongs="${s.strongs_number}" title="${s.strongs_number}">${m}</span>`
-      );
+    const used = new Set();
+    const sorted = [...strongsList].sort((a, b) =>
+      String(b.surface_word || '').length - String(a.surface_word || '').length
+    );
+    sorted.forEach((s) => {
+      const word = (s.surface_word || '').trim();
+      const num = (s.strongs_number || '').trim();
+      if (!word || !num) return;
+      const re = new RegExp(`(?<![\\w-])(${escapeRegex(word)})(?![\\w-])`, 'i');
+      let replaced = false;
+      result = result.replace(re, (m) => {
+        if (replaced) return m;
+        replaced = true;
+        used.add(num);
+        const tip = [num, s.transliteration, s.lemma].filter(Boolean).join(' · ');
+        return `<button type="button" class="strongs-word" data-strongs="${escapeAttr(num)}" title="${escapeAttr(tip)}">${m}<sup class="strongs-num">${escapeHtml(num)}</sup></button>`;
+      });
     });
+    const leftover = strongsList.filter((s) => s.strongs_number && !used.has(s.strongs_number));
+    if (leftover.length) {
+      result += '<span class="strongs-chips">';
+      leftover.forEach((s) => {
+        const tip = [s.strongs_number, s.transliteration, s.lemma].filter(Boolean).join(' · ');
+        result += `<button type="button" class="strongs-chip" data-strongs="${escapeAttr(s.strongs_number)}" title="${escapeAttr(tip)}">${escapeHtml(s.surface_word || s.lemma || s.strongs_number)}</button>`;
+      });
+      result += '</span>';
+    }
     return result;
   }
 
@@ -1807,43 +1930,76 @@
     }
   }
 
-  async function showStrongs(number) {
-    const reader = main();
-    reader.innerHTML = '<p class="text-muted small">Loading...</p>';
-    closeFlyouts();
-    setMainView('strongs');
-    if (el('bible-reader-title')) el('bible-reader-title').textContent = `Strong's ${number}`;
+  function ensureStrongsPopup() {
+    let root = el('bible-strongs-popup');
+    if (root) return root;
+    root = document.createElement('div');
+    root.id = 'bible-strongs-popup';
+    root.className = 'bible-strongs-popup';
+    root.setAttribute('aria-hidden', 'true');
+    root.innerHTML = `
+      <div class="bible-strongs-card" role="dialog" aria-modal="true" aria-labelledby="bible-strongs-title">
+        <button type="button" class="bible-strongs-close" data-strongs-close aria-label="Close">&times;</button>
+        <p class="bible-strongs-kicker">Strong’s</p>
+        <h3 id="bible-strongs-title" class="bible-strongs-title">—</h3>
+        <p class="bible-strongs-meta" data-strongs-meta></p>
+        <ol class="bible-strongs-senses" data-strongs-senses></ol>
+        <p class="bible-strongs-full small text-muted" data-strongs-full></p>
+        <ul class="bible-strongs-occ small" data-strongs-occ></ul>
+      </div>`;
+    document.body.appendChild(root);
+    root.addEventListener('click', (e) => {
+      if (e.target === root || e.target.closest('[data-strongs-close]')) {
+        root.classList.remove('open');
+        root.setAttribute('aria-hidden', 'true');
+      }
+    });
+    return root;
+  }
 
+  async function showStrongs(number) {
+    if (!number) return;
+    const root = ensureStrongsPopup();
+    root.classList.add('open');
+    root.setAttribute('aria-hidden', 'false');
+    root.querySelector('#bible-strongs-title').textContent = number;
+    root.querySelector('[data-strongs-meta]').textContent = 'Loading…';
+    root.querySelector('[data-strongs-senses]').innerHTML = '';
+    root.querySelector('[data-strongs-full]').textContent = '';
+    root.querySelector('[data-strongs-occ]').innerHTML = '';
     try {
       const resp = await fetch(`${api}/strongs/${encodeURIComponent(number)}`);
       if (!resp.ok) throw new Error('missing');
       const data = await resp.json();
-      const defText = `${data.number} (${data.transliteration || ''}) — ${data.definition || ''}`;
-      let html = `<h3 class="bible-main-heading">Strong's ${escapeHtml(data.number)}</h3>`;
-      html += `<div class="strongs-entry"><h6>${escapeHtml(data.transliteration || '')}</h6>`;
-      html += `<p class="small mb-1"><em>${escapeHtml(data.lemma || '')}</em> (${escapeHtml(data.language || '')})</p>`;
-      html += `<p>${escapeHtml(data.definition || '')}</p>`;
-      html += actionButtonsHtml({ reference: data.number, text: defText, strongs: data.number });
-      if (data.occurrences?.length) {
-        html += '<p class="small text-cyan mt-2">Sample occurrences</p><ul class="small">';
-        data.occurrences.slice(0, 10).forEach((o) => {
-          html += `<li><a href="#" data-goto="${o.book}|${o.chapter}|${o.verse}" class="text-cyan">${o.book} ${o.chapter}:${o.verse}</a></li>`;
-        });
-        html += '</ul>';
+      root.querySelector('#bible-strongs-title').textContent =
+        `${data.number || number}  ·  ${data.transliteration || data.lemma || ''}`;
+      root.querySelector('[data-strongs-meta]').textContent =
+        [data.lemma, data.language].filter(Boolean).join(' · ');
+      const senses = (data.senses && data.senses.length)
+        ? data.senses
+        : (data.definition ? [data.definition] : ['No gloss on file.']);
+      root.querySelector('[data-strongs-senses]').innerHTML = senses
+        .map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+      if (data.definition && senses.length > 1) {
+        root.querySelector('[data-strongs-full]').textContent = data.definition;
       }
-      html += '</div>';
-      reader.innerHTML = html;
-      bindActionButtons(reader);
-      reader.querySelectorAll('[data-goto]').forEach((a) => {
-        a.addEventListener('click', (ev) => {
-          ev.preventDefault();
-          const [book, ch, v] = a.dataset.goto.split('|');
-          currentBook = book;
-          loadChapter(parseInt(ch, 10)).then(() => scrollToVerse(parseInt(v, 10)));
+      const occ = data.occurrences || [];
+      if (occ.length) {
+        root.querySelector('[data-strongs-occ]').innerHTML = occ.slice(0, 12).map((o) =>
+          `<li><a href="#" data-goto="${escapeAttr(o.book)}|${o.chapter}|${o.verse}">${escapeHtml(o.book)} ${o.chapter}:${o.verse}</a>${o.surface_word ? ' · ' + escapeHtml(o.surface_word) : ''}</li>`
+        ).join('');
+        root.querySelectorAll('[data-goto]').forEach((a) => {
+          a.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            const [book, ch, v] = a.dataset.goto.split('|');
+            root.classList.remove('open');
+            currentBook = book;
+            loadChapter(parseInt(ch, 10)).then(() => scrollToVerse(parseInt(v, 10)));
+          });
         });
-      });
+      }
     } catch (e) {
-      reader.innerHTML = '<p class="text-muted">Strong\'s entry not found.</p>';
+      root.querySelector('[data-strongs-meta]').textContent = 'Strong’s entry not found.';
     }
   }
 
@@ -1967,6 +2123,15 @@
       });
     });
 
+    const syncHlColor = (from) => {
+      const a = el('bible-hl-color');
+      const b = el('bible-hl-color-toolbar');
+      if (from && a && from !== a) a.value = from.value;
+      if (from && b && from !== b) b.value = from.value;
+    };
+    el('bible-hl-color')?.addEventListener('change', (e) => syncHlColor(e.target));
+    el('bible-hl-color-toolbar')?.addEventListener('change', (e) => syncHlColor(e.target));
+
     el('bible-open-canon')?.addEventListener('click', () => openFlyout('canon'));
     el('bible-open-tools')?.addEventListener('click', () => openFlyout('tools'));
     el('bible-flyout-backdrop')?.addEventListener('click', closeFlyouts);
@@ -1974,6 +2139,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeXrefPopup();
+        el('bible-strongs-popup')?.classList.remove('open');
         closeFlyouts();
         closeNoteModal();
       }
@@ -2026,6 +2192,14 @@
 
     el('bible-hl-btn')?.addEventListener('click', applyHighlight);
     el('bible-hl-clear-btn')?.addEventListener('click', clearHighlight);
+    el('bible-fav-chapter')?.addEventListener('click', () => toggleFavorite('chapter'));
+    el('bible-fav-book')?.addEventListener('click', () => toggleFavorite('book'));
+    el('bible-fav-verse')?.addEventListener('click', () => {
+      const v = Array.from(selectedVerses)[0];
+      if (!v) return toast('Select a verse first');
+      const line = main()?.querySelector(`.bible-verse-line[data-verse="${v}"]`);
+      toggleFavorite('verse', { verse: v, text: line?.dataset.text || '' });
+    });
     el('bible-note-btn')?.addEventListener('click', () => openNoteModal());
     el('bible-to-illustration-btn')?.addEventListener('click', selectionToIllustration);
     el('bible-copy-sel-btn')?.addEventListener('click', () => {

@@ -5,7 +5,7 @@ import time
 from typing import Any
 
 from . import queries as q
-from .geo_lookup import ensure_ip_geo_table, fill_missing_ips
+from .geo_lookup import ensure_ip_geo_table, fill_missing_ips, refresh_wrong_lan
 from .queries import _fmt_ts
 
 WINDOWS = {
@@ -38,8 +38,18 @@ def _skip_sql() -> tuple[str, list]:
     return clause, params
 
 
-def _family(raw: str | None) -> str:
-    return q._canonical_attack_type(raw) or "other"
+def _family(raw: str | None) -> str | None:
+    """None = skip (soft/internal). Never default skipped types to 'other'."""
+    return q._canonical_attack_type(raw)
+
+
+# HostM / cron / missing XFF — not attackers. Keep RFC1918 as ZZ (true LAN).
+_JUNK_IP_ONLY = (
+    "e.ip NOT IN ('0.0.0.0', '::', '::1')"
+    " AND e.ip NOT LIKE '127.%'"
+    " AND e.ip NOT LIKE '::ffff:127.%'"
+)
+_JUNK_IP_SQL = _JUNK_IP_ONLY + " AND COALESCE(g.country_iso2, '') != 'LO'"
 
 
 def _safe_username(raw: Any) -> str:
@@ -113,6 +123,7 @@ def countries_for_window(window: str = "24h", *, fill: bool = True) -> dict[str,
         ensure_ip_geo_table(conn)
         if fill and (window or "") != "live":
             try:
+                refresh_wrong_lan(conn, limit=400)
                 cur.execute(
                     f"""
                     SELECT DISTINCT e.ip
@@ -120,6 +131,7 @@ def countries_for_window(window: str = "24h", *, fill: bool = True) -> dict[str,
                     LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
                     WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
                       AND e.ip IS NOT NULL AND e.ip != ''
+                      AND {_JUNK_IP_SQL}
                       AND {skip_sql}
                       AND (g.ip IS NULL OR g.resolved_at < NOW() - INTERVAL 90 DAY)
                     LIMIT 200
@@ -146,6 +158,7 @@ def countries_for_window(window: str = "24h", *, fill: bool = True) -> dict[str,
             LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
               AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
               AND {skip_sql}
             GROUP BY cc, e.event_type
             """,
@@ -157,6 +170,8 @@ def countries_for_window(window: str = "24h", *, fill: bool = True) -> dict[str,
         unresolved = 0
         for r in rows:
             cc = (r.get("cc") or "XX").upper()
+            if cc == "LO":
+                continue
             fam = _family(r.get("event_type"))
             if not fam:
                 continue
@@ -237,6 +252,7 @@ def summary_for_window(window: str = "24h") -> dict[str, Any]:
             LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
               AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
               AND {skip_sql}
             """,
             skip_params,
@@ -249,7 +265,10 @@ def summary_for_window(window: str = "24h") -> dict[str, Any]:
             f"""
             SELECT e.event_type, COUNT(*) AS c
             FROM pbt_security_events e
+            LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
+              AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
               AND {skip_sql}
             GROUP BY e.event_type
             """,
@@ -273,6 +292,7 @@ def summary_for_window(window: str = "24h") -> dict[str, Any]:
             LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
               AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
               AND {skip_sql}
             """,
             skip_params,
@@ -321,6 +341,7 @@ def country_detail(iso2: str, window: str = "24h") -> dict[str, Any]:
             LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
               AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
               AND {skip_sql}
               AND {geo_clause}
             GROUP BY e.event_type
@@ -359,6 +380,7 @@ def country_detail(iso2: str, window: str = "24h") -> dict[str, Any]:
             LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
               AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
               AND {skip_sql}
               AND {geo_clause}
             ORDER BY COALESCE(e.created_at, e.timestamp) DESC
@@ -379,12 +401,16 @@ def country_detail(iso2: str, window: str = "24h") -> dict[str, Any]:
             else:
                 octs = ip.split(".")
                 mask = ".".join(octs[:2] + ["x", "x"]) if len(octs) == 4 else ip
+            fam = _family(r.get("event_type"))
+            if not fam:
+                continue
             samples.append(
                 {
                     "ip": mask,
                     "raw_ip": ip,
                     "user_id": r.get("user_id"),
-                    "family": _family(r.get("event_type")),
+                    "family": fam,
+                    "event_type": (r.get("event_type") or "")[:64],
                     "at": _fmt_ts(r.get("created_at")),
                 }
             )
@@ -430,6 +456,7 @@ def replay_events(window: str = "24h", *, limit: int = 400) -> dict[str, Any]:
             LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
               AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
               AND {skip_sql}
             ORDER BY COALESCE(e.created_at, e.timestamp) ASC, e.id ASC
             """,
@@ -450,6 +477,7 @@ def replay_events(window: str = "24h", *, limit: int = 400) -> dict[str, Any]:
                 LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
                 WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
                   AND e.ip IS NOT NULL AND e.ip != ''
+                  AND {_JUNK_IP_SQL}
                   AND {skip_sql}
                 ORDER BY COALESCE(e.created_at, e.timestamp) ASC, e.id ASC
                 """,
@@ -464,11 +492,18 @@ def replay_events(window: str = "24h", *, limit: int = 400) -> dict[str, Any]:
             picked = raw
         events = []
         for r in picked:
+            fam = _family(r.get("event_type"))
+            if not fam:
+                continue
+            cc = (r.get("cc") or "XX").upper()
+            if cc == "LO":
+                continue
             events.append(
                 {
                     "id": int(r.get("id") or 0),
-                    "family": _family(r.get("event_type")),
-                    "iso2": (r.get("cc") or "XX").upper(),
+                    "family": fam,
+                    "event_type": (r.get("event_type") or "")[:64],
+                    "iso2": cc,
                     "at": _fmt_ts(r.get("created_at")),
                     "user_id": r.get("user_id"),
                     "ip": (r.get("ip") or "").strip(),
@@ -508,6 +543,7 @@ def recent_events(window: str = "24h", *, limit: int = 24) -> dict[str, Any]:
             LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
               AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
               AND {skip_sql}
             ORDER BY COALESCE(e.created_at, e.timestamp) DESC, e.id DESC
             LIMIT %s
@@ -516,11 +552,18 @@ def recent_events(window: str = "24h", *, limit: int = 24) -> dict[str, Any]:
         )
         events = []
         for r in cur.fetchall() or []:
+            fam = _family(r.get("event_type"))
+            if not fam:
+                continue
+            cc = (r.get("cc") or "XX").upper()
+            if cc == "LO":
+                continue
             events.append(
                 {
                     "id": int(r.get("id") or 0),
-                    "family": _family(r.get("event_type")),
-                    "iso2": (r.get("cc") or "XX").upper(),
+                    "family": fam,
+                    "event_type": (r.get("event_type") or "")[:64],
+                    "iso2": cc,
                     "at": _fmt_ts(r.get("created_at")),
                     "user_id": r.get("user_id"),
                     "ip": (r.get("ip") or "").strip(),
@@ -567,6 +610,8 @@ def live_events(*, since_id: int = 0, limit: int = 80) -> dict[str, Any]:
             FROM pbt_security_events e
             LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE {time_sql}
+              AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
               AND {skip_sql}
               {id_sql}
             ORDER BY e.id ASC
@@ -583,12 +628,16 @@ def live_events(*, since_id: int = 0, limit: int = 80) -> dict[str, Any]:
                 max_id = eid
             cc = (r.get("cc") or "XX").upper()
             ip = (r.get("ip") or "").strip()
+            fam = _family(r.get("event_type"))
+            if not fam or cc == "LO":
+                continue
             if cc == "XX" and ip:
                 need_fill.append(ip)
             rows.append(
                 {
                     "id": eid,
-                    "family": _family(r.get("event_type")),
+                    "family": fam,
+                    "event_type": (r.get("event_type") or "")[:64],
                     "iso2": cc,
                     "at": _fmt_ts(r.get("created_at")),
                     "user_id": r.get("user_id"),

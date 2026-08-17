@@ -135,7 +135,7 @@ def create_app():
             '/public/', '/legal/', '/login', '/register', '/logout',
             '/request-reset-password', '/forgot-username', '/resend-verification',
             '/verify-email', '/reset-password', '/check-email',
-            '/sw.js',
+            '/sw.js', '/pwa/', '/manifest.webmanifest',
         )
         if path == '/' or any(path == p or path.startswith(p) for p in public_prefixes):
             return
@@ -741,6 +741,8 @@ def create_app():
             return
         if (request.path.startswith('/static/') or
             request.path == '/sw.js' or
+            request.path.startswith('/pwa/') or
+            request.path == '/manifest.webmanifest' or
             (request.endpoint and request.endpoint.startswith('auth.'))):
             return
         if not owner_exists():
@@ -811,5 +813,12 @@ def create_app():
         if request.is_secure or os.getenv('REQUIRE_HTTPS', 'False').lower() == 'true':
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         return response
+
+    try:
+        from app.utils.pwa import register_pwa
+
+        register_pwa(app)
+    except Exception as e:
+        print(f"pwa register failed: {e}")
 
     return app

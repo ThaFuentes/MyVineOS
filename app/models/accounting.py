@@ -852,6 +852,85 @@ def dashboard_stats() -> dict:
     return stats
 
 
+def ensure_event_income_account() -> Optional[dict]:
+    """Event fees book to 4200 Event Income, never to Tithes (4000)."""
+    acct = get_account_by_code('4200')
+    if acct:
+        return acct
+    try:
+        save_account({
+            'code': '4200',
+            'name': 'Event Income',
+            'account_type': 'income',
+            'is_active': True,
+            'description': 'Paid event registrations and ticket fees',
+            'sort_order': 320,
+        })
+    except Exception:
+        pass
+    return get_account_by_code('4200')
+
+
+def post_event_income(donation_id: int, amount, donation_date: str, memo: str = '', created_by=None) -> int | None:
+    """
+    Post an event fee: Debit Cash (1000) / Credit Event Income (4200).
+    Idempotent — one journal entry per donation id (source=event).
+    """
+    if not donation_id:
+        return None
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT id FROM acct_journal_entries
+        WHERE source = 'event' AND source_id = %s AND status = 'posted'
+        LIMIT 1
+        """,
+        (int(donation_id),),
+    )
+    existing = cur.fetchone()
+    if existing:
+        return int(existing['id'])
+
+    income = ensure_event_income_account()
+    cash = get_account_by_code('1000')
+    if not income or not cash:
+        return None
+    amt = _money(amount)
+    if amt <= 0:
+        return None
+    return post_journal_entry(
+        entry_date=donation_date or church_today_str(),
+        memo=memo or f'Event fee #{donation_id}',
+        reference=f'EVT-{donation_id}',
+        source='event',
+        source_id=int(donation_id),
+        created_by=created_by,
+        lines=[
+            {'account_id': cash['id'], 'debit': amt, 'credit': 0, 'description': memo or f'Event fee #{donation_id}'},
+            {'account_id': income['id'], 'debit': 0, 'credit': amt, 'description': memo or f'Event fee #{donation_id}'},
+        ],
+    )
+
+
+def void_event_income(donation_id: int) -> bool:
+    if not donation_id:
+        return False
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT id FROM acct_journal_entries
+        WHERE source = 'event' AND source_id = %s AND status = 'posted'
+        """,
+        (int(donation_id),),
+    )
+    rows = cur.fetchall() or []
+    if not rows:
+        return False
+    for row in rows:
+        void_journal_entry(int(row['id']))
+    return True
+
+
 def post_donation_income(donation_id: int, amount, donation_date: str, memo: str = '', created_by=None) -> int | None:
     """
     Post a donation into the ledger: Debit Cash (1000) / Credit Tithes & Offerings (4000).

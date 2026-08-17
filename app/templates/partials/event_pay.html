@@ -1,0 +1,132 @@
+{% if event_accepts_payment %}
+<section class="glass-panel pay-cta">
+  <h2>{% if event.payment_required %}Pay to register{% else %}Pay online{% endif %}</h2>
+  {% if event_fee and event_fee > 0 %}
+  <div class="pay-amount">${{ '%.2f'|format(event_fee) }} <span style="font-size:0.85rem; font-weight:500; opacity:0.75;">per person</span></div>
+  {% endif %}
+  {% if event.payment_note %}<p style="margin:0 0 0.55rem; opacity:0.85;">{{ event.payment_note }}</p>{% endif %}
+  {% if event.registration_info %}<p style="margin:0 0 0.55rem; opacity:0.8;">{{ event.registration_info }}</p>{% endif %}
+
+  {% if event_is_full %}
+    <p style="margin:0;">This event is full.</p>
+  {% elif not event_registration_open %}
+    <p style="margin:0;">Registration is closed.</p>
+  {% else %}
+    {% if pay_methods %}
+    <p style="margin:0 0 0.45rem; font-weight:600;">Pay with</p>
+    <div class="giving-grid" style="margin-bottom:0.85rem;">
+      {% for m in pay_methods %}
+      <article class="giving-card" style="padding:0.75rem 0.8rem; border:1px solid var(--primary-border, rgba(255,255,255,0.12)); border-radius:12px;">
+        <strong>{{ m.name }}</strong>
+        {% if m.option_type %}<div class="help-text" style="margin:0.2rem 0 0.45rem;">{{ m.option_type }}</div>{% endif %}
+        {% if m.image_path %}
+        <img src="{{ url_for('static', filename='uploads/donations/' + m.image_path) }}" alt="{{ m.name }}">
+        {% endif %}
+        {% if m.url %}
+        <form method="post" action="{{ pay_action }}" style="margin-top:0.45rem;">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="register_pay">
+          <input type="hidden" name="pay_method_id" value="{{ m.id }}">
+          <input type="hidden" name="guest_name" class="pay-name-mirror" value="{{ session.get('username') or '' }}">
+          <input type="hidden" name="guest_email" class="pay-email-mirror" value="">
+          <input type="hidden" name="quantity" class="pay-qty-mirror" value="1">
+          <button type="submit" class="btn btn-primary" style="width:100%;">Pay with {{ m.name }}</button>
+        </form>
+        {% endif %}
+        {% if m.embed_code %}
+        <div class="event-pay-embed" style="margin-top:0.5rem;">{{ m.embed_code | safe }}</div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="{{ pay_action }}" id="event-pay-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="action" value="register_pay">
+      <input type="text" name="guest_name" id="event-pay-name" required
+             value="{{ session.get('username') or '' }}"
+             placeholder="Your name" autocomplete="name">
+      <input type="email" name="guest_email" id="event-pay-email" placeholder="Email (optional)" autocomplete="email">
+      <label for="pay-qty" style="font-size:0.85rem; font-weight:600;">How many</label>
+      <input id="pay-qty" type="number" name="quantity" min="1" value="1">
+      <div class="form-actions" style="margin:0;">
+        {% if not pay_methods %}
+        <button type="submit" name="intent" value="pay" class="btn btn-primary">
+          Pay{% if event_fee and event_fee > 0 %} ${{ '%.2f'|format(event_fee) }}{% endif %} now
+        </button>
+        {% endif %}
+        {% if not event.payment_required %}
+        <button type="submit" name="intent" value="register" class="btn btn-secondary">Register without paying</button>
+        {% endif %}
+      </div>
+      <p class="help-text" style="margin:0.35rem 0 0;">
+        Stripe, PayPal, Tithe.ly, and other checkout links open on that processor’s site.
+        When the church marks the payment received, it is recorded as <strong>Event Income</strong> — not a tithe.
+      </p>
+    </form>
+    <script>
+      (function () {
+        const name = document.getElementById('event-pay-name');
+        const email = document.getElementById('event-pay-email');
+        const qty = document.getElementById('pay-qty');
+        function sync() {
+          document.querySelectorAll('.pay-name-mirror').forEach(function (el) { el.value = name ? name.value : ''; });
+          document.querySelectorAll('.pay-email-mirror').forEach(function (el) { el.value = email ? email.value : ''; });
+          document.querySelectorAll('.pay-qty-mirror').forEach(function (el) { el.value = qty ? qty.value : '1'; });
+        }
+        ['input', 'change'].forEach(function (ev) {
+          if (name) name.addEventListener(ev, sync);
+          if (email) email.addEventListener(ev, sync);
+          if (qty) qty.addEventListener(ev, sync);
+        });
+        sync();
+      })();
+    </script>
+  {% endif %}
+
+  {% if can_manage_regs %}
+  <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.08);">
+    <strong>Money for this event</strong>
+    <div class="stat-chips" style="margin:0.45rem 0 0.7rem;">
+      <span class="stat-chip"><strong>${{ '%.2f'|format(event_paid_total or 0) }}</strong> posted</span>
+      <span class="stat-chip"><strong>${{ '%.2f'|format(event_pending_total or 0) }}</strong> waiting</span>
+    </div>
+    {% if registrations %}
+    <div class="entity-list">
+      {% for r in registrations %}
+      <div class="entity-card" style="padding:0.7rem 0.8rem;">
+        <div class="entity-card-top">
+          <div>
+            <strong>{{ r.guest_name }}</strong>
+            <div class="entity-meta">
+              <span>{{ r.guest_email or r.username or '' }}</span>
+              <span>×{{ r.quantity }}</span>
+              {% if r.amount %}<span>${{ '%.2f'|format(r.amount) }}</span>{% endif %}
+              {% if r.payment_method %}<span>{{ r.payment_method }}</span>{% endif %}
+              <span class="badge-pill {% if r.status == 'paid' %}badge-paid{% else %}badge-private{% endif %}">{{ r.status }}</span>
+              {% if r.donation_id %}<span>Books #{{ r.donation_id }}</span>{% endif %}
+            </div>
+          </div>
+        </div>
+        <form method="post" action="{{ pay_action }}" class="entity-actions">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="reg_status">
+          <input type="hidden" name="reg_id" value="{{ r.id }}">
+          {% if r.status != 'paid' %}
+          <button class="btn-primary btn-small" name="status" value="paid" type="submit">Mark paid (post to books)</button>
+          {% endif %}
+          {% if r.status != 'cancelled' %}
+          <button class="btn-danger btn-small" name="status" value="cancelled" type="submit">Cancel</button>
+          {% endif %}
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="help-text" style="margin:0;">No registrations yet.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}

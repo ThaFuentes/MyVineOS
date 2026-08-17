@@ -223,7 +223,10 @@
       return;
     }
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      const root = document.documentElement;
+      const scope = root.getAttribute('data-pwa-scope') || '/';
+      const sw = root.getAttribute('data-pwa-sw') || '/sw.js';
+      navigator.serviceWorker.register(sw, { scope: scope })
         .then((reg) => {
           // Quiet update check
           try { reg.update(); } catch (e) { /* ignore */ }
@@ -244,27 +247,8 @@
     }
   }
 
-  // Very light beforeinstallprompt helper (shows nothing intrusive by default,
-  // but marks the page so you can trigger a custom banner later if desired)
-  let deferredPrompt;
-  function setupInstallPrompt() {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      document.body.dataset.canInstall = 'true';
-      // You can listen for this in console or add a small UI later:
-      // console.log('[MyVine] App can be installed');
-    });
-
-    // Example: expose a global you can call from console or a button
-    window.MyVineInstall = async function() {
-      if (!deferredPrompt) return false;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      return outcome === 'accepted';
-    };
-  }
+  // Install banner lives in pwa-install.js (remembers No thanks per church URL).
+  function setupInstallPrompt() {}
 
   // Boot
   function init() {

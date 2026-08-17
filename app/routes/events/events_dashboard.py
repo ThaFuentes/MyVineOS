@@ -63,11 +63,27 @@ def register_dashboard_routes(bp):
             if e.get('potluck_enabled'):
                 potluck_count += 1
 
+        paid_total = 0.0
+        pending_total = 0.0
+        try:
+            from app.utils.event_payments import registration_counts
+            for e in events_list:
+                money = registration_counts(e['id'])
+                e['paid_total'] = money.get('paid_total') or 0
+                e['pending_total'] = money.get('pending_total') or 0
+                paid_total += e['paid_total']
+                pending_total += e['pending_total']
+        except Exception:
+            paid_total = 0.0
+            pending_total = 0.0
+
         return render_template(
             'events/events_dashboard.html',
             events=events_list,
             total_count=total_count,
             upcoming_count=upcoming_count,
             potluck_count=potluck_count,
+            paid_total=paid_total,
+            pending_total=pending_total,
             is_logged_in=True  # Force private view message
         )

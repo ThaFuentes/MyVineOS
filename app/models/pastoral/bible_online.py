@@ -748,6 +748,20 @@ def get_unified_chapter(
             else:
                 raise
 
+    # Strong's is verse-keyed (not translation-keyed). Overlay on online
+    # chapters too so words can be tapped without pasting a number.
+    if result:
+        try:
+            smap = {}
+            for v in result.get("verses") or []:
+                vn = int(v.get("verse") or 0)
+                if vn:
+                    smap[vn] = get_strongs_for_verse(book, chapter, vn)
+            result["strongs"] = smap
+        except Exception as exc:
+            print(f"strongs overlay: {exc}")
+            result.setdefault("strongs", {})
+
     if include_annotations and user_id and result:
         ref = result.get("translation_id") or result.get("translation") or ""
         # Prefer stable annotation key: online:ID or local code

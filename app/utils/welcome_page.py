@@ -5,7 +5,6 @@ from datetime import date, datetime
 
 from flask import g, render_template, session
 
-from app.routes.auth.queries import get_welcome_overview
 from app.utils.appearance import appearance_context, safe_url_for
 from app.utils.time_utils import format_church
 
@@ -27,6 +26,10 @@ def _coerce_event_date(value):
 
 def render_welcome_page():
     """Render the guest welcome overview with church info, events, and schedule."""
+    # Import inside the function so loading this module does not import
+    # app.routes.auth (which imports views → this file) and 500 the public site.
+    from app.routes.auth.queries import get_welcome_overview
+
     overview = get_welcome_overview()
     for event in overview['upcoming_events']:
         dt = _coerce_event_date(event.get('event_date'))

@@ -37,6 +37,9 @@ def _fmt_ts(dt) -> str:
     return str(dt)
 
 
+# Operational / product noise — still in pbt_security_events, not on the map.
+# Soft CSRF, HTTP-behind-proxy, N+1, and loopback health were painting
+# "LAN / Other" as thousands of fake attacks.
 _SKIP_EVENT_TYPES = frozenset(
     {
         "exception",
@@ -50,8 +53,53 @@ _SKIP_EVENT_TYPES = frozenset(
         "attacker_ua_soft_established",
         "device_ban_soft_established",
         "ip_ban_soft_allow",
+        "csrf_grace_member",
+        "csrf_soft_auth",
+        "csrf_soft_member",
+        "https_required_soft",
+        "n1_query_detected",
+        "low_reputation",
+        "reputation_block",
+        "recon_scanner",
     }
 )
+
+_EVENT_TO_ATTACK_TYPE = {
+    "attack_path_probe": "attack_path_probe",
+    "early_block_attack_path": "attack_path_probe",
+    "attack_path": "attack_path_probe",
+    "known_attacker_ua": "known_attacker_ua",
+    "early_block_attacker_ua": "known_attacker_ua",
+    "recon_scan": "known_attacker_ua",
+    "bot_attempt": "bot_attempt",
+    "suspicious_ua": "suspicious_ua",
+    "honeypot": "honeypot",
+    "honeypot_ban": "honeypot",
+    "honeypot_hit": "honeypot",
+    "unlinked_probe": "honeypot",
+    "token_attack": "token_attack",
+    "invalid_token": "token_attack",
+    "session_bind_fail": "token_attack",
+    "csrf": "csrf",
+    "csrf_failure": "csrf",
+    "csrf_attack": "csrf",
+    "csrf_member_cross_origin": "csrf",
+    "xss": "xss",
+    "xss_attempt": "xss",
+    "xss_block": "xss",
+    "rate_limit": "rate_limit",
+    "rate_limit_exceeded": "rate_limit",
+    "rate_limited_request": "rate_limit",
+    "refresh_spam": "rate_limit",
+    "ddos_attempts": "ddos_attempts",
+    "brute_force": "brute_force",
+    "brute_force_lock": "brute_force",
+    "failed_login": "failed_login",
+    "banned_device_block": "banned_device_block",
+    "banned_ip_block": "banned_ip_block",
+    "https_required": "https_required",
+    "n1_attack": "n1_attack",
+}
 
 
 def _canonical_attack_type(raw: str | None) -> str | None:
@@ -60,32 +108,32 @@ def _canonical_attack_type(raw: str | None) -> str | None:
     key = str(raw).strip().lower()
     if not key or key in _SKIP_EVENT_TYPES:
         return None
-    mapping = {
-        "attack_path_probe": "attack_path_probe",
-        "early_block_attack_path": "attack_path_probe",
-        "known_attacker_ua": "known_attacker_ua",
-        "early_block_attacker_ua": "known_attacker_ua",
-        "honeypot": "honeypot",
-        "token_attack": "token_attack",
-        "rate_limit": "rate_limit",
-        "rate_limit_exceeded": "rate_limit",
-        "rate_limited_request": "rate_limit",
-        "ddos_attempts": "ddos_attempts",
-        "brute_force": "brute_force",
-        "failed_login": "failed_login",
-    }
-    if key in mapping:
-        return mapping[key]
+    if key in _EVENT_TO_ATTACK_TYPE:
+        return _EVENT_TO_ATTACK_TYPE[key]
     if "honeypot" in key or "unlinked" in key:
         return "honeypot"
     if "ddos" in key:
         return "ddos_attempts"
     if "brute" in key:
         return "brute_force"
-    if "rate" in key:
+    if "rate" in key or "refresh_spam" in key:
         return "rate_limit"
-    if "token" in key or "csrf" in key:
+    if "xss" in key:
+        return "xss"
+    if "csrf" in key:
+        return "csrf"
+    if "token" in key or "session_bind" in key:
         return "token_attack"
+    if "attack_path" in key or key == "attack_path":
+        return "attack_path_probe"
+    if "banned_device" in key or "device_ban" in key:
+        return "banned_device_block"
+    if "banned_ip" in key or "ip_ban" in key:
+        return "banned_ip_block"
+    if "https_required" in key:
+        return "https_required"
+    if "n1" in key:
+        return "n1_attack"
     return key[:64]
 
 

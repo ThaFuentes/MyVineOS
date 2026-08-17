@@ -3,11 +3,19 @@
     brute_force: { color: "#ff2d3a", label: "Brute force", style: "strike" },
     attack_path_probe: { color: "#ffb020", label: "Path probe", style: "scan" },
     honeypot: { color: "#e040fb", label: "Honeypot", style: "trap" },
-    token_attack: { color: "#00e5ff", label: "Token / CSRF", style: "spike" },
+    token_attack: { color: "#00e5ff", label: "Token abuse", style: "spike" },
+    csrf: { color: "#18ffff", label: "CSRF", style: "spike" },
+    xss: { color: "#c6ff00", label: "XSS", style: "spike" },
     rate_limit: { color: "#ff8a3d", label: "Rate limit", style: "storm" },
     known_attacker_ua: { color: "#f0f4f8", label: "Scanner UA", style: "scan" },
+    bot_attempt: { color: "#b0bec5", label: "Bot", style: "scan" },
+    suspicious_ua: { color: "#eceff1", label: "Suspicious UA", style: "scan" },
     ddos_attempts: { color: "#ff1744", label: "Flood", style: "storm" },
     failed_login: { color: "#ff6f91", label: "Failed login", style: "strike" },
+    banned_device_block: { color: "#ff6d00", label: "Banned device", style: "strike" },
+    banned_ip_block: { color: "#d500f9", label: "Banned IP", style: "strike" },
+    n1_attack: { color: "#82b1ff", label: "Query flood", style: "storm" },
+    https_required: { color: "#80deea", label: "HTTP blocked", style: "spike" },
     other: { color: "#4dabf7", label: "Other", style: "spike" },
   };
 
@@ -125,14 +133,16 @@
   }
 
   function countryName(iso) {
-    if (!iso || iso === "XX") return "Unknown country";
-    if (iso === "ZZ") return "Private / local";
+    if (!iso || iso === "XX") return "Unmapped (IPv6 / carrier)";
+    if (iso === "ZZ") return "True LAN (RFC1918)";
+    if (iso === "LO") return "Loopback / host";
     return state.isoNames[iso] || iso;
   }
 
   function originLabel(iso) {
     if (!iso || iso === "XX") return "??";
     if (iso === "ZZ") return "LAN";
+    if (iso === "LO") return "HOST";
     return iso;
   }
 
@@ -337,7 +347,8 @@
         (s.unique_ips ?? 0) + " IPs",
         (s.unique_countries ?? 0) + " countries",
       ];
-      if (s.unresolved_events) bits.push(s.unresolved_events + " unmapped");
+      if (s.unresolved_events) bits.push(s.unresolved_events + " unmapped (IPv6/carrier)");
+      if (s.private_events) bits.push(s.private_events + " true LAN");
       sub.textContent = bits.join("  ·  ");
     }
     const famBox = document.getElementById("tm-board-fams");
@@ -892,9 +903,9 @@
       let sub =
         (d.count || 0) + " events · " + (d.unique_ips || 0) + " IPs" + (d.last_seen ? " · last " + d.last_seen : "");
       if (iso === "XX") {
-        sub += " · IPs are logged; country not in the free IPv4 table (often IPv6)";
+        sub += " · public or carrier IP; country not in the IPv4 table (often IPv6)";
       } else if (iso === "ZZ") {
-        sub += " · private / local address, not a public country";
+        sub += " · RFC1918 / church or office LAN only — not the internet";
       }
       document.getElementById("tm-drawer-sub").textContent = sub;
       const fams = document.getElementById("tm-drawer-fams");
@@ -930,7 +941,8 @@
           "<code>" +
           esc(s.ip || "") +
           "</code><span>" +
-          esc(s.family || "") +
+          esc(famMeta(s.family).label) +
+          (s.event_type ? " · " + esc(s.event_type) : "") +
           "</span>" +
           (s.username ? '<i class="tm-user">@' + esc(s.username) + "</i>" : "");
         ips.appendChild(li);

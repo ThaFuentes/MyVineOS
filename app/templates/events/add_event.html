@@ -128,11 +128,13 @@ Record a new church event. Required fields marked with <span class="required">*<
                     <textarea id="agenda" name="agenda" rows="6" class="form-input">{{ request.form.get('agenda', '') }}</textarea>
                 </div>
 
-                <div class="form-group">
-                    <label for="cost_fees" class="control-label">Cost / Fees (optional)</label>
-                    <input type="number" id="cost_fees" name="cost_fees" class="form-input" step="0.01" min="0"
-                           value="{{ request.form.get('cost_fees', '') }}" placeholder="0.00">
-                </div>
+                {% set cost_value = request.form.get('cost_fees', '') %}
+                {% set payment_required = request.form.get('payment_required') %}
+                {% set payment_url = request.form.get('payment_url', '') %}
+                {% set payment_note = request.form.get('payment_note', '') %}
+                {% set capacity = request.form.get('capacity', '') %}
+                {% set payment_option_ids = request.form.getlist('payment_option_ids')|join(',') if request.form.getlist('payment_option_ids') else '' %}
+                {% include 'partials/event_pay_fields.html' %}
 
                 <div class="form-group">
                     <label for="registration_info" class="control-label">Registration Information (optional)</label>

@@ -99,7 +99,13 @@ def create_tables(cursor):
         'live_streaming_details':    "TEXT",
         'event_objectives':          "TEXT",
         'created_at':                "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-        'updated_at':                "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+        'updated_at':                "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        'payment_required':          "TINYINT(1) NOT NULL DEFAULT 0",
+        'payment_url':               "TEXT",
+        'payment_note':              "TEXT",
+        'registration_open':         "TINYINT(1) NOT NULL DEFAULT 1",
+        'capacity':                  "INT UNSIGNED NULL",
+        'payment_option_ids':        "VARCHAR(255) NULL",
     }
 
     for col, defn in columns_to_add_events.items():
@@ -222,5 +228,40 @@ def create_tables(cursor):
     except: pass
     try: cursor.execute("CREATE INDEX idx_event_comments_parent ON event_comments(parent_id)")
     except: pass
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS event_registrations (
+            id            INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+            event_id      INT UNSIGNED NOT NULL,
+            user_id       INT UNSIGNED NULL,
+            guest_name    VARCHAR(120) NOT NULL,
+            guest_email   VARCHAR(190) NULL,
+            quantity      INT UNSIGNED NOT NULL DEFAULT 1,
+            amount        DECIMAL(10, 2) NULL,
+            status        VARCHAR(20) NOT NULL DEFAULT 'pending',
+            notes         VARCHAR(500) NULL,
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB
+    """)
+    cursor.execute("""
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'event_registrations'
+    """)
+    existing_regs = [row[0] for row in cursor.fetchall()]
+    for col, defn in {
+        'donation_id': "INT UNSIGNED NULL",
+        'processor': "VARCHAR(40) NULL",
+        'payment_method': "VARCHAR(80) NULL",
+        'confirmation_number': "VARCHAR(128) NULL",
+    }.items():
+        if col not in existing_regs:
+            cursor.execute(f"ALTER TABLE event_registrations ADD COLUMN {col} {defn}")
+
+    try:
+        cursor.execute("CREATE INDEX idx_event_reg_event ON event_registrations(event_id, status)")
+    except Exception:
+        pass
 
     print("events.py migration completed successfully (using 'comment' column + safe parent_id FK)")

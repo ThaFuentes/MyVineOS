@@ -11,10 +11,11 @@
 # valid session when the user switches networks or devices.
 # ================================================================
 
-from flask import session, request, g
+from flask import session, request, g, has_request_context
 from typing import Optional
 import time
 import secrets
+import re
 
 # ====================== SAFE IMPORTS ======================
 from poweredbytop.config.settings import (
@@ -47,6 +48,10 @@ def apply_secure_session_config(app):
     app.config['PERMANENT_SESSION_LIFETIME'] = VETTED_SESSION_TTL
     # Refresh independently per device so phone + desktop both stay alive
     app.config['SESSION_REFRESH_EACH_REQUEST'] = bool(SESSION_REFRESH_EACH_REQUEST)
+    try:
+        app.before_request(enforce_bound_session)
+    except Exception as hook_err:
+        logger(f"login bind hook failed: {hook_err}")
     logger(
         "Secure session configuration applied (multi-device OK, IP_BIND="
         + str(BIND_SESSION_TO_IP)
@@ -183,6 +188,175 @@ def require_vetted():
     return False
 
 
+# ====================== LOGIN COOKIE BIND (session['user_id']) ======================
+# Same-device roaming is allowed. Stolen cookie on a new device + new network is not.
+_SESS_UID = "pbt_sess_uid"
+_SESS_FAM = "pbt_sess_fam"
+_SESS_FP = "pbt_sess_fp"
+_SESS_IP = "pbt_sess_ip"
+_BIND_SKIP_PREFIXES = (
+    "/static/",
+    "/favicon",
+    "/health",
+    "/robots.txt",
+    "/.well-known/",
+)
+
+
+def _ips_same_client(stored: str | None, current: str | None) -> bool:
+    if not stored or not current:
+        return False
+    if stored == current:
+        return True
+    if ":" not in stored and ":" not in current:
+        return False
+    try:
+        import ipaddress
+        a = ipaddress.ip_address(stored.split("%")[0])
+        b = ipaddress.ip_address(current.split("%")[0])
+        if a.version == 6 and b.version == 6:
+            return (int(a) >> 64) == (int(b) >> 64)
+        return a == b
+    except Exception:
+        return False
+
+
+def _device_family() -> str:
+    if not has_request_context():
+        return ""
+    al = (request.headers.get("Accept-Language") or "")[:40].lower()
+    platform = (request.headers.get("Sec-CH-UA-Platform") or "").strip().strip('"').lower()[:80]
+    ch = request.headers.get("Sec-CH-UA") or ""
+    brands = ",".join(re.findall(r'"([^"]+)"', ch)).lower()
+    if not brands:
+        ua = (request.headers.get("User-Agent") or "").lower()
+        if "edg/" in ua:
+            brands = "edge"
+        elif "chrome/" in ua:
+            brands = "chrome"
+        elif "firefox/" in ua:
+            brands = "firefox"
+        elif "safari/" in ua:
+            brands = "safari"
+        else:
+            brands = (ua[:48] or "unknown")
+    return "|".join((brands[:80], al[:40], platform or "unknown"))
+
+
+def _current_device_fp() -> str:
+    try:
+        from poweredbytop.security.device_print import build_device_fingerprint
+        return (build_device_fingerprint().get("device_fp") or "")[:40]
+    except Exception:
+        return ""
+
+
+def _session_user_id():
+    try:
+        uid = session.get("user_id")
+        return int(uid) if uid is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def bind_login_session(user=None) -> None:
+    if not has_request_context():
+        return
+    uid = None
+    if user is not None:
+        if isinstance(user, dict):
+            uid = user.get("id")
+        else:
+            uid = getattr(user, "id", None)
+    if uid is None:
+        uid = _session_user_id()
+    try:
+        uid = int(uid)
+    except (TypeError, ValueError):
+        return
+    if uid <= 0:
+        return
+    session[_SESS_UID] = uid
+    session[_SESS_FAM] = _device_family()
+    session[_SESS_FP] = _current_device_fp()
+    session[_SESS_IP] = get_real_ip(request)
+    session.modified = True
+
+
+def clear_login_bind() -> None:
+    if not has_request_context():
+        return
+    for k in (_SESS_UID, _SESS_FAM, _SESS_FP, _SESS_IP):
+        session.pop(k, None)
+
+
+def check_login_session() -> bool:
+    if not has_request_context():
+        return True
+    path = request.path or ""
+    if any(path.startswith(p) for p in _BIND_SKIP_PREFIXES):
+        return True
+    uid = _session_user_id()
+    if not uid:
+        return True
+    if _SESS_UID not in session:
+        bind_login_session()
+        return True
+    try:
+        bound_uid = int(session.get(_SESS_UID) or 0)
+    except (TypeError, ValueError):
+        bound_uid = 0
+    if bound_uid and bound_uid != uid:
+        logger(f"Session bind fail: cookie user {bound_uid} != loaded user {uid}")
+        try:
+            from poweredbytop.core.security import log_security_event
+            log_security_event(
+                "session_bind_fail",
+                f"cookie user {bound_uid} != loaded user {uid}",
+                severity="high",
+            )
+        except Exception:
+            pass
+        return False
+
+    ip = get_real_ip(request)
+    bound_ip = session.get(_SESS_IP) or ""
+    fam = _device_family()
+    bound_fam = session.get(_SESS_FAM) or ""
+    same_net = _ips_same_client(bound_ip, ip) or (bound_ip == ip)
+    same_fam = bool(bound_fam) and bound_fam == fam
+    if same_fam:
+        if not same_net:
+            session[_SESS_IP] = ip
+            session.modified = True
+        return True
+    if same_net:
+        bind_login_session()
+        return True
+    logger(f"Session bind fail: device+ip mismatch user={uid}")
+    try:
+        from poweredbytop.core.security import log_security_event
+        log_security_event(
+            "session_bind_fail",
+            f"device+ip mismatch user={uid}",
+            severity="high",
+        )
+    except Exception:
+        pass
+    return False
+
+
+def enforce_bound_session():
+    if check_login_session():
+        return None
+    clear_login_bind()
+    clear_vetted()
+    session.pop("user_id", None)
+    session.pop("username", None)
+    session.pop("user_role", None)
+    return None
+
+
 # ====================== FINAL EXPORTS ======================
 __all__ = [
     "apply_secure_session_config",
@@ -192,6 +366,10 @@ __all__ = [
     "record_login_attempt",
     "is_locked_out",
     "require_vetted",
+    "bind_login_session",
+    "clear_login_bind",
+    "check_login_session",
+    "enforce_bound_session",
 ]
 
-logger("poweredbytop/auth/session.py loaded (multi-device concurrent sessions supported)")
+logger("poweredbytop/auth/session.py loaded (multi-device + login cookie bind)")

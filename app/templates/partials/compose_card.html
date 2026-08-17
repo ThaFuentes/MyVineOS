@@ -1,0 +1,92 @@
+{% set compose_types = compose_types|default([]) %}
+{% if compose_types %}
+<section class="glass-panel compose-card" data-compose>
+  <strong>Share with the church</strong>
+  <p class="compose-hint">Pick what you are posting. Extra details can be added on the full page later.</p>
+
+  <div class="compose-types" role="tablist">
+    {% for t in compose_types %}
+    <button type="button" class="compose-type{% if loop.first %} is-active{% endif %}"
+            data-compose-type="{{ t.key }}">{{ t.label }}</button>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="{{ url_for('compose.compose_create') }}" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="compose_type" value="{{ compose_types[0].key }}">
+    <input type="hidden" name="next" value="{{ request.path }}">
+
+    {% for t in compose_types %}
+    <div class="compose-fields{% if loop.first %} is-open{% endif %}" data-compose-panel="{{ t.key }}">
+      {% if t.key == 'event' %}
+        <div>
+          <label for="compose-event-name">Event name</label>
+          <input id="compose-event-name" name="event_name" type="text" placeholder="Sunday picnic">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div>
+            <label for="compose-event-date">Date</label>
+            <input id="compose-event-date" name="event_date" type="date">
+          </div>
+          <div>
+            <label for="compose-event-time">Time</label>
+            <input id="compose-event-time" name="event_time" type="time">
+          </div>
+        </div>
+        <div>
+          <label for="compose-event-loc">Location</label>
+          <input id="compose-event-loc" name="location" type="text" placeholder="Fellowship hall">
+        </div>
+        <div>
+          <label for="compose-event-body">Details</label>
+          <textarea id="compose-event-body" name="description" rows="3" placeholder="What should people know?"></textarea>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div>
+            <label for="compose-event-cost">Cost (optional)</label>
+            <input id="compose-event-cost" name="cost_fees" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div>
+            <label for="compose-event-payurl">Pay link (optional)</label>
+            <input id="compose-event-payurl" name="payment_url" type="url" placeholder="https://buy.stripe.com/...">
+          </div>
+        </div>
+        <label style="display:flex; gap:0.45rem; align-items:center; font-weight:500;">
+          <input type="checkbox" name="visibility" value="public"> Show on the public website
+        </label>
+        {% if endpoint_exists('events.add_event') %}
+        <p class="compose-hint"><a href="{{ url_for('events.add_event') }}">Need the full event form?</a></p>
+        {% endif %}
+      {% elif t.key == 'sermon' %}
+        <p class="compose-hint">Sermons include audio or a manuscript. Use the upload page so nothing is missed.</p>
+        <a href="{{ url_for('sermons.upload_sermon') }}" class="btn btn-primary">Open sermon upload</a>
+      {% else %}
+        <div>
+          <label for="compose-{{ t.key }}-title">Title</label>
+          <input id="compose-{{ t.key }}-title" name="title" type="text" placeholder="Short title">
+        </div>
+        <div>
+          <label for="compose-{{ t.key }}-body">{{ 'Message' if t.key == 'announcement' else 'Description' }}</label>
+          <textarea id="compose-{{ t.key }}-body" name="{{ 'description' if t.key != 'announcement' else 'body' }}" rows="4"
+                    placeholder="Write it here..."></textarea>
+        </div>
+        <div>
+          <label for="compose-{{ t.key }}-vis">Who can see this</label>
+          <select id="compose-{{ t.key }}-vis" name="visibility">
+            <option value="public">Everyone</option>
+            <option value="private" selected>Members</option>
+            {% if t.key in ('dream', 'prophecy', 'prayer') %}
+            <option value="personal">Only me / pastoral</option>
+            {% endif %}
+          </select>
+        </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="form-actions" style="margin-top:0.35rem;">
+      <button type="submit" class="btn btn-primary">Post</button>
+    </div>
+  </form>
+</section>
+{% endif %}

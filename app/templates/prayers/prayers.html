@@ -13,34 +13,15 @@
 {% block page_title %}Prayers{% endblock %}
 
 {% block page_description %}
-Community prayer wall - view, respond to, and support prayer requests.<br>
-Public requests are visible to all; private requests require login.
+Ask for prayer, or stand with someone who already asked.
 {% endblock %}
 
 {% block prayers_content %}
 
-<!-- Summary Cards -->
-<section class="content-section">
-    <h2 class="section-title">Prayers Summary</h2>
-    <div class="summary-cards">
-        <div class="card glass">
-            <h3>Total Requests</h3>
-            <p class="large-amount">{{ total_count }}</p>
-        </div>
-        <div class="card glass">
-            <h3>With Responses</h3>
-            <p class="large-amount">{{ with_responses_count }}</p>
-        </div>
-        <div class="card glass">
-            <h3>No Responses</h3>
-            <p class="large-amount">{{ no_responses_count }}</p>
-        </div>
-    </div>
-</section>
-
-<!-- Quick shortcut button (in addition to menu link) - always visible -->
-<div class="form-actions add-event-top">
-    <a href="{{ url_for('prayers.submit_prayer') }}" class="btn-primary">+ Add Prayer Request</a>
+<div class="stat-chips">
+  <span class="stat-chip"><strong>{{ total_count }}</strong> requests</span>
+  <span class="stat-chip"><strong>{{ with_responses_count }}</strong> with responses</span>
+  <span class="stat-chip"><strong>{{ no_responses_count }}</strong> waiting</span>
 </div>
 
 <!-- Collapsible Search & Filters -->

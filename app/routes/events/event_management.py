@@ -26,8 +26,21 @@ TEXT_FIELDS = [
     'live_streaming_details', 'feedback_form', 'event_sponsor', 'event_coordinator',
     'volunteer_opportunities', 'donation_info', 'safety_protocols', 'follow_up',
     'event_objectives', 'social_media_hashtag', 'parking_info', 'dress_code',
-    'food_beverages'
+    'food_beverages', 'payment_url', 'payment_note',
 ]
+
+def _giving_options():
+    try:
+        from app.utils.event_payments import list_giving_options
+        return list_giving_options(enabled_only=True)
+    except Exception:
+        return []
+
+
+def _payment_option_ids_from_form(form):
+    ids = [str(v) for v in form.getlist('payment_option_ids') if str(v).isdigit()]
+    return ','.join(ids) if ids else '0'
+
 
 def register_management_routes(bp):
     @bp.route('/add', methods=['GET', 'POST'])
@@ -35,14 +48,14 @@ def register_management_routes(bp):
     @role_required(REQUIRED_ROLES)
     def add_event():
         if request.method == 'GET':
-            return render_template('events/add_event.html')
+            return render_template('events/add_event.html', giving_options=_giving_options())
 
         form = request.form
 
         # Censorship check on all text fields
         if any(contains_censored_word(form.get(field, '')) for field in TEXT_FIELDS):
             flash('Event contains prohibited content.', 'error')
-            return render_template('events/add_event.html')
+            return render_template('events/add_event.html', giving_options=_giving_options())
 
         data = {
             'event_name': form.get('event_name'),
@@ -58,6 +71,11 @@ def register_management_routes(bp):
             'agenda': form.get('agenda') or None,
             'registration_info': form.get('registration_info') or None,
             'cost_fees': form.get('cost_fees') or None,
+            'payment_required': 1 if form.get('payment_required') else 0,
+            'payment_url': form.get('payment_url') or None,
+            'payment_note': form.get('payment_note') or None,
+            'payment_option_ids': _payment_option_ids_from_form(form),
+            'capacity': form.get('capacity') or None,
             'contact_info': form.get('contact_info') or None,
             'childcare_availability': form.get('childcare_availability') or None,
             'accessibility': form.get('accessibility') or None,
@@ -96,7 +114,7 @@ def register_management_routes(bp):
         except Exception as exc:
             db.rollback()
             flash('Failed to create event.', 'error')
-            return render_template('events/add_event.html')
+            return render_template('events/add_event.html', giving_options=_giving_options())
 
     @bp.route('/edit/<int:event_id>', methods=['GET', 'POST'])
     @login_required
@@ -112,14 +130,14 @@ def register_management_routes(bp):
             return redirect(url_for('events.events'))
 
         if request.method == 'GET':
-            return render_template('events/edit_event.html', event=event)
+            return render_template('events/edit_event.html', event=event, giving_options=_giving_options())
 
         form = request.form
 
         # Censorship check on all text fields
         if any(contains_censored_word(form.get(field, '')) for field in TEXT_FIELDS):
             flash('Event contains prohibited content.', 'error')
-            return render_template('events/edit_event.html', event=event)
+            return render_template('events/edit_event.html', event=event, giving_options=_giving_options())
 
         data = {
             field: form.get(field) or None for field in TEXT_FIELDS
@@ -130,6 +148,11 @@ def register_management_routes(bp):
             'visibility': form.get('visibility', 'private'),
             'potluck_enabled': 1 if 'potluck_enabled' in form else 0,
             'cost_fees': form.get('cost_fees') or None,
+            'payment_required': 1 if form.get('payment_required') else 0,
+            'payment_url': form.get('payment_url') or None,
+            'payment_note': form.get('payment_note') or None,
+            'payment_option_ids': _payment_option_ids_from_form(form),
+            'capacity': form.get('capacity') or None,
             'updated_by': session['user_id']
         })
 

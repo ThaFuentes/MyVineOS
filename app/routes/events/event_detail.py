@@ -48,6 +48,12 @@ def register_detail_routes(bp):
             except Exception:
                 pass  # Old DB without table - ignore
 
+        if request.method == 'POST' and request.form.get('action') in ('register_pay', 'reg_status'):
+            from app.utils.event_payments import handle_event_pay_post
+            result = handle_event_pay_post(event, request.form)
+            if result:
+                return result
+
         # ---------- POST: Potluck contribution (your original logic kept 100%) ----------
         if request.method == 'POST' and request.form.get('action') == 'potluck':
             if not event.get('potluck_enabled'):
@@ -159,12 +165,15 @@ def register_detail_routes(bp):
         # Render (public template for guests, private for members)
         template = 'public/events/event_detail.html' if not is_logged_in else 'events/view_event.html'
 
+        from app.utils.event_payments import event_pay_context
+        pay = event_pay_context(event, url_for('events.view_event', event_id=event_id))
         return render_template(
             template,
             event=event,
             signups=signups,
             comments=comments,
-            is_logged_in=is_logged_in
+            is_logged_in=is_logged_in,
+            **pay,
         )
 
     # ==================================================================

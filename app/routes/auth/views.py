@@ -77,6 +77,11 @@ def _complete_login(user):
         change_details='User logged in (multi-device sessions allowed).',
     )
     mark_as_vetted()
+    try:
+        from poweredbytop.auth.session import bind_login_session
+        bind_login_session(user)
+    except Exception:
+        pass
     session.modified = True
     return redirect(url_for('dashboard.dashboard'))
 
@@ -177,6 +182,11 @@ def logout():
     user_id = session.get('user_id')
     if user_id:
         log_change(user_id, 'logout', change_details='User logged out (this device only).')
+    try:
+        from poweredbytop.auth.session import clear_login_bind
+        clear_login_bind()
+    except Exception:
+        pass
     session.clear()
     flash('You have been logged out on this device.', 'info')
     return redirect(url_for('public.public_dashboard.public_dashboard'))

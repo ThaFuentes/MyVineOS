@@ -101,6 +101,12 @@ def public_event_detail(event_id):
         action = request.form.get('action')
         print(f" [PUBLIC EVENT DETAIL] POST action = {action}")
 
+        if action in ('register_pay', 'reg_status'):
+            from app.utils.event_payments import handle_event_pay_post
+            result = handle_event_pay_post(event, request.form)
+            if result:
+                return result
+
         if action == 'potluck' and event.get('potluck_enabled'):
             clean = validate_potluck_signup_form(request.form)
             if not clean:
@@ -139,10 +145,13 @@ def public_event_detail(event_id):
 
         return redirect(url_for('public.public_events.public_event_detail', event_id=event_id))
 
+    from app.utils.event_payments import event_pay_context
+    pay = event_pay_context(event, url_for('public.public_events.public_event_detail', event_id=event_id))
     return render_template('public/events/event_detail.html',
                            event=event,
                            signups=signups,
                            comments=comments,
-                           comments_enabled=comments_enabled)
+                           comments_enabled=comments_enabled,
+                           **pay)
 
 

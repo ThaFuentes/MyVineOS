@@ -240,3 +240,13 @@ def create_tables(cursor):
                 """,
                 (code, name, atype, sort),
             )
+
+    # Churches that seeded the chart before Event Income existed still need 4200.
+    cursor.execute("SELECT id FROM acct_accounts WHERE code = '4200' LIMIT 1")
+    if not cursor.fetchone():
+        cursor.execute(
+            """
+            INSERT INTO acct_accounts (code, name, account_type, is_system, sort_order)
+            VALUES ('4200', 'Event Income', 'income', 1, 320)
+            """
+        )

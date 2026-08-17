@@ -19,6 +19,63 @@
 </div>
 {% endif %}
 
+{% include 'partials/compose_card.html' %}
+
+{% if upcoming_services or birthdays %}
+<div class="entity-list" style="margin-bottom:0.85rem;">
+  {% if upcoming_services %}
+  <section class="glass-panel" style="margin:0;">
+    <h2 class="section-title" style="margin-bottom:0.45rem;">This week’s services</h2>
+    {% for service in upcoming_services %}
+    <div class="entity-card" style="margin:0 0 0.45rem;">
+      <div class="entity-card-top">
+        <strong>{{ service.title }}</strong>
+        <span style="color:var(--primary);">{{ service.date_label }}</span>
+      </div>
+      <div class="entity-meta">
+        {% if service.start_time %}<span>Service {{ service.start_time }}</span>{% endif %}
+        {% if service.worship_start_time %}<span>Worship {{ service.worship_start_time }}</span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+  {% if birthdays %}
+  <section class="glass-panel" style="margin:0;">
+    <h2 class="section-title" style="margin-bottom:0.35rem;">Birthdays today</h2>
+    <p style="margin:0;">
+      {% for bd in birthdays %}{{ bd.first_name }} {{ bd.last_name }}{% if not loop.last %}, {% endif %}{% endfor %}
+    </p>
+  </section>
+  {% endif %}
+</div>
+{% endif %}
+
+<section>
+  <div class="page-hero" style="margin-bottom:0.55rem;">
+    <h2 class="section-title" style="margin:0;">Church activity</h2>
+    <a href="{{ url_for('public.public_dashboard.public_community') }}" class="btn btn-secondary" style="min-height:2.3rem;">Community feed</a>
+  </div>
+  {% if activity_feed %}
+  <div class="feed-stack">
+    {% for item in activity_feed %}
+    <article class="glass-panel feed-card">
+      <div class="feed-card-head">
+        <span class="feed-type-pill" data-type="{{ item.type }}">{{ item.type }}</span>
+        <span style="font-size:0.85rem; opacity:0.7;">{{ item.when }}{% if item.author %} · {{ item.author }}{% endif %}</span>
+      </div>
+      <h3 class="entity-title" style="margin:0;">
+        <a href="{{ item.url }}">{{ item.title }}</a>
+      </h3>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="glass-panel empty-state">Nothing posted yet. Use the box above to share the first item.</div>
+  {% endif %}
+</section>
+
+<h2 class="section-title" style="margin:1.1rem 0 0.55rem;">Apps</h2>
 {# Tiles follow Modules & Apps toggles + permissions. Same layout as before. #}
 <div class="dash-tile-grid">
   <a href="{{ url_for('events.events') }}" class="glass-panel dash-tile dash-tile-community">
@@ -195,160 +252,5 @@
   </a>
   {% endfor %}
 </div>
-
-{# Content feed — same cards as before #}
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.85rem; margin-top:0.85rem;">
-
-  {# Current service plan (who is serving) #}
-  <div class="glass-panel dash-feed-card dash-feed-services" style="grid-column: 1 / -1;">
-    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Upcoming service plan</h3>
-    {% if upcoming_services %}
-    <div style="display:grid; gap:0.65rem;">
-      {% for service in upcoming_services %}
-      <div style="padding:0.55rem 0; {% if not loop.last %}border-bottom:1px solid rgba(255,255,255,0.08);{% endif %}">
-        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.35rem;">
-          <strong style="font-size:0.98rem;">{{ service.title }}</strong>
-          <span style="font-size:0.88rem; opacity:0.85; color:var(--primary);">{{ service.date_label }}</span>
-        </div>
-        <p style="margin:0.3rem 0 0; font-size:0.88rem; opacity:0.85;">
-          {% if service.start_time %}Service: {{ service.start_time }}{% endif %}
-          {% if service.worship_start_time %}{% if service.start_time %} · {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
-          {% if service.is_override %} · Custom week{% endif %}
-        </p>
-        {% if service.roles %}
-        <p style="margin:0.35rem 0 0; font-size:0.85rem; opacity:0.8; line-height:1.5;">
-          {% for r in service.roles %}
-            <span style="margin-right:0.7rem; white-space:nowrap;"><strong>{{ r.role_name }}:</strong> {{ r.name }}</span>
-          {% endfor %}
-        </p>
-        {% else %}
-        <p style="margin:0.3rem 0 0; font-size:0.85rem; opacity:0.55;">No assignments listed yet.</p>
-        {% endif %}
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No upcoming services scheduled yet.</p>
-    {% endif %}
-  </div>
-
-  <div class="glass-panel dash-feed-card dash-feed-birthdays">
-    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Today's Birthdays</h3>
-    {% if birthdays %}
-    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-      {% for bd in birthdays %}
-      <li>{{ bd.first_name }} {{ bd.last_name }}</li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No birthdays today.</p>
-    {% endif %}
-  </div>
-
-  <div class="glass-panel dash-feed-card dash-feed-prayers">
-    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Prayers</h3>
-    {% if prayers %}
-    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-      {% for prayer in prayers %}
-      <li>
-        {{ prayer.title }}
-        {% if prayer.poster_username %} (by {{ prayer.poster_username }}){% endif %}
-        <br><small style="opacity:0.7;">{{ prayer.datetime }}{% if prayer.visibility %} · {{ prayer.visibility }}{% endif %}</small>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent prayers.</p>
-    {% endif %}
-  </div>
-
-  {% if module_on('dreams') %}
-  <div class="glass-panel dash-feed-card dash-feed-dreams">
-    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Dreams &amp; Visions</h3>
-    {% if dreams %}
-    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-      {% for dream in dreams %}
-      <li>
-        {{ dream.title }}
-        {% if dream.poster_username %} (by {{ dream.poster_username }}){% endif %}
-        <br><small style="opacity:0.7;">{{ dream.datetime }}{% if dream.visibility %} · {{ dream.visibility }}{% endif %}</small>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent dreams.</p>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  {% if module_on('prophecies') %}
-  <div class="glass-panel dash-feed-card dash-feed-prophecies">
-    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Prophecies</h3>
-    {% if prophecies %}
-    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-      {% for prophecy in prophecies %}
-      <li>
-        {{ prophecy.title }}
-        {% if prophecy.poster_username %} (by {{ prophecy.poster_username }}){% endif %}
-        <br><small style="opacity:0.7;">{{ prophecy.datetime }}{% if prophecy.visibility %} · {{ prophecy.visibility }}{% endif %}</small>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent prophecies.</p>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  <div class="glass-panel dash-feed-card dash-feed-sermons">
-    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Sermons</h3>
-    {% if sermons %}
-    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-      {% for sermon in sermons %}
-      <li>
-        {{ sermon.title }}
-        {% if sermon.poster_username %} (by {{ sermon.poster_username }}){% endif %}
-        <br><small style="opacity:0.7;">{{ sermon.datetime }}{% if sermon.visibility %} · {{ sermon.visibility }}{% endif %}</small>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent sermons.</p>
-    {% endif %}
-  </div>
-
-  <div class="glass-panel dash-feed-card dash-feed-announcements">
-    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Recent Announcements</h3>
-    {% if announcements %}
-    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-      {% for ann in announcements %}
-      <li>
-        {{ ann.title }}
-        {% if ann.poster_username %} (by {{ ann.poster_username }}){% endif %}
-        <br><small style="opacity:0.7;">{{ ann.datetime }}{% if ann.visibility %} · {{ ann.visibility }}{% endif %}</small>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No recent announcements.</p>
-    {% endif %}
-  </div>
-
-  <div class="glass-panel dash-feed-card dash-feed-events">
-    <h3 style="margin-bottom:0.4rem; font-size:1.05rem;">Upcoming Events</h3>
-    {% if events %}
-    <ul style="margin:0; padding-left:1rem; font-size:0.9rem;">
-      {% for event in events %}
-      <li>
-        {{ event.title }}
-        <br><small style="opacity:0.7;">{% if event.event_date %}{{ event.event_date }}{% endif %}{% if event.visibility %} · {{ event.visibility }}{% endif %}</small>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p style="margin:0; font-size:0.9rem; opacity:0.7;">No upcoming events.</p>
-    {% endif %}
-  </div>
-
-</div>
+{# Module lists now live in the activity feed above. Tiles still open every app. #}
 {% endblock %}

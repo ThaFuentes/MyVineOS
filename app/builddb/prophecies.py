@@ -89,7 +89,8 @@ def create_tables(cursor):
         'ip_address':       "VARCHAR(45)",
         'user_id':          "INT UNSIGNED",
         'created_by':       "INT UNSIGNED",
-        'updated_by':       "INT UNSIGNED"
+        'updated_by':       "INT UNSIGNED",
+        'is_approved':      "TINYINT(1) NOT NULL DEFAULT 1",
     }
 
     for col_name, col_def in columns_to_add.items():

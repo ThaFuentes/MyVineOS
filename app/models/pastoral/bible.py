@@ -516,6 +516,19 @@ def get_chapter_count(book: str, translation: str = None) -> int:
     return int((row or {}).get('max_ch') or 0)
 
 
+def _split_strongs_senses(definition: str) -> list[str]:
+    """Break a lexicon gloss into separate meanings for the tap popup."""
+    text = (definition or "").strip()
+    if not text:
+        return []
+    parts = re.split(r"(?:(?<=\s)|^)(?:\d+[\)\.]|\([a-z]\))\s+", text)
+    parts = [p.strip(" ;,.") for p in parts if p and p.strip()]
+    if len(parts) >= 2:
+        return parts
+    parts = [p.strip() for p in re.split(r"\s*;\s*", text) if p.strip()]
+    return parts if parts else [text]
+
+
 def get_strongs_entry(number: str):
     if not number:
         return None
@@ -525,7 +538,11 @@ def get_strongs_entry(number: str):
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("SELECT * FROM strongs_lexicon WHERE number = %s", (number,))
-    return cur.fetchone()
+    row = cur.fetchone()
+    if not row:
+        return None
+    row["senses"] = _split_strongs_senses(row.get("definition") or "")
+    return row
 
 
 def search_strongs_lexicon(query: str, limit: int = 40):
