@@ -2,7 +2,7 @@
 # Form validation for public Prayers: guest responses and new prayer requests.
 
 from flask import flash
-from app.utils.helpers import contains_censored_word
+from app.utils.helpers import contains_censored_word, looks_like_bot_content, identity_spam_reason
 
 
 def validate_guest_comment_form(form_data):
@@ -18,6 +18,9 @@ def validate_guest_comment_form(form_data):
     combined_text = f"{name} {comment_text}"
     if contains_censored_word(combined_text):
         flash('Your comment contains prohibited content.', 'error')
+        return None
+    if looks_like_bot_content(name, comment_text, name):
+        flash('That comment does not look like it came from a person.', 'error')
         return None
 
     return {
@@ -40,6 +43,12 @@ def validate_guest_prayer_request_form(form_data):
     combined_text = f"{title} {description} {contributor_name}"
     if contains_censored_word(combined_text):
         flash('Your request contains prohibited content and cannot be submitted.', 'error')
+        return None
+    if looks_like_bot_content(title, description, contributor_name):
+        flash('That request does not look like it came from a person.', 'error')
+        return None
+    if contributor_name and identity_spam_reason(contributor_name):
+        flash('Please use a real name.', 'error')
         return None
 
     return {

@@ -8,7 +8,7 @@
 # - 100% matches the original prayers.py validation and repopulation logic.
 
 from flask import flash
-from app.utils.helpers import contains_censored_word
+from app.utils.helpers import contains_censored_word, looks_like_bot_content, identity_spam_reason
 
 
 def validate_add_prayer_form(form_data, is_logged_in=False):
@@ -32,6 +32,12 @@ def validate_add_prayer_form(form_data, is_logged_in=False):
         check_text += f" {contributor_name}"
     if contains_censored_word(check_text):
         flash('Prayer request contains a prohibited word or phrase.', 'error')
+        return None
+    if looks_like_bot_content(title, description, contributor_name):
+        flash('That request does not look like it came from a person.', 'error')
+        return None
+    if contributor_name and identity_spam_reason(contributor_name):
+        flash('Please use a real name.', 'error')
         return None
 
     return {

@@ -78,6 +78,8 @@ def get_recent_activity(limit=10):
         UNION ALL
         SELECT 'prayer' AS type, id, title, date_posted AS created_at, visibility, contributor_name AS author
         FROM prayers
+        WHERE COALESCE(status, 'approved') NOT IN ('rejected', 'deleted', 'removed', 'spam', 'hidden')
+          AND visibility IN ('public', 'private')
         UNION ALL
         SELECT 'sermon' AS type, id, title, uploaded_at AS created_at, visibility, NULL AS author
         FROM sermons
