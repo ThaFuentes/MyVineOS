@@ -48,7 +48,9 @@ def get_recent_prayers(is_logged_in=False):
     cur.execute(f"""
         SELECT id, title, date_posted AS datetime, visibility
         FROM prayers
-        WHERE 1=1 {visibility_filter}
+        WHERE COALESCE(status, 'approved') NOT IN ('rejected', 'deleted', 'removed', 'spam', 'hidden')
+          AND visibility IN ('public', 'private')
+          {visibility_filter}
         ORDER BY date_posted DESC
         LIMIT 5
     """)

@@ -17,6 +17,11 @@ def get_all_prayers(filter_type='all', search_query=None, limit=500):
         where_clauses.append("p.visibility = 'private'")
     elif filter_type == 'pending':
         where_clauses.append("COALESCE(p.status, 'approved') = 'pending'")
+    if filter_type != 'pending':
+        where_clauses.append(
+            "COALESCE(p.status, 'approved') NOT IN "
+            "('rejected', 'deleted', 'removed', 'spam', 'hidden')"
+        )
 
     if search_query:
         where_clauses.append("(p.title LIKE %s OR p.description LIKE %s)")

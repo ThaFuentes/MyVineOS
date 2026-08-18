@@ -102,6 +102,30 @@ _SPAM_IDENTITY_PATTERNS = [
     re.compile(r'\bhs=[a-f0-9]{16,}', re.I),
 ]
 
+_BOT_HANDLE = re.compile(r'^[0-9a-f]{8,32}$', re.I)
+_IP_ONLY = re.compile(r'^(?:\d{1,3}\.){3}\d{1,3}$')
+_IPV6_ONLY = re.compile(r'^[0-9a-f:.]{8,45}$', re.I)
+
+
+def looks_like_bot_handle(value: Optional[str]) -> bool:
+    """True for hex IDs like 1d3d2d231d2dd4 — not a human name."""
+    s = (value or '').strip()
+    return bool(s) and bool(_BOT_HANDLE.fullmatch(s))
+
+
+def looks_like_bot_content(title: Optional[str], body: Optional[str], name: Optional[str] = None) -> bool:
+    """True if this prayer/comment is clearly automated junk, not a person."""
+    title_s = (title or '').strip()
+    body_s = (body or '').strip()
+    name_s = (name or '').strip()
+    if looks_like_bot_handle(name_s) or looks_like_bot_handle(title_s):
+        return True
+    if body_s and (_IP_ONLY.fullmatch(body_s) or _IPV6_ONLY.fullmatch(body_s.replace(' ', ''))):
+        return True
+    if title_s and name_s and title_s.lower() == name_s.lower() and looks_like_bot_handle(title_s):
+        return True
+    return False
+
 
 def identity_spam_reason(*parts: Optional[str]) -> Optional[str]:
     """
@@ -120,6 +144,8 @@ def identity_spam_reason(*parts: Optional[str]) -> Optional[str]:
             continue
         if len(s) > 80:
             return 'Each name field must be 80 characters or less.'
+        if looks_like_bot_handle(s):
+            return 'Please use a real name, not a code or random ID.'
         # Real human names should not be bare domains or query strings
         if re.search(r'[?&=]', s) and re.search(r'\.[a-z]{2,}', s, re.I):
             return 'Names cannot contain website links or tracking codes.'

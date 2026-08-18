@@ -10,6 +10,13 @@
 import pymysql
 from app.models.db import get_db
 
+# Hidden everywhere: prayers list, home feed, welcome, gathering.
+PRAYER_REMOVED_STATUSES = ('rejected', 'deleted', 'removed', 'spam', 'hidden')
+PRAYER_ACTIVE_SQL = (
+    "COALESCE(p.status, 'approved') NOT IN "
+    "('rejected', 'deleted', 'removed', 'spam', 'hidden')"
+)
+
 
 # ----------------------------------------------------------------------
 # Listing
@@ -20,18 +27,18 @@ def get_prayers_list(is_logged_in=False, user_id=None):
     cur = db.cursor(pymysql.cursors.DictCursor)
 
     if is_logged_in:
-        cur.execute("""
+        cur.execute(f"""
             SELECT p.id, p.title, p.description, p.date_posted, p.visibility,
                    COALESCE(CONCAT(u.first_name, ' ', u.last_name), p.contributor_name, 'Anonymous') AS creator_name,
                    (SELECT COUNT(*) FROM prayers_added pa WHERE pa.prayer_request_id = p.id) AS response_count
             FROM prayers p
             LEFT JOIN users u ON p.user_id = u.id
             WHERE p.visibility IN ('public', 'private')
-              AND COALESCE(p.status, 'approved') != 'rejected'
+              AND {PRAYER_ACTIVE_SQL}
             ORDER BY p.date_posted DESC
         """)
     else:
-        cur.execute("""
+        cur.execute(f"""
             SELECT p.id, p.title, p.description, p.date_posted,
                    COALESCE(p.contributor_name, 'Anonymous') AS creator_name,
                    (SELECT COUNT(*) FROM prayers_added pa WHERE pa.prayer_request_id = p.id) AS response_count
@@ -53,13 +60,13 @@ def get_prayer_by_id(prayer_id, is_logged_in=False, user_id=None):
     cur = db.cursor(pymysql.cursors.DictCursor)
 
     if is_logged_in:
-        cur.execute("""
+        cur.execute(f"""
             SELECT p.*,
                    COALESCE(CONCAT(u.first_name, ' ', u.last_name), p.contributor_name, 'Anonymous') AS creator_name
             FROM prayers p
             LEFT JOIN users u ON p.user_id = u.id
             WHERE p.id = %s AND p.visibility IN ('public', 'private')
-              AND COALESCE(p.status, 'approved') != 'rejected'
+              AND {PRAYER_ACTIVE_SQL}
         """, (prayer_id,))
     else:
         cur.execute("""
@@ -138,14 +145,48 @@ def update_prayer_status(prayer_id, status):
         raise
 
 
+def hide_prayer(prayer_id, status='spam'):
+    """Hide a prayer from every public/member surface (feeds, home, welcome)."""
+    if status not in PRAYER_REMOVED_STATUSES:
+        status = 'spam'
+    return update_prayer_status(prayer_id, status)
+
+
+def purge_bot_prayers():
+    """Hide leftover machine posts (hex names, IP-only body) so they vanish everywhere."""
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute(
+            """
+            UPDATE prayers
+            SET status = 'spam'
+            WHERE COALESCE(status, 'approved') NOT IN
+                  ('rejected', 'deleted', 'removed', 'spam', 'hidden')
+              AND (
+                    contributor_name REGEXP '^[0-9a-fA-F]{8,32}$'
+                 OR title REGEXP '^[0-9a-fA-F]{8,32}$'
+                 OR TRIM(description) REGEXP '^[0-9]{1,3}(\\.[0-9]{1,3}){3}$'
+              )
+            """
+        )
+        n = cur.rowcount or 0
+        db.commit()
+        return n
+    except Exception:
+        db.rollback()
+        return 0
+
+
 def delete_prayer(prayer_id):
-    """Delete prayer and all its responses."""
+    """Delete prayer and all its responses. Also hide leftover bot junk."""
     db = get_db()
     cur = db.cursor()
     try:
         cur.execute("DELETE FROM prayers_added WHERE prayer_request_id = %s", (prayer_id,))
         cur.execute("DELETE FROM prayers WHERE id = %s", (prayer_id,))
         db.commit()
+        purge_bot_prayers()
         return True
     except Exception:
         db.rollback()

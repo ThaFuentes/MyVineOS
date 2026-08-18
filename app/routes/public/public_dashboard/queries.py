@@ -83,7 +83,7 @@ def _feed_prayers(include_members=False):
             FROM prayers p
             LEFT JOIN users u ON COALESCE(p.user_id, p.created_by) = u.id
             WHERE p.visibility IN ('public', 'private')
-              AND COALESCE(p.status, 'approved') != 'rejected'
+              AND COALESCE(p.status, 'approved') NOT IN ('rejected', 'deleted', 'removed', 'spam', 'hidden')
             ORDER BY p.date_posted DESC
         """)
         rows = cur.fetchall() or []

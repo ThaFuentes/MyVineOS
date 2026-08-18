@@ -42,6 +42,12 @@ def prayers():
 #    print(f"[DEBUG] Prayers listing accessed - logged_in={is_logged_in}, user_id={user_id}")
 
     try:
+        if is_logged_in:
+            try:
+                from .queries import purge_bot_prayers
+                purge_bot_prayers()
+            except Exception:
+                pass
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
 
@@ -55,7 +61,7 @@ def prayers():
                 FROM prayers p
                 LEFT JOIN users u ON p.user_id = u.id
                 WHERE p.visibility IN ('public', 'private')
-                  AND COALESCE(p.status, 'approved') != 'rejected'
+                  AND COALESCE(p.status, 'approved') NOT IN ('rejected', 'deleted', 'removed', 'spam', 'hidden')
                 ORDER BY p.date_posted DESC
             """)
             template = 'prayers/prayers_dashboard.html'
@@ -370,9 +376,11 @@ def approve_prayer(prayer_id):
 def reject_prayer(prayer_id):
     user_id = session['user_id']
     try:
-        update_prayer_status(prayer_id, 'rejected')
+        update_prayer_status(prayer_id, 'spam')
+        from .queries import purge_bot_prayers
+        purge_bot_prayers()
         log_change(user_id, 'reject_prayer', target_id=prayer_id, change_details='Rejected visitor prayer request')
-        flash('Prayer request rejected.', 'success')
+        flash('Prayer request rejected and hidden from feeds.', 'success')
     except Exception:
         flash('Failed to reject prayer request.', 'error')
     return redirect(url_for('prayers.prayers'))

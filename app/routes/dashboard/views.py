@@ -39,6 +39,11 @@ def dashboard():
             maybe_run_scheduled_emails()
         except Exception:
             pass
+        try:
+            from app.routes.prayers.queries import purge_bot_prayers
+            purge_bot_prayers()
+        except Exception:
+            pass
     user_id = session.get('user_id')
     username = session.get('username', 'User')
     role = session.get('user_role', 'Member')
@@ -89,7 +94,9 @@ def dashboard():
         cur.execute(f"""
             SELECT id, title, date_posted AS datetime, visibility
             FROM prayers
-            WHERE 1=1 {visibility_filter}
+            WHERE COALESCE(status, 'approved') NOT IN ('rejected', 'deleted', 'removed', 'spam', 'hidden')
+              AND visibility IN ('public', 'private')
+              {visibility_filter}
             ORDER BY date_posted DESC
             LIMIT 5
         """)
