@@ -276,12 +276,20 @@ def dashboard():
     activity_feed = []
     compose_types = []
     if is_logged_in:
-        from app.utils.activity_feed import build_member_feed
-        from app.utils.compose import available_compose_types
-        activity_feed = build_member_feed(
-            prayers, dreams, prophecies, sermons, announcements, events
-        )
-        compose_types = available_compose_types()
+        try:
+            from app.utils.activity_feed import build_member_feed
+            activity_feed = build_member_feed(
+                prayers, dreams, prophecies, sermons, announcements, events
+            )
+        except Exception as e:
+            print(f"Activity feed build failed: {e}")
+            activity_feed = []
+        try:
+            from app.utils.compose import available_compose_types
+            compose_types = available_compose_types()
+        except Exception as e:
+            print(f"Compose types failed: {e}")
+            compose_types = []
 
     return render_template(
         template,

@@ -1,5 +1,5 @@
 {% set compose_types = compose_types|default([]) %}
-{% if compose_types %}
+{% if compose_types and endpoint_exists('compose.compose_create') %}
 <section class="glass-panel compose-card" data-compose>
   <strong>Share with the church</strong>
   <p class="compose-hint">Pick what you are posting. Extra details can be added on the full page later.</p>

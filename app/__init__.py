@@ -671,6 +671,7 @@ def create_app():
         'communications',
         'volunteers',
         'accounting',
+        'compose',
     ]
     for name in private_blueprints:
         try:
