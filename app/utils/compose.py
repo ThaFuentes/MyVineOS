@@ -21,18 +21,22 @@ COMPOSE_TYPES = (
 
 
 def available_compose_types():
-    from app.models.module_toggles import get_module_toggles, is_module_enabled
+    try:
+        from app.models.module_toggles import get_module_toggles, is_module_enabled
 
-    toggles = get_module_toggles()
-    out = []
-    for key, label, area in COMPOSE_TYPES:
-        if key in ('dream', 'prophecy') and not is_module_enabled(
-            'dreams' if key == 'dream' else 'prophecies', toggles
-        ):
-            continue
-        if can_create_community_content(area):
-            out.append({'key': key, 'label': label, 'area': area})
-    return out
+        toggles = get_module_toggles()
+        out = []
+        for key, label, area in COMPOSE_TYPES:
+            if key in ('dream', 'prophecy') and not is_module_enabled(
+                'dreams' if key == 'dream' else 'prophecies', toggles
+            ):
+                continue
+            if can_create_community_content(area):
+                out.append({'key': key, 'label': label, 'area': area})
+        return out
+    except Exception as exc:
+        print(f"available_compose_types: {exc}")
+        return []
 
 
 def _visibility(form, default='public'):
