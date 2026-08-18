@@ -274,7 +274,6 @@ def dashboard():
     template = 'dashboard/dashboard.html' if is_logged_in else 'public/public_dashboard.html'
 
     activity_feed = []
-    compose_types = []
     if is_logged_in:
         try:
             from app.utils.activity_feed import build_member_feed
@@ -284,12 +283,6 @@ def dashboard():
         except Exception as e:
             print(f"Activity feed build failed: {e}")
             activity_feed = []
-        try:
-            from app.utils.compose import available_compose_types
-            compose_types = available_compose_types()
-        except Exception as e:
-            print(f"Compose types failed: {e}")
-            compose_types = []
 
     return render_template(
         template,
@@ -305,5 +298,4 @@ def dashboard():
         widgets=widgets,
         upcoming_services=upcoming_services,
         activity_feed=activity_feed,
-        compose_types=compose_types,
     )
