@@ -20,8 +20,8 @@
   let favChapter = false;
   let favBook = false;
   let lastSource = null;
-  let chapterPage = 0;
-  const CHAPTERS_PER_PAGE = 20;
+  let pickerMode = 'chapter';
+  let verseNums = [];
 
   const el = (id) => document.getElementById(id);
   const main = () => el('bible-reader-content');
@@ -515,6 +515,8 @@
         currentBook = b.name;
         list.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
         btn.classList.add('active');
+        verseNums = [];
+        setPickerMode('chapter');
         scrollToChapterSection();
         prepareBook(currentBook);
       });
@@ -534,120 +536,88 @@
         sel.value = String(Math.min(currentChapter, maxChapter) || 1);
       }
     }
-    if (maxChapter > 0) {
-      chapterPage = Math.floor((Math.min(currentChapter || 1, maxChapter) - 1) / CHAPTERS_PER_PAGE);
-    } else {
-      chapterPage = 0;
-    }
-    renderChapterGrid();
+    if (pickerMode === 'chapter') renderNumberGrid();
   }
 
-  function renderChapterGrid() {
-    const grid = el('bible-chapter-grid');
-    const label = el('bible-chapter-page-label');
-    const prev = el('bible-chapter-page-prev');
-    const next = el('bible-chapter-page-next');
-    const hint = el('bible-chapter-scroll-hint');
-    const pager = el('bible-chapter-pager');
-    if (!grid) return;
+  function setPickerMode(mode) {
+    pickerMode = mode === 'verse' ? 'verse' : 'chapter';
+    const chTab = el('bible-nav-mode-chapter');
+    const vTab = el('bible-nav-mode-verse');
+    chTab?.classList.toggle('active', pickerMode === 'chapter');
+    vTab?.classList.toggle('active', pickerMode === 'verse');
+    if (chTab) chTab.setAttribute('aria-selected', pickerMode === 'chapter' ? 'true' : 'false');
+    if (vTab) vTab.setAttribute('aria-selected', pickerMode === 'verse' ? 'true' : 'false');
+    renderNumberGrid();
+  }
 
-    const total = Math.max(0, maxChapter || 0);
-    if (!total) {
-      grid.innerHTML = '';
-      if (label) label.textContent = 'No chapters yet';
-      if (prev) prev.hidden = true;
-      if (next) next.hidden = true;
-      if (hint) hint.style.display = 'none';
+  function storeVerses(verses) {
+    verseNums = (verses || []).map((v) => Number(v.verse) || 0).filter((n) => n > 0);
+    if (pickerMode === 'verse') renderNumberGrid();
+  }
+
+  function pickChapter(n) {
+    const sel = el('bible-chapter-select');
+    if (sel) sel.value = String(n);
+    if (n === currentChapter && verseNums.length) {
+      setPickerMode('verse');
+      return;
+    }
+    loadChapter(n).then(() => setPickerMode('verse'));
+  }
+
+  function pickVerse(n) {
+    if (mainView !== 'chapter') restoreChapter();
+    scrollToVerse(n);
+    closeFlyouts();
+  }
+
+  function renderNumberGrid() {
+    const grid = el('bible-num-grid');
+    const meta = el('bible-chapter-meta');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (pickerMode === 'verse') {
+      if (meta) {
+        meta.textContent = verseNums.length
+          ? `${currentBook} ${currentChapter} · tap a verse`
+          : 'Pick a chapter first.';
+      }
+      verseNums.forEach((n) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'bible-chapter-num';
+        b.textContent = String(n);
+        b.setAttribute('aria-label', `Verse ${n}`);
+        b.setAttribute('role', 'option');
+        b.addEventListener('click', () => pickVerse(n));
+        grid.appendChild(b);
+      });
       return;
     }
 
-    const maxPage = Math.max(0, Math.ceil(total / CHAPTERS_PER_PAGE) - 1);
-    if (chapterPage > maxPage) chapterPage = maxPage;
-    if (chapterPage < 0) chapterPage = 0;
-
-    const start = chapterPage * CHAPTERS_PER_PAGE + 1;
-    const end = Math.min(total, start + CHAPTERS_PER_PAGE - 1);
-    const multi = total > CHAPTERS_PER_PAGE;
-
-    if (label) {
-      label.textContent = multi
-        ? `Chapters ${start}–${end} of ${total}`
-        : (total === 1 ? '1 chapter' : `${total} chapters`);
+    const total = Math.max(0, maxChapter || 0);
+    if (meta) {
+      meta.textContent = total
+        ? `${currentBook} · tap a chapter`
+        : 'Pick a book to begin.';
     }
-    if (pager) pager.classList.toggle('is-multi', multi);
-    if (prev) {
-      prev.disabled = chapterPage <= 0;
-      prev.hidden = !multi;
-    }
-    if (next) {
-      next.disabled = end >= total;
-      next.hidden = !multi;
-    }
-    if (hint) {
-      if (!multi) {
-        hint.style.display = 'none';
-        hint.textContent = '';
-      } else {
-        hint.style.display = '';
-        if (end < total) {
-          hint.innerHTML = '👉 Tap <strong>More →</strong> for chapters ' +
-            `${end + 1}–${Math.min(total, end + CHAPTERS_PER_PAGE)}.`;
-        } else if (start > 1) {
-          hint.innerHTML = '👉 Tap <strong>← Earlier</strong> to go back toward chapter 1.';
-        } else {
-          hint.style.display = 'none';
-        }
-      }
-    }
-
-    grid.innerHTML = '';
-    for (let i = start; i <= end; i++) {
+    for (let i = 1; i <= total; i++) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'bible-chapter-num' + (i === currentChapter ? ' active' : '');
       b.textContent = String(i);
       b.setAttribute('aria-label', `Chapter ${i}`);
-      b.addEventListener('click', () => {
-        const sel = el('bible-chapter-select');
-        if (sel) sel.value = String(i);
-        loadChapter(i);
-        grid.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
-        b.classList.add('active');
-      });
+      b.setAttribute('role', 'option');
+      b.setAttribute('aria-selected', i === currentChapter ? 'true' : 'false');
+      b.addEventListener('click', () => pickChapter(i));
       grid.appendChild(b);
     }
   }
 
-  function renderVersePicker(verses) {
-    const picker = el('bible-verse-picker');
-    const meta = el('bible-chapter-meta');
-    if (!picker) return;
-    const nums = (verses || []).map((v) => v.verse);
-    picker.innerHTML = '';
-    if (!nums.length) {
-      if (meta) meta.textContent = 'No verses in this chapter.';
-      return;
-    }
-    if (meta) meta.textContent = `${currentBook} ${currentChapter}: ${nums.length} verse${nums.length === 1 ? '' : 's'}`;
-    nums.forEach((num) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = String(num);
-      btn.addEventListener('click', () => {
-        if (mainView !== 'chapter') restoreChapter();
-        scrollToVerse(num);
-        closeFlyouts();
-      });
-      picker.appendChild(btn);
-    });
-    if (el('bible-canon-flyout')?.classList.contains('open') && nums.length) {
-      scrollToChapterSection();
-    }
-  }
-
   function scrollToVerse(verseNum) {
-    el('bible-verse-picker')?.querySelectorAll('button').forEach((b) => {
-      b.classList.toggle('active', parseInt(b.textContent, 10) === verseNum);
+    el('bible-num-grid')?.querySelectorAll('button').forEach((b) => {
+      b.classList.toggle('active', pickerMode === 'verse' && parseInt(b.textContent, 10) === verseNum);
     });
     main()?.querySelectorAll('.bible-verse-line').forEach((l) => l.classList.remove('verse-highlight'));
     const line = main()?.querySelector(`.bible-verse-line[data-verse="${verseNum}"]`);
@@ -830,7 +800,7 @@
         const trLabel = data.translation || data.name || '';
         title.textContent = `${data.book} ${data.chapter}${trLabel ? ' · ' + trLabel : ''}`;
       }
-      renderVersePicker(data.verses);
+      storeVerses(data.verses);
       currentNotes = data.notes || [];
       const favs = data.favorites || {};
       favoriteVerses = new Set(favs.verses || []);
@@ -852,7 +822,7 @@
     } catch (e) {
       main().innerHTML = '<p class="text-muted">Could not load this chapter. Try another version or book.</p>';
       if (title) title.textContent = `${currentBook} ${chapter}`;
-      renderVersePicker([]);
+      storeVerses([]);
       currentNotes = [];
       renderNotesPanel([], { mode: 'passage' });
       updateNavButtons();
@@ -2145,23 +2115,11 @@
       }
     });
 
+    el('bible-nav-mode-chapter')?.addEventListener('click', () => setPickerMode('chapter'));
+    el('bible-nav-mode-verse')?.addEventListener('click', () => setPickerMode('verse'));
     el('bible-chapter-select')?.addEventListener('change', () => {
       const ch = parseInt(el('bible-chapter-select').value, 10);
-      if (ch) {
-        chapterPage = Math.floor((ch - 1) / CHAPTERS_PER_PAGE);
-        loadChapter(ch);
-      }
-    });
-    el('bible-chapter-page-prev')?.addEventListener('click', () => {
-      if (chapterPage <= 0) return;
-      chapterPage -= 1;
-      renderChapterGrid();
-    });
-    el('bible-chapter-page-next')?.addEventListener('click', () => {
-      const maxPage = Math.max(0, Math.ceil((maxChapter || 1) / CHAPTERS_PER_PAGE) - 1);
-      if (chapterPage >= maxPage) return;
-      chapterPage += 1;
-      renderChapterGrid();
+      if (ch) loadChapter(ch);
     });
     el('bible-search-btn')?.addEventListener('click', searchBible);
     el('bible-search-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchBible(); });
@@ -2169,17 +2127,11 @@
     el('strongs-search-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchStrongs(); });
     el('bible-prev-chapter')?.addEventListener('click', () => {
       closeFlyouts();
-      loadChapter(currentChapter - 1).then(() => {
-        chapterPage = Math.floor((currentChapter - 1) / CHAPTERS_PER_PAGE);
-        renderChapterGrid();
-      });
+      loadChapter(currentChapter - 1);
     });
     el('bible-next-chapter')?.addEventListener('click', () => {
       closeFlyouts();
-      loadChapter(currentChapter + 1).then(() => {
-        chapterPage = Math.floor((currentChapter - 1) / CHAPTERS_PER_PAGE);
-        renderChapterGrid();
-      });
+      loadChapter(currentChapter + 1);
     });
     el('bible-back-chapter')?.addEventListener('click', restoreChapter);
     el('bible-translation')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));

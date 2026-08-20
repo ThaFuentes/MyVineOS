@@ -21,8 +21,8 @@
   let favoriteVerses = new Set();
   let favChapter = false;
   let favBook = false;
-  let chapterPage = 0;
-  const CHAPTERS_PER_PAGE = 20;
+  let pickerMode = 'chapter';
+  let verseNums = [];
 
   const el = (id) => document.getElementById(id);
   const base = '/bible';
@@ -195,6 +195,8 @@
         currentBook = b.name;
         list.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
         btn.classList.add('active');
+        verseNums = [];
+        setPickerMode('chapter');
         scrollToChapterSection();
         prepareBook(currentBook);
       });
@@ -216,63 +218,73 @@
       }
       sel.value = String(Math.min(Math.max(1, currentChapter), maxChapter));
     }
-    // Show the page that contains the open chapter
-    chapterPage = Math.floor((Math.min(currentChapter, maxChapter) - 1) / CHAPTERS_PER_PAGE);
-    renderChapterGrid();
+    if (pickerMode === 'chapter') renderNumberGrid();
   }
 
-  function renderChapterGrid() {
-    const grid = el('member-bible-chapter-grid');
-    const label = el('member-chapter-page-label');
-    const prev = el('member-chapter-page-prev');
-    const next = el('member-chapter-page-next');
-    const hint = el('member-chapter-scroll-hint');
-    const pager = el('member-chapter-pager');
+  function setPickerMode(mode) {
+    pickerMode = mode === 'verse' ? 'verse' : 'chapter';
+    const chTab = el('member-nav-mode-chapter');
+    const vTab = el('member-nav-mode-verse');
+    chTab?.classList.toggle('active', pickerMode === 'chapter');
+    vTab?.classList.toggle('active', pickerMode === 'verse');
+    if (chTab) chTab.setAttribute('aria-selected', pickerMode === 'chapter' ? 'true' : 'false');
+    if (vTab) vTab.setAttribute('aria-selected', pickerMode === 'verse' ? 'true' : 'false');
+    renderNumberGrid();
+  }
+
+  function storeVerses(verses) {
+    verseNums = (verses || []).map((v) => Number(v.verse) || 0).filter((n) => n > 0);
+    if (pickerMode === 'verse') renderNumberGrid();
+  }
+
+  function pickChapter(n) {
+    const sel = el('member-bible-chapter');
+    if (sel) sel.value = String(n);
+    if (n === currentChapter && verseNums.length) {
+      setPickerMode('verse');
+      return;
+    }
+    loadChapter(n).then(() => setPickerMode('verse'));
+  }
+
+  function pickVerse(n) {
+    if (mainView !== 'chapter') restoreChapter();
+    scrollToVerse(n);
+    closeFlyouts();
+  }
+
+  function renderNumberGrid() {
+    const grid = el('member-bible-num-grid');
+    const meta = el('member-bible-chapter-meta');
     if (!grid) return;
-
-    const total = Math.max(1, maxChapter || 1);
-    const maxPage = Math.max(0, Math.ceil(total / CHAPTERS_PER_PAGE) - 1);
-    if (chapterPage > maxPage) chapterPage = maxPage;
-    if (chapterPage < 0) chapterPage = 0;
-
-    const start = chapterPage * CHAPTERS_PER_PAGE + 1;
-    const end = Math.min(total, start + CHAPTERS_PER_PAGE - 1);
-    const multi = total > CHAPTERS_PER_PAGE;
-
-    if (label) {
-      label.textContent = multi
-        ? `Chapters ${start}–${end} of ${total}`
-        : (total === 1 ? '1 chapter' : `${total} chapters`);
-    }
-    if (pager) pager.classList.toggle('is-multi', multi);
-    if (prev) {
-      prev.disabled = chapterPage <= 0;
-      prev.hidden = !multi;
-    }
-    if (next) {
-      next.disabled = end >= total;
-      next.hidden = !multi;
-    }
-    if (hint) {
-      if (!multi) {
-        hint.style.display = 'none';
-        hint.textContent = '';
-      } else {
-        hint.style.display = '';
-        if (end < total) {
-          hint.innerHTML = '👉 Tap <strong>More →</strong> for chapters ' +
-            `${end + 1}–${Math.min(total, end + CHAPTERS_PER_PAGE)}.`;
-        } else if (start > 1) {
-          hint.innerHTML = '👉 Tap <strong>← Earlier</strong> to go back toward chapter 1.';
-        } else {
-          hint.textContent = '';
-          hint.style.display = 'none';
-        }
-      }
-    }
-
     grid.innerHTML = '';
-    for (let i = start; i <= end; i++) {
+
+    if (pickerMode === 'verse') {
+      if (meta) {
+        meta.textContent = verseNums.length
+          ? `${currentBook} ${currentChapter} · tap a verse`
+          : 'Pick a chapter first.';
+      }
+      verseNums.forEach((n) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'bible-chapter-num';
+        b.textContent = String(n);
+        b.setAttribute('aria-label', `Verse ${n}`);
+        b.setAttribute('role', 'option');
+        b.addEventListener('click', () => pickVerse(n));
+        grid.appendChild(b);
+      });
+      return;
+    }
+
+    const total = Math.max(0, maxChapter || 0);
+    if (meta) {
+      meta.textContent = total
+        ? `${currentBook} · tap a chapter`
+        : 'Pick a book to begin.';
+    }
+    for (let i = 1; i <= total; i++) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'bible-chapter-num' + (i === currentChapter ? ' active' : '');
@@ -280,36 +292,9 @@
       b.setAttribute('aria-label', `Chapter ${i}`);
       b.setAttribute('role', 'option');
       b.setAttribute('aria-selected', i === currentChapter ? 'true' : 'false');
-      b.addEventListener('click', () => {
-        const sel = el('member-bible-chapter');
-        if (sel) sel.value = String(i);
-        loadChapter(i);
-        grid.querySelectorAll('button').forEach((x) => {
-          x.classList.remove('active');
-          x.setAttribute('aria-selected', 'false');
-        });
-        b.classList.add('active');
-        b.setAttribute('aria-selected', 'true');
-      });
+      b.addEventListener('click', () => pickChapter(i));
       grid.appendChild(b);
     }
-  }
-
-  function renderVersePicker(verses) {
-    const picker = el('member-bible-verse-picker');
-    if (!picker) return;
-    picker.innerHTML = '';
-    (verses || []).forEach((v) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = String(v.verse);
-      b.addEventListener('click', () => {
-        if (mainView !== 'chapter') restoreChapter();
-        scrollToVerse(v.verse);
-        closeFlyouts();
-      });
-      picker.appendChild(b);
-    });
   }
 
   function updateNav() {
@@ -469,8 +454,6 @@
       maxChapter = data.max_chapter || chapter;
       populateChapters(maxChapter);
       if (chSel) chSel.value = String(chapter);
-      chapterPage = Math.floor((chapter - 1) / CHAPTERS_PER_PAGE);
-      renderChapterGrid();
       if (title) {
         const trLabel = data.translation || '';
         title.textContent = `${data.book} ${data.chapter}${trLabel ? ' · ' + trLabel : ''}`;
@@ -480,7 +463,7 @@
       favChapter = !!favs.chapter;
       favBook = !!favs.book;
       updateFavButtons();
-      renderVersePicker(data.verses);
+      storeVerses(data.verses);
       currentNotes = data.notes || [];
       // Chapter render uses currentNotes for 📝 markers
       renderChapter(data);
@@ -497,7 +480,7 @@
       saveReadingPlace({ verse: opts.scrollToVerse || getVisibleVerseAnchor() || 1 });
     } catch (e) {
       if (main()) main().innerHTML = '<p class="text-muted">Chapter not found.</p>';
-      renderVersePicker([]);
+      storeVerses([]);
       currentNotes = [];
       renderNotesPanel([], { mode: 'passage' });
       if (title) title.textContent = `${currentBook} ${chapter}`;
@@ -772,8 +755,8 @@
   }
 
   function scrollToVerse(n) {
-    el('member-bible-verse-picker')?.querySelectorAll('button').forEach((b) => {
-      b.classList.toggle('active', parseInt(b.textContent, 10) === n);
+    el('member-bible-num-grid')?.querySelectorAll('button').forEach((b) => {
+      b.classList.toggle('active', pickerMode === 'verse' && parseInt(b.textContent, 10) === n);
     });
     main()?.querySelectorAll('.member-bible-verse').forEach((l) => l.classList.remove('highlight'));
     const line = main()?.querySelector(`.member-bible-verse[data-verse="${n}"]`);
@@ -1749,37 +1732,19 @@
       }
     });
 
+    el('member-nav-mode-chapter')?.addEventListener('click', () => setPickerMode('chapter'));
+    el('member-nav-mode-verse')?.addEventListener('click', () => setPickerMode('verse'));
     el('member-bible-chapter')?.addEventListener('change', () => {
       const ch = parseInt(el('member-bible-chapter').value, 10);
-      if (ch) {
-        chapterPage = Math.floor((ch - 1) / CHAPTERS_PER_PAGE);
-        loadChapter(ch);
-      }
-    });
-    el('member-chapter-page-prev')?.addEventListener('click', () => {
-      if (chapterPage <= 0) return;
-      chapterPage -= 1;
-      renderChapterGrid();
-    });
-    el('member-chapter-page-next')?.addEventListener('click', () => {
-      const maxPage = Math.max(0, Math.ceil((maxChapter || 1) / CHAPTERS_PER_PAGE) - 1);
-      if (chapterPage >= maxPage) return;
-      chapterPage += 1;
-      renderChapterGrid();
+      if (ch) loadChapter(ch);
     });
     el('member-bible-prev')?.addEventListener('click', () => {
       closeFlyouts();
-      loadChapter(currentChapter - 1).then(() => {
-        chapterPage = Math.floor((currentChapter - 1) / CHAPTERS_PER_PAGE);
-        renderChapterGrid();
-      });
+      loadChapter(currentChapter - 1);
     });
     el('member-bible-next')?.addEventListener('click', () => {
       closeFlyouts();
-      loadChapter(currentChapter + 1).then(() => {
-        chapterPage = Math.floor((currentChapter - 1) / CHAPTERS_PER_PAGE);
-        renderChapterGrid();
-      });
+      loadChapter(currentChapter + 1);
     });
     el('member-bible-back')?.addEventListener('click', restoreChapter);
     el('member-bible-translation')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
