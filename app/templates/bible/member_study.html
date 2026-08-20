@@ -4,8 +4,8 @@
 {% block title %}Bible{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260713f">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260816strongs">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260819nav">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260819nav">
 {% endblock %}
 
 {% block content %}
@@ -146,25 +146,16 @@
         </div>
         <div id="member-bible-book-list" class="member-bible-book-list"></div>
         <div id="member-bible-chapter-section" class="bible-flyout-anchor-section">
-            <label class="form-label small mt-2">Chapter</label>
-            <p class="bible-chapter-help small text-muted mb-1">
-                Tap a chapter number. Long books (like Isaiah) use <strong>More →</strong> and <strong>← Earlier</strong> to page through.
-            </p>
-            <div class="bible-chapter-pager" id="member-chapter-pager">
-                <button type="button" id="member-chapter-page-prev" class="btn btn-sm btn-secondary bible-chapter-page-btn" disabled>← Earlier</button>
-                <span id="member-chapter-page-label" class="bible-chapter-page-label">Chapters 1–1</span>
-                <button type="button" id="member-chapter-page-next" class="btn btn-sm btn-secondary bible-chapter-page-btn" disabled>More →</button>
+            <div class="bible-num-mode" role="tablist" aria-label="Chapters or verses">
+                <button type="button" id="member-nav-mode-chapter" class="btn btn-sm active" role="tab" aria-selected="true">Chapters</button>
+                <button type="button" id="member-nav-mode-verse" class="btn btn-sm" role="tab" aria-selected="false">Verses</button>
             </div>
-            <div id="member-bible-chapter-grid" class="bible-chapter-grid" role="listbox" aria-label="Choose a chapter"></div>
-            <p id="member-chapter-scroll-hint" class="bible-chapter-scroll-hint small" style="display:none;"></p>
+            <p id="member-bible-chapter-meta" class="small text-muted mt-2 mb-2">Pick a book, then a chapter or verse.</p>
+            <div id="member-bible-num-grid" class="bible-num-grid" role="listbox" aria-label="Choose a chapter or verse"></div>
             <!-- Hidden select kept for sync with prev/next chapter controls -->
             <select id="member-bible-chapter" class="visually-hidden" tabindex="-1" aria-hidden="true">
                 <option value="1">1</option>
             </select>
-            <p id="member-bible-chapter-meta" class="small text-muted mt-2">Pick a book to begin.</p>
-            <label class="form-label small">Verses in this chapter</label>
-            <p class="small text-muted mb-1">Tap a verse number to jump there. Scroll the list if needed.</p>
-            <div id="member-bible-verse-picker" class="member-bible-verse-picker bible-num-scroll"></div>
         </div>
     </div>
 </div>
@@ -292,5 +283,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260816strongs"></script>
+<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260819nav"></script>
 {% endblock %}
