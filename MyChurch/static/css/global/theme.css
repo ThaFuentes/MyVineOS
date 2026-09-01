@@ -1,0 +1,600 @@
+/* myvinechurchonline/static/css/global/theme.css */
+/* Full path: myvinechurchonline/static/css/global/theme.css */
+/* File name: theme.css */
+/* Brief, detailed purpose: Central theme definition using CSS variables.
+   Now supports MULTIPLE predefined themes via html[data-theme="..."] attribute.
+   This structure is SASS-ready (variables can be directly ported).
+   Base variables are defined in :root (fallback / shared values).
+   Each theme overrides only what needs to change (primarily accents, glows, backgrounds).
+   3 built-in themes:
+     1. cyan-glow      – Current neon-cyan tech look (default)
+     2. purple-grace   – Royal purple accents, slightly warmer dark – elegant church feel
+     3. amber-hope     – Warm gold/amber accents – uplifting, "holy glow" vibe
+   Admin will later choose site-wide default via Settings.
+   Users can override with personal preference (stored in DB later).
+   All existing CSS files already use these variables → instant theme switching. */
+
+:root {
+    /* Shared / fallback values – original dark glass base (default theme) */
+    --font-main: system-ui, -apple-system, sans-serif;
+
+    --blur: blur(14px);
+    --blur-card: blur(12px);
+
+    --radius-large: 16px;
+    --radius-medium: 12px;
+    --radius-small: 8px;
+    --radius-tiny: 6px;
+
+    --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.75);
+    --shadow-card: 0 6px 20px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+    --text-primary: #e0e0e0;
+    --text-muted: #b0b0b0;
+    --text-on-primary: #121212;
+
+    --bg-page: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    --bg-panel: rgba(30, 30, 30, 0.68);
+    --bg-card: #252525;
+    --bg-hover: #2f2f2f;
+    --bg-header: rgba(42, 42, 42, 0.8);
+}
+
+/* ==================== THEME 1: CYAN GLOW (DEFAULT – original neon dark) ==================== */
+html[data-theme="cyan-glow"],
+html:not([data-theme]) {
+    --primary: #00FFFF;
+    --primary-hover: #00cccc;
+    --primary-glow: rgba(0, 255, 255, 0.4);
+    --primary-border: rgba(0, 255, 255, 0.18);
+    --primary-rgb: 0, 255, 255;
+    --link-color: #5ad4ff;
+    --link-visited: #9fdcff;
+    --link-hover: #b8f0ff;
+
+    --bg-card-glass: rgba(35, 35, 35, 0.55);
+    --bg-glow-card: rgba(0, 0, 0, 0.88);
+    --border-glow: rgba(0, 255, 255, 0.27);
+
+    --btn-glow-normal: 0 0 20px rgba(0, 255, 255, 0.7);
+    --btn-glow-hover: 0 0 30px #00FFFF;
+    --btn-glow-secondary: 0 0 15px rgba(0, 255, 255, 0.4);
+    --btn-glow-secondary-hover: 0 0 25px rgba(0, 255, 255, 0.7);
+}
+
+/* ==================== THEME 2: PURPLE GRACE ==================== */
+html[data-theme="purple-grace"] {
+    --primary: #b48cff;
+    --primary-hover: #c9a8ff;
+    --primary-glow: rgba(180, 140, 255, 0.45);
+    --primary-border: rgba(180, 140, 255, 0.28);
+    --primary-rgb: 180, 140, 255;
+
+    --bg-page: linear-gradient(135deg, #120a1c 0%, #1e1230 100%);
+    --bg-panel: rgba(42, 32, 58, 0.72);
+    --bg-card: #2c2240;
+    --bg-hover: #3a2d52;
+    --bg-header: rgba(32, 22, 48, 0.92);
+    --bg-card-glass: rgba(50, 36, 70, 0.55);
+    --bg-glow-card: rgba(18, 10, 30, 0.88);
+    --border-glow: rgba(180, 140, 255, 0.3);
+
+    --btn-glow-normal: 0 0 18px rgba(180, 140, 255, 0.55);
+    --btn-glow-hover: 0 0 26px #b48cff;
+    --btn-glow-secondary: 0 0 12px rgba(180, 140, 255, 0.35);
+    --btn-glow-secondary-hover: 0 0 20px rgba(180, 140, 255, 0.5);
+}
+
+/* ==================== THEME 3: AMBER HOPE ==================== */
+html[data-theme="amber-hope"] {
+    --primary: #ffb84d;
+    --primary-hover: #ff9d1e;
+    --primary-glow: rgba(255, 184, 77, 0.4);
+    --primary-border: rgba(255, 184, 77, 0.25);
+    --primary-rgb: 255, 184, 77;
+
+    --bg-page: linear-gradient(135deg, #1a0f00 0%, #2a1a08 100%);
+    --bg-panel: rgba(48, 36, 18, 0.72);
+    --bg-card: #332414;
+    --bg-hover: #403018;
+    --bg-header: rgba(36, 26, 10, 0.92);
+    --bg-card-glass: rgba(55, 40, 20, 0.55);
+    --bg-glow-card: rgba(30, 20, 0, 0.88);
+    --border-glow: rgba(255, 184, 77, 0.3);
+
+    --btn-glow-normal: 0 0 18px rgba(255, 184, 77, 0.55);
+    --btn-glow-hover: 0 0 26px #ffb84d;
+    --btn-glow-secondary: 0 0 12px rgba(255, 184, 77, 0.35);
+    --btn-glow-secondary-hover: 0 0 20px rgba(255, 184, 77, 0.5);
+}
+
+/* ==================== THEME: FOREST (optional modern) ==================== */
+html[data-theme="forest"] {
+    --primary: #5cdb8b;
+    --primary-hover: #7ee8a6;
+    --primary-glow: rgba(92, 219, 139, 0.4);
+    --primary-border: rgba(92, 219, 139, 0.28);
+    --primary-rgb: 92, 219, 139;
+
+    --bg-page: linear-gradient(145deg, #0a1610 0%, #12241a 55%, #0e1c18 100%);
+    --bg-panel: rgba(22, 42, 32, 0.75);
+    --bg-card: #1a3026;
+    --bg-hover: #244036;
+    --bg-header: rgba(14, 28, 22, 0.94);
+    --bg-card-glass: rgba(28, 50, 38, 0.58);
+    --bg-glow-card: rgba(8, 18, 12, 0.9);
+    --border-glow: rgba(92, 219, 139, 0.3);
+
+    --btn-glow-normal: 0 0 16px rgba(92, 219, 139, 0.5);
+    --btn-glow-hover: 0 0 24px #5cdb8b;
+    --btn-glow-secondary: 0 0 12px rgba(92, 219, 139, 0.3);
+    --btn-glow-secondary-hover: 0 0 18px rgba(92, 219, 139, 0.45);
+}
+
+/* ==================== THEME: ROSE DAWN (optional modern) ==================== */
+html[data-theme="rose-dawn"] {
+    --primary: #ff7eb3;
+    --primary-hover: #ff9bc5;
+    --primary-glow: rgba(255, 126, 179, 0.4);
+    --primary-border: rgba(255, 126, 179, 0.28);
+    --primary-rgb: 255, 126, 179;
+
+    --bg-page: linear-gradient(145deg, #1a0e16 0%, #2a1422 50%, #1e1020 100%);
+    --bg-panel: rgba(48, 28, 40, 0.75);
+    --bg-card: #3a2232;
+    --bg-hover: #4a2c40;
+    --bg-header: rgba(36, 18, 30, 0.94);
+    --bg-card-glass: rgba(58, 32, 48, 0.58);
+    --bg-glow-card: rgba(24, 10, 18, 0.9);
+    --border-glow: rgba(255, 126, 179, 0.3);
+
+    --btn-glow-normal: 0 0 16px rgba(255, 126, 179, 0.5);
+    --btn-glow-hover: 0 0 24px #ff7eb3;
+    --btn-glow-secondary: 0 0 12px rgba(255, 126, 179, 0.3);
+    --btn-glow-secondary-hover: 0 0 18px rgba(255, 126, 179, 0.45);
+}
+
+/* ==================== THEME 4: SOFT LIGHT – sunny / cheerful daytime ==================== */
+html[data-theme="soft-light"] {
+    --primary: #1a9bc7;
+    --primary-hover: #1486ad;
+    --primary-glow: rgba(26, 155, 199, 0.28);
+    --primary-border: rgba(26, 155, 199, 0.3);
+    --primary-rgb: 26, 155, 199;
+
+    --text-primary: #1a2838;
+    --text-muted: #5a6b7e;
+    --text-on-primary: #ffffff;
+
+    /* Cream + sky + soft peach (not sterile gray) */
+    --bg-page: linear-gradient(165deg, #f7fbff 0%, #e8f4fc 35%, #fff6ea 70%, #f0faf4 100%);
+    --bg-panel: rgba(255, 255, 255, 0.9);
+    --bg-card: #ffffff;
+    --bg-hover: #eef6fb;
+    --bg-header: rgba(255, 255, 255, 0.96);
+    --bg-card-glass: rgba(255, 255, 255, 0.88);
+    --bg-glow-card: rgba(255, 255, 255, 0.95);
+    --border-glow: rgba(26, 155, 199, 0.22);
+
+    --shadow-large: 0 10px 32px rgba(40, 90, 130, 0.12);
+    --shadow-card: 0 4px 18px rgba(40, 90, 130, 0.1);
+
+    --btn-glow-normal: 0 2px 12px rgba(26, 155, 199, 0.28);
+    --btn-glow-hover: 0 4px 16px rgba(255, 170, 80, 0.28);
+    --btn-glow-secondary: 0 1px 6px rgba(26, 155, 199, 0.15);
+    --btn-glow-secondary-hover: 0 2px 10px rgba(26, 155, 199, 0.25);
+}
+
+/* Soft-light polish for glass panels / top bar on bright backgrounds */
+html[data-theme="soft-light"] .glass-panel,
+html[data-theme="soft-light"] .table-wrapper.glass {
+    background: rgba(255, 255, 255, 0.88) !important;
+    border-color: rgba(30, 50, 80, 0.1) !important;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-card);
+}
+
+html[data-theme="soft-light"] .top-bar {
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom-color: rgba(42, 122, 155, 0.18);
+}
+
+html[data-theme="soft-light"] .top-bar .user-chip,
+html[data-theme="soft-light"] .members-subnav,
+html[data-theme="soft-light"] .bottom-nav {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--text-primary);
+    border-color: rgba(30, 50, 80, 0.1);
+}
+
+html[data-theme="soft-light"] .bottom-nav a {
+    color: var(--text-muted);
+}
+
+html[data-theme="soft-light"] .bottom-nav a.active {
+    color: var(--primary);
+}
+
+html[data-theme="soft-light"] .data-table th {
+    color: #3d4d63;
+}
+
+html[data-theme="soft-light"] .data-table td {
+    color: #1c2430;
+}
+
+/* ==================== THEME 5: TROPICAL – vivid teal + coral (vacation church energy) ==================== */
+html[data-theme="tropical"] {
+    --primary: #2ee0c0;
+    --primary-hover: #55ebcf;
+    --primary-glow: rgba(46, 224, 192, 0.45);
+    --primary-border: rgba(46, 224, 192, 0.38);
+    --primary-rgb: 46, 224, 192;
+
+    --text-primary: #f0fffb;
+    --text-muted: #b5e8db;
+    --text-on-primary: #053028;
+
+    --bg-page: linear-gradient(155deg, #0a3d38 0%, #0f5c52 35%, #1a4d6e 70%, #2a3d5c 100%);
+    --bg-panel: rgba(18, 72, 68, 0.78);
+    --bg-card: #186058;
+    --bg-hover: #1f746a;
+    --bg-header: rgba(10, 52, 48, 0.95);
+    --bg-card-glass: rgba(24, 88, 80, 0.65);
+    --bg-glow-card: rgba(8, 40, 38, 0.85);
+    --border-glow: rgba(255, 150, 120, 0.4);
+
+    --btn-glow-normal: 0 2px 16px rgba(46, 224, 192, 0.45);
+    --btn-glow-hover: 0 4px 22px rgba(255, 150, 120, 0.4);
+    --btn-glow-secondary: 0 1px 10px rgba(46, 224, 192, 0.3);
+    --btn-glow-secondary-hover: 0 2px 16px rgba(46, 224, 192, 0.45);
+}
+
+html[data-theme="tropical"] .top-bar {
+    border-bottom-color: rgba(255, 150, 120, 0.45);
+    background: linear-gradient(90deg, rgba(12, 58, 54, 0.96), rgba(20, 70, 80, 0.94));
+}
+
+html[data-theme="tropical"] .glass-panel,
+html[data-theme="tropical"] .glass {
+    border-color: rgba(255, 160, 130, 0.28);
+    background: linear-gradient(165deg, rgba(28, 100, 92, 0.8), rgba(22, 78, 88, 0.82));
+}
+
+html[data-theme="tropical"] .btn-primary {
+    background: linear-gradient(180deg, #4aefd0 0%, #2ee0c0 50%, #22c9ab 100%) !important;
+    color: #042820 !important;
+}
+
+/* ==================== Brighter content links (not dark-blue browser default) ==================== */
+a {
+    color: var(--link-color, #5ad4ff);
+    text-decoration-color: rgba(90, 212, 255, 0.45);
+    text-underline-offset: 0.15em;
+}
+
+a:visited {
+    color: var(--link-visited, #9fdcff);
+}
+
+a:hover,
+a:focus-visible {
+    color: var(--link-hover, #9aecff);
+    text-decoration-color: currentColor;
+}
+
+/* In-page content links stay lively on glass panels */
+.page-content a:not(.btn):not(.dash-tile):not(.pastoral-tile):not(.worship-tile):not(.item-card):not(.glass-panel),
+.pastoral-shell a:not(.btn):not(.pastoral-tile):not(.pn-btn):not(.bottom-nav a) {
+    color: var(--link-color, #5ad4ff);
+}
+
+.page-content a:not(.btn):hover,
+.pastoral-shell a:not(.btn):not(.pn-btn):hover {
+    color: var(--link-hover, #9aecff);
+}
+
+/* Soft light theme: deeper but still clear links */
+html[data-theme="soft-light"] {
+    --link-color: #1578a8;
+    --link-visited: #1a6a94;
+    --link-hover: #0d5f88;
+}
+
+html[data-theme="tropical"] {
+    --link-color: #5ef0d0;
+    --link-visited: #8af5dc;
+    --link-hover: #a8fff0;
+}
+
+html[data-theme="purple-grace"] {
+    --link-color: #d0b4ff;
+    --link-visited: #e0ccff;
+    --link-hover: #f0e4ff;
+}
+
+html[data-theme="amber-hope"] {
+    --link-color: #ffd078;
+    --link-visited: #ffe0a0;
+    --link-hover: #ffe8b8;
+}
+
+html[data-theme="forest"] {
+    --link-color: #7aefb0;
+    --link-visited: #9cf5c4;
+    --link-hover: #b8ffd6;
+}
+
+html[data-theme="rose-dawn"] {
+    --link-color: #ff9ec8;
+    --link-visited: #ffb8d8;
+    --link-hover: #ffd0e8;
+}
+
+/* ==================== Site-wide font scale (root rem) ==================== */
+/* XL/Huge bump further for elderly / low-vision; accessible_text.css keeps cards wrapping */
+html[data-font-scale="sm"] { font-size: 14px; }
+html[data-font-scale="md"],
+html:not([data-font-scale]) { font-size: 16px; }
+html[data-font-scale="lg"] { font-size: 18px; }
+html[data-font-scale="xl"] { font-size: 21px; }
+html[data-font-scale="xxl"] { font-size: 24px; }
+
+/* ==================== Bible reader scale (independent, multiplies with rem) ==================== */
+html[data-bible-scale="sm"] {
+    --bible-reader-size: 0.95rem;
+}
+html[data-bible-scale="md"],
+html:not([data-bible-scale]) {
+    --bible-reader-size: 1.08rem;
+}
+html[data-bible-scale="lg"] {
+    --bible-reader-size: 1.22rem;
+}
+html[data-bible-scale="xl"] {
+    --bible-reader-size: 1.38rem;
+}
+html[data-bible-scale="xxl"] {
+    --bible-reader-size: 1.55rem;
+}
+
+#member-bible-content,
+.bible-stage-main {
+    font-size: var(--bible-reader-size, 1.08rem);
+    line-height: 1.65;
+}
+
+#member-bible-content .member-bible-verse {
+    font-size: inherit;
+}
+
+/* ==================== Display prefs panel (top bar) ==================== */
+.display-prefs {
+    position: relative;
+}
+
+.display-prefs-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 36px;
+    min-height: 34px;
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.25));
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary, #e0e0e0);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.display-prefs-toggle:hover,
+.display-prefs-toggle[aria-expanded="true"] {
+    border-color: var(--primary, #00ffff);
+    color: var(--primary, #00ffff);
+}
+
+.display-prefs-panel {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.4rem);
+    z-index: 1200;
+    width: min(320px, calc(100vw - 1.25rem));
+    padding: 0.85rem 0.9rem 1rem;
+    border-radius: 14px;
+    background: var(--bg-header, rgba(28, 28, 32, 0.97));
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.22));
+    box-shadow: var(--shadow-large, 0 12px 32px rgba(0, 0, 0, 0.45));
+    color: var(--text-primary);
+}
+
+.display-prefs-panel.is-open {
+    display: block;
+}
+
+.display-prefs-panel h3 {
+    margin: 0 0 0.55rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.display-prefs-panel .pref-section {
+    margin-bottom: 0.75rem;
+}
+
+.display-prefs-panel .pref-label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 0.35rem;
+}
+
+.display-prefs-panel .pref-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.display-prefs-panel .pref-select {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 10px;
+    border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.28));
+    background: rgba(0, 0, 0, 0.28);
+    color: var(--text-primary, #e0e0e0);
+    font-size: 0.92rem;
+    font-weight: 600;
+    padding: 0.45rem 0.65rem;
+    cursor: pointer;
+}
+
+html[data-theme="soft-light"] .display-prefs-panel .pref-select {
+    background: #f4f7fb;
+    border-color: rgba(30, 50, 80, 0.2);
+    color: #1a2838;
+}
+
+.display-prefs-panel .pref-option {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 34px;
+}
+
+/* ==================== Brighter icons site-wide (icons only — backgrounds stay theme default) ==================== */
+.bottom-nav .icon,
+.bottom-nav .icon i {
+    opacity: 1;
+    filter: brightness(1.25) saturate(1.15);
+}
+
+.dash-tile-icon,
+.dash-tile-icon i,
+.worship-tile .tile-icon,
+.worship-tile .tile-icon i,
+.tile-icon,
+.tile-icon i {
+    opacity: 1 !important;
+    filter: brightness(1.2) saturate(1.2) drop-shadow(0 0 8px currentColor);
+}
+
+/* FA icons in content headers / links: lift off dark glass */
+.page-content .fa-solid,
+.page-content .fa-regular,
+.page-content .fa-brands,
+.top-bar .fa-solid,
+.top-bar .fa-regular,
+.worship-nav .fa-solid,
+.members-subnav .fa-solid {
+    filter: brightness(1.15) saturate(1.1);
+}
+
+/* Multi-color module icons stay vivid on dark panels */
+.dash-tile-community .dash-tile-icon { color: #5ec8ff !important; }
+.dash-tile-bible .dash-tile-icon { color: #ffd56a !important; }
+.dash-tile-legal .dash-tile-icon { color: #c5d0e0 !important; }
+.dash-tile-members .dash-tile-icon { color: #4dffc8 !important; }
+.dash-tile-donations .dash-tile-icon { color: #6dff9a !important; }
+.dash-tile-bills .dash-tile-icon { color: #ffc85a !important; }
+.dash-tile-inventory .dash-tile-icon { color: #7ab8ff !important; }
+.dash-tile-tickets .dash-tile-icon { color: #ff9a78 !important; }
+.dash-tile-profile .dash-tile-icon { color: #c4a1ff !important; }
+.dash-tile-help .dash-tile-icon { color: #6fe0f0 !important; }
+.dash-tile-gathering .dash-tile-icon { color: #ff8fd0 !important; }
+.dash-tile-worship .dash-tile-icon { color: #d4b0ff !important; }
+.dash-tile-settings .dash-tile-icon { color: #c8d0dc !important; }
+
+/* Soft light: icons still colorful, no neon glow needed */
+html[data-theme="soft-light"] .dash-tile-icon,
+html[data-theme="soft-light"] .worship-tile .tile-icon,
+html[data-theme="soft-light"] .bottom-nav .icon {
+    filter: none;
+    opacity: 1;
+}
+
+html[data-theme="soft-light"] .display-prefs-panel .pref-option {
+    border-color: rgba(30, 50, 80, 0.15);
+    background: rgba(30, 50, 80, 0.05);
+}
+
+.display-prefs-panel .pref-option.is-active {
+    border-color: var(--primary);
+    background: rgba(var(--primary-rgb, 0, 255, 255), 0.16);
+    color: var(--primary);
+}
+
+.display-prefs-panel .pref-status {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    min-height: 1.1em;
+    margin-top: 0.25rem;
+}
+
+.display-prefs-panel .pref-hint {
+    font-size: 0.72rem;
+    opacity: 0.6;
+    margin: 0;
+    line-height: 1.35;
+}
+
+/* Mobile: slide-up friendly panel so more options stay tappable */
+@media (max-width: 767px) {
+    .display-prefs-panel {
+        position: fixed;
+        left: 0.5rem;
+        right: 0.5rem;
+        top: auto;
+        bottom: calc(3.6rem + env(safe-area-inset-bottom, 0px));
+        width: auto;
+        max-height: min(70vh, 420px);
+        overflow-y: auto;
+        border-radius: 16px 16px 14px 14px;
+    }
+
+    .display-prefs-panel .pref-option {
+        flex: 1 1 auto;
+        text-align: center;
+        min-height: 40px;
+        font-size: 0.88rem;
+    }
+
+    .top-bar .user-chip {
+        display: none; /* free space for Display control on phones */
+    }
+}
+/* ---- Installed PWA / desktop app shell ---- */
+html.standalone body.standalone-desktop {
+  /* Slightly denser chrome when browser UI is gone */
+  --app-titlebar-pad: 0.35rem;
+}
+html.standalone body.standalone-desktop .top-bar,
+html.standalone body.standalone-desktop header.top-bar {
+  /* Feels like a native title bar */
+  -webkit-app-region: drag;
+  user-select: none;
+}
+html.standalone body.standalone-desktop .top-bar a,
+html.standalone body.standalone-desktop .top-bar button,
+html.standalone body.standalone-desktop .top-bar input,
+html.standalone body.standalone-desktop .top-bar select,
+html.standalone body.standalone-desktop header.top-bar a,
+html.standalone body.standalone-desktop header.top-bar button {
+  -webkit-app-region: no-drag;
+}
+/* Hide “install me” affordances once already installed */
+html.standalone [data-install-hint],
+html.standalone .pwa-install-banner {
+  display: none !important;
+}

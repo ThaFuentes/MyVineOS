@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Site moderation{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=30">
+{% endblock %}
+
+{% block content %}
+<div class="church-page">
+  <header class="feed-page-head">
+    <div>
+      <p class="page-kicker">Community</p>
+      <h1 class="page-title">Site moderation</h1>
+      <p class="page-description">Hide, shadow, or warn. You do not get office tools from this role. Everything you do here is reversible by a reviewer.</p>
+    </div>
+    <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+      {% if can_review %}
+      <a class="btn btn-primary" href="/church/moderation/review">Review queue</a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('church.church_home') }}">Church home</a>
+    </div>
+  </header>
+
+  <section class="glass-panel profile-card" style="margin-bottom:1rem;">
+    <h2 class="profile-card-title">Warn or shadow a member</h2>
+    <p class="profile-muted">A warning shows on their page. Shadow lets them log in but others cannot see their posts. Ban and login lock stay with Admin / Owner.</p>
+    <form method="post" class="styled-form" style="display:grid; gap:0.55rem; max-width:36rem;">
+      {% include 'partials/csrf_field.html' %}
+      <label>Username
+        <input class="form-input" name="username" required placeholder="username" autocomplete="off">
+      </label>
+      <label>Warning note
+        <textarea class="form-input" name="message" rows="2" placeholder="Keep it short and pastoral."></textarea>
+      </label>
+      <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+        <button class="btn btn-primary" type="submit" name="action" value="warn">Send warning</button>
+        <button class="btn btn-secondary" type="submit" name="action" value="shadow_user" onclick="return confirm('Shadow this account? A reviewer can reverse it.');">Shadow account</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="glass-panel profile-card" style="margin-bottom:1rem;">
+    <h2 class="profile-card-title">Recent wall posts</h2>
+    {% if posts %}
+    <ul class="profile-serving-list">
+      {% for p in posts %}
+      <li class="profile-serving-row">
+        <div>
+          <strong>{{ p.title or p.kind }}</strong>
+          <span>@{{ p.username }}{% if p.created_at %} · {{ p.created_at }}{% endif %}</span>
+          <span>{{ (p.body or '')[:180] }}</span>
+        </div>
+        <form method="post" class="profile-serving-actions">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="hide_post">
+          <input type="hidden" name="post_id" value="{{ p.id }}">
+          <input class="form-input" name="reason" placeholder="Why?" style="max-width:10rem;">
+          <button class="btn btn-secondary btn-sm" type="submit">Hide</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="profile-muted">No recent posts.</p>
+    {% endif %}
+  </section>
+
+  <section class="glass-panel profile-card" style="margin-bottom:1rem;">
+    <h2 class="profile-card-title">Comments</h2>
+    {% if comments %}
+    <ul class="profile-serving-list">
+      {% for c in comments %}
+      <li class="profile-serving-row">
+        <div>
+          <strong>{{ c.name }}</strong>
+          <span>{{ c.content_type }} · {{ c.parent_title }}</span>
+          <span>{{ (c.body or '')[:220] }}</span>
+        </div>
+        <div class="profile-serving-actions">
+          <form method="post">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="content_type" value="{{ c.content_type }}">
+            <input type="hidden" name="parent_id" value="{{ c.parent_id }}">
+            <input type="hidden" name="comment_id" value="{{ c.id }}">
+            {% if c.removed %}
+            <button class="btn btn-secondary btn-sm" name="action" value="restore">Put back</button>
+            {% else %}
+            <button class="btn btn-secondary btn-sm" name="action" value="{{ 'unshadow' if c.shadowed else 'shadow' }}">{{ 'Unshadow' if c.shadowed else 'Shadow' }}</button>
+            <button class="btn btn-secondary btn-sm" name="action" value="delete">Remove</button>
+            {% endif %}
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="profile-muted">No comments in the queue.</p>
+    {% endif %}
+  </section>
+
+  {% if my_actions %}
+  <section class="glass-panel profile-card">
+    <h2 class="profile-card-title">Your open actions</h2>
+    <p class="profile-muted">A reviewer above you can reverse these. Unshadow / put back yourself if you caught a mistake.</p>
+    <ul class="profile-serving-list">
+      {% for a in my_actions %}
+      <li class="profile-serving-row">
+        <div>
+          <strong>{{ a.label }}</strong>
+          <span>{% if a.target_username %}@{{ a.target_username }} · {% endif %}{{ a.created_at }}</span>
+          {% if a.preview %}<span>{{ a.preview }}</span>{% endif %}
+          {% if a.reason %}<span>{{ a.reason }}</span>{% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

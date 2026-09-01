@@ -1,0 +1,161 @@
+{% extends "volunteers/base_vol.html" %}
+{% block title %}Rotations{% endblock %}
+
+{% block vol_content %}
+<section class="content-section">
+  <div class="glass-panel vol-hero" style="text-align:left; overflow:visible;">
+    <h1 style="text-align:left;">Rotations</h1>
+    <p style="margin:0; text-align:left; max-width:40rem;">
+      Round-robin lists for each role. When you schedule a date, apply a rotation to auto-assign the next people in line.
+    </p>
+  </div>
+
+  {% if rotations %}
+  <div class="table-wrapper glass" style="margin-bottom:1.25rem; padding:0.5rem;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Team</th>
+          <th>Role</th>
+          <th>People</th>
+          <th>Next index</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rotations %}
+        <tr>
+          <td>
+            <strong>{{ r.name }}</strong>
+            {% if not r.active %}<span class="vol-help-optional"> · off</span>{% endif %}
+          </td>
+          <td>{{ r.team_name }}</td>
+          <td>{{ r.role_name }}</td>
+          <td>{{ r.member_ids|length }}</td>
+          <td>{{ r.cursor_index }}</td>
+          <td>
+            <form method="post" style="display:inline;" onsubmit="return confirm('Delete this rotation?');">
+              {% include 'partials/csrf_field.html' %}
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="rotation_id" value="{{ r.id }}">
+              <button type="submit" class="btn-secondary" style="min-height:auto;padding:0.3rem 0.55rem;font-size:0.82rem;color:#fca5a5;">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="help-text" style="margin:0 0 1rem;">No rotations yet — create one below.</p>
+  {% endif %}
+
+  <div class="glass-panel vol-panel vol-form-page" style="max-width:40rem; margin:0;">
+    <h2 class="vol-page-title" style="font-size:1.15rem;">Create rotation</h2>
+    <p class="vol-page-desc">
+      Name the rotation, pick a team, set the serving order. Required fields marked with <span class="required">*</span>.
+    </p>
+
+    <form method="post" class="styled-form vol-styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="action" value="create">
+
+      <div class="form-group">
+        <label for="rot-name" class="control-label">Rotation name <span class="required">*</span></label>
+        <input type="text" id="rot-name" name="name" class="form-input" required placeholder="e.g. Greeter A rotation">
+      </div>
+
+      <div class="form-group">
+        <label for="rot-team" class="control-label">Team <span class="required">*</span></label>
+        <select name="team_id" class="form-input" id="rot-team" required>
+          <option value="">— Select team —</option>
+          {% for t in teams %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="rot-role-name" class="control-label">Role name <span class="required">*</span></label>
+        <input type="text" id="rot-role-name" name="role_name" class="form-input" required placeholder="e.g. Front Door">
+        <p class="help-text">Label used on the schedule. You can also link a formal role below.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="rot-role" class="control-label">Link to team role <span class="vol-help-optional">(optional)</span></label>
+        <select name="role_id" class="form-input" id="rot-role">
+          <option value="">— none —</option>
+          {% for t in teams %}
+            {% for r in team_roles.get(t.id) or [] %}
+            <option value="{{ r.id }}" data-team="{{ t.id }}" data-name="{{ r.name }}">{{ t.name }} · {{ r.name }}</option>
+            {% endfor %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="rot-freq" class="control-label">Frequency</label>
+        <select id="rot-freq" name="frequency" class="form-input">
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Biweekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <span class="control-label">People in order</span>
+        <p class="help-text">Check people in the order they should serve. The next assignment uses the person after the cursor.</p>
+        <div class="vol-member-pick" id="rot-members">
+          {% for t in teams %}
+            {% for m in team_members.get(t.id) or [] %}
+            <label data-team="{{ t.id }}">
+              <input type="checkbox" name="member_ids" value="{{ m.user_id }}">
+              <span>{{ m.last_name }}, {{ m.first_name }} <span class="vol-help-optional">({{ t.name }})</span></span>
+            </label>
+            {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="rot-notes" class="control-label">Notes <span class="vol-help-optional">(optional)</span></label>
+        <input type="text" id="rot-notes" name="notes" class="form-input" placeholder="Internal reminder">
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Create rotation</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<script>
+(function(){
+  var team = document.getElementById('rot-team');
+  var role = document.getElementById('rot-role');
+  if (!team || !role) return;
+  function filter(){
+    var tid = team.value;
+    document.querySelectorAll('#rot-members label').forEach(function(l){
+      l.style.display = (!tid || l.dataset.team === tid) ? '' : 'none';
+      if (tid && l.dataset.team !== tid) {
+        var cb = l.querySelector('input');
+        if (cb) cb.checked = false;
+      }
+    });
+    Array.from(role.options).forEach(function(o){
+      if (!o.value) return;
+      o.hidden = !!(tid && o.dataset.team !== tid);
+    });
+  }
+  role.addEventListener('change', function(){
+    var o = role.options[role.selectedIndex];
+    if (o && o.dataset.name) {
+      var rn = document.getElementById('rot-role-name');
+      if (rn && !rn.value) rn.value = o.dataset.name;
+    }
+  });
+  team.addEventListener('change', filter);
+  filter();
+})();
+</script>
+{% endblock %}

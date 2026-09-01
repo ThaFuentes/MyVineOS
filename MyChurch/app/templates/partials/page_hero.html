@@ -1,0 +1,16 @@
+<div class="page-hero">
+  <div>
+    {% if page_kicker is defined and page_kicker %}
+    <div class="page-kicker">{{ page_kicker }}</div>
+    {% endif %}
+    <h1 class="page-title">{{ page_heading }}</h1>
+    {% if page_lede is defined and page_lede %}
+    <p class="page-description">{{ page_lede }}</p>
+    {% endif %}
+  </div>
+  {% if page_action_url is defined and page_action_url %}
+  <div class="page-hero-actions">
+    <a href="{{ page_action_url }}" class="btn btn-primary">{{ page_action_label }}</a>
+  </div>
+  {% endif %}
+</div>

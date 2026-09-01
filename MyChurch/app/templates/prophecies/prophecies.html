@@ -1,0 +1,58 @@
+{% extends "prophecies/base_prophecies.html" %}
+
+{% block prophecies_content %}
+{% set page_heading = 'Prophecies' %}
+{% if is_logged_in and can_create|default(false) %}
+  {% set page_action_url = url_for('prophecies.add_prophecy') %}
+  {% set page_action_label = 'Share one' %}
+{% endif %}
+{% include 'partials/page_hero.html' %}
+
+<div class="member-feed">
+  {% if prophecy_data %}
+    {% for p in prophecy_data %}
+    <article class="glass-panel member-post">
+      <a class="member-post-hit" href="{{ url_for('prophecies.view_prophecy', prophecy_id=p.id) }}">
+        <h2>{{ p.title }}</h2>
+        <p class="member-post-meta">
+          {{ p.poster_name or 'Someone' }}
+          {% set posted = p.date_posted or p.created_at %}
+          {% if posted %}
+            · {{ posted.strftime('%B %d, %Y') if posted.strftime is defined else posted }}
+          {% endif %}
+        </p>
+        {% if p.description %}
+        <p class="member-post-body">{{ p.description | truncate(220) }}</p>
+        {% endif %}
+        {% if p.comment_count %}
+        <p class="member-post-foot">{{ p.comment_count }} comment{{ 's' if p.comment_count != 1 else '' }}</p>
+        {% elif p.comments %}
+        <p class="member-post-foot">{{ p.comments|length }} comment{{ 's' if p.comments|length != 1 else '' }}</p>
+        {% endif %}
+      </a>
+      {% if is_logged_in and ((p.user_id == current_user_id) or is_admin_owner) %}
+      <div class="entity-actions">
+        <a href="{{ url_for('prophecies.edit_prophecy', prophecy_id=p.id) }}" class="btn-secondary btn-small">Edit</a>
+        {% if is_admin_owner %}
+        <form action="{{ url_for('prophecies.delete_prophecy', prophecy_id=p.id) }}" method="post" class="inline-form">
+          {% include 'partials/csrf_field.html' %}
+          <button type="submit" class="btn-danger btn-small"
+                  onclick="return confirm('Delete this?');">Delete</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  {% else %}
+    <div class="glass-panel empty-state">
+      Nothing shared yet.
+      {% if is_logged_in and can_create|default(false) %}
+      <div style="margin-top:0.75rem;">
+        <a href="{{ url_for('prophecies.add_prophecy') }}" class="btn btn-primary">Share one</a>
+      </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base_public.html" %}
+
+{% block title %}Announcements{% endblock %}
+
+{% block content %}
+<div class="public-page-header">
+  <h1 class="page-title">Church Announcements</h1>
+  <p class="page-description">
+    Updates, reminders, and celebrations from our church family.
+  </p>
+</div>
+
+{% if announcements %}
+<div class="public-card-grid">
+  {% for a in announcements %}
+  <article class="glass-panel public-list-card announcement-card">
+    <h3>
+      <a href="{{ url_for('public.public_announcements.public_announcement_detail', ann_id=a.id) }}">
+        {{ a.title|title }}
+      </a>
+    </h3>
+    <div class="public-list-meta">
+      <strong>Posted:</strong> {{ a.datetime }}<br>
+      <strong>By:</strong> {{ a.creator_name or a.posted_by or 'Church' }}
+    </div>
+    {% if a.content %}
+    <p class="public-list-body">{{ a.content | truncate(220) | censor | nl2br }}</p>
+    {% endif %}
+    <div class="public-list-actions">
+      <a href="{{ url_for('public.public_announcements.public_announcement_detail', ann_id=a.id) }}" class="btn btn-primary">
+        Read full announcement
+      </a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel public-empty">
+  No public announcements at this time. Check back soon.
+</div>
+{% endif %}
+{% endblock %}

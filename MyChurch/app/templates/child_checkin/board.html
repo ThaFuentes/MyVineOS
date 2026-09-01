@@ -1,0 +1,51 @@
+{% extends "child_checkin/base_cci.html" %}
+{% block title %}Room Board{% endblock %}
+
+{% block cci_content %}
+<div class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:0.85rem; display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; justify-content:space-between;">
+  <div>
+    <h1 style="margin:0; font-size:1.2rem; color:var(--primary);">Room Board</h1>
+    <p style="margin:0.2rem 0 0; font-size:0.85rem; opacity:0.7;">{{ today }} · auto-refreshes every 20s</p>
+  </div>
+  <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+    <a class="cci-room-chip {{ 'is-active' if not filter_room else '' }}" href="{{ url_for('child_checkin.room_board') }}">All ({{ kids|length if not filter_room else '…' }})</a>
+    {% for r in rooms %}
+    <a class="cci-room-chip" href="{{ url_for('child_checkin.room_board', room=r.id) }}"
+       style="{% if filter_room == r.id %}outline:2px solid var(--primary);{% endif %}">
+      <span class="cci-room-dot" style="background:{{ r.color }};"></span>
+      {{ r.name }} · {{ r.live_count }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if kids %}
+<div class="cci-board-grid" id="cci-board">
+  {% for k in kids %}
+  <div class="cci-board-card {% if k.allergies %}has-allergy{% endif %}"
+       style="border-left-color:{{ k.classroom_color or 'var(--primary)' }};">
+    <strong style="font-size:1.05rem;">{{ k.display_name }}</strong>
+    <div style="font-size:0.8rem; opacity:0.7; margin-top:0.15rem;">
+      {{ k.classroom_name or 'Unassigned' }}
+      {% if k.age_label %} · {{ k.age_label }}{% endif %}
+    </div>
+    {% if k.allergies %}
+    <div class="cci-allergy">⚠ {{ k.allergies }}</div>
+    {% endif %}
+    {% if k.special_needs %}
+    <div style="font-size:0.78rem; margin-top:0.25rem; opacity:0.85;">{{ k.special_needs[:100] }}</div>
+    {% endif %}
+    <div style="font-size:0.75rem; opacity:0.55; margin-top:0.35rem;">Code {{ k.pickup_code }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel" style="padding:2rem; text-align:center; opacity:0.75;">
+  No children checked in{% if filter_room %} for this room{% endif %} right now.
+</div>
+{% endif %}
+
+<script>
+setTimeout(function () { location.reload(); }, 20000);
+</script>
+{% endblock %}

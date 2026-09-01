@@ -1,0 +1,73 @@
+{% extends "members/base_members.html" %}
+{% block page_title %}People tools{% endblock %}
+{% block page_description %}
+  Tap a person to set tools (template or custom YES / NO).
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723hub1">
+{% endblock %}
+
+{% block members_content %}
+{% include 'members/_access_subnav.html' %}
+<div class="ac-hero glass-panel">
+  <h2>People tools</h2>
+  <p>
+    Green chips = tools they can open. Tap <strong>Tools</strong> on a card to change them.
+  </p>
+</div>
+
+<label class="sr-only" for="ac-search">Search people</label>
+<input type="search" id="ac-search" class="form-input ac-search" placeholder="Type a name…"
+       autocomplete="off" spellcheck="false">
+
+<div class="ac-people" id="ac-people">
+  {% for row in rows %}
+  <article class="ac-person" data-search="{{ (row.user.first_name or '')|lower }} {{ (row.user.last_name or '')|lower }} {{ (row.user.username or '')|lower }} {{ (row.user.role or '')|lower }}">
+    <h3 class="ac-person-name">{{ row.user.first_name or '' }} {{ row.user.last_name or row.user.username }}</h3>
+    <div class="ac-person-meta">{{ row.user.role }}</div>
+    <div class="ac-chips">
+      {% if row.full_access %}
+        <span class="ac-chip ac-chip-all">YES to everything</span>
+      {% elif row.yes_count == 0 %}
+        <span class="ac-chip ac-chip-no">No tools yet</span>
+      {% else %}
+        {% for name in row.yes_labels[:5] %}
+        <span class="ac-chip ac-chip-yes">{{ name }}</span>
+        {% endfor %}
+        {% if row.yes_count > 5 %}
+        <span class="ac-chip ac-chip-yes">+{{ row.yes_count - 5 }} more</span>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% if row.can_manage %}
+    <a class="btn-primary ac-person-btn" href="{{ url_for('members.member_access', member_id=row.user.id) }}">
+      Tools
+    </a>
+    {% else %}
+    <span class="btn-secondary ac-person-btn" style="opacity:0.75; cursor:not-allowed;" title="You cannot manage someone at or above your rank">
+      Locked
+    </span>
+    {% endif %}
+  </article>
+  {% else %}
+  <p class="ac-empty">No people found.</p>
+  {% endfor %}
+</div>
+
+<script>
+(function () {
+  const input = document.getElementById('ac-search');
+  const cards = document.querySelectorAll('.ac-person');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    const q = (input.value || '').trim().toLowerCase();
+    cards.forEach((card) => {
+      const hay = card.getAttribute('data-search') || '';
+      card.style.display = !q || hay.indexOf(q) !== -1 ? '' : 'none';
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+<!-- app/templates/log/change_records.html -->
+<!-- Full path: myvinechurchonline/app/templates/log/change_records.html -->
+<!-- File name: change_records.html -->
+<!-- Brief, detailed purpose: Change Records listing page.
+   Extends the new base_log.html for full visual consistency with other modules.
+   Search form always visible at top.
+   Glass table with all log columns.
+   Simple pagination controls.
+   Uses ONLY global classes (no log-specific CSS). -->
+
+{% extends "log/base_log.html" %}
+
+{% block log_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Change Audit Logs ({{ total_records }} total)</h2>
+
+    <!-- Search Form -->
+    <form method="GET" class="styled-form inline-form" style="margin-bottom: 2rem;">
+        <div class="form-group search-group">
+            <label for="search" class="control-label">Search</label>
+            <input type="text" id="search" name="search" class="search-input"
+                   value="{{ search_term }}" placeholder="Username, action, or details...">
+        </div>
+        <div class="form-actions" style="align-self: end;">
+            <button type="submit" class="btn-primary">Search</button>
+            {% if search_term %}
+                <a href="{{ url_for('log.change_records') }}" class="btn-secondary">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+
+    <!-- Logs Table -->
+    {% if logs %}
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Target ID</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.timestamp }}</td>
+                    <td>{{ log.user_name or 'System/Unknown' }}</td>
+                    <td>{{ log.action }}</td>
+                    <td>{{ log.target_id or '-' }}</td>
+                    <td>{{ log.change_details }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Simple Pagination -->
+    {% if total_pages > 1 %}
+    <div class="pagination" style="margin-top: 2rem; text-align: center;">
+        {% if page > 1 %}
+            <a href="?page={{ page - 1 }}{% if search_term %}&search={{ search_term }}{% endif %}" class="btn-secondary">Previous</a>
+        {% endif %}
+        <span style="margin: 0 1rem;">Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}
+            <a href="?page={{ page + 1 }}{% if search_term %}&search={{ search_term }}{% endif %}" class="btn-secondary">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p class="no-data">No change records found.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

@@ -1,0 +1,51 @@
+<!-- app/templates/prayers/edit_prayer.html -->
+<!-- Full path: MyVineChurch/app/templates/prayers/edit_prayer.html -->
+<!-- File name: edit_prayer.html -->
+<!-- Brief, detailed purpose: Edit an existing prayer request (logged-in users only).
+   Consistent with all other edit forms in the app (global classes only). -->
+
+{% extends "prayers/base_prayers.html" %}
+
+{% block page_title %}Edit Prayer Request{% endblock %}
+
+{% block page_description %}
+Update the details of this prayer request.
+{% endblock %}
+
+{% block prayers_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Edit Prayer Request</h2>
+
+    <form method="POST" action="{{ url_for('prayers.edit_prayer', prayer_id=prayer.id) }}" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+
+        <div class="form-group">
+            <label for="title" class="control-label">Title <span class="required">*</span></label>
+            <input type="text" id="title" name="title" class="form-input"
+                   value="{{ prayer.title }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description" class="control-label">Description <span class="required">*</span></label>
+            <textarea id="description" name="description" rows="6" class="form-input" required>
+{{ prayer.description }}
+            </textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="visibility" class="control-label">Visibility</label>
+            <select id="visibility" name="visibility" class="form-input">
+                <option value="public" {% if prayer.visibility == 'public' %}selected{% endif %}>Public</option>
+                <option value="private" {% if prayer.visibility == 'private' %}selected{% endif %}>Private</option>
+            </select>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <a href="{{ url_for('prayers.prayers') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+{% endblock %}

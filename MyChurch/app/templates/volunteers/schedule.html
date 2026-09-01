@@ -1,0 +1,52 @@
+{% extends "volunteers/base_vol.html" %}
+{% block title %}Volunteer Schedule{% endblock %}
+
+{% block vol_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+  <h1 class="page-title" style="margin:0;">Schedule</h1>
+  <a href="{{ url_for('volunteers.event_new') }}" class="btn btn-primary">New serving date</a>
+</div>
+
+<form method="get" class="glass-panel" style="padding:0.75rem; margin-bottom:0.85rem; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:end;">
+  <label style="font-size:0.82rem;">From
+    <input type="date" name="from" class="form-input" value="{{ from_date }}">
+  </label>
+  <button type="submit" class="btn btn-secondary">Filter</button>
+</form>
+
+{% if events %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Title</th>
+        <th>Team</th>
+        <th>Responses</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in events %}
+      <tr>
+        <td style="white-space:nowrap;">{{ e.event_date }}{% if e.start_time %}<br><span style="opacity:0.7;font-size:0.8rem;">{{ e.start_time }}</span>{% endif %}</td>
+        <td><strong>{{ e.title }}</strong></td>
+        <td>{% if e.team_name %}<span class="vol-team-dot" style="background:{{ e.team_color }};"></span>{{ e.team_name }}{% else %}—{% endif %}</td>
+        <td>
+          <span class="vol-pill vol-pill--accepted">{{ e.accepted_count or 0 }}</span>
+          <span class="vol-pill vol-pill--pending">{{ e.pending_count or 0 }}</span>
+          {% if e.declined_count %}<span class="vol-pill vol-pill--declined">{{ e.declined_count }}</span>{% endif %}
+        </td>
+        <td><a href="{{ url_for('volunteers.event_detail', event_id=e.id) }}" class="btn btn-secondary" style="min-height:auto;padding:0.3rem 0.6rem;font-size:0.85rem;">Open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="glass-panel" style="padding:2rem; text-align:center;">
+  <p style="opacity:0.75;">No events from this date — create one for next Sunday.</p>
+  <a href="{{ url_for('volunteers.event_new') }}" class="btn btn-primary">Schedule serving date</a>
+</div>
+{% endif %}
+{% endblock %}

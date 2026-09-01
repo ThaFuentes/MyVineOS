@@ -1,0 +1,75 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}Record Expense{% endblock %}
+
+{% block acct_content %}
+<div class="glass-panel acct-form-panel">
+  <h1>Record expense</h1>
+  <p class="acct-form-lead">Posts to the ledger automatically (debit expense, credit cash/bank).</p>
+
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
+    <div class="form-row">
+      <label>Date
+        <input type="date" name="expense_date" class="form-input" value="{{ today }}" required>
+      </label>
+      <label>Amount *
+        <input type="number" step="0.01" min="0.01" name="amount" class="form-input" required placeholder="0.00">
+      </label>
+    </div>
+
+    <label>Vendor (existing list)
+      <select name="vendor_id" class="form-input" id="expense-vendor-id">
+        <option value="">— pick existing, or type a new name below —</option>
+        {% for v in vendors %}<option value="{{ v.id }}">{{ v.name }}</option>{% endfor %}
+      </select>
+    </label>
+
+    <label>Or add new vendor name
+      <input type="text" name="vendor_name" class="form-input" id="expense-vendor-name"
+             placeholder="Creates a vendor automatically if filled">
+    </label>
+    <p class="help-text">New names are saved under Accounting → Vendors for reuse.</p>
+
+    <label>Expense account *
+      <select name="expense_account_id" class="form-input" required>
+        {% for a in expense_accounts %}
+        <option value="{{ a.id }}" {% if a.code == '5500' %}selected{% endif %}>{{ a.code }} · {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Paid from (cash / bank)
+      <select name="payment_account_id" class="form-input">
+        {% for a in asset_accounts %}
+        <option value="{{ a.id }}" {% if a.code == '1000' %}selected{% endif %}>{{ a.code }} · {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div class="form-row">
+      <label>Payment method
+        <select name="payment_method" class="form-input">
+          <option value="check">Check</option>
+          <option value="ach">ACH</option>
+          <option value="card">Card</option>
+          <option value="cash">Cash</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label>Reference / check #
+        <input type="text" name="reference" class="form-input" placeholder="Optional">
+      </label>
+    </div>
+
+    <label>Description
+      <textarea name="description" class="form-input" rows="3" placeholder="What was this for?"></textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save &amp; post</button>
+      <a href="{{ url_for('accounting.expenses') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

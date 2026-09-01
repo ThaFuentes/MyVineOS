@@ -1,0 +1,143 @@
+{# Service Planning overview — live teams + filled roster only on cards. #}
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Service Planning{% endblock %}
+
+{% block pastoral_content %}
+<div class="glass-panel" style="margin-bottom:0.9rem;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.6rem; flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0 0 0.2rem;"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Service Planning</h2>
+      <div style="opacity:0.75; font-size:0.9rem;">
+        <strong>Recurring plans</strong> = which days + standing roster ·
+        <strong>Edit a date</strong> = one week only ·
+        <strong>Overall defaults</strong> = starter roster (does not override recurring plans).
+      </div>
+    </div>
+    <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+      <a href="{{ url_for('pastoral.planning.templates_list') }}" class="btn btn-primary" style="font-size:0.85rem;">Recurring plans</a>
+      <a href="{{ url_for('pastoral.planning.defaults') }}" class="btn btn-secondary" style="font-size:0.85rem;">Overall defaults</a>
+      <a href="{{ url_for('volunteers.teams_list') }}" class="btn btn-secondary" style="font-size:0.85rem;">Teams</a>
+      <a href="{{ url_for('worship.defaults') }}" class="btn btn-secondary" style="font-size:0.85rem;">Worship Defaults</a>
+    </div>
+  </div>
+</div>
+
+<!-- Live teams from Volunteers module -->
+<div class="glass-panel" style="margin-bottom:0.75rem;">
+  <div style="font-weight:600; margin-bottom:0.5rem;">
+    <i class="fa-solid fa-handshake" aria-hidden="true"></i> Volunteer Teams
+    <span style="font-weight:400; opacity:0.7; font-size:0.85rem;">(from /volunteers — used on every plan)</span>
+  </div>
+  {% if volunteer_teams %}
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:0.5rem;">
+    {% for t in volunteer_teams %}
+    <a href="{{ url_for('volunteers.team_detail', team_id=t.id) }}" class="glass-panel"
+       style="padding:0.65rem 0.75rem; margin:0; text-decoration:none; color:inherit; border-left:4px solid {{ t.color or '#34d399' }};">
+      <strong style="font-size:0.95rem;">{{ t.name }}</strong>
+      <div style="font-size:0.78rem; opacity:0.7; margin-top:0.2rem;">
+        {{ t.member_count or 0 }} people{% if t.role_count %} · {{ t.role_count }} roles{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="opacity:0.75; margin:0;">
+    No teams yet.
+    <a href="{{ url_for('volunteers.team_new') }}">Create Greeters, Ushers, Parking…</a>
+  </p>
+  {% endif %}
+</div>
+
+<!-- Quick jump -->
+<div class="glass-panel" style="margin-bottom:0.75rem;">
+  <div style="font-weight:600; margin-bottom:0.4rem;">Open a date</div>
+  <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+    <input type="date" id="custom-date-picker" class="form-input" style="max-width:200px;"
+           value="{{ today.strftime('%Y-%m-%d') }}">
+    <button type="button" class="btn btn-primary"
+            onclick="let d=document.getElementById('custom-date-picker').value; if(d) window.location='/pastoral/planning/edit/'+d;">
+      Edit plan
+    </button>
+  </div>
+</div>
+
+<!-- Calendar strip -->
+<div class="glass-panel" style="margin-bottom:0.75rem;">
+  <div style="font-weight:600; margin-bottom:0.5rem;">Calendar</div>
+  <div style="display:flex; overflow-x:auto; gap:0.75rem; padding-bottom:0.5rem;">
+    {% for month in calendar_months %}
+      <div style="min-width:168px; border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.5rem; background:rgba(0,0,0,0.3); flex-shrink:0;">
+        <div style="text-align:center; font-weight:600; color:var(--primary); margin-bottom:0.35rem;">{{ month.name }} {{ month.year }}</div>
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px; font-size:0.75rem; text-align:center;">
+          <div style="opacity:0.5;">S</div><div style="opacity:0.5;">M</div><div style="opacity:0.5;">T</div><div style="opacity:0.5;">W</div><div style="opacity:0.5;">T</div><div style="opacity:0.5;">F</div><div style="opacity:0.5;">S</div>
+          {% for day in month.days %}
+            {% if day.date %}
+              {% set date_str = day.date.strftime('%Y-%m-%d') %}
+              <a href="{{ url_for('pastoral.planning.edit', date_str=date_str) }}" style="text-decoration:none; color:inherit;">
+                <div style="padding:0.25rem 0; border-radius:6px; min-height:34px; background:{% if day.has_override %}#0a3{% else %}#222{% endif %}; position:relative; font-weight:{% if day.has_override %}700{% else %}400{% endif %}; border:1px solid {% if day.has_override %}#0f0{% else %}#333{% endif %};">
+                  {{ day.day }}
+                  {% if day.has_override %}<span style="position:absolute; bottom:1px; left:50%; transform:translateX(-50%); font-size:0.55rem; background:#060; padding:0 2px; border-radius:3px;">O</span>{% endif %}
+                  {% if day.date == today %}<span style="display:block; font-size:0.55rem; color:#ff0;">•</span>{% endif %}
+                </div>
+              </a>
+            {% else %}
+              <div></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Upcoming services with FILLED roster only -->
+<div class="glass-panel">
+  <div style="font-weight:600; margin-bottom:0.5rem;">Upcoming services</div>
+  <p style="font-size:0.85rem; opacity:0.7; margin:0 0 0.75rem;">
+    Only people already assigned are listed on each card. Open the plan to assign open teams.
+  </p>
+
+  {% if upcoming_plans %}
+    {% for plan in upcoming_plans %}
+    <div class="item-card" style="margin-bottom:0.65rem;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px;">
+          <div style="font-weight:600;">
+            {% if plan.service_date is string %}{{ plan.service_date }}{% else %}{{ plan.service_date.strftime('%A, %B %d') }}{% endif %}
+          </div>
+          <div style="font-size:0.8rem; opacity:0.75;">
+            {% if plan.start_time %}{% if plan.start_time is string %}{{ plan.start_time[:5] }}{% else %}{{ plan.start_time.strftime('%I:%M %p')|lower }}{% endif %}{% else %}Time TBD{% endif %}
+            · <span style="padding:0 0.3rem; background:rgba(255,255,255,0.08); border-radius:4px; font-size:0.7rem;">{{ plan.source_badge }}</span>
+          </div>
+          <div style="margin-top:0.25rem;">{{ plan.title or 'Service' }}</div>
+
+          {% if plan.roster_filled %}
+          <div style="display:flex; flex-wrap:wrap; gap:0.35rem; margin-top:0.55rem;">
+            {% for a in plan.roster_filled %}
+            <span style="font-size:0.78rem; padding:0.2rem 0.5rem; border-radius:999px; background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.25);">
+              <strong>{{ a.role_name }}</strong>:
+              {{ a.user_full_name or a.guest_name or '—' }}
+            </span>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div style="font-size:0.82rem; opacity:0.55; margin-top:0.4rem;">No one assigned yet — open plan to pick from teams.</div>
+          {% endif %}
+        </div>
+        <a href="{{ url_for('pastoral.planning.edit', date_str=(plan.service_date[:10] if plan.service_date is string else plan.service_date.strftime('%Y-%m-%d'))) }}"
+           class="btn btn-primary" style="min-height:40px; font-size:0.85rem; white-space:nowrap;">Edit plan</a>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="text-align:center; padding:1rem; opacity:0.7;">
+      No upcoming services yet. Open a date above to plan one.
+    </div>
+  {% endif %}
+</div>
+
+<div style="text-align:center; margin-top:0.8rem;">
+  <a href="{{ url_for('pastoral.dashboard_pastoral') }}" style="font-size:0.8rem; opacity:0.55;"><- Pastoral Command Center</a>
+</div>
+{% endblock %}

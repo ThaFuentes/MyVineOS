@@ -1,0 +1,81 @@
+{% extends "members/base_members.html" %}
+{% block page_title %}Templates{% endblock %}
+{% block page_description %}
+  A template is a <strong>named list of tools</strong> (YES/NO).  
+  Use it as the default for new Members/Staff, or apply it to one person under Tools.
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723tpl3">
+{% endblock %}
+
+{% block members_content %}
+{% include 'members/_access_subnav.html' %}
+<div class="ac-hero glass-panel">
+  <h2>What is a template?</h2>
+  <p style="font-size:1.08rem; line-height:1.55;">
+    When you <strong>save a template</strong>, we store:
+  </p>
+  <ul style="margin:0.5rem 0 0; padding-left:1.25rem; font-size:1.05rem; line-height:1.55;">
+    <li><strong>Name</strong> (e.g. Standard, Staff, Staff Accounting)</li>
+    <li><strong>Who it’s for</strong> (Members, Staff, or anyone)</li>
+    <li><strong>Default?</strong> — auto-used when a new Member or new Staff is created</li>
+    <li><strong>Which tools are YES</strong> (Accounting, Tickets, Worship, …)</li>
+  </ul>
+  <p style="margin-top:0.85rem;">
+    <a class="btn-primary ac-person-btn" style="display:inline-flex; width:auto; padding:0 1.25rem; text-decoration:none;"
+       href="{{ url_for('members.access_template_new') }}">
+      + Create a template
+    </a>
+  </p>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem; border-left:4px solid rgba(90,200,255,0.45);">
+  <strong>Admin &amp; Owner</strong> always have every tool. No template needed for them.
+</div>
+
+{% if templates %}
+<div class="ac-people">
+  {% for t in templates %}
+  <article class="ac-person">
+    <h3 class="ac-person-name">{{ t.name }}</h3>
+    <div class="ac-person-meta">
+      {% if t.for_role == 'any' %}For anyone{% else %}For {{ t.for_role }}{% endif %}
+      {% if t.is_default %} · <strong style="color:#6fd4ff;">default for new {{ t.for_role }}</strong>{% endif %}
+    </div>
+    {% if t.description %}
+    <p class="small" style="margin:0; opacity:0.85;">{{ t.description }}</p>
+    {% endif %}
+    <div class="ac-chips">
+      {% if t.summary %}
+        {% for line in t.summary[:8] %}
+        <span class="ac-chip ac-chip-yes">{{ line|replace(': YES','') }}</span>
+        {% endfor %}
+        {% if t.summary|length > 8 %}
+        <span class="ac-chip ac-chip-yes">+{{ t.summary|length - 8 }} more</span>
+        {% endif %}
+      {% else %}
+        <span class="ac-chip ac-chip-no">No tools on — open Edit and set YES</span>
+      {% endif %}
+    </div>
+    <a class="btn-primary ac-person-btn" href="{{ url_for('members.access_template_edit', template_id=t.id) }}">
+      Edit
+    </a>
+    <form method="POST" style="margin:0;" onsubmit="return confirm('Delete “{{ t.name }}”? People already set keep their own tools.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="template_id" value="{{ t.id }}">
+      <button type="submit" class="btn-secondary" style="width:100%; min-height:2.5rem;">Delete</button>
+    </form>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel" style="padding:1.25rem; text-align:center;">
+  <p style="font-size:1.1rem;">No templates yet.</p>
+  <a class="btn-primary" style="display:inline-flex; min-height:3rem; align-items:center; padding:0 1.25rem; text-decoration:none;"
+     href="{{ url_for('members.access_template_new') }}">+ Create your first template</a>
+</div>
+{% endif %}
+{% endblock %}

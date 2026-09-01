@@ -1,0 +1,118 @@
+<!-- Public / visitor master layout — same theme + display system as private members app -->
+{% set s = g.settings|default({}) %}
+{% set church_theme = session.get('church_default_theme') or s.get('default_ui_theme') or 'cyan-glow' %}
+{% set user_theme = session.get('user_theme') or church_theme or 'cyan-glow' %}
+{% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
+{% set bible_font_scale = session.get('bible_font_scale') or 'md' %}
+{# Guest Display override or member personal theme wins over brand color overrides #}
+{% set personal_theme_wins = true %}
+<!DOCTYPE html>
+<html lang="en"
+      data-theme="{{ user_theme }}"
+      data-font-scale="{{ ui_font_scale }}"
+      data-bible-scale="{{ bible_font_scale }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="{% if user_theme == 'soft-light' %}#f4f7fb{% elif user_theme == 'tropical' %}#0a3d38{% else %}#0a0a0a{% endif %}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="{% if user_theme == 'soft-light' %}default{% else %}black-translucent{% endif %}">
+  <meta name="apple-mobile-web-app-title" content="MyVine">
+  <meta name="mobile-web-app-capable" content="yes">
+  {% include 'partials/security_scripts.html' %}
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
+
+  <title>{% block title %}My Vine Church{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/enterprise.css') }}?v=20260827voice">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/public/base_public.css') }}?v=20260711n">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+  {% block extra_css %}{% endblock %}
+
+  {% set fav = s.get('favicon_path') %}
+  <link rel="icon" href="{{ url_for('static', filename='images/' ~ fav if fav else 'favicon.ico') }}">
+
+  <style>
+    :root {
+      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
+      {% if not personal_theme_wins %}
+      --primary: {{ s.get('primary_color', '#00FFFF') }};
+      --primary-hover: {{ s.get('primary_hover_color', '#00cccc') }};
+      {% set bg_image = s.get('background_image') %}
+      {% if bg_image %}
+      --bg-page: linear-gradient(rgba(0,0,0,{{ s.get('background_opacity', 0.68) }}),
+                                rgba(0,0,0,{{ s.get('background_opacity', 0.68) }})),
+                 url('{{ url_for('static', filename='images/' ~ bg_image) }}');
+      {% endif %}
+      {% endif %}
+    }
+    body {
+      background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
+      background-size: cover;
+      background-attachment: fixed;
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-main);
+      color: var(--text-primary, #e0e0e0);
+      overflow-x: hidden;
+    }
+  </style>
+</head>
+
+<body {% block body_style %}{% endblock %}>
+
+  <header class="top-bar">
+    <div class="church-name">
+      {{ s.get('church_name') or 'Church Portal' }}
+    </div>
+    <div class="user-info">
+      {% include 'partials/display_prefs.html' %}
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">My Dashboard</a>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Logout</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Login / Register</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <nav class="top-nav">
+    {% include 'partials/nav_public_top.html' %}
+  </nav>
+
+  <div class="page-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {% include 'partials/nav_public_bottom.html' %}
+
+  <footer style="text-align:center; padding:0.5rem 0.5rem 4.25rem; font-size:0.62rem; color:var(--text-muted); opacity:0.45;">
+    <a href="{{ url_for('legal.legal_index') }}" style="color:inherit; text-decoration:none; margin-right:0.75rem;">Legal & Policies</a>
+    (c) 2026 {{ s.get('church_name') or 'Church Portal' }}
+  </footer>
+
+  {% include 'partials/compose_sheet.html' %}
+
+  {% block scripts %}
+    <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/enterprise.js') }}?v=20260826sheet"></script>
+    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260715theme"></script>
+  {% endblock %}
+</body>
+</html>

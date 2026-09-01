@@ -1,0 +1,55 @@
+{% extends "dreams/base_dreams.html" %}
+
+{% block dreams_content %}
+{% set page_heading = 'Dreams' %}
+{% if is_logged_in %}
+  {% set page_action_url = url_for('dreams.submit_dream') %}
+  {% set page_action_label = 'Share one' %}
+{% endif %}
+{% include 'partials/page_hero.html' %}
+
+<div class="member-feed">
+  {% if dream_data %}
+    {% for d in dream_data %}
+    <article class="glass-panel member-post">
+      <a class="member-post-hit" href="{{ url_for('dreams.view_dream', dream_id=d.id) }}">
+        <h2>{{ d.title }}</h2>
+        <p class="member-post-meta">
+          {{ d.poster_name or 'Someone' }}
+          {% if d.date_posted %}
+            · {{ d.date_posted.strftime('%B %d, %Y') if d.date_posted.strftime is defined else d.date_posted }}
+          {% endif %}
+        </p>
+        {% if d.description %}
+        <p class="member-post-body">{{ d.description | truncate(220) }}</p>
+        {% endif %}
+        {% if d.comments %}
+        <p class="member-post-foot">{{ d.comments|length }} comment{{ 's' if d.comments|length != 1 else '' }}</p>
+        {% endif %}
+      </a>
+      {% if is_logged_in and (d.user_id == session.user_id or session.user_role in ['Admin', 'Owner']) %}
+      <div class="entity-actions">
+        <a href="{{ url_for('dreams.edit_dream', dream_id=d.id) }}" class="btn-secondary btn-small">Edit</a>
+        {% if session.user_role in ['Admin', 'Owner'] %}
+        <form action="{{ url_for('dreams.delete_dream', dream_id=d.id) }}" method="post" class="inline-form">
+          {% include 'partials/csrf_field.html' %}
+          <button type="submit" class="btn-danger btn-small"
+                  onclick="return confirm('Delete this?');">Delete</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  {% else %}
+    <div class="glass-panel empty-state">
+      Nothing shared yet.
+      {% if is_logged_in %}
+      <div style="margin-top:0.75rem;">
+        <a href="{{ url_for('dreams.submit_dream') }}" class="btn btn-primary">Share one</a>
+      </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

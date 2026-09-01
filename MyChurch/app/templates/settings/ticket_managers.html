@@ -1,0 +1,81 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Ticket Managers</h2>
+    <p class="help-text">
+        Users listed here can open the Ticket Manager queue and work all support tickets
+        (status, priority, assignment, replies), even if they are not Admin/Owner.
+        Admin and Owner always have access.
+    </p>
+
+    <div class="settings-card" style="margin-bottom:1.5rem;">
+        <h3 class="section-subtitle">Add a manager</h3>
+        <form method="POST" class="styled-form" style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end;">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="add">
+            <div class="form-group" style="margin:0; min-width:220px; flex:1;">
+                <label class="control-label" for="user_id">Member</label>
+                <select name="user_id" id="user_id" class="form-input" required>
+                    <option value="">— Select user —</option>
+                    {% for u in all_users %}
+                        {% if u.id not in manager_ids %}
+                        <option value="{{ u.id }}">
+                            {{ u.username }}
+                            {% if u.first_name or u.last_name %}
+                                ({{ u.first_name }} {{ u.last_name }})
+                            {% endif %}
+                            — {{ u.role }}
+                        </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-primary">Add to ticket managers</button>
+        </form>
+    </div>
+
+    <div class="settings-card">
+        <h3 class="section-subtitle">Current ticket managers</h3>
+        {% set ns = namespace(count=0) %}
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in all_users %}
+                        {% if u.id in manager_ids %}
+                        {% set ns.count = ns.count + 1 %}
+                    <tr>
+                        <td>{{ u.username }}</td>
+                        <td>{{ u.first_name }} {{ u.last_name }}</td>
+                        <td>{{ u.role }}</td>
+                        <td>
+                            <form method="POST" style="display:inline;"
+                                  onsubmit="return confirm('Remove {{ u.username }} from ticket managers?');">
+                                {% include 'partials/csrf_field.html' %}
+                                <input type="hidden" name="action" value="remove">
+                                <input type="hidden" name="user_id" value="{{ u.id }}">
+                                <button type="submit" class="btn-secondary btn-sm">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if ns.count == 0 %}
+        <p class="help-text">No dedicated ticket managers yet. Admin/Owner can still manage tickets.</p>
+        {% endif %}
+    </div>
+</section>
+
+{% endblock %}

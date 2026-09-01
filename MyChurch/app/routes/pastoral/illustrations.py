@@ -1,0 +1,969 @@
+# app/routes/pastoral/illustrations.py
+# Full path: WebChurchMan/app/routes/pastoral/illustrations.py
+# File name: illustrations.py
+# Brief, detailed purpose:
+#   Routes and Blueprint for the ILLUSTRATION LIBRARY (pastoral area only) - Reusable TEXT content for sermons.
+#   - Pure text/verbal library: written illustrations, stories, memories, analogies, reusable sermon blocks (NOT JPEG imagery or visual images).
+#   - Pastors save reusable verbal content here from sermon builder (e.g. a near-death experience story) to reuse without re-typing.
+#   - Unified with saved sermon Sections from Vault (auto-included as 'section' type).
+#   - Type badge: "Illustration" (manual text) vs "Section" (saved from sermon builder).
+#   - Search title/content/tags/notes/source (source = reference like book/experience, free text).
+#   - Buttons: Insert into Sermon (injects content into editor section), View, Edit, Delete.
+#   - Dock for quick access across sessions.
+#   - Add New manual text illustration.
+#   - Supports rich content (Quill editor).
+#   - Robust for desktop pastoral use.
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, abort
+import json
+import pymysql
+
+from . import pastoral_required
+from app.models.log import log_change
+from app.utils.helpers import contains_censored_word
+from app.models.db import get_db
+from app.models.pastoral.illustrations import (
+    get_illustration_by_id,
+    create_illustration,
+    update_illustration,
+    delete_illustration,
+    get_visible_illustrations
+)
+from app.models.pastoral.vault import delete_vault_item
+from app.models.pastoral.content_export import (
+    format_illustration_markdown,
+    illustration_to_docx,
+    safe_filename,
+    send_markdown_download,
+    send_docx_download,
+    zip_named_bytes,
+)
+
+illustrations_bp = Blueprint('illustrations', __name__, url_prefix='/illustrations')
+
+
+def _fetch_library_item(item_id: int, user_id: int, kind: str | None = None) -> dict | None:
+    """
+    Load illustration or vault section by id (optionally forced kind).
+    Visibility: own private items + shared pastoral_group (user_id IS NULL).
+    If forced kind misses (id collision / bad type query), fall back to the other table
+    so Download never 404s when the user can already see the card in the library.
+    """
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    kind = (kind or '').strip().lower() or None
+    if kind in ('illus', 'illustrations'):
+        kind = 'illustration'
+    if kind in ('vault', 'sections'):
+        kind = 'section'
+
+    def _load_illustration():
+        cur.execute(
+            """
+            SELECT il.*,
+                   'illustration' AS type,
+                   il.source AS source_url,
+                   CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
+            FROM illustration_library il
+            WHERE il.id = %s AND (il.user_id = %s OR il.user_id IS NULL)
+            """,
+            (item_id, user_id),
+        )
+        return cur.fetchone()
+
+    def _load_section():
+        cur.execute(
+            """
+            SELECT pv.*,
+                   'section' AS type,
+                   pv.source_url,
+                   CASE
+                       WHEN pv.visibility = 'private' OR (pv.visibility IS NULL AND pv.user_id IS NOT NULL)
+                       THEN 'private'
+                       ELSE 'pastoral_group'
+                   END AS visibility
+            FROM pastoral_vault pv
+            WHERE pv.id = %s AND (pv.user_id = %s OR pv.user_id IS NULL)
+            """,
+            (item_id, user_id),
+        )
+        return cur.fetchone()
+
+    if kind == 'illustration':
+        row = _load_illustration()
+        return row or _load_section()
+    if kind == 'section':
+        row = _load_section()
+        return row or _load_illustration()
+
+    # No kind: prefer illustration id, then vault
+    return _load_illustration() or _load_section()
+
+
+@illustrations_bp.route('/quick_add', methods=['POST'])
+@pastoral_required()
+def quick_add():
+    """AJAX endpoint to quickly save a text block as illustration from sermon editor or elsewhere."""
+    user_id = session['user_id']
+    data = request.get_json() or request.form
+    title = (data.get('title') or 'Untitled Illustration').strip()
+    content = (data.get('content') or '').strip()
+    source = (data.get('source') or '').strip()
+    tags = data.get('tags') or ''
+    if not content:
+        return jsonify({'error': 'Content required'}), 400
+    try:
+        new_id = create_illustration({
+            'title': title,
+            'content': content,
+            'source': source,
+            'tags': tags,
+            'visibility': 'private'
+        }, user_id)
+        return jsonify({'success': True, 'id': new_id, 'title': title})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@illustrations_bp.route('/list_json', methods=['GET'])
+@pastoral_required()
+def list_json():
+    """Simple JSON list of user's illustrations for insert modals in editor."""
+    user_id = session['user_id']
+    q = request.args.get('q', '').strip()
+    items = get_visible_illustrations(user_id, search=q if q else None)
+    # Return minimal for insert: id, title, content (text)
+    simple = [{'id': i['id'], 'title': i.get('title'), 'content': i.get('content'), 'source': i.get('source','')} for i in items[:50]]
+    return jsonify(simple)
+
+
+@illustrations_bp.route('/dock_json', methods=['GET'])
+@pastoral_required()
+def dock_json():
+    """Docked library items (session) for sermon editor insert tray."""
+    user_id = session['user_id']
+    docked_ids = [int(x) for x in (session.get('docked_items') or []) if str(x).isdigit() or isinstance(x, int)]
+    if not docked_ids:
+        return jsonify({'items': [], 'count': 0})
+
+    out = []
+    seen = set()
+    for iid in docked_ids:
+        if iid in seen:
+            continue
+        seen.add(iid)
+        item = _fetch_library_item(iid, user_id)
+        if not item:
+            continue
+        out.append({
+            'id': int(item['id']),
+            'title': item.get('title') or 'Untitled',
+            'content': item.get('content') or '',
+            'source': item.get('source_url') or item.get('source') or '',
+            'type': item.get('type') or 'illustration',
+        })
+    return jsonify({'items': out, 'count': len(out)})
+
+
+def _safe_load_tags(tags_raw) -> list:
+    if tags_raw is None:
+        return []
+    if isinstance(tags_raw, list):
+        return tags_raw
+    if isinstance(tags_raw, str):
+        try:
+            return json.loads(tags_raw)
+        except json.JSONDecodeError:
+            return []
+    return []
+
+
+@illustrations_bp.route('/research', methods=['GET', 'POST'])
+@pastoral_required()
+def research():
+    """
+    Illustrations library research: keyword search + AI Q&A over library items you can see.
+    """
+    from app.models.pastoral.illustration_search import (
+        search_illustrations_library,
+        pack_illustrations_for_ai,
+        illustration_catalog,
+    )
+    from app.utils.ai_client import ai_status, run_insight
+    from app.utils.ai_format import PASTOR_VOICE_SYSTEM, format_ai_prose
+
+    user_id = session['user_id']
+    mode = (request.values.get('mode') or 'search').strip().lower()
+    if mode not in ('search', 'ask'):
+        mode = 'search'
+
+    query = (request.values.get('q') or '').strip()
+    question = (request.values.get('question') or '').strip()
+    hits = []
+    answer_html = None
+    answer_error = None
+    used_items = []
+    status = ai_status()
+    catalog = illustration_catalog(user_id, limit=100)
+    library_count = len(catalog)
+
+    if request.method == 'POST' or (request.method == 'GET' and query and mode == 'search'):
+        if mode == 'search':
+            if len(query) < 2:
+                if request.method == 'POST':
+                    flash('Enter at least 2 characters to search.', 'error')
+            else:
+                try:
+                    hits = search_illustrations_library(user_id, query, limit=50)
+                except Exception as exc:
+                    print(f'illustrations.research search: {exc}')
+                    flash(f'Search failed: {exc}', 'error')
+        elif mode == 'ask' and request.method == 'POST':
+            if not question:
+                flash('Type a question about your illustrations library.', 'error')
+            elif contains_censored_word(question):
+                flash('Prohibited content in question.', 'error')
+            elif not status.get('configured'):
+                answer_error = (
+                    'AI is not configured. Add a provider under Settings → AI Providers.'
+                )
+            else:
+                selected_keys = request.form.getlist('item_keys')
+                # de-dupe preserve order
+                seen_sel: set[str] = set()
+                selected_keys = [
+                    k for k in selected_keys
+                    if k and not (k in seen_sel or seen_sel.add(k))
+                ]
+
+                if not selected_keys:
+                    flash('Select at least one library item for the AI to use.', 'error')
+                else:
+                    try:
+                        context, used_items, pack_meta = pack_illustrations_for_ai(
+                            user_id,
+                            question,
+                            item_keys=selected_keys,
+                        )
+                        system = (
+                            PASTOR_VOICE_SYSTEM
+                            + ' Answer only from the illustrations library material provided. '
+                            'That material is stories, analogies, and saved sermon sections '
+                            'from this pastor’s library — not general web knowledge about their church. '
+                            'DETAILED CONTENT is the full item text, not just titles. '
+                            'Never claim you received little data if DETAILED CONTENT is present. '
+                            'Cite item titles (and keys like i-12 or s-5 when helpful). '
+                            'If the library does not cover the question, say so plainly. '
+                            'No markdown headings.'
+                        )
+                        user_prompt = (
+                            f"My question: {question[:2000]}\n\n"
+                            f"Here is MY illustrations library only. Read the full DETAILED CONTENT:\n{context}\n\n"
+                            "Answer like a ministry teammate who has read my illustration notes. "
+                            "Point me to specific items when you can. "
+                            "Do not invent illustrations that are not listed."
+                        )
+                        max_prompt = min(400000, max(80000, 8000 + len(context) + 4000))
+                        text, err, run_meta = run_insight(
+                            'illustration_library_ask',
+                            system,
+                            user_prompt,
+                            timeout=180,
+                            max_prompt_chars=max_prompt,
+                        )
+                        if err:
+                            answer_error = err
+                        else:
+                            answer_html = format_ai_prose(text)
+                            notes = []
+                            if pack_meta.get('truncated'):
+                                notes.append('One library item was shortened to fit.')
+                            if pack_meta.get('omitted'):
+                                notes.append(
+                                    f"{len(pack_meta['omitted'])} selected item(s) did not fit."
+                                )
+                            if run_meta.get('shrunk'):
+                                notes.append(
+                                    f"Provider rejected the full prompt; retried with "
+                                    f"{run_meta.get('sent_chars', 0):,} of "
+                                    f"{run_meta.get('original_chars', 0):,} characters."
+                                )
+                            if notes:
+                                answer_html = (
+                                    '<p class="help-text" style="opacity:0.85;">'
+                                    + ' '.join(notes)
+                                    + '</p>'
+                                    + answer_html
+                                )
+                            log_change(
+                                user_id, 'ai', None, question[:80],
+                                f"Illustration library AI ({len(used_items)} items) via {run_meta.get('provider') or '?'}",
+                            )
+                    except Exception as exc:
+                        print(f'illustrations.research ask: {exc}')
+                        answer_error = str(exc)
+
+    selected_for_ui = (
+        request.form.getlist('item_keys')
+        if request.method == 'POST' and mode == 'ask'
+        else None
+    )
+
+    return render_template(
+        'pastoral/illustrations_research.html',
+        mode=mode,
+        query=query,
+        question=question,
+        hits=hits,
+        answer_html=answer_html,
+        answer_error=answer_error,
+        used_items=used_items,
+        status=status,
+        library_count=library_count,
+        catalog=catalog,
+        selected_item_keys=selected_for_ui,
+    )
+
+
+@illustrations_bp.route('/library', methods=['GET', 'POST'])
+@pastoral_required()
+def library():
+    user_id = session['user_id']
+    user_role = session.get('user_role', 'Member')
+    q = request.args.get('q', '').strip()
+    edit_id = request.args.get('edit_id')
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+
+    items = []
+
+    # Campus isolation fragment (shared for both tables)
+    try:
+        from app.models.campuses import content_campus_filter_sql
+        illus_campus_frag, illus_campus_params = content_campus_filter_sql(
+            'il.campus_id', user_id=user_id, owner_column='il.user_id'
+        )
+        vault_campus_frag, vault_campus_params = content_campus_filter_sql(
+            'pv.campus_id', user_id=user_id, owner_column='pv.user_id'
+        )
+    except Exception:
+        illus_campus_frag, illus_campus_params = '', []
+        vault_campus_frag, vault_campus_params = '', []
+
+    # Illustrations (visibility derived from user_id: NULL = shared, set = private)
+    illus_sql = """
+        SELECT il.*,
+               'illustration' AS type,
+               il.source AS source_url,
+               CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
+        FROM illustration_library il
+        WHERE (il.user_id = %s OR il.user_id IS NULL)
+    """
+    params = [user_id]
+    illus_sql += illus_campus_frag
+    params += list(illus_campus_params)
+
+    if q:
+        like = f"%{q}%"
+        illus_sql += (
+            " AND (il.title LIKE %s OR il.content LIKE %s OR il.source LIKE %s"
+            " OR il.tags LIKE %s OR IFNULL(il.notes, '') LIKE %s)"
+        )
+        params += [like] * 5
+
+    cur.execute(illus_sql, params)
+    items.extend(list(cur.fetchall()))
+
+    # Vault sections
+    vault_sql = """
+        SELECT pv.*,
+               'section' AS type,
+               pv.source_url,
+               CASE
+                   WHEN pv.visibility = 'private' OR (pv.visibility IS NULL AND pv.user_id IS NOT NULL)
+                   THEN 'private'
+                   ELSE 'pastoral_group'
+               END AS visibility
+        FROM pastoral_vault pv
+        WHERE (pv.user_id = %s OR pv.user_id IS NULL)
+    """
+    params = [user_id]
+    vault_sql += vault_campus_frag
+    params += list(vault_campus_params)
+
+    if q:
+        like = f"%{q}%"
+        vault_sql += " AND (pv.title LIKE %s OR pv.content LIKE %s OR pv.scripture_reference LIKE %s OR pv.source_url LIKE %s OR IFNULL(pv.notes, '') LIKE %s)"
+        params += [like] * 5
+
+    cur.execute(vault_sql, params)
+    items.extend(list(cur.fetchall()))
+
+    # Parse tags, add common fields, set can_edit
+    for item in items:
+        item['tag_list'] = _safe_load_tags(item.get('tags'))
+        item['source_url'] = item.get('source_url') or item.get('source') or ''
+        item['can_edit'] = (item.get('user_id') == user_id or user_role in ['Admin', 'Owner'])
+        # Ensure badge/edit form always have a visibility string
+        if not item.get('visibility'):
+            item['visibility'] = 'private' if item.get('user_id') else 'pastoral_group'
+
+    # Sort by created_at DESC
+    items.sort(key=lambda x: x.get('created_at') or '0000-00-00 00:00:00', reverse=True)
+
+    total_count = len(items)
+
+    # Dock
+    docked_ids = session.get('docked_items', [])
+    for item in items:
+        item['is_docked'] = item['id'] in docked_ids
+
+    # Recent sermons for "Insert docked into…" on the library banner
+    recent_sermons = []
+    try:
+        from app.models.pastoral.sermons import get_visible_sermons
+        recent_sermons = get_visible_sermons(user_id, limit=40) or []
+    except Exception:
+        recent_sermons = []
+
+    # Edit handling - both types
+    edit_item = None
+    if edit_id:
+        try:
+            edit_id = int(edit_id)
+            edit_item = get_illustration_by_id(edit_id, user_id)
+            if not edit_item:
+                # Try vault
+                cur.execute("""
+                    SELECT pv.*, 'section' AS type, pv.source_url AS source
+                    FROM pastoral_vault pv
+                    WHERE pv.id = %s AND (pv.user_id = %s OR pv.user_id IS NULL)
+                """, (edit_id, user_id))
+                edit_item = cur.fetchone()
+            if edit_item:
+                edit_item['tag_list'] = _safe_load_tags(edit_item.get('tags'))
+                edit_item['tags_input'] = ', '.join(edit_item['tag_list'])
+                if not edit_item.get('visibility'):
+                    edit_item['visibility'] = 'private' if edit_item.get('user_id') else 'pastoral_group'
+        except ValueError:
+            flash('Invalid item ID.', 'error')
+
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        source = request.form.get('source', '').strip()
+        notes = request.form.get('notes', '').strip()
+        tags_input = request.form.get('tags', '').strip()
+        visibility = (request.form.get('visibility') or 'private').strip().lower()
+        if visibility not in ('private', 'pastoral_group'):
+            visibility = 'private'
+        section_type = request.form.get('section_type')
+        scripture_reference = request.form.get('scripture_reference', '').strip() or None
+
+        if not title or not content:
+            flash('Title and content are required.', 'error')
+            return redirect(request.url)
+
+        tag_list = [t.strip() for t in tags_input.split(',') if t.strip()]
+        tags_json = json.dumps(tag_list)
+
+        check_text = f"{title} {content} {source} {notes} {tags_input} {scripture_reference or ''}"
+        if contains_censored_word(check_text):
+            flash('Prohibited content detected.', 'error')
+            return redirect(request.url)
+
+        owner_id = user_id if visibility == 'private' else None
+
+        try:
+            if edit_item:
+                if edit_item.get('type') == 'section':
+                    cur.execute("""
+                        UPDATE pastoral_vault
+                        SET title = %s, content = %s, section_type = %s, scripture_reference = %s,
+                            source_url = %s, notes = %s, tags = %s, user_id = %s, visibility = %s
+                        WHERE id = %s
+                    """, (title, content, section_type or 'point', scripture_reference, source, notes, tags_json, owner_id, visibility, edit_id))
+                    db.commit()
+                    log_change(user_id, 'vault_update', edit_id, title, 'Updated saved section')
+                else:
+                    # Always pass acting user_id + visibility in data (model derives owner)
+                    data = {
+                        'title': title,
+                        'content': content,
+                        'source': source,
+                        'notes': notes,
+                        'tags': tags_json,
+                        'visibility': visibility,
+                    }
+                    update_illustration(edit_id, data, user_id)
+                    log_change(user_id, 'illustration_update', edit_id, title, 'Updated illustration')
+                flash('Item updated.', 'success')
+            else:
+                # New is always illustration — pass acting user + visibility
+                data = {
+                    'title': title,
+                    'content': content,
+                    'source': source,
+                    'notes': notes,
+                    'tags': tags_json,
+                    'visibility': visibility,
+                }
+                new_id = create_illustration(data, user_id)
+                log_change(user_id, 'illustration_create', new_id, title, 'Created illustration')
+                flash('Illustration created.', 'success')
+            return redirect(url_for('pastoral.illustrations.library'))
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'error')
+
+    return render_template(
+        'pastoral/illustrations_library.html',
+        items=items,
+        total_count=total_count,
+        q=q,
+        edit_item=edit_item,
+        docked_count=len(docked_ids),
+        recent_sermons=recent_sermons,
+    )
+
+
+@illustrations_bp.route('/view/<int:item_id>')
+@pastoral_required()
+def view(item_id: int):
+    user_id = session['user_id']
+    user_role = session.get('user_role', 'Member')
+    kind = request.args.get('type') or request.args.get('kind')
+    item = _fetch_library_item(item_id, user_id, kind)
+
+    if not item:
+        flash('Item not found or access denied.', 'error')
+        return redirect(url_for('pastoral.illustrations.library'))
+
+    item['tag_list'] = _safe_load_tags(item.get('tags'))
+    if not item.get('visibility'):
+        item['visibility'] = 'private' if item.get('user_id') else 'pastoral_group'
+
+    return render_template(
+        'pastoral/illustration_view.html',
+        item=item,
+        current_user_id=user_id,
+        current_user_role=user_role,
+    )
+
+
+@illustrations_bp.route('/download/<int:item_id>')
+@pastoral_required()
+def download(item_id: int):
+    """Download one illustration or vault section as Markdown or DOCX (creator-owned content)."""
+    user_id = session['user_id']
+    kind = request.args.get('type') or request.args.get('kind')
+    fmt = (request.args.get('format') or 'md').strip().lower()
+    try:
+        item = _fetch_library_item(item_id, user_id, kind)
+        if not item:
+            flash('That library item was not found, or you do not have access to download it.', 'error')
+            return redirect(url_for('pastoral.illustrations.library'))
+
+        item_kind = item.get('type') or 'illustration'
+        item['tag_list'] = _safe_load_tags(item.get('tags'))
+        base = safe_filename(item.get('title') or f'{item_kind}_{item_id}')
+
+        try:
+            log_change(
+                user_id,
+                'export',
+                item_id,
+                item.get('title'),
+                f'Downloaded {item_kind} as {fmt}',
+            )
+        except Exception as log_exc:
+            print(f'illustrations.download log_change: {log_exc}')
+
+        if fmt in ('docx', 'doc', 'word'):
+            doc = illustration_to_docx(item, kind=item_kind)
+            return send_docx_download(doc, f'{base}.docx')
+
+        body = format_illustration_markdown(item, kind=item_kind)
+        return send_markdown_download(body, f'{base}.md')
+    except Exception as exc:
+        print(f'illustrations.download error item={item_id}: {exc}')
+        flash(f'Could not build download: {exc}', 'error')
+        return redirect(url_for('pastoral.illustrations.library'))
+
+
+@illustrations_bp.route('/download/all')
+@pastoral_required()
+def download_all():
+    """ZIP of all illustrations + vault sections visible to the creator."""
+    user_id = session['user_id']
+    fmt = (request.args.get('format') or 'md').strip().lower()
+    as_docx = fmt in ('docx', 'doc', 'word')
+
+    try:
+        db = get_db()
+        cur = db.cursor(pymysql.cursors.DictCursor)
+
+        cur.execute(
+            """
+            SELECT il.*,
+                   'illustration' AS type,
+                   il.source AS source_url,
+                   CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
+            FROM illustration_library il
+            WHERE il.user_id = %s OR il.user_id IS NULL
+            ORDER BY il.created_at DESC
+            """,
+            (user_id,),
+        )
+        items = list(cur.fetchall() or [])
+
+        cur.execute(
+            """
+            SELECT pv.*, 'section' AS type, pv.source_url
+            FROM pastoral_vault pv
+            WHERE pv.user_id = %s OR pv.user_id IS NULL
+            ORDER BY pv.created_at DESC
+            """,
+            (user_id,),
+        )
+        items.extend(list(cur.fetchall() or []))
+
+        if not items:
+            flash('No library content to download yet.', 'error')
+            return redirect(url_for('pastoral.illustrations.library'))
+
+        files = []
+        for item in items:
+            try:
+                item['tag_list'] = _safe_load_tags(item.get('tags'))
+                kind = item.get('type') or 'illustration'
+                base = safe_filename(item.get('title') or f'{kind}_{item.get("id")}')
+                folder = 'illustrations' if kind == 'illustration' else 'vault_sections'
+                if as_docx:
+                    from app.models.pastoral.content_export import docx_bytes
+
+                    doc = illustration_to_docx(item, kind=kind)
+                    files.append((f'{folder}/{base}.docx', docx_bytes(doc).read()))
+                else:
+                    body = format_illustration_markdown(item, kind=kind)
+                    files.append((f'{folder}/{base}.md', body.encode('utf-8')))
+            except Exception as item_exc:
+                print(f'illustrations.download_all skip id={item.get("id")}: {item_exc}')
+                continue
+
+        if not files:
+            flash('Could not build any downloadable files from the library.', 'error')
+            return redirect(url_for('pastoral.illustrations.library'))
+
+        try:
+            log_change(
+                user_id,
+                'export_bulk',
+                None,
+                None,
+                f'Downloaded {len(files)} library items as {"docx" if as_docx else "md"} zip',
+            )
+        except Exception:
+            pass
+        return zip_named_bytes(files, 'MyVine_Illustrations_Library_{date}.zip')
+    except Exception as exc:
+        print(f'illustrations.download_all error: {exc}')
+        flash(f'Could not build library ZIP: {exc}', 'error')
+        return redirect(url_for('pastoral.illustrations.library'))
+
+
+@illustrations_bp.route('/delete/<int:item_id>', methods=['POST'])
+@pastoral_required()
+def delete(item_id: int):
+    user_id = session['user_id']
+
+    # Try illustration
+    if delete_illustration(item_id, user_id):
+        log_change(user_id, 'illustration_delete', item_id, None, 'Deleted illustration')
+        flash('Illustration permanently deleted.', 'success')
+    else:
+        # Try vault
+        delete_vault_item(item_id, user_id)
+        log_change(user_id, 'vault_delete', item_id, None, 'Deleted saved section')
+        flash('Saved section permanently deleted.', 'success')
+
+    return redirect(url_for('pastoral.illustrations.library'))
+
+
+@illustrations_bp.route('/dock', methods=['POST'])
+@pastoral_required()
+def dock():
+    data = request.get_json(silent=True) or {}
+    item_ids = data.get('item_ids', [])
+    if not item_ids:
+        # Single-item form style
+        one = data.get('item_id') or request.form.get('item_id')
+        if one:
+            item_ids = [int(one)]
+    if not item_ids:
+        return jsonify({'status': 'error', 'message': 'No items selected'}), 400
+
+    docked = list(session.get('docked_items', []) or [])
+    for item_id in item_ids:
+        try:
+            iid = int(item_id)
+        except (TypeError, ValueError):
+            continue
+        if iid not in docked:
+            docked.append(iid)
+    session['docked_items'] = docked
+    session.modified = True
+
+    return jsonify({'status': 'success', 'count': len(docked), 'docked_items': docked})
+
+
+@illustrations_bp.route('/undock', methods=['POST'])
+@pastoral_required()
+def undock():
+    """Remove one or more items from the sermon dock."""
+    data = request.get_json(silent=True) or {}
+    item_ids = data.get('item_ids', [])
+    one = data.get('item_id') or request.form.get('item_id')
+    if one and not item_ids:
+        item_ids = [one]
+    if not item_ids:
+        return jsonify({'status': 'error', 'message': 'No items selected'}), 400
+
+    remove = set()
+    for item_id in item_ids:
+        try:
+            remove.add(int(item_id))
+        except (TypeError, ValueError):
+            pass
+    docked = [i for i in (session.get('docked_items') or []) if int(i) not in remove]
+    session['docked_items'] = docked
+    session.modified = True
+    return jsonify({'status': 'success', 'count': len(docked), 'docked_items': docked})
+
+
+@illustrations_bp.route('/toggle_dock', methods=['POST'])
+@pastoral_required()
+def toggle_dock():
+    """Dock or undock a single illustration/section (per-card control)."""
+    data = request.get_json(silent=True) or {}
+    raw = data.get('item_id') or request.form.get('item_id')
+    try:
+        item_id = int(raw)
+    except (TypeError, ValueError):
+        return jsonify({'status': 'error', 'message': 'Invalid item'}), 400
+
+    docked = list(session.get('docked_items', []) or [])
+    # normalize to ints
+    docked = [int(x) for x in docked]
+    if item_id in docked:
+        docked = [x for x in docked if x != item_id]
+        is_docked = False
+    else:
+        docked.append(item_id)
+        is_docked = True
+    session['docked_items'] = docked
+    session.modified = True
+    return jsonify({
+        'status': 'success',
+        'is_docked': is_docked,
+        'count': len(docked),
+        'docked_items': docked,
+    })
+
+
+@illustrations_bp.route('/clear_dock', methods=['POST'])
+@pastoral_required()
+def clear_dock():
+    session.pop('docked_items', None)
+    session.modified = True
+    return jsonify({'status': 'success', 'count': 0})
+
+
+def _item_insert_html(item: dict, item_id: int) -> str:
+    source_line = (
+        f"<p><em>Source: {item.get('source_url') or item.get('source', '')}</em></p>"
+        if item.get('source_url') or item.get('source')
+        else ""
+    )
+    return f"""
+    <div class="inserted-content" data-item-id="{item_id}">
+        <h3>{item.get('title') or 'Illustration'}</h3>
+        <blockquote>{item.get('content') or ''}</blockquote>
+        {source_line}
+    </div>
+    """.strip()
+
+
+@illustrations_bp.route('/insert/<int:sermon_id>', methods=['POST'])
+@pastoral_required()
+def insert_into_sermon(sermon_id: int):
+    """
+    Insert one library item into a sermon.
+
+    JSON body:
+      item_id (required)
+      section_index (optional, 0-based) — append into that section's content
+      as_new_section (optional bool) — create a new illustration section instead
+    """
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    # Accept item_id or legacy illustration_id from older JS
+    item_id = data.get('item_id') or data.get('illustration_id')
+    if not item_id:
+        return jsonify({'status': 'error', 'message': 'No item selected'}), 400
+    try:
+        item_id = int(item_id)
+    except (TypeError, ValueError):
+        return jsonify({'status': 'error', 'message': 'Invalid item'}), 400
+
+    as_new = str(data.get('as_new_section') or '').lower() in ('1', 'true', 'yes', 'on')
+    section_index = data.get('section_index')
+    try:
+        section_index = int(section_index) if section_index is not None and str(section_index) != '' else None
+    except (TypeError, ValueError):
+        section_index = None
+
+    item = _fetch_library_item(item_id, user_id)
+    if not item:
+        return jsonify({'status': 'error', 'message': 'Item not found or access denied'}), 404
+
+    html = _item_insert_html(item, item_id)
+
+    from app.models.pastoral.sermons import (
+        get_sermon_by_id,
+        get_sermon_sections,
+        append_illustration_section,
+        append_html_to_section_index,
+    )
+
+    sermon = get_sermon_by_id(sermon_id, user_id)
+    if not sermon:
+        return jsonify({'status': 'error', 'message': 'Sermon not found or access denied'}), 404
+
+    sections = list(get_sermon_sections(sermon_id) or [])
+    source_ref = item.get('source_url') or item.get('source', '') or ''
+    title = item.get('title') or 'Illustration'
+    created_new = False
+    target_index = None
+
+    # Append-only writes — never full-replace (autosave was wiping dock inserts)
+    if as_new or not sections:
+        result = append_illustration_section(
+            sermon_id,
+            title=title,
+            content_html=html,
+            scripture_reference=item.get('scripture_reference') or '',
+            source=source_ref,
+            section_type='illustration',
+        )
+        created_new = True
+        target_index = result.get('section_index')
+    else:
+        result = append_html_to_section_index(
+            sermon_id,
+            section_index,
+            html,
+            source=source_ref,
+            force_illustration_title=title,
+        )
+        created_new = bool(result.get('created'))
+        target_index = result.get('section_index')
+
+    item_type = item.get('type', 'content')
+    log_change(
+        user_id,
+        'insert',
+        sermon_id,
+        str(item_id),
+        f'Inserted {item_type} {item_id} into sermon {sermon_id} section {target_index}',
+    )
+    return jsonify({
+        'status': 'success',
+        'html': html,
+        'persisted': True,
+        'section_index': target_index,
+        'as_new_section': bool(as_new or created_new),
+        'title': title,
+        'section_id': result.get('section_id'),
+    })
+
+
+@illustrations_bp.route('/insert_docked/<int:sermon_id>', methods=['POST'])
+@pastoral_required()
+def insert_docked_into_sermon(sermon_id: int):
+    """
+    Insert every docked library item into a sermon as new illustration sections
+    (or append each to the last section if mode=append).
+    """
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    mode = (data.get('mode') or 'new_sections').strip().lower()
+    as_new = mode != 'append'
+
+    docked_ids = [int(x) for x in (session.get('docked_items') or []) if str(x).isdigit() or isinstance(x, int)]
+    if not docked_ids:
+        return jsonify({'status': 'error', 'message': 'Dock is empty. Dock items on the library cards first.'}), 400
+
+    from app.models.pastoral.sermons import (
+        get_sermon_by_id,
+        get_sermon_sections,
+        append_illustration_section,
+        append_html_to_section_index,
+    )
+
+    sermon = get_sermon_by_id(sermon_id, user_id)
+    if not sermon:
+        return jsonify({'status': 'error', 'message': 'Sermon not found or access denied'}), 404
+
+    sections = list(get_sermon_sections(sermon_id) or [])
+    inserted = []
+    for iid in docked_ids:
+        item = _fetch_library_item(iid, user_id)
+        if not item:
+            continue
+        html = _item_insert_html(item, iid)
+        source_ref = item.get('source_url') or item.get('source', '') or ''
+        title = item.get('title') or 'Illustration'
+        # Append-only: each docked item becomes its own section (default)
+        # or appends to the last section — never DELETE+reinsert all
+        if as_new or not sections:
+            append_illustration_section(
+                sermon_id,
+                title=title,
+                content_html=html,
+                scripture_reference=item.get('scripture_reference') or '',
+                source=source_ref,
+                section_type='illustration',
+            )
+            sections = list(get_sermon_sections(sermon_id) or [])  # refresh length
+        else:
+            append_html_to_section_index(
+                sermon_id,
+                len(sections) - 1,
+                html,
+                source=source_ref,
+            )
+        inserted.append({'id': iid, 'title': item.get('title') or 'Untitled'})
+
+    if not inserted:
+        return jsonify({'status': 'error', 'message': 'None of the docked items could be loaded.'}), 404
+    log_change(
+        user_id,
+        'insert',
+        sermon_id,
+        None,
+        f'Inserted {len(inserted)} docked library items into sermon {sermon_id}',
+    )
+    clear = str(data.get('clear_dock') or '').lower() in ('1', 'true', 'yes', 'on')
+    if clear:
+        session.pop('docked_items', None)
+        session.modified = True
+
+    return jsonify({
+        'status': 'success',
+        'inserted': inserted,
+        'count': len(inserted),
+        'sermon_id': sermon_id,
+        'sermon_title': sermon.get('title') or '',
+        'dock_cleared': clear,
+    })

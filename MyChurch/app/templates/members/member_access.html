@@ -1,0 +1,112 @@
+{% extends "members/base_members.html" %}
+{% block page_title %}{{ member.first_name }} {{ member.last_name }} — tools{% endblock %}
+{% block page_description %}
+  One place for this person. Turn a tool <strong>ON</strong>, then choose exactly what they can do.
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723single1">
+{% endblock %}
+
+{% block members_content %}
+{% include 'members/_access_subnav.html' %}
+
+<div class="ac-hero glass-panel">
+  <h2>{{ member.first_name or '' }} {{ member.last_name or member.username }}</h2>
+  <p>
+    Role: <strong>{{ member.role }}</strong>
+    {% if breakdown.full_access %}
+      — <strong>Admin / Owner: full access to everything</strong> (cannot be limited by accident).
+    {% else %}
+      — Only tools turned <strong style="color:#5dca7a;">ON</strong> below. Nothing else.
+      No groups. No hidden sources.
+    {% endif %}
+  </p>
+  <div class="ac-toolbar" style="margin-top:0.85rem;">
+    <a class="btn-secondary" href="{{ url_for('members.access_people') }}">← All people</a>
+    <a class="btn-secondary" href="{{ url_for('members.access_dashboard') }}">Access home</a>
+    <a class="btn-secondary" href="{{ url_for('members.add_member', member_id=member.id) }}">Edit profile</a>
+  </div>
+</div>
+
+<div class="ac-summary-box glass-panel">
+  <h3>What they have right now</h3>
+  {% if summary_lines %}
+  <ul class="ac-summary-list">
+    {% for line in summary_lines %}
+    <li>{{ line }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="ac-empty mb-0">Nothing — all tools OFF. No accidental access.</p>
+  {% endif %}
+</div>
+
+{% if not breakdown.full_access %}
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h3 style="margin:0 0 0.45rem; font-size:1.1rem;">Optional: load a template first</h3>
+  <p style="margin:0 0 0.75rem; opacity:0.9;">
+    Templates are only a shortcut. After you apply one, this page is still the single source of truth.
+  </p>
+  {% if role_default %}
+  <form method="POST" style="margin-bottom:0.65rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <input type="hidden" name="action" value="apply_role_default">
+    <button type="submit" class="btn-primary" style="min-height:2.75rem; font-weight:800;">
+      Use default for {{ member.role }}: “{{ role_default.name }}”
+    </button>
+  </form>
+  {% endif %}
+  {% if templates %}
+  <form method="POST" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <input type="hidden" name="action" value="apply_template">
+    <div style="flex:1; min-width:14rem;">
+      <label class="small" for="template_id">Or pick a pack</label>
+      <select name="template_id" id="template_id" class="form-input" required style="width:100%; min-height:2.75rem;">
+        <option value="">Choose…</option>
+        {% for t in templates %}
+        <option value="{{ t.id }}">{{ t.name }}{% if t.is_default %} (default {{ t.for_role }}){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn-secondary" style="min-height:2.75rem;">Apply pack</button>
+  </form>
+  {% else %}
+  <p class="small text-muted mb-0">
+    No templates yet — <a href="{{ url_for('members.access_templates') }}">create Standard, Staff, Staff Accounting…</a>
+  </p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if breakdown.full_access %}
+<div class="glass-panel" style="padding:1.1rem;">
+  <p style="margin:0; font-size:1.1rem;">
+    Admins and Owners always have every tool so the church cannot lock itself out.
+    To limit someone, set their role to Staff or Member, then use this page.
+  </p>
+</div>
+{% else %}
+
+<form method="POST" id="ac-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+  <input type="hidden" name="action" value="save">
+
+  <div class="ac-save-bar glass-panel" style="position:static; margin-bottom:1rem;">
+    <span class="ac-save-hint">Turn tools ON, pick actions, then Save.</span>
+    <button type="submit" class="btn-primary">Save</button>
+  </div>
+
+  <h3 style="margin:0 0 0.65rem; font-size:1.15rem;">Tools for this person only</h3>
+  {% set status_rows = status_rows %}
+  {% include 'members/_access_action_table.html' %}
+
+  <div class="ac-save-bar glass-panel">
+    <span class="ac-save-hint">This list is the only source of their tools.</span>
+    <button type="submit" class="btn-primary">Save</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

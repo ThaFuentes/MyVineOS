@@ -1,0 +1,60 @@
+<!-- myvinechurchonline/app/templates/members/base_members.html -->
+<!-- Full path: myvinechurchonline/app/templates/members/base_members.html -->
+<!-- File name: base_members.html -->
+<!-- Brief, detailed purpose: Common base template for ALL Members module pages (dashboard, add/edit member, email roster).
+   Provides consistent glass wrapper, flash messages, and navigation menu with active state highlighting.
+   Pure global CSS only - no extra links. -->
+
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/members.css') }}?v=20260710b">
+{% endblock %}
+
+{% block content %}
+<!-- Overhauled -->
+<h1 class="page-title">{% block page_title %}Members{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Internal menu -->
+<div class="members-subnav">
+    <a href="{{ url_for('members.members_directory') }}"
+       class="{% if request.endpoint == 'members.members_directory' %}is-active{% endif %}">Members Dashboard</a>
+
+    {% if (can_manage_users or session.get('user_role') in ['Owner', 'Admin'])
+          and (endpoint_exists is not defined or endpoint_exists('members.access_dashboard')) %}
+    <a href="{{ url_for('members.access_dashboard') }}"
+       class="{% if request.endpoint and (
+            request.endpoint.startswith('members.access')
+            or request.endpoint == 'members.member_access'
+       ) %}is-active{% endif %}">Access</a>
+    {% endif %}
+
+    {% if can_manage_users %}
+    <a href="{{ url_for('members.add_member') }}"
+       class="{% if request.endpoint == 'members.add_member' and request.view_args.get('member_id') is none %}is-active{% endif %}">Add Member</a>
+    {% endif %}
+
+    {% if can_manage_users %}
+    <a href="{{ url_for('members.pending_registrations') }}"
+       class="{% if request.endpoint == 'members.pending_registrations' %}is-active{% endif %}">Pending Registrations</a>
+    <a href="{{ url_for('members.email_roster') }}"
+       class="{% if request.endpoint == 'members.email_roster' %}is-active{% endif %}">Member Emails</a>
+    {% endif %}
+
+    <a href="{{ url_for('legal.legal_index') }}"
+       class="{% if request.endpoint and request.endpoint.startswith('legal.') %}is-active{% endif %}">Legal & Policies</a>
+</div>
+
+{% block members_content %}{% endblock %}
+{% endblock %}

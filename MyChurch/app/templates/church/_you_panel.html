@@ -1,0 +1,51 @@
+{# Account / page-owner actions for the left gutter (desktop) or a slim mobile row. #}
+{% set logged_in = session.get('user_id') %}
+<nav class="glass-panel profile-card profile-you-panel {{ you_panel_class|default('') }}" aria-label="Your page">
+  <h2 class="profile-card-title">You</h2>
+  <div class="profile-app-list">
+    {% if logged_in %}
+      {% if session.get('username') and (viewer_space or you_has_page|default(false) or is_owner|default(false)) %}
+      <a href="{{ url_for('church.member_page', username=session.username) }}">
+        <i class="fa-solid fa-user" aria-hidden="true"></i> Your page
+      </a>
+      {% else %}
+      <a href="{{ url_for('church.create_page') }}">
+        <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create your page
+      </a>
+      {% endif %}
+    {% else %}
+      <a href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Sign up</a>
+      <a href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Log in</a>
+    {% endif %}
+    {% if you_edit_page %}
+    <a href="{{ you_edit_page }}"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit your page</a>
+    {% endif %}
+    <a href="{{ url_for('public.public_dashboard.public_community') }}">
+      <i class="fa-solid fa-rss" aria-hidden="true"></i> Feed
+    </a>
+    {% if logged_in %}
+    <a href="{{ url_for('church.people') }}"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Find people</a>
+    {% endif %}
+    {% if logged_in and endpoint_exists('church.messages') %}
+    <a href="{{ url_for('church.messages') }}">
+      <i class="fa-solid fa-envelope" aria-hidden="true"></i> Notes
+      {% if inbox_unread %}
+      <span class="profile-unread" aria-label="{{ inbox_unread }} unread">{{ inbox_unread }}</span>
+      {% endif %}
+    </a>
+    {% endif %}
+  </div>
+  {% if logged_in and you_message_church|default(false) %}
+  <form method="post" action="{{ url_for('church.message_church') }}" class="profile-app-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="campus_id" value="{{ you_message_campus|default(0) }}">
+    <button type="submit"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Send the church a note</button>
+  </form>
+  {% endif %}
+  {% if you_editors_href %}
+  <a class="profile-quiet-link" href="{{ you_editors_href }}">Add or remove page editors</a>
+  {% endif %}
+  {% if you_edit_look_href %}
+  <a class="profile-quiet-link" href="{{ you_edit_look_href }}">Edit look &amp; about</a>
+  {% endif %}
+</nav>

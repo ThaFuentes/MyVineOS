@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Share with the church{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=3">
+{% endblock %}
+
+{% block content %}
+<div class="compose-page">
+  <header class="feed-page-head">
+    <div>
+      <p class="page-kicker">New post</p>
+      <h1 class="page-title">Share with the church</h1>
+      <p class="page-description">Pick a type. Sermons can be a link or text here; use full upload if you have a file.</p>
+    </div>
+    <a class="btn btn-secondary" href="{{ next_url or url_for('public.public_dashboard.public_community') }}">Back</a>
+  </header>
+  {% include 'partials/compose_form.html' %}
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "auth/base_auth.html" %}
+{% block title %}Two-Factor Authentication{% endblock %}
+{% block content %}
+<div class="glass-panel" style="max-width:420px; margin:2rem auto; padding:1.5rem;">
+    <h2>Two-factor authentication</h2>
+    <p>Enter the 6-digit code from your authenticator app for <strong>{{ username }}</strong>.</p>
+    <form method="post" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <div class="form-group">
+            <label for="totp_code">Authentication code</label>
+            <input type="text" id="totp_code" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="8" required autofocus placeholder="000000">
+        </div>
+        <button type="submit" class="btn-primary">Verify</button>
+        <a href="{{ url_for('auth.login') }}" class="btn-secondary">Back to login</a>
+    </form>
+</div>
+{% endblock %}

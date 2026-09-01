@@ -1,0 +1,106 @@
+{% extends "child_checkin/base_cci.html" %}
+{% block title %}{{ child.display_name }}{% endblock %}
+
+{% block cci_content %}
+<p style="margin:0 0 0.75rem;"><a href="{{ url_for('child_checkin.children_list') }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">← Children</a></p>
+
+{% if active_checkin %}
+<div class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:0.85rem; border:1px solid #22c55e;">
+  <strong style="color:#86efac;">Checked in now</strong> —
+  {{ active_checkin.classroom_name or 'Room' }} · pickup code <code style="font-size:1.1rem;">{{ active_checkin.pickup_code }}</code>
+  <a href="{{ url_for('child_checkin.labels', ids=active_checkin.id) }}" class="btn btn-secondary" style="min-height:auto;padding:0.25rem 0.55rem;margin-left:0.5rem;" target="_blank">Print label</a>
+</div>
+{% endif %}
+
+<div class="cci-detail-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;">
+  <div class="glass-panel" style="padding:1.1rem;">
+    <h1 style="margin:0 0 0.75rem; font-size:1.25rem; color:var(--primary);">{{ child.display_name }}</h1>
+    <form method="post" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="action" value="save">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.55rem;">
+        <label>First name <input type="text" name="first_name" class="form-input" value="{{ child.first_name }}" required></label>
+        <label>Last name <input type="text" name="last_name" class="form-input" value="{{ child.last_name }}" required></label>
+      </div>
+      <label>Nickname <input type="text" name="nickname" class="form-input" value="{{ child.nickname or '' }}"></label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.55rem;">
+        <label>Birthdate <input type="date" name="birthdate" class="form-input" value="{{ child.birthdate or '' }}"></label>
+        <label>Child PIN <input type="text" name="pin_code" class="form-input" value="{{ child.pin_code or '' }}" inputmode="numeric"></label>
+      </div>
+      <label>Default classroom
+        <select name="default_classroom_id" class="form-input">
+          <option value="">—</option>
+          {% for r in rooms %}
+          <option value="{{ r.id }}" {% if child.default_classroom_id == r.id %}selected{% endif %}>{{ r.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Allergies <input type="text" name="allergies" class="form-input" value="{{ child.allergies or '' }}"></label>
+      <label>Medical notes <textarea name="medical_notes" class="form-input" rows="2">{{ child.medical_notes or '' }}</textarea></label>
+      <label>Special needs <textarea name="special_needs" class="form-input" rows="2">{{ child.special_needs or '' }}</textarea></label>
+      <label>Internal notes <textarea name="notes" class="form-input" rows="2">{{ child.notes or '' }}</textarea></label>
+      <div style="display:flex; gap:0.45rem; margin-top:0.75rem; flex-wrap:wrap;">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="submit" name="action" value="deactivate" class="btn btn-secondary" style="color:#fca5a5;"
+                onclick="return confirm('Deactivate this child profile?');">Deactivate</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="glass-panel" style="padding:1.1rem;">
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Guardians &amp; PINs</h2>
+    {% if guardians %}
+    <ul style="list-style:none; margin:0 0 1rem; padding:0;">
+      {% for g in guardians %}
+      <li style="padding:0.55rem 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:0.9rem;">
+        <strong>{{ g.display }}</strong>
+        <span style="opacity:0.7;"> · {{ g.relationship }}</span>
+        {% if g.family_pin %}<br><span style="opacity:0.75;">Family PIN set</span>{% endif %}
+        {% if g.phone %}<br>{{ g.phone }}{% endif %}
+        {% if g.email or g.user_email %}<br>{{ g.email or g.user_email }}{% endif %}
+        <form method="post" style="display:inline; margin-left:0.35rem;">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="remove_guardian">
+          <input type="hidden" name="guardian_id" value="{{ g.id }}">
+          <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.15rem 0.4rem;font-size:0.75rem;"
+                  onclick="return confirm('Remove guardian?');">Remove</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="opacity:0.7; font-size:0.9rem;">No guardians linked yet.</p>
+    {% endif %}
+
+    <form method="post" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="action" value="add_guardian">
+      <label>Member
+        <select name="user_id" class="form-input">
+          <option value="">— or use name below —</option>
+          {% for m in members %}
+          <option value="{{ m.id }}">{{ m.last_name }}, {{ m.first_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Name <input type="text" name="full_name" class="form-input"></label>
+      <label>Relationship
+        <select name="relationship" class="form-input">
+          <option value="parent">Parent</option>
+          <option value="grandparent">Grandparent</option>
+          <option value="guardian">Guardian</option>
+          <option value="authorized">Authorized pickup</option>
+        </select>
+      </label>
+      <label>Phone <input type="tel" name="phone" class="form-input"></label>
+      <label>Email <input type="email" name="email" class="form-input"></label>
+      <label>Family PIN (4–6 digits) <input type="text" name="family_pin" class="form-input" inputmode="numeric"></label>
+      <label style="display:flex;align-items:center;gap:0.4rem;"><input type="checkbox" name="is_primary" value="1"> Primary</label>
+      <label style="display:flex;align-items:center;gap:0.4rem;"><input type="checkbox" name="notify_email" value="1" checked> Email notifications</label>
+      <label style="display:flex;align-items:center;gap:0.4rem;"><input type="checkbox" name="notify_checkin" value="1" checked> Notify on check-in</label>
+      <label style="display:flex;align-items:center;gap:0.4rem;"><input type="checkbox" name="notify_checkout" value="1" checked> Notify on checkout</label>
+      <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Add guardian</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

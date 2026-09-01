@@ -1,0 +1,83 @@
+{% extends "communications/base_comm.html" %}
+{% block title %}{{ campaign.title }}{% endblock %}
+
+{% block comm_content %}
+<p style="margin:0 0 0.75rem;"><a href="{{ url_for('communications.campaigns_list') }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">← Campaigns</a></p>
+
+<div class="glass-panel" style="padding:1.1rem; margin-bottom:1rem;">
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+    <h1 style="margin:0; font-size:1.3rem; color:var(--primary); flex:1;">{{ campaign.title }}</h1>
+    <span class="comm-pill comm-pill--{{ campaign.channel }}">{{ campaign.channel }}</span>
+    <span class="comm-pill comm-pill--{{ campaign.status }}">{{ campaign.status }}</span>
+  </div>
+  <p style="margin:0.5rem 0 0; opacity:0.75; font-size:0.9rem;">
+    Audience: <code>{{ campaign.audience_type }}</code>
+    {% if campaign.total_recipients %} · {{ campaign.total_recipients }} targeted{% endif %}
+    {% if campaign.sent_count is not none %} · {{ campaign.sent_count }} sent · {{ campaign.failed_count or 0 }} failed{% endif %}
+  </p>
+</div>
+
+{% if campaign.status == 'draft' %}
+<div class="glass-panel" style="padding:1.1rem; margin-bottom:1rem;">
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save">
+    {% include 'communications/_campaign_fields.html' %}
+    <div style="display:flex; flex-wrap:wrap; gap:0.45rem; margin-top:0.85rem;">
+      <button type="submit" class="btn btn-primary">Save draft</button>
+      <button type="submit" name="action" value="send_now" class="btn btn-primary"
+              style="background:linear-gradient(135deg,#16a34a,#22c55e);"
+              onclick="return confirm('Send this campaign now to matching recipients?');">
+        Send now
+      </button>
+    </div>
+  </form>
+  <form method="post" class="styled-form" style="margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.1);">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="schedule">
+    <label>Schedule send
+      <input type="datetime-local" name="scheduled_at" class="form-input" required>
+    </label>
+    <button type="submit" class="btn btn-secondary">Schedule</button>
+  </form>
+</div>
+{% elif campaign.status == 'scheduled' %}
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <p style="margin:0 0 0.75rem;">Scheduled for <strong>{{ campaign.scheduled_at }}</strong></p>
+  <form method="post" style="display:inline;">
+    {% include 'partials/csrf_field.html' %}
+    <button type="submit" name="action" value="send_now" class="btn btn-primary"
+            onclick="return confirm('Send immediately instead of waiting?');">Send now</button>
+    <button type="submit" name="action" value="cancel" class="btn btn-secondary">Cancel</button>
+  </form>
+</div>
+{% endif %}
+
+{% if campaign.subject or campaign.body %}
+<div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+  <h2 style="margin:0 0 0.5rem; font-size:1rem;">Content preview</h2>
+  {% if campaign.subject %}<p style="margin:0 0 0.35rem;"><strong>Subject:</strong> {{ campaign.subject }}</p>{% endif %}
+  <pre style="white-space:pre-wrap; font-size:0.88rem; margin:0; opacity:0.9;">{{ campaign.body }}</pre>
+</div>
+{% endif %}
+
+{% if recipients %}
+<div class="glass-panel" style="padding:1rem;">
+  <h2 style="margin:0 0 0.5rem; font-size:1rem;">Recipients</h2>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>Name</th><th>Address</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in recipients %}
+        <tr>
+          <td>{{ r.display_name or '—' }}</td>
+          <td style="font-size:0.85rem;">{{ r.address }}</td>
+          <td><code>{{ r.status }}</code>{% if r.error_detail %} <span style="color:#fca5a5;font-size:0.78rem;">{{ r.error_detail[:80] }}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

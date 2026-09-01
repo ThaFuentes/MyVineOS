@@ -1,0 +1,149 @@
+{# app/templates/pastoral/care/care_new.html #}
+{# New pastoral care request — members OR non-members (visitors, community). #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block pastoral_content %}
+<div class="glass-panel">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+    <h2 style="margin:0;">New Pastoral Care Request</h2>
+    <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="font-size:0.85rem; min-height:38px;"><- Back to Care</a>
+  </div>
+
+  <p style="opacity:0.75; font-size:0.9rem; margin:0 0 1rem;">
+    Care for <strong>church members</strong> and <strong>non-members</strong> (visitors, family, community).
+    All content is confidential to the pastoral team.
+  </p>
+
+  <form method="POST" action="{{ url_for('pastoral.care.care_new') }}" id="care-new-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+    <div class="form-group">
+      <label style="display:block; font-weight:600; margin-bottom:0.4rem;">Who is receiving care? *</label>
+      <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem;">
+        <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+          <input type="radio" name="person_kind" value="member" id="kind-member"
+                 {% if (person_kind or 'member') == 'member' %}checked{% endif %}>
+          Church member
+        </label>
+        <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+          <input type="radio" name="person_kind" value="non_member" id="kind-non-member"
+                 {% if person_kind == 'non_member' %}checked{% endif %}>
+          Non-member / visitor
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group" id="member-fields">
+      <label for="member_id" style="display:block; font-weight:600; margin-bottom:0.3rem;">Member *</label>
+      <select name="member_id" id="member_id" style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+        <option value="">-- Select Member --</option>
+        {% for member in members %}
+          <option value="{{ member.id }}"
+            {% if form_data is defined and form_data.member_id and form_data.member_id|string == member.id|string %}selected{% endif %}>
+            {{ member.first_name }} {{ member.last_name }}
+            {% if member.email %} ({{ member.email }}){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="non-member-fields" style="display:none;">
+      <div class="form-group">
+        <label for="person_name" style="display:block; font-weight:600; margin-bottom:0.3rem;">Name *</label>
+        <input type="text" name="person_name" id="person_name"
+               value="{{ form_data.person_name if form_data is defined else '' }}"
+               style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);"
+               placeholder="Full name of the person receiving care">
+      </div>
+      <div class="form-group" style="display:flex; flex-wrap:wrap; gap:0.75rem;">
+        <div style="flex:1; min-width:160px;">
+          <label for="person_phone" style="display:block; font-weight:600; margin-bottom:0.3rem;">Phone (optional)</label>
+          <input type="text" name="person_phone" id="person_phone"
+                 value="{{ form_data.person_phone if form_data is defined else '' }}"
+                 style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);"
+                 placeholder="Phone">
+        </div>
+        <div style="flex:1; min-width:160px;">
+          <label for="person_email" style="display:block; font-weight:600; margin-bottom:0.3rem;">Email (optional)</label>
+          <input type="email" name="person_email" id="person_email"
+                 value="{{ form_data.person_email if form_data is defined else '' }}"
+                 style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);"
+                 placeholder="Email">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="request_type" style="display:block; font-weight:600; margin-bottom:0.3rem;">Type of Care Needed *</label>
+      <select name="request_type" id="request_type" required style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+        <option value="">-- Select Type --</option>
+        <option value="hospital_visit">Hospital Visit / Illness</option>
+        <option value="counseling">Counseling / Pastoral Support</option>
+        <option value="prayer_need">Prayer Request</option>
+        <option value="bereavement">Bereavement / Loss</option>
+        <option value="meal_train">Meal Train / Practical Help</option>
+        <option value="other">Other (describe below)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="urgency" style="display:block; font-weight:600; margin-bottom:0.3rem;">Urgency Level</label>
+      <select name="urgency" id="urgency" style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+        <option value="normal" selected>Normal</option>
+        <option value="high">High</option>
+        <option value="urgent">Urgent (ASAP)</option>
+        <option value="low">Low / Ongoing</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="title" style="display:block; font-weight:600; margin-bottom:0.3rem;">Title / Summary (optional)</label>
+      <input type="text" name="title" id="title" style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);" placeholder="e.g., Hospital visit for surgery">
+    </div>
+
+    <div class="form-group">
+      <label for="description" style="display:block; font-weight:600; margin-bottom:0.3rem;">Description / Details *</label>
+      <textarea name="description" id="description" rows="6" required style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);" placeholder="Include relevant details: hospital name/room, prayer points, family situation, etc."></textarea>
+      <small style="opacity:0.6;">All content is confidential to the pastoral team.</small>
+    </div>
+
+    <div style="text-align:right; margin-top:0.5rem;">
+      <button type="submit" class="btn btn-primary" style="min-height:46px; padding:0 1.4rem;"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Create Request</button>
+    </div>
+  </form>
+</div>
+
+<div style="text-align:center; margin-top:0.75rem;">
+  <a href="{{ url_for('pastoral.care.care_dashboard') }}" style="font-size:0.8rem; opacity:0.6;"><- Back to Care Dashboard</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const memberFields = document.getElementById('member-fields');
+  const nonMemberFields = document.getElementById('non-member-fields');
+  const memberSelect = document.getElementById('member_id');
+  const personName = document.getElementById('person_name');
+  const radios = document.querySelectorAll('input[name="person_kind"]');
+
+  function sync() {
+    const kind = (document.querySelector('input[name="person_kind"]:checked') || {}).value || 'member';
+    const isMember = kind === 'member';
+    if (memberFields) memberFields.style.display = isMember ? '' : 'none';
+    if (nonMemberFields) nonMemberFields.style.display = isMember ? 'none' : '';
+    if (memberSelect) {
+      memberSelect.required = isMember;
+      if (!isMember) memberSelect.value = '';
+    }
+    if (personName) {
+      personName.required = !isMember;
+      if (isMember) personName.value = personName.value; // keep if toggling
+    }
+  }
+  radios.forEach((r) => r.addEventListener('change', sync));
+  sync();
+})();
+</script>
+{% endblock %}

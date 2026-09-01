@@ -1,0 +1,280 @@
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<p style="margin:0 0 0.85rem;">
+  <a href="{{ url_for('inventory.items_list') }}" class="btn btn-secondary" style="min-height:auto;padding:0.4rem 0.8rem;">← Catalog</a>
+</p>
+
+<div class="glass-panel inv-hero">
+  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.85rem; align-items:flex-start;">
+    <div>
+      <h1 style="margin:0 0 0.35rem;">
+        {{ item.name }}
+        {% if item.is_kit %}<span class="inv-badge inv-badge--kit">Kit / set</span>{% endif %}
+        {% if not item.is_active %}<span class="inv-badge inv-badge--archived">Archived</span>{% endif %}
+      </h1>
+      <p style="margin:0; opacity:0.78;">
+        {{ item.category_name or 'Uncategorized' }}
+        {% if item.sku %} · SKU {{ item.sku }}{% endif %}
+        {% if item.barcode_upc_ean %} · {{ item.barcode_upc_ean }}{% endif %}
+      </p>
+    </div>
+    <div class="inv-actions" style="margin:0;">
+      <a href="{{ url_for('inventory.item_manage', item_id=item.id) }}" class="btn btn-secondary">Edit</a>
+      {% if not item.is_kit %}
+      <a href="{{ url_for('inventory.receive_stock', item_id=item.id) }}" class="btn btn-primary">Receive</a>
+      <a href="{{ url_for('inventory.stock_move', item_id=item.id) }}" class="btn btn-secondary">Stock move</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="inv-kpi-grid">
+  {% if item.is_kit %}
+  <div class="glass-panel inv-kpi">
+    <strong>{{ assemblable }}</strong>
+    <span>Assemblable now</span>
+  </div>
+  <div class="glass-panel inv-kpi">
+    <strong>{{ components|length }}</strong>
+    <span>Components</span>
+  </div>
+  {% else %}
+  <div class="glass-panel inv-kpi">
+    <strong class="{% if item.min_stock_level is not none and item.total_stock|int < item.min_stock_level %}inv-stock-low{% else %}inv-stock-ok{% endif %}">
+      {{ item.total_stock|int }}
+    </strong>
+    <span>On hand ({{ item.unit_of_measure or 'each' }})</span>
+  </div>
+  <div class="glass-panel inv-kpi">
+    <strong>{{ item.min_stock_level if item.min_stock_level is not none else '—' }}</strong>
+    <span>Min level</span>
+  </div>
+  {% endif %}
+  <div class="glass-panel inv-kpi">
+    <strong>{{ by_location|length }}</strong>
+    <span>Locations with stock</span>
+  </div>
+  <div class="glass-panel inv-kpi">
+    <strong>{{ batches|length }}</strong>
+    <span>Open batches</span>
+  </div>
+</div>
+
+<div class="inv-two-col">
+  <div class="glass-panel inv-panel" style="margin-bottom:0;">
+    <h2>Details</h2>
+    <ul class="inv-meta-list">
+      <li><strong>Unit</strong><span>{{ item.unit_of_measure or 'each' }}{% if item.pack_quantity %} · pack of {{ item.pack_quantity }}{% endif %}</span></li>
+      {% if item.typical_cost_per_unit is not none %}
+      <li><strong>Typical cost</strong><span>${{ '%.2f'|format(item.typical_cost_per_unit|float) }}</span></li>
+      {% endif %}
+      {% if item.is_perishable %}
+      <li><strong>Perishable</strong><span>Yes{% if item.shelf_life_days %} · ~{{ item.shelf_life_days }} days{% endif %}</span></li>
+      {% endif %}
+      {% if item.description %}
+      <li><strong>Description</strong><span>{{ item.description }}</span></li>
+      {% endif %}
+      {% if item.notes %}
+      <li><strong>Notes</strong><span>{{ item.notes }}</span></li>
+      {% endif %}
+    </ul>
+
+    <form method="post" action="{{ url_for('inventory.item_archive', item_id=item.id) }}" style="margin-top:1.1rem;">
+      {% include 'partials/csrf_field.html' %}
+      {% if item.is_active %}
+      <input type="hidden" name="active" value="0">
+      <button type="submit" class="btn btn-secondary">Archive item</button>
+      {% else %}
+      <input type="hidden" name="active" value="1">
+      <button type="submit" class="btn btn-primary">Restore to catalog</button>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="glass-panel inv-panel" style="margin-bottom:0;">
+    <h2>Stock by location</h2>
+    {% if by_location %}
+    <div class="inv-table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Location</th><th>Qty</th></tr></thead>
+        <tbody>
+          {% for loc in by_location %}
+          <tr>
+            <td>{{ loc.location_name }}</td>
+            <td><strong>{{ loc.qty|int }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="lead" style="margin:0;">No stock on hand.
+      {% if not item.is_kit %}
+      <a href="{{ url_for('inventory.receive_stock', item_id=item.id) }}">Receive stock</a>
+      {% endif %}
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+{% if item.is_kit or components %}
+<div class="glass-panel inv-panel" style="margin-top:1.1rem;">
+  <h2>Kit / set components</h2>
+  <p class="lead">
+    When you deploy this set, each component is pulled from stock (FIFO).
+    Assemblable now: <strong>{{ assemblable }}</strong>.
+  </p>
+
+  {% if components %}
+  <div class="inv-table-wrap" style="margin-bottom:1rem;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Per kit</th>
+          <th>On hand</th>
+          <th>Can build</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in components %}
+        <tr>
+          <td>
+            <a href="{{ url_for('inventory.item_detail', item_id=c.component_item_id) }}">{{ c.component_name }}</a>
+          </td>
+          <td>{{ c.quantity }} {{ c.unit or '' }}</td>
+          <td>{{ c.stock_on_hand }}</td>
+          <td>{{ c.assemblable }}</td>
+          <td>
+            <form method="post" action="{{ url_for('inventory.kit_component_add', item_id=item.id) }}" style="display:inline;">
+              {% include 'partials/csrf_field.html' %}
+              <input type="hidden" name="action" value="remove">
+              <input type="hidden" name="component_row_id" value="{{ c.id }}">
+              <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.28rem 0.55rem;font-size:0.78rem;">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <form method="post" action="{{ url_for('inventory.kit_component_add', item_id=item.id) }}" class="styled-form" style="max-width:32rem; margin-bottom:1.25rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="deploy">
+    <h3 style="margin:0 0 0.65rem; font-size:1rem; color:var(--primary);">Deploy kit</h3>
+    <div class="form-row">
+      <label>How many kits
+        <input type="number" name="quantity" class="form-input" min="1" value="1" required>
+      </label>
+      <label>Prefer location (optional)
+        <select name="location_id" class="form-input">
+          <option value="">Any (FIFO all locations)</option>
+          {% for loc in locations %}
+          <option value="{{ loc.id }}">{{ loc.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <label>Notes
+      <input type="text" name="notes" class="form-input" placeholder="e.g. Sunday communion setup">
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" {% if assemblable < 1 %}disabled{% endif %}>
+        Deploy set (consume components)
+      </button>
+    </div>
+  </form>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('inventory.kit_component_add', item_id=item.id) }}" class="styled-form" style="max-width:32rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="add">
+    <h3 style="margin:0 0 0.65rem; font-size:1rem; color:var(--primary);">Add component</h3>
+    <label>Item *
+      <select name="component_item_id" class="form-input" required>
+        <option value="">— Select catalog item —</option>
+        {% for it in catalog_items if it.id != item.id and not it.is_kit %}
+        <option value="{{ it.id }}">{{ it.name }} ({{ it.total_stock|int }} on hand)</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Quantity per kit *
+      <input type="number" name="quantity" class="form-input" min="1" value="1" required>
+    </label>
+    <label>Note
+      <input type="text" name="notes" class="form-input" placeholder="Optional">
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Add to set</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% if not item.is_kit %}
+<div class="glass-panel inv-panel" style="margin-top:1.1rem;">
+  <h2>Batches on hand</h2>
+  <p class="lead">Stock is tracked by batch for FIFO use and expiration.</p>
+  {% if batches %}
+  <div class="inv-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Location</th>
+          <th>Qty</th>
+          <th>Expires</th>
+          <th>Lot</th>
+          <th>Cost / unit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in batches %}
+        <tr>
+          <td>{{ b.location_name }}</td>
+          <td><strong>{{ b.quantity_on_hand }}</strong></td>
+          <td>{{ b.formatted_expiration }}</td>
+          <td>{{ b.lot_number or '—' }}</td>
+          <td>{% if b.cost_per_unit is not none %}${{ '%.2f'|format(b.cost_per_unit|float) }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="margin:0; opacity:0.75;">No open batches.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="glass-panel inv-panel">
+  <h2>Recent history</h2>
+  {% if history %}
+  <div class="inv-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>When</th><th>Type</th><th>Qty</th><th>Location</th><th>By</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        {% for t in history %}
+        <tr>
+          <td style="font-size:0.85rem;">{{ t.formatted_date }}</td>
+          <td>{{ t.transaction_type }}</td>
+          <td class="{{ 'inv-stock-ok' if t.quantity_change > 0 else 'inv-stock-out' }}">
+            {% if t.quantity_change > 0 %}+{% endif %}{{ t.quantity_change }}
+          </td>
+          <td>{{ t.location_name or '—' }}</td>
+          <td>{{ t.user_name or '—' }}</td>
+          <td style="max-width:14rem; white-space:normal;">{{ t.notes or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="margin:0; opacity:0.75;">No transactions yet for this item.</p>
+  {% endif %}
+</div>
+{% endblock %}

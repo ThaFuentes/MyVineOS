@@ -1,0 +1,75 @@
+{% extends "child_checkin/base_cci.html" %}
+{% block title %}Classrooms{% endblock %}
+
+{% block cci_content %}
+<h1 class="page-title">Classrooms</h1>
+<p class="page-description">Age groups, capacity, and colors for the station and room board.</p>
+
+<div class="cci-board-grid" style="margin-bottom:1.25rem;">
+  {% for r in rooms %}
+  <div class="glass-panel" style="padding:0.9rem; border-left:4px solid {{ r.color }};">
+    <strong>{{ r.name }}</strong>
+    {% if not r.active %}<span style="opacity:0.5;"> (inactive)</span>{% endif %}
+    <div style="font-size:0.82rem; opacity:0.75; margin-top:0.25rem;">
+      {{ r.age_label or 'Any age' }}
+      {% if r.location %} · {{ r.location }}{% endif %}
+      {% if r.capacity %} · cap {{ r.capacity }}{% endif %}
+      · live <strong>{{ r.live_count }}</strong>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="glass-panel" style="padding:1.1rem; max-width:560px;">
+  <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Add / update classroom</h2>
+  <form method="post" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <label>Edit existing
+      <select name="room_id" class="form-input" id="room-pick">
+        <option value="">— new classroom —</option>
+        {% for r in rooms %}
+        <option value="{{ r.id }}"
+          data-name="{{ r.name }}"
+          data-code="{{ r.short_code or '' }}"
+          data-age="{{ r.age_label or '' }}"
+          data-loc="{{ r.location or '' }}"
+          data-cap="{{ r.capacity or '' }}"
+          data-color="{{ r.color }}"
+          data-sort="{{ r.sort_order }}"
+          data-active="{{ 1 if r.active else 0 }}">{{ r.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Name * <input type="text" name="name" id="r-name" class="form-input" required></label>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.55rem;">
+      <label>Short code <input type="text" name="short_code" id="r-code" class="form-input" placeholder="NUR"></label>
+      <label>Age label <input type="text" name="age_label" id="r-age" class="form-input" placeholder="0–12 months"></label>
+    </div>
+    <label>Location <input type="text" name="location" id="r-loc" class="form-input" placeholder="Room 102"></label>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.55rem;">
+      <label>Capacity <input type="number" name="capacity" id="r-cap" class="form-input" min="1"></label>
+      <label>Color <input type="color" name="color" id="r-color" class="form-input" value="#22d3ee" style="min-height:42px;padding:0.2rem;"></label>
+      <label>Sort <input type="number" name="sort_order" id="r-sort" class="form-input" value="0"></label>
+    </div>
+    <label style="display:flex;align-items:center;gap:0.4rem;"><input type="checkbox" name="active" id="r-active" value="1" checked> Active</label>
+    <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Save classroom</button>
+  </form>
+</div>
+<script>
+document.getElementById('room-pick').addEventListener('change', function () {
+  var o = this.selectedOptions[0];
+  if (!o || !o.value) {
+    document.getElementById('r-name').value = '';
+    return;
+  }
+  document.getElementById('r-name').value = o.dataset.name || '';
+  document.getElementById('r-code').value = o.dataset.code || '';
+  document.getElementById('r-age').value = o.dataset.age || '';
+  document.getElementById('r-loc').value = o.dataset.loc || '';
+  document.getElementById('r-cap').value = o.dataset.cap || '';
+  document.getElementById('r-color').value = o.dataset.color || '#22d3ee';
+  document.getElementById('r-sort').value = o.dataset.sort || 0;
+  document.getElementById('r-active').checked = o.dataset.active === '1';
+});
+</script>
+{% endblock %}

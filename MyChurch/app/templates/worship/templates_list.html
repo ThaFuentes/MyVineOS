@@ -1,0 +1,33 @@
+{% extends "worship/base_worship.html" %}
+
+{% block worship_title %}Weekly Worship Defaults{% endblock %}
+
+{% block worship_content %}
+<h1 style="margin:0 0 0.5rem; font-size:1.35rem; color:var(--primary);">Weekly Defaults</h1>
+<p style="margin:0 0 1rem; opacity:0.75; font-size:0.9rem;">
+  Like Pastoral service templates: one permanent setlist per weekday. Change Sunday here and every future Sunday uses it
+  unless you create a <strong>date override</strong> for a specific service.
+</p>
+
+<div style="display:grid; gap:0.55rem;">
+  {% set display_order = [6,0,1,2,3,4,5] %}
+  {% for day in display_order %}
+  {% set tpl = templates|selectattr('weekday','equalto',day)|list|first %}
+  <div class="glass-panel" style="padding:0.85rem 1rem; display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
+    <div style="flex:1; min-width:160px;">
+      <strong>{{ weekday_names[day] }}</strong>
+      {% if tpl %}
+      <div style="font-size:0.88rem; opacity:0.7;">{{ tpl.title }}</div>
+      {% else %}
+      <div style="font-size:0.88rem; opacity:0.5;">Not configured yet</div>
+      {% endif %}
+    </div>
+    {% if can_manage %}
+    <a href="{{ url_for('worship.template_edit', weekday=day) }}" class="btn btn-primary" style="font-size:0.85rem;">
+      {% if tpl %}Edit default{% else %}Set up{% endif %}
+    </a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

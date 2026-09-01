@@ -1,0 +1,57 @@
+{% extends "child_checkin/base_cci.html" %}
+{% block title %}Check-In Station{% endblock %}
+
+{% block cci_content %}
+{% set rooms_json = rooms | map(attribute='id') | list %}
+<div class="cci-kiosk" id="cci-kiosk"
+     data-search-url="{{ url_for('child_checkin.api_search') }}"
+     data-checkin-url="{{ url_for('child_checkin.api_checkin') }}"
+     data-labels-url="{{ url_for('child_checkin.labels') }}"
+     data-rooms='[{% for r in rooms %}{"id":{{ r.id }},"name":{{ r.name|tojson }},"live_count":0}{% if not loop.last %},{% endif %}{% endfor %}]'>
+
+  {% include 'partials/csrf_field.html' %}
+
+  <div class="glass-panel cci-hero" style="margin-bottom:0.85rem;">
+    <h1>Check-In Station</h1>
+    <p>Search by <strong>last name</strong>, <strong>family PIN</strong>, <strong>child PIN</strong>, or phone digits. Select kids, confirm rooms, print labels.</p>
+  </div>
+
+  <div id="cci-success" hidden></div>
+
+  <div class="glass-panel" style="padding:1rem; margin-bottom:0.85rem;">
+    <div class="cci-search-wrap">
+      <input type="search" id="cci-search" class="form-input" placeholder="Name, PIN, or phone…"
+             autocomplete="off" inputmode="search" aria-label="Search families">
+      <p class="cci-search-hint">PIN pad for quick family codes · or type a last name</p>
+    </div>
+    <div class="cci-pin-pad" aria-label="PIN pad">
+      {% for n in ['1','2','3','4','5','6','7','8','9'] %}
+      <button type="button" data-pin="{{ n }}">{{ n }}</button>
+      {% endfor %}
+      <button type="button" data-pin="clear" class="wide">Clear</button>
+      <button type="button" data-pin="0">0</button>
+      <button type="button" data-pin="back">⌫</button>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.55rem; margin-bottom:0.75rem;">
+    <label class="glass-panel" style="padding:0.65rem;">Guardian present
+      <input type="text" id="cci-guardian-name" class="form-input" placeholder="Parent / guardian name">
+    </label>
+    <label class="glass-panel" style="padding:0.65rem;">Service label
+      <input type="text" id="cci-event" class="form-input" placeholder="e.g. Sunday 10am" value="Sunday Service">
+    </label>
+  </div>
+
+  <div id="cci-results" class="cci-results"></div>
+
+  <div class="cci-checkout-bar" id="cci-bar" style="display:none;">
+    <span id="cci-bar-count">0 selected</span>
+    <button type="button" class="btn btn-primary" id="cci-checkin-btn" disabled>
+      Check in &amp; print labels
+    </button>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/global/child_checkin.js') }}?v=20260714a"></script>
+{% endblock %}

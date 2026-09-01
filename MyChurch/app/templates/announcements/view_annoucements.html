@@ -1,0 +1,40 @@
+{% extends "announcements/base_announcements.html" %}
+
+{% block page_title %}{{ announcement.title }}{% endblock %}
+{% block page_description %}{% endblock %}
+
+{% block announcements_content %}
+<article class="glass-panel member-post member-post-full">
+  <h1 class="page-title" style="text-align:left; margin:0 0 0.35rem;">{{ announcement.title }}</h1>
+  <p class="member-post-meta">
+    {{ announcement.creator_name or 'Church' }}
+    {% if announcement.created_at %} · {{ announcement.created_at }}{% endif %}
+  </p>
+  <div class="member-post-body" style="font-size:1.02rem;">
+    {{ announcement.content | nl2br }}
+  </div>
+</article>
+
+<section class="member-feed" style="margin-top:0.85rem;">
+  <h2 class="section-title">Comments</h2>
+  {% if comments %}
+    {% for c in comments %}
+    <div class="glass-panel member-post">
+      <p class="member-post-meta"><strong>{{ c.commenter_name or 'Someone' }}</strong> · {{ c.date_added }}</p>
+      <p class="member-post-body">{{ c.comment | nl2br }}</p>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="help-text">No comments yet.</p>
+  {% endif %}
+
+  {% if is_logged_in and announcement.comments_enabled %}
+  <form method="POST" action="{{ url_for('announcements.add_comment', ann_id=announcement.id) }}" class="styled-form glass-panel" style="padding:1rem;">
+    {% include 'partials/csrf_field.html' %}
+    <label for="comment">Add a comment</label>
+    <textarea id="comment" name="comment" rows="3" required placeholder="Write something..."></textarea>
+    <button type="submit" class="btn btn-primary">Post</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

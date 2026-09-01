@@ -1,0 +1,56 @@
+{# Single editable sermon section - uses unified fields partial. #}
+
+{% set section = section|default({
+    'id': '',
+    'title': '',
+    'section_type': 'point',
+    'scripture_reference': '',
+    'source': '',
+    'content': '',
+    'notes': '',
+    'vault_tags': '',
+    'vault_visibility': 'private'
+}) %}
+
+<div class="section-card card glass-card mb-4 position-relative"
+     data-section-id="{{ section.id }}"
+     {% if is_section_template|default(false) %}data-template{% endif %}>
+    <div class="card-header d-flex align-items-center gap-2 bg-dark py-2 flex-wrap">
+        <button type="button" class="btn btn-sm btn-outline-secondary move-up" title="Move up">
+            <i class="fas fa-arrow-up"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary move-down" title="Move down">
+            <i class="fas fa-arrow-down"></i>
+        </button>
+
+        <h5 class="mb-0 text-cyan flex-grow-1 section-header-title" style="min-width:180px;">
+            Section {{ loop.index if loop else '' }}: {{ section.title|default('Untitled') }}
+        </h5>
+
+        <div class="section-card-actions d-flex flex-wrap gap-1 ms-auto">
+            <button type="button" class="btn btn-sm btn-primary add-illustration-to-section-btn"
+                    title="Insert an illustration into this section (library / docked)">
+                <i class="fas fa-plus me-1"></i>Add illustration
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-cyan save-to-illustrations"
+                    title="Save a copy to the Illustrations Library (vault) for reuse — keeps this section in the sermon">
+                <i class="fas fa-lightbulb me-1"></i>Save to Illustrations
+            </button>
+            <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove section">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="card-body section-form-root" data-section-root>
+        {% include "pastoral/sermon_section_fields.html" %}
+    </div>
+
+    {# Quick insert — always near the section you're editing, not only at page bottom #}
+    <div class="section-insert-between">
+        <button type="button" class="btn btn-sm btn-success add-section-after-btn"
+                title="Insert a new blank section right below this one">
+            <i class="fas fa-plus me-1"></i>Add section below
+        </button>
+    </div>
+</div>

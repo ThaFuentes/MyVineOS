@@ -1,0 +1,28 @@
+{% extends "accounting/base_acct.html" %}
+{% block title %}JE #{{ entry.id }}{% endblock %}
+
+{% block acct_content %}
+<p style="margin:0 0 0.75rem;"><a href="{{ url_for('accounting.ledger') }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">← Ledger</a></p>
+<div class="glass-panel" style="padding:1.15rem;">
+  <h1 style="margin:0 0 0.35rem; color:var(--primary);">Journal entry #{{ entry.id }}</h1>
+  <p style="margin:0 0 0.75rem; opacity:0.8;">
+    {{ entry.entry_date }} · {{ entry.source }}
+    {% if entry.reference %} · {{ entry.reference }}{% endif %}
+    · <span class="acct-pill acct-pill--{{ entry.status }}">{{ entry.status }}</span>
+  </p>
+  {% if entry.memo %}<p>{{ entry.memo }}</p>{% endif %}
+  <table class="data-table">
+    <thead><tr><th>Account</th><th>Description</th><th class="acct-money">Debit</th><th class="acct-money">Credit</th></tr></thead>
+    <tbody>
+      {% for l in entry.lines %}
+      <tr>
+        <td>{{ l.account_code }} · {{ l.account_name }}</td>
+        <td style="font-size:0.88rem; opacity:0.85;">{{ l.description or '—' }}</td>
+        <td class="acct-money">{% if l.debit|float > 0 %}${{ '%.2f'|format(l.debit|float) }}{% else %}—{% endif %}</td>
+        <td class="acct-money">{% if l.credit|float > 0 %}${{ '%.2f'|format(l.credit|float) }}{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

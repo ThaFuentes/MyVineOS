@@ -1,0 +1,12 @@
+{% set compose_types = compose_types|default(sheet_compose_types)|default([]) %}
+{% if compose_types %}
+{% set _voice = namespace(label='You') %}
+{% for v in compose_voices|default([]) %}
+  {% if v.key == default_compose_voice|default('member') %}{% set _voice.label = v.label %}{% endif %}
+{% endfor %}
+<a href="{{ url_for('compose.compose_form', next=request.full_path.rstrip('?')) }}"
+   class="profile-me-btn compose-launch" data-open-compose>
+  <i class="fa-solid fa-pen" aria-hidden="true"></i>
+  <span>{{ compose_launch_label|default('Add a post') }}</span>
+</a>
+{% endif %}

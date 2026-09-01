@@ -1,0 +1,65 @@
+{% extends "child_checkin/base_cci.html" %}
+{% block title %}Check-In Report{% endblock %}
+
+{% block cci_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:end; margin-bottom:0.85rem;">
+  <div>
+    <h1 class="page-title" style="margin:0;">Attendance report</h1>
+    <p class="page-description" style="margin:0.25rem 0 0;">Child check-ins for {{ report.date }}</p>
+  </div>
+  <form method="get" style="display:flex; gap:0.4rem; align-items:end;">
+    <label style="font-size:0.8rem;">Date
+      <input type="date" name="date" class="form-input" value="{{ report.date }}">
+    </label>
+    <button type="submit" class="btn btn-secondary">Go</button>
+  </form>
+</div>
+
+<div class="cci-stat-grid">
+  <div class="glass-panel cci-stat"><strong>{{ report.checked_in }}</strong><span>Still in</span></div>
+  <div class="glass-panel cci-stat"><strong>{{ report.checked_out }}</strong><span>Checked out</span></div>
+  <div class="glass-panel cci-stat"><strong>{{ report.total }}</strong><span>Total visits</span></div>
+</div>
+
+{% if report.by_room %}
+<div class="glass-panel" style="padding:0.9rem; margin-bottom:0.85rem;">
+  <strong>By room (currently in)</strong>
+  <ul style="margin:0.4rem 0 0; padding-left:1.1rem;">
+    {% for row in report.by_room %}
+    <li>{{ row.room }}: {{ row.n }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if report.rows %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Child</th>
+        <th>Room</th>
+        <th>In</th>
+        <th>Out</th>
+        <th>Status</th>
+        <th>Code</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in report.rows %}
+      <tr>
+        <td>{{ r.display_name }}</td>
+        <td>{{ r.classroom_name or '—' }}</td>
+        <td>{{ r.check_in_fmt or '—' }}</td>
+        <td>{{ r.check_out_fmt or '—' }}</td>
+        <td><code>{{ r.status }}</code></td>
+        <td><code>{{ r.pickup_code }}</code></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="glass-panel" style="padding:1.25rem; opacity:0.75;">No check-ins for this date.</p>
+{% endif %}
+{% endblock %}

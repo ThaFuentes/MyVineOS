@@ -1,0 +1,170 @@
+{# Modern service plan editor — roles locked to Volunteer Teams + Worship, never free-typed. #}
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Service Plan · {% if plan.service_date %}{% if plan.service_date is string %}{{ plan.service_date }}{% else %}{{ plan.service_date.strftime('%b %d, %Y') }}{% endif %}{% else %}Edit{% endif %}{% endblock %}
+
+{% block extra_head %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/planning.css') }}?v=20260719plan3">
+{% endblock %}
+
+{% block pastoral_content %}
+<section class="content-section">
+  <div class="glass-panel" style="margin-bottom:0.85rem;">
+    <div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <h1 class="page-title" style="margin:0 0 0.25rem;">
+          {% if plan.service_date %}
+            {% if plan.service_date is string %}{{ plan.service_date }}{% else %}{{ plan.service_date.strftime('%A, %B %d, %Y') }}{% endif %}
+          {% else %}Service plan{% endif %}
+        </h1>
+        <p class="page-description" style="margin:0; opacity:0.8;">
+          <strong>This date only.</strong> Guests, special notes, and one-week changes go here.
+          Without a custom save, this day uses its
+          <a href="{{ url_for('pastoral.planning.templates_list') }}">recurring plan</a>
+          (not Overall defaults). Overall defaults are a starter roster only.
+        </p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+        <a href="{{ url_for('volunteers.teams_list') }}" class="btn btn-secondary" style="font-size:0.85rem;">Volunteer Teams</a>
+        <a href="{{ url_for('worship.defaults') }}" class="btn btn-secondary" style="font-size:0.85rem;">Worship Defaults</a>
+        <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary" style="font-size:0.85rem;">All Plans</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jump date -->
+  <div class="glass-panel" style="margin-bottom:0.85rem;">
+    <label class="control-label" for="date-jumper">Jump to date</label>
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+      <input type="date" id="date-jumper" class="form-input" style="max-width:200px;"
+             value="{% if plan.service_date %}{% if plan.service_date is string %}{{ plan.service_date[:10] }}{% else %}{{ plan.service_date.strftime('%Y-%m-%d') }}{% endif %}{% endif %}">
+      <button type="button" class="btn btn-primary" onclick="var d=document.getElementById('date-jumper').value; if(d) location='/pastoral/planning/edit/'+d;">Go</button>
+    </div>
+  </div>
+
+  <form method="POST" id="planning-form" class="styled-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+    <div class="form-actions" style="margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; align-items:center;">
+      <button type="submit" class="btn btn-primary">Save plan</button>
+      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" form="revert-defaults-form" class="btn btn-secondary"
+              onclick="return confirm('Remove this week custom plan and go back to the recurring plan for that day?');">
+        Revert to recurring plan
+      </button>
+    </div>
+
+    <!-- Basics -->
+    <details open class="collapsible-section glass-panel" style="padding:1rem; margin-bottom:0.85rem;">
+      <summary class="collapsible-summary" style="cursor:pointer; font-weight:600; color:var(--primary); list-style:none;">
+        <i class="fa-solid fa-clock" aria-hidden="true"></i> Service info
+      </summary>
+      <div class="collapsible-content" style="margin-top:1rem;">
+        <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div>
+            <label class="control-label" for="start_time">Start time</label>
+            <input type="time" name="start_time" id="start_time" class="form-input"
+                   value="{% if plan.start_time %}{% if plan.start_time is string %}{{ plan.start_time[:5] }}{% else %}{{ plan.start_time.strftime('%H:%M') }}{% endif %}{% endif %}">
+          </div>
+          <div>
+            <label class="control-label" for="worship_start_time">Worship start</label>
+            <input type="time" name="worship_start_time" id="worship_start_time" class="form-input"
+                   value="{% if plan.worship_start_time %}{% if plan.worship_start_time is string %}{{ plan.worship_start_time[:5] }}{% else %}{{ plan.worship_start_time.strftime('%H:%M') }}{% endif %}{% endif %}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="control-label" for="title">Title (optional for this date)</label>
+          <input type="text" name="title" id="title" class="form-input"
+                 value="{{ plan.title or '' }}" placeholder="e.g. Guest speaker Sunday">
+        </div>
+        <div class="form-group">
+          <label class="control-label" for="sermon_id">Linked sermon</label>
+          <select name="sermon_id" id="sermon_id" class="form-input">
+            <option value="">None</option>
+            {% for sermon in linkable_sermons %}
+            <option value="{{ sermon.id }}" {% if plan.pastoral_sermon_id == sermon.id %}selected{% endif %}>
+              {{ sermon.title }}{% if sermon.service_date %} ({% if sermon.service_date is string %}{{ sermon.service_date[:10] }}{% else %}{{ sermon.service_date.strftime('%b %d') }}{% endif %}){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="control-label">Notes / order of service</label>
+          <div id="notes-editor" class="quill-wrapper">{{ plan.notes|safe if plan.notes else '' }}</div>
+          <input type="hidden" name="notes" id="notes-hidden">
+          <p class="help-text">Shows on the public welcome page under upcoming services.</p>
+        </div>
+      </div>
+    </details>
+
+    {% set roster_heading = 'Who is serving' %}
+    {% set roster_intro = 'Standard roles come from <a href="' ~ url_for('volunteers.teams_list') ~ '">Volunteers</a> and <a href="' ~ url_for('worship.defaults') ~ '">Worship</a> — pick a member or enter a guest name. Use <strong>Add extra role</strong> for one-offs.' %}
+    {% set custom_section_label = 'Extra roles (this date)' %}
+    {% set empty_extra_msg = 'No extra roles yet. Click <strong>Add extra role</strong> for something not covered by teams.' %}
+    {% include 'pastoral/_roster_panel.html' %}
+
+    {% if not plan.assignments %}
+    <p class="text-muted">No teams loaded. Create teams under <a href="{{ url_for('volunteers.teams_list') }}">Volunteers</a> first.</p>
+    {% endif %}
+
+    <div class="form-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; align-items:center;">
+      <button type="submit" class="btn btn-primary btn-lg">Save plan</button>
+      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary">Back to planning</a>
+    </div>
+  </form>
+
+  <form id="revert-defaults-form" method="POST"
+        action="{{ url_for('pastoral.planning.delete', date_str=date_str) }}"
+        style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+  </form>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+(function () {
+  const el = document.getElementById('notes-editor');
+  if (el && window.Quill) {
+    const quill = new Quill('#notes-editor', {
+      theme: 'snow',
+      modules: { toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] }
+    });
+    document.getElementById('planning-form').addEventListener('submit', function () {
+      document.getElementById('notes-hidden').value = quill.root.innerHTML;
+    });
+  }
+
+  const addBtn = document.getElementById('add-extra-role-btn');
+  const container = document.getElementById('extra-roles-container');
+  const tpl = document.getElementById('extra-role-template');
+
+  function addExtraRole() {
+    if (!container || !tpl) return;
+    const empty = document.getElementById('extra-roles-empty');
+    if (empty) empty.remove();
+    container.appendChild(tpl.content.cloneNode(true));
+    const input = container.querySelector('.plan-role-card:last-child input[name="role_name"]');
+    if (input) input.focus();
+  }
+  if (addBtn) addBtn.addEventListener('click', addExtraRole);
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.remove-extra-role-btn');
+    if (!btn) return;
+    const row = btn.closest('[data-role-row]');
+    if (row) row.remove();
+    if (container && !container.querySelector('[data-role-row]')) {
+      const p = document.createElement('p');
+      p.id = 'extra-roles-empty';
+      p.className = 'text-muted';
+      p.style.cssText = 'margin:0; font-size:0.88rem; opacity:0.7;';
+      p.innerHTML = 'No extra roles yet. Click <strong>Add extra role</strong> for something not covered by teams.';
+      container.appendChild(p);
+    }
+  });
+})();
+</script>
+{% endblock %}

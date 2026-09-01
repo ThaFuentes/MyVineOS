@@ -1,0 +1,52 @@
+{% extends "base_public.html" %}
+
+{% block title %}Upcoming Events{% endblock %}
+
+{% block content %}
+<div class="public-page-header">
+  <h1 class="page-title">Upcoming Events</h1>
+  <p class="page-description">
+    Join us for these community events. Potluck signups and guest comments are open to everyone.
+  </p>
+</div>
+
+{% if events %}
+<div class="public-card-grid">
+  {% for event in events %}
+  <article class="glass-panel public-list-card event-card">
+    <h3>
+      <a href="{{ url_for('public.public_events.public_event_detail', event_id=event.id) }}">
+        {{ event.event_name }}
+      </a>
+    </h3>
+    <div class="public-list-meta">
+      <strong>Date:</strong> {{ event.event_date }}
+      {% if event.event_time %} · {{ event.event_time }}{% endif %}<br>
+      <strong>Location:</strong> {{ event.location }}<br>
+      <strong>By:</strong> {{ event.creator_name or event.posted_by or 'Church' }}
+    </div>
+    {% if event.cost_fees and event.cost_fees > 0 %}
+    <p style="margin:0.35rem 0 0; color:var(--primary); font-weight:600;">${{ '%.2f'|format(event.cost_fees) }} — pay online</p>
+    {% endif %}
+    {% if event.description %}
+    <p class="public-list-body">{{ event.description | truncate(220) | censor | nl2br }}</p>
+    {% endif %}
+    {% if event.potluck_enabled %}
+    <div style="font-size:0.85rem; color:var(--primary); opacity:0.9;">
+      <i class="fa-solid fa-utensils" aria-hidden="true"></i> Potluck enabled
+    </div>
+    {% endif %}
+    <div class="public-list-actions">
+      <a href="{{ url_for('public.public_events.public_event_detail', event_id=event.id) }}" class="btn btn-primary">
+        View details
+      </a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel public-empty">
+  No upcoming public events right now. Check back soon.
+</div>
+{% endif %}
+{% endblock %}

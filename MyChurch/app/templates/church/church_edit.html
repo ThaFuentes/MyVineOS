@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Edit page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=13">
+{% endblock %}
+
+{% block content %}
+<div class="church-page">
+  <header class="feed-page-head">
+    <div>
+      <p class="page-kicker">{{ church_name }}{% if campus %} · {{ campus.short_name or campus.name }}{% endif %}</p>
+      <h1 class="page-title">Edit church page</h1>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('church.church_home') }}">View page</a>
+  </header>
+
+  <section class="glass-panel page-editors" id="page-people">
+    <h2 class="page-title" style="font-size:1.35rem;margin:0 0 0.35rem;">Who can change this page vs who can add to it</h2>
+    <p class="page-description" style="margin-top:0;">
+      Changing the look (banner, about, photos) is a short list. Adding official posts is wider:
+      worship team leaders and pastors already put schedules on this wall when they save them —
+      they do not need to be page editors.
+      {% if campus %}This list is only for this branch.{% else %}Branch pages have their own lists.{% endif %}
+    </p>
+
+    <h3 class="page-title" style="font-size:1.05rem;margin:1rem 0 0.35rem;">Look of this page</h3>
+    <p class="compose-hint" style="margin-top:0;">Owner, site admins, page admins, and editors. Poster cannot open this screen.</p>
+    <ul class="editor-list">
+      <li class="editor-row">
+        <div>
+          <strong>Owner</strong>
+          <span>Always — every church and branch page</span>
+        </div>
+      </li>
+      {% if not campus %}
+      <li class="editor-row">
+        <div>
+          <strong>Site Admins</strong>
+          <span>Can change the main church page and post as the church</span>
+        </div>
+      </li>
+      {% endif %}
+      {% for e in page_editors|default([]) if e.editor_role in ('admin', 'editor') %}
+      <li class="editor-row">
+        <div>
+          <strong>{{ e.display_name }}</strong>
+          <span>{% if e.editor_role == 'admin' %}Page admin — look, posts, add/remove people{% else %}Editor — look and posts{% endif %}{% if e.username %} · @{{ e.username }}{% endif %}</span>
+        </div>
+        {% if can_assign_editors %}
+        <form method="post">
+          {% include 'partials/csrf_field.html' %}
+          {% if campus %}<input type="hidden" name="campus" value="{{ campus.id }}">{% endif %}
+          <input type="hidden" name="action" value="remove_editor">
+          <input type="hidden" name="user_id" value="{{ e.user_id }}">
+          <button type="submit" class="btn btn-secondary">Remove</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+
+    <h3 class="page-title" style="font-size:1.05rem;margin:1.15rem 0 0.35rem;">Posts on this page</h3>
+    <p class="compose-hint" style="margin-top:0;">
+      Everyone above can post as
+      {% if campus %}{{ campus.short_name or campus.name }}{% else %}{{ church_name }}{% endif %}.
+      Add a Poster if someone should write as the church without changing the look.
+      {% if not campus %}Worship and pastoral schedule saves always show here.{% endif %}
+    </p>
+    <ul class="editor-list">
+      {% if not campus %}
+      {% for p in ministry_posters|default([]) %}
+      <li class="editor-row">
+        <div>
+          <strong>{{ p.display_name }}</strong>
+          <span>{{ p.why }}{% if p.username %} · @{{ p.username }}{% endif %}</span>
+        </div>
+        <span class="compose-hint" style="margin:0;">Automatic</span>
+      </li>
+      {% endfor %}
+      {% endif %}
+      {% for e in page_editors|default([]) if e.editor_role == 'poster' %}
+      <li class="editor-row">
+        <div>
+          <strong>{{ e.display_name }}</strong>
+          <span>Poster — add to this wall, not the look{% if e.username %} · @{{ e.username }}{% endif %}</span>
+        </div>
+        {% if can_assign_editors %}
+        <form method="post">
+          {% include 'partials/csrf_field.html' %}
+          {% if campus %}<input type="hidden" name="campus" value="{{ campus.id }}">{% endif %}
+          <input type="hidden" name="action" value="remove_editor">
+          <input type="hidden" name="user_id" value="{{ e.user_id }}">
+          <button type="submit" class="btn btn-secondary">Remove</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+      {% if (campus or not ministry_posters) and not page_editors %}
+      <li class="editor-row editor-row-empty">
+        <div>
+          <strong>No extra posters yet</strong>
+          <span>{% if campus %}Add a Poster if someone should post as this branch without editing the look.{% else %}Worship leaders and pastors still show up from their tools. Add a Poster for anyone else.{% endif %}</span>
+        </div>
+      </li>
+      {% endif %}
+    </ul>
+
+    {% if can_assign_editors %}
+    <form method="post" class="styled-form editor-add">
+      {% include 'partials/csrf_field.html' %}
+      {% if campus %}<input type="hidden" name="campus" value="{{ campus.id }}">{% endif %}
+      <input type="hidden" name="action" value="add_editor">
+      <div class="editor-add-row">
+        <label class="editor-field">
+          Member
+          <select id="editor-user" name="user_id" required>
+            <option value="">Choose a member…</option>
+            {% for m in member_choices|default([]) %}
+            <option value="{{ m.id }}">{{ m.display_name }}{% if m.username %} (@{{ m.username }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="editor-field">
+          Role
+          <select name="editor_role">
+            <option value="poster">Poster — add to this wall, cannot change the look</option>
+            <option value="editor">Editor — posts plus look / about / photos</option>
+            <option value="admin">Page admin — that, plus add/remove people</option>
+          </select>
+        </label>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+      {% if not member_choices %}
+      <p class="compose-hint">Every other member is already on this list, or there are no other accounts yet.</p>
+      {% endif %}
+    </form>
+    {% endif %}
+  </section>
+
+  {% set display_name = church_name %}
+  {% set identity_kicker = 'Edit look' %}
+  {% set can_change_look = true %}
+  {% set manage_scope = 'church' %}
+  {% include 'church/_identity.html' %}
+
+  <form method="post" class="styled-form glass-panel">
+    {% include 'partials/csrf_field.html' %}
+    {% if campus %}
+    <input type="hidden" name="campus" value="{{ campus.id }}">
+    {% endif %}
+    <textarea id="about" name="about" class="form-input profile-about-input" rows="5" placeholder="About this church…">{{ page.about or '' }}</textarea>
+    <input id="verse" name="verse" class="form-input" type="text" maxlength="255" placeholder="A quote under the name" value="{{ page.verse or '' }}">
+    <label class="profile-color-row" for="accent_color">
+      Page color
+      <input id="accent_color" name="accent_color" type="text" maxlength="24" placeholder="navy, gold, or #003366" value="{{ page.accent_color or '' }}">
+    </label>
+    <p class="compose-hint">Tints headings and buttons on this church page. Not a “favorite color” fact — that’s only on personal pages.</p>
+    <button type="submit" class="btn btn-primary">Save look</button>
+  </form>
+
+  {% include 'church/_add_to_page.html' %}
+</div>
+{% endblock %}

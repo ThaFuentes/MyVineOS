@@ -1,0 +1,10 @@
+MyVineOS — Worship Team / Prompter update (on main)
+
+Included in this main branch:
+- Song library multi-select + send to date setlist / weekly default / entire week
+- Prompter: continuous timing record, fixed timer, speed slider, recorded playback
+- Prompter: chords-above / inline [chord] / lyrics-only layouts
+- Independent chord size + lyric size (saved per user in worship_user_prefs)
+- slide_timings_json on songs
+
+Commit tip when this note was written: see git log -1

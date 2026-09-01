@@ -1,0 +1,163 @@
+{# app/templates/pastoral/dashboard_pastoral.html #}
+{# Pastoral Command Center - full quick-access tile grid matching top nav. #}
+
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Pastoral Command Center{% endblock %}
+
+{% block pastoral_content %}
+<div class="glass-panel" style="text-align:center; margin-bottom:1.25rem;">
+  <h1 style="margin:0 0 0.25rem; color:var(--primary);">Pastoral Command Center</h1>
+  <p style="margin:0; opacity:0.7; font-size:0.9rem;">Tools for planning, preaching, care &amp; study</p>
+</div>
+
+<!-- Next Upcoming Service - same card as before, plus who is serving -->
+{% set us = upcoming_service or {} %}
+{% set us_date = us.get('service_date') %}
+{% set us_date_str = us.get('date_str') or (us_date.strftime('%Y-%m-%d') if us_date is not string and us_date else (us_date[:10] if us_date else '')) %}
+<div class="glass-panel pastoral-upcoming" style="margin-bottom:1.25rem;">
+  <div style="text-align:center; padding:0.25rem 0;">
+    <div style="font-size:0.8rem; opacity:0.7; margin-bottom:0.25rem; letter-spacing:0.04em;">NEXT UPCOMING SERVICE</div>
+    <h2 style="margin:0.25rem 0; font-size:1.35rem; color:var(--primary);">
+      {% if us_date is not string and us_date %}
+        {{ us_date.strftime('%A, %B %d, %Y') }}
+      {% elif us_date %}
+        {{ us_date }}
+      {% else %}
+        —
+      {% endif %}
+    </h2>
+
+    {% if us.get('start_time') or us.get('worship_start_time') %}
+      <p style="margin:0.5rem 0; font-size:0.95rem;">
+        {% if us.get('start_time') %}
+          Service: {% if us.start_time is not string and us.start_time.strftime is defined %}{{ us.start_time.strftime('%I:%M %p') }}{% else %}{{ us.start_time }}{% endif %}<br>
+        {% endif %}
+        {% if us.get('worship_start_time') %}
+          Worship: {% if us.worship_start_time is not string and us.worship_start_time.strftime is defined %}{{ us.worship_start_time.strftime('%I:%M %p') }}{% else %}{{ us.worship_start_time }}{% endif %}
+        {% endif %}
+      </p>
+    {% endif %}
+
+    <p style="margin:0.4rem 0 0.6rem; font-size:1.05rem; font-weight:600;">
+      {{ us.get('title') or 'Regular Sunday Service' }}
+    </p>
+
+    {% if us.get('filled_roles') %}
+    <p style="margin:0.35rem 0 0.55rem; font-size:0.88rem; opacity:0.9; line-height:1.55;">
+      {% for r in us.filled_roles %}
+        <span style="margin:0 0.45rem; white-space:nowrap;"><strong>{{ r.role_name }}:</strong> {{ r.name }}</span>
+      {% endfor %}
+    </p>
+    {% endif %}
+
+    {% if us.get('linked_sermon_title') %}
+      <p style="margin:0.25rem 0 0.5rem; opacity:0.85;">
+        Sermon: <a href="{{ url_for('pastoral.sermons.edit', sermon_id=us.pastoral_sermon_id) }}" style="color:var(--primary); text-decoration:underline;">{{ us.linked_sermon_title }}</a>
+      </p>
+    {% endif %}
+
+    {% if us.get('is_recurring_default') %}
+      <small style="opacity:0.6; display:block; margin-bottom:0.5rem;">Recurring default - customize in a plan</small>
+    {% endif %}
+
+    {% if us_date_str %}
+    <a href="{{ url_for('pastoral.planning.edit', date_str=us_date_str) }}"
+       class="btn btn-primary" style="min-height:44px; padding:0.6rem 1.25rem; font-size:1rem;">
+      {% if us.get('id') %}<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit Plan{% else %}<i class="fa-solid fa-plus" aria-hidden="true"></i> Create Plan{% endif %}
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Quick access — full set matching top pastoral nav + related tools -->
+<div class="pastoral-tile-grid">
+  <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="glass-panel pastoral-tile pastoral-tile-dash">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></span>
+    <span class="pastoral-tile-title">Dashboard</span>
+    <span class="pastoral-tile-sub">Command center home</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.sermons.list') }}" class="glass-panel pastoral-tile pastoral-tile-sermons">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
+    <span class="pastoral-tile-title">Sermon Builder</span>
+    <span class="pastoral-tile-sub">Create, edit &amp; export</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.sermons.research') }}" class="glass-panel pastoral-tile pastoral-tile-sermons">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+    <span class="pastoral-tile-title">Sermon Research</span>
+    <span class="pastoral-tile-sub">Search library · ask AI</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.planning.index') }}" class="glass-panel pastoral-tile pastoral-tile-planning">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-calendar-days"></i></span>
+    <span class="pastoral-tile-title">Service Planning</span>
+    <span class="pastoral-tile-sub">Plans, roles, times</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.planning.defaults') }}" class="glass-panel pastoral-tile pastoral-tile-roles">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
+    <span class="pastoral-tile-title">Default Roles</span>
+    <span class="pastoral-tile-sub">Recurring assignments</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.podium.index') }}" class="glass-panel pastoral-tile pastoral-tile-podium">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-microphone"></i></span>
+    <span class="pastoral-tile-title">Podium Mode</span>
+    <span class="pastoral-tile-sub">Teleprompter</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="glass-panel pastoral-tile pastoral-tile-care">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-heart"></i></span>
+    <span class="pastoral-tile-title">Pastoral Care</span>
+    <span class="pastoral-tile-sub">Requests, notes &amp; follow-up</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.illustrations.research') }}" class="glass-panel pastoral-tile pastoral-tile-illustrations">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+    <span class="pastoral-tile-title">Illustration Research</span>
+    <span class="pastoral-tile-sub">Search library · ask AI</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.illustrations.library') }}" class="glass-panel pastoral-tile pastoral-tile-illustrations">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-pen-to-square"></i></span>
+    <span class="pastoral-tile-title">Illustrations Library</span>
+    <span class="pastoral-tile-sub">Stories &amp; sections · download anytime</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.bible.bible_study') }}" class="glass-panel pastoral-tile pastoral-tile-bible">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-scroll"></i></span>
+    <span class="pastoral-tile-title">Bible Study</span>
+    <span class="pastoral-tile-sub">Read, notes &amp; cross-refs</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="glass-panel pastoral-tile pastoral-tile-curriculum">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-graduation-cap"></i></span>
+    <span class="pastoral-tile-title">Curriculum Studio</span>
+    <span class="pastoral-tile-sub">Courses · export Markdown</span>
+  </a>
+
+  {% if session.get('user_role') in ['Admin', 'Owner'] %}
+  <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="glass-panel pastoral-tile pastoral-tile-upload">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-download"></i></span>
+    <span class="pastoral-tile-title">Bible Translations</span>
+    <span class="pastoral-tile-sub">Install &amp; manage versions</span>
+  </a>
+  {% endif %}
+
+  <a href="{{ url_for('pastoral.sermons_export.list') }}" class="glass-panel pastoral-tile pastoral-tile-export">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-file-export"></i></span>
+    <span class="pastoral-tile-title">Sermon Export</span>
+    <span class="pastoral-tile-sub">Your sermons · DOCX / ZIP</span>
+  </a>
+
+  <a href="{{ url_for('pastoral.illustrations.download_all') }}" class="glass-panel pastoral-tile pastoral-tile-export">
+    <span class="pastoral-tile-icon" aria-hidden="true"><i class="fa-solid fa-download"></i></span>
+    <span class="pastoral-tile-title">Download my library</span>
+    <span class="pastoral-tile-sub">Illustrations + vault ZIP</span>
+  </a>
+</div>
+
+<p style="text-align:center; margin-top:1rem; font-size:0.75rem; opacity:0.5;">All pastoral tools • tap targets optimized for phones</p>
+{% endblock %}

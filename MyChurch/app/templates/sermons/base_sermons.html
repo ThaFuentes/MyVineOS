@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if request.endpoint != 'sermons.sermons' %}
+<p class="help-text" style="margin:0 0 0.75rem;">
+  <a href="{{ url_for('sermons.sermons') }}">← Sermons</a>
+</p>
+<h1 class="page-title">{% block page_title %}Sermons{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+{% endif %}
+
+{% block sermons_content %}{% endblock %}
+{% endblock %}

@@ -1,0 +1,167 @@
+{% set compose_types = compose_types|default([]) %}
+{% set preset = preset|default('') %}
+{% if compose_types %}
+<section class="glass-panel compose-card" data-compose>
+  <div class="compose-types" role="tablist">
+    {% for t in compose_types %}
+    <button type="button" class="compose-type{% if (preset and t.key == preset) or (not preset and loop.first) %} is-active{% endif %}"
+            data-compose-type="{{ t.key }}">{{ t.label }}</button>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="{{ url_for('compose.compose_create') }}" class="styled-form" enctype="multipart/form-data">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="compose_type" value="{{ preset or compose_types[0].key }}">
+    <input type="hidden" name="next" value="{{ next_url or request.path }}">
+    {% set voices = compose_voices|default([]) %}
+    {% set active_voice = default_compose_voice|default('member') %}
+    {% if voices|length > 1 %}
+    <div class="compose-voice" role="radiogroup" aria-label="Posting as">
+      <p class="compose-hint">Posting as</p>
+      <div class="compose-voice-row">
+        {% for v in voices %}
+        <label class="compose-voice-opt">
+          <input type="radio" name="posted_as" value="{{ v.key }}" {% if v.key == active_voice %}checked{% endif %}>
+          <span>{{ v.label }}</span>
+          <small>{{ v.hint }}</small>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <input type="hidden" name="posted_as" value="member">
+    {% endif %}
+
+    {% for t in compose_types %}
+    <div class="compose-fields{% if (preset and t.key == preset) or (not preset and loop.first) %} is-open{% endif %}" data-compose-panel="{{ t.key }}">
+      {% if t.key == 'event' %}
+        <div>
+          <label for="compose-event-name">Event name</label>
+          <input id="compose-event-name" name="event_name" type="text" placeholder="Sunday picnic">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div>
+            <label for="compose-event-date">Date</label>
+            <input id="compose-event-date" name="event_date" type="date">
+          </div>
+          <div>
+            <label for="compose-event-time">Time</label>
+            <input id="compose-event-time" name="event_time" type="time">
+          </div>
+        </div>
+        <div>
+          <label for="compose-event-loc">Location</label>
+          <input id="compose-event-loc" name="location" type="text">
+        </div>
+        <div>
+          <label for="compose-event-body">Details</label>
+          <textarea id="compose-event-body" name="description" rows="3" data-compose-text></textarea>
+        </div>
+      {% elif t.key == 'sermon' %}
+        <div>
+          <label for="compose-sermon-title">Title</label>
+          <input id="compose-sermon-title" name="title" type="text" placeholder="Sermon title">
+        </div>
+        <div>
+          <label for="compose-sermon-link">Link (YouTube, audio, notes)</label>
+          <input id="compose-sermon-link" name="external_link" type="url" placeholder="https://">
+        </div>
+        <div>
+          <label for="compose-sermon-body">Text / notes</label>
+          <textarea id="compose-sermon-body" name="details" rows="5" placeholder="Paste the message, outline, or notes." data-compose-text></textarea>
+        </div>
+        <p class="compose-hint">
+          {% if endpoint_exists('sermons.upload_sermon') %}
+          <a href="{{ url_for('sermons.upload_sermon') }}">Upload an audio or manuscript file instead</a>
+          {% endif %}
+        </p>
+      {% elif t.key == 'book' %}
+        <div>
+          <label for="compose-book-title">Book title</label>
+          <input id="compose-book-title" name="title" type="text" placeholder="Recommended book">
+        </div>
+        <div>
+          <label for="compose-book-url">Link (optional)</label>
+          <input id="compose-book-url" name="url" type="url" placeholder="https://">
+        </div>
+        <div>
+          <label for="compose-book-body">Why you recommend it</label>
+          <textarea id="compose-book-body" name="body" rows="3" data-compose-text></textarea>
+        </div>
+      {% elif t.key == 'post' %}
+        <div>
+          <label for="compose-post-title">Title (optional)</label>
+          <input id="compose-post-title" name="title" type="text" placeholder="What's on your heart?">
+        </div>
+        <div>
+          <label for="compose-post-body">Post</label>
+          <textarea id="compose-post-body" name="body" rows="5" placeholder="A note, quote, or update — this goes on your page." data-compose-text></textarea>
+        </div>
+        <div>
+          <label for="compose-post-photo">Photo (optional)</label>
+          <input id="compose-post-photo" name="photo" type="file" accept="image/*">
+        </div>
+        <div>
+          <label for="compose-post-url">Link (optional)</label>
+          <input id="compose-post-url" name="url" type="url" placeholder="https://">
+        </div>
+      {% elif t.key == 'quote' %}
+        <div>
+          <label for="compose-quote-body">Quote</label>
+          <textarea id="compose-quote-body" name="body" rows="4" placeholder="The words…" data-compose-text></textarea>
+        </div>
+        <div>
+          <label for="compose-quote-title">Who said it (optional)</label>
+          <input id="compose-quote-title" name="title" type="text" placeholder="Author, pastor, book…">
+        </div>
+      {% elif t.key == 'verse' %}
+        <div>
+          <label for="compose-verse-title">Reference</label>
+          <input id="compose-verse-title" name="title" type="text" placeholder="John 3:16">
+        </div>
+        <div>
+          <label for="compose-verse-body">Verse</label>
+          <textarea id="compose-verse-body" name="body" rows="4" placeholder="For God so loved the world…" data-compose-text></textarea>
+        </div>
+      {% else %}
+        <div>
+          <label for="compose-{{ t.key }}-title">Title</label>
+          <input id="compose-{{ t.key }}-title" name="title" type="text" placeholder="{{ t.label }}">
+        </div>
+        <div>
+          <label for="compose-{{ t.key }}-body">Message</label>
+          <textarea id="compose-{{ t.key }}-body" name="{{ 'body' if t.key == 'announcement' else 'description' }}" rows="3"
+                    placeholder="Write it here..." data-compose-text></textarea>
+        </div>
+      {% endif %}
+      {% if t.key != 'event' %}
+      <div>
+        <label for="compose-{{ t.key }}-vis">Who can see this</label>
+        <select id="compose-{{ t.key }}-vis" name="visibility">
+          <option value="public" {% if t.key in ('post', 'quote', 'verse') %}selected{% endif %}>Public — guests can see it</option>
+          <option value="private" {% if t.key not in ('post', 'quote', 'verse') %}selected{% endif %}>Private — signed-in members</option>
+          {% if t.key in ('dream', 'prophecy', 'prayer', 'post', 'quote', 'verse') %}
+          <option value="personal">Personal — only you, stays on your page</option>
+          {% endif %}
+        </select>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if branch_people %}
+    <p class="compose-hint">Tag someone at this branch</p>
+    <div class="profile-tag-row" data-mention-row>
+      {% for p in branch_people[:16] %}
+      <button type="button" class="profile-tag" data-mention="@{{ p.username }}">{{ p.name }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="form-actions" style="margin-top:0.55rem;">
+      <button type="submit" class="btn btn-primary">Post</button>
+    </div>
+  </form>
+</section>
+{% else %}
+<p class="page-description">You cannot post right now.</p>
+{% endif %}

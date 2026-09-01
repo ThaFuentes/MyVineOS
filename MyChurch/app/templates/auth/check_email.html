@@ -1,0 +1,58 @@
+{% extends "base_public.html" %}
+
+{% block title %}Check your email{% endblock %}
+
+{% block content %}
+{% set from_addr = outgoing_from_email or None %}
+<div style="text-align:center; padding:4rem 1.5rem 2rem;">
+  <h1 style="font-size:clamp(1.8rem,4vw,2.6rem); color:var(--primary); margin-bottom:0.75rem;">
+    Check your email
+  </h1>
+  <p style="max-width:36rem; margin:0 auto 1.5rem; font-size:1.15rem; line-height:1.6; opacity:0.9;">
+    Your account was created. We sent an activation link
+    {% if registered_email %}to <strong>{{ registered_email }}</strong>{% else %}to your inbox{% endif %}.
+  </p>
+</div>
+
+<div style="padding:0 1.25rem 5rem;">
+  <div class="glow-card" style="max-width:560px; margin:0 auto; padding:1.75rem 1.5rem; border-radius:16px;
+       background:rgba(20,20,30,0.9); border:1px solid rgba(0,255,255,0.28);">
+    <div style="padding:1rem 1.1rem; border-radius:12px; margin-bottom:1.25rem;
+                background:rgba(255,200,80,0.12); border:1px solid rgba(255,200,80,0.4); line-height:1.55;">
+      <p style="margin:0 0 0.5rem; font-weight:800; font-size:1.05rem; color:#ffd27a;">
+        Look for this sender
+      </p>
+      <p style="margin:0; font-size:1.15rem;">
+        {% if from_addr %}
+          <strong style="word-break:break-all;">{{ from_addr }}</strong>
+        {% else %}
+          the church’s activation email (configured in Settings → Email)
+        {% endif %}
+      </p>
+      <p style="margin:0.75rem 0 0; font-size:0.98rem;">
+        Please check your <strong>Inbox</strong> and also your
+        <strong>Spam / Junk / Promotions</strong> folders. Church activation mail is often filtered there.
+      </p>
+    </div>
+
+    <ol style="margin:0 0 1.25rem 1.2rem; line-height:1.7; font-size:0.98rem;">
+      <li>Open the message{% if from_addr %} from <strong>{{ from_addr }}</strong>{% endif %}.</li>
+      <li>Click the verification / activation link.</li>
+      <li>Return here and log in (admin approval may still be required on some sites).</li>
+    </ol>
+
+    <div style="display:flex; flex-wrap:wrap; gap:0.65rem; justify-content:center;">
+      <a href="{{ url_for('auth.resend_verification', email=registered_email or '') }}" class="btn btn-primary">
+        Resend activation email
+      </a>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">Go to login</a>
+    </div>
+
+    <p style="margin:1.25rem 0 0; font-size:0.85rem; opacity:0.75; text-align:center; line-height:1.5;">
+      Still nothing? Confirm the address you registered, wait a few minutes, then resend.
+      If the church changes the sending account later, this page always shows the
+      <em>current</em> From address from Settings.
+    </p>
+  </div>
+</div>
+{% endblock %}

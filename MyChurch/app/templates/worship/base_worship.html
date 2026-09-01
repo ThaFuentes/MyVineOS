@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}{% block worship_title %}Worship Team{% endblock %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/worship.css') }}?v=20260717notes1">
+{% endblock %}
+
+{% block content %}
+<nav class="glass-panel worship-nav" aria-label="Worship Team navigation">
+  <a href="{{ url_for('worship.dashboard') }}" class="wn-home"><i class="fa-solid fa-music" aria-hidden="true"></i> Worship Team</a>
+  <a href="{{ url_for('worship.templates_list') }}" class="wn-templates">Weekly Defaults</a>
+  <a href="{{ url_for('worship.setlists_list') }}" class="wn-setlists">Date Overrides</a>
+  <a href="{{ url_for('worship.songs_list') }}" class="wn-songs">Songs</a>
+  <a href="{{ url_for('worship.history') }}" class="wn-history">Play History</a>
+  <a href="{{ url_for('worship.ccli_report') }}" class="wn-history">CCLI Report</a>
+  {% if can_manage_worship() %}
+  <a href="{{ url_for('worship.defaults') }}" class="wn-roles">Default Roles</a>
+  <a href="{{ url_for('worship.songs_import') }}" class="wn-import">Import / AI</a>
+  <a href="{{ url_for('worship.songs_public_domain') }}" class="wn-import">PD Pack</a>
+  {% endif %}
+  <span style="flex:1;"></span>
+  <a href="{{ url_for('dashboard.dashboard') }}" class="wn-back"><- Dashboard</a>
+</nav>
+
+{% block worship_content %}{% endblock %}
+{% endblock %}

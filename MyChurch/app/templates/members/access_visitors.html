@@ -1,0 +1,56 @@
+{% extends "members/base_members.html" %}
+{% block page_title %}Visitors (not logged in){% endblock %}
+{% block page_description %}
+  Exact same kind of tools/actions as People tools — but for <strong>anyone who is not logged in</strong> on this church website.
+  Example: Dreams ON with only <strong>see</strong> checked → visitors browse, cannot comment or submit.
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723visitor1">
+{% endblock %}
+
+{% block members_content %}
+{% include 'members/_access_subnav.html' %}
+
+<div class="ac-hero glass-panel">
+  <h2><i class="fa-solid fa-globe" aria-hidden="true"></i> Visitors</h2>
+  <p>
+    This is <strong>not</strong> a person account. It is the public capability set for this site.
+    Logged-in members/staff still use <strong>People tools</strong> for their own grants.
+  </p>
+</div>
+
+<div class="ac-summary-box glass-panel">
+  <h3>What visitors have right now</h3>
+  {% if summary_lines %}
+  <ul class="ac-summary-list">
+    {% for line in summary_lines %}
+    <li>{{ line }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="ac-empty mb-0">Nothing — community tabs are not usable for visitors.</p>
+  {% endif %}
+</div>
+
+<form method="POST" id="ac-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+  <div class="ac-save-bar glass-panel" style="position:static; margin-bottom:1rem;">
+    <span class="ac-save-hint">Turn an area ON, check View / Create / Comment separately, then Save.</span>
+    <button type="submit" class="btn-primary">Save visitor permissions</button>
+  </div>
+
+  <p style="margin:0 0 0.75rem; opacity:0.9; font-size:1.02rem;">
+    <strong>See</strong> ≠ <strong>comment</strong> ≠ <strong>submit</strong>. Each is its own checkbox.
+  </p>
+
+  {% include 'members/_access_action_table.html' %}
+
+  <div class="ac-save-bar glass-panel" style="position:static; margin-top:1rem;">
+    <span class="ac-save-hint">Done? Save so public pages use these rules.</span>
+    <button type="submit" class="btn-primary">Save visitor permissions</button>
+  </div>
+</form>
+{% endblock %}

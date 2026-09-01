@@ -1,0 +1,21 @@
+# SANDBOX ONLY — MyChurch community layer
+# Separate container / volume / host port from live myvinechurch.online (3308).
+# Never point this file at production MariaDB.
+
+services:
+  db:
+    image: mariadb:11.4
+    container_name: mychurch-sandbox-db
+    environment:
+      MARIADB_DATABASE: mychurch_sandbox
+      MARIADB_USER: churchuser
+      MARIADB_PASSWORD: ChurchPass2026!
+      MARIADB_ROOT_PASSWORD: RootPass2026!
+    volumes:
+      - mychurch_sandbox_data:/var/lib/mysql
+    ports:
+      - "3311:3306"
+    restart: unless-stopped
+
+volumes:
+  mychurch_sandbox_data:

@@ -1,0 +1,109 @@
+{% extends "pastoral/base_pastoral.html" %}
+{% block title %}Import Sermons{% endblock %}
+
+{% block pastoral_content %}
+<div style="padding:0.25rem 0 1.25rem; max-width:52rem; margin:0 auto;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.75rem; margin-bottom:1rem;">
+    <div>
+      <h1 style="color:var(--primary); margin:0 0 0.25rem;">
+        <i class="fa-solid fa-file-import" aria-hidden="true"></i> Upload / Import Sermons
+      </h1>
+      <p style="margin:0; opacity:0.75; font-size:0.9rem;">
+        Bring in sermons you already wrote (Word .docx, or plain .txt / .md).
+        We parse Introduction, Sermon Content, points, and Verses &amp; Notes so they’re podium-ready.
+      </p>
+    </div>
+    <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary">← Library</a>
+  </div>
+
+  <div class="glass-panel" style="padding:1.1rem 1.15rem;">
+    <form method="post" enctype="multipart/form-data" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="control-label" for="sermon-files">Sermon files <span style="color:#f87171;">*</span></label>
+        <input type="file" id="sermon-files" name="files" class="form-input" multiple
+               accept=".docx,.txt,.md,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+               required>
+        <p class="help-text" style="margin:0.4rem 0 0; font-size:0.8rem; opacity:0.7;">
+          Select one or many. Dates in the filename (e.g. <code>2025-09-19</code> or <code>2025_10_31</code>) become the service date.
+        </p>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="control-label" for="import-visibility">Visibility</label>
+        <select id="import-visibility" name="visibility" class="form-input">
+          <option value="private" selected>Private (only you)</option>
+          <option value="pastoral_group">Pastoral group</option>
+          <option value="collaborators">Collaborators</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0.65rem;">
+        <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:500; cursor:pointer;">
+          <input type="checkbox" name="open_first" value="1" checked style="width:auto; min-height:auto; margin-top:0.2rem;">
+          <span>Open the sermon editor after importing a single file</span>
+        </label>
+      </div>
+      <div class="form-group" style="margin-bottom:0.85rem;">
+        <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:500; cursor:pointer;">
+          <input type="checkbox" name="also_illustrations" value="1" style="width:auto; min-height:auto; margin-top:0.2rem;">
+          <span>Also save each section into Illustrations Library (optional)</span>
+        </label>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.1rem;">
+        <label class="control-label" style="display:block; margin-bottom:0.4rem;">How to structure the sermon</label>
+        <div style="display:flex; flex-direction:column; gap:0.45rem;">
+          <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer; font-weight:500;">
+            <input type="radio" name="parse_mode" value="rules" checked style="width:auto; min-height:auto; margin-top:0.2rem;">
+            <span>
+              <strong>Without AI (recommended)</strong> — keeps 100% of your wording; splits on headings / Point 1: / scripture lines
+            </span>
+          </label>
+          <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer; font-weight:500;">
+            <input type="radio" name="parse_mode" value="auto" style="width:auto; min-height:auto; margin-top:0.2rem;">
+            <span>
+              <strong>Auto</strong> — rules first; AI only suggests section breaks if the doc looks unstructured
+              (AI never rewrites your words)
+            </span>
+          </label>
+          <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer; font-weight:500;">
+            <input type="radio" name="parse_mode" value="ai" style="width:auto; min-height:auto; margin-top:0.2rem;">
+            <span>
+              <strong>AI section breaks</strong> — AI only marks where sections start/end, then we copy your original text
+              + detect Bible verses per section. If AI would drop content, we keep the full rules parse instead.
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:0.55rem;">
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-upload" aria-hidden="true"></i> Import sermons
+        </button>
+        <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="glass-panel" style="padding:1rem 1.15rem; margin-top:0.85rem; font-size:0.88rem; opacity:0.88;">
+    <strong style="color:var(--primary);">How MyVine structures a sermon</strong>
+    <ol style="margin:0.5rem 0 0; padding-left:1.2rem; line-height:1.55;">
+      <li><strong>Introduction</strong> — top only (opener / welcome)</li>
+      <li><strong>Section 1</strong> — starts at <em>Sermon Content</em> / first main point</li>
+      <li><strong>Section 2, 3, …</strong> — each additional point or story</li>
+      <li><strong>Application</strong> (optional) then <strong>Conclusion</strong> (optional)</li>
+      <li><strong>Verses and Notes / Notes &amp; References</strong> → the editor’s
+        <em>Notes &amp; References</em> box at the bottom (personal prep — not printed by default).
+        Not a podium section.</li>
+    </ol>
+    <p style="margin:0.65rem 0 0;">
+      Best Word layout: Title as Heading 1; Introduction / Sermon Content / Verses and Notes as Heading 2;
+      inside the body use <code>Point 1:</code>, <code>Point 2:</code>, etc.
+      AI mode only finds those breaks — it does not rewrite your words.
+      Full scripture dumps and research always land in <strong>Notes &amp; References</strong>.
+    </p>
+  </div>
+</div>
+{% endblock %}

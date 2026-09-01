@@ -1,0 +1,113 @@
+{% extends "communications/base_comm.html" %}
+{% block title %}Communications Hub{% endblock %}
+
+{% block comm_content %}
+<div class="glass-panel comm-hero">
+  <h1><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Communications &amp; Automation</h1>
+  <p>
+    Mass email/SMS campaigns <strong>plus</strong> an automation engine:
+    visitor welcome, new member series, prayer follow-up, volunteer onboarding,
+    giving reminders, and pastoral care drips — with opt-in respect and a full log.
+  </p>
+  <div class="comm-actions">
+    <a href="{{ url_for('communications.campaign_new') }}" class="btn btn-primary">
+      <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> New campaign
+    </a>
+    <a href="{{ url_for('communications.workflows_list') }}" class="btn btn-secondary">
+      <i class="fa-solid fa-route" aria-hidden="true"></i> Automation engine
+    </a>
+    <a href="{{ url_for('communications.workflow_new') }}" class="btn btn-secondary">
+      New workflow
+    </a>
+    <form method="post" action="{{ url_for('communications.run_scheduler') }}" style="margin:0;">
+      {% include 'partials/csrf_field.html' %}
+      <button type="submit" class="btn btn-secondary">Run due jobs now</button>
+    </form>
+  </div>
+</div>
+
+<div class="comm-stat-grid">
+  <div class="glass-panel comm-stat"><strong>{{ stats.campaigns }}</strong><span>Campaigns</span></div>
+  <div class="glass-panel comm-stat"><strong>{{ stats.campaigns_sent }}</strong><span>Sent campaigns</span></div>
+  <div class="glass-panel comm-stat"><strong>{{ stats.workflows_active }}</strong><span>Active workflows</span></div>
+  <div class="glass-panel comm-stat"><strong>{{ stats.enrollments_active }}</strong><span>Active enrollments</span></div>
+  <div class="glass-panel comm-stat"><strong>{{ stats.messages_7d }}</strong><span>Messages (7d)</span></div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;">
+  <div class="glass-panel" style="padding:1rem;">
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Recent campaigns</h2>
+    {% if campaigns %}
+    <ul style="list-style:none; margin:0; padding:0;">
+      {% for c in campaigns[:8] %}
+      <li style="padding:0.45rem 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:0.9rem;">
+        <a href="{{ url_for('communications.campaign_detail', campaign_id=c.id) }}">{{ c.title }}</a>
+        <span class="comm-pill comm-pill--{{ c.channel }}">{{ c.channel }}</span>
+        <span class="comm-pill comm-pill--{{ c.status }}">{{ c.status }}</span>
+        {% if c.sent_count %}<span style="opacity:0.65;"> · {{ c.sent_count }} sent</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="opacity:0.7; margin:0;">No campaigns yet — create a mass email or SMS blast.</p>
+    {% endif %}
+  </div>
+
+  <div class="glass-panel" style="padding:1rem;">
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Automation workflows</h2>
+    {% if workflows %}
+    <ul style="list-style:none; margin:0; padding:0;">
+      {% for w in workflows[:8] %}
+      <li style="padding:0.45rem 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:0.9rem;">
+        <a href="{{ url_for('communications.workflow_detail', workflow_id=w.id) }}">{{ w.name }}</a>
+        <span class="comm-pill comm-pill--{{ w.status }}">{{ w.status }}</span>
+        <span style="opacity:0.65;"> · {{ w.trigger_type }} · {{ w.step_count or 0 }} steps · {{ w.active_enrollments or 0 }} active</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="opacity:0.7; margin:0;">
+      Install starter templates for visitors, prayer, volunteers, giving, and care follow-ups.
+      <a href="{{ url_for('communications.workflows_list') }}">Open automation engine</a>
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-top:1rem;">
+  <h2 style="margin:0 0 0.5rem; font-size:1rem;">SMS status</h2>
+  {% set sms = stats.sms or {} %}
+  <p style="margin:0; font-size:0.9rem; opacity:0.85;">
+    {% if sms.test_mode %}
+    <strong>Test mode ON</strong> — SMS is logged, not billed. Perfect for dry-runs.
+    {% elif sms.enabled and sms.has_token %}
+    Live Twilio sending enabled from <code>{{ sms.from_number or '—' }}</code>.
+    {% else %}
+    SMS not fully configured. <a href="{{ url_for('communications.sms_settings') }}">Set up Twilio</a>
+    (or keep test mode while you practice).
+    {% endif %}
+  </p>
+</div>
+
+{% if message_log %}
+<div class="glass-panel" style="padding:1rem; margin-top:1rem;">
+  <h2 style="margin:0 0 0.5rem; font-size:1rem;">Latest delivery log</h2>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>When</th><th>Channel</th><th>To</th><th>Status</th><th>Source</th></tr></thead>
+      <tbody>
+        {% for r in message_log %}
+        <tr>
+          <td style="white-space:nowrap; font-size:0.82rem;">{{ r.created_at }}</td>
+          <td>{{ r.channel }}</td>
+          <td style="font-size:0.85rem;">{{ r.to_address }}</td>
+          <td><code>{{ r.status }}</code></td>
+          <td>{{ r.source }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

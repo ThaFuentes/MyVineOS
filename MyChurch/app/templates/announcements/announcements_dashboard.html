@@ -1,0 +1,51 @@
+{% extends "announcements/base_announcements.html" %}
+
+{% block announcements_content %}
+{% set page_heading = 'Announcements' %}
+{% if user_has_permission('create_announcements') %}
+  {% set page_action_url = url_for('announcements.create_announcement') %}
+  {% set page_action_label = 'Post one' %}
+{% endif %}
+{% include 'partials/page_hero.html' %}
+
+<div class="member-feed">
+  {% if announcements_list %}
+    {% for ann in announcements_list %}
+    <article class="glass-panel member-post">
+      <a class="member-post-hit" href="{{ url_for('announcements.view_announcement', ann_id=ann.id) }}">
+        <h2>{{ ann.title }}</h2>
+        <p class="member-post-meta">
+          {{ ann.creator_name or 'Church' }}
+          {% if ann.formatted_date %} · {{ ann.formatted_date }}{% endif %}
+        </p>
+        {% if ann.content %}
+        <p class="member-post-body">{{ ann.content | truncate(220) }}</p>
+        {% endif %}
+        {% if ann.comment_count %}
+        <p class="member-post-foot">{{ ann.comment_count }} comment{{ 's' if ann.comment_count != 1 else '' }}</p>
+        {% endif %}
+      </a>
+      {% if can_manage %}
+      <div class="entity-actions">
+        <a href="{{ url_for('announcements.edit_announcement', ann_id=ann.id) }}" class="btn-secondary btn-small">Edit</a>
+        <form action="{{ url_for('announcements.delete_announcement', ann_id=ann.id) }}" method="post" class="inline-form">
+          {% include 'partials/csrf_field.html' %}
+          <button type="submit" class="btn-danger btn-small"
+                  onclick="return confirm('Delete this announcement?');">Delete</button>
+        </form>
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  {% else %}
+    <div class="glass-panel empty-state">
+      Nothing posted yet.
+      {% if user_has_permission('create_announcements') %}
+      <div style="margin-top:0.75rem;">
+        <a href="{{ url_for('announcements.create_announcement') }}" class="btn btn-primary">Post the first one</a>
+      </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

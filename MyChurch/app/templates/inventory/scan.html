@@ -1,0 +1,59 @@
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<section class="content-section">
+    <h2 class="section-title">Barcode Lookup</h2>
+    <p class="help-text">Enter a UPC/EAN to find a catalog item. Camera scanning can be added later.</p>
+
+    <div class="styled-form" style="max-width:480px;">
+        <div class="form-group">
+            <label for="scan-code">Barcode</label>
+            <input type="text" id="scan-code" class="form-input" placeholder="Scan or type barcode" autocomplete="off">
+        </div>
+        <div class="form-actions">
+            <button type="button" id="scan-lookup-btn" class="btn-primary">Look up</button>
+            <a href="{{ url_for('inventory.item_manage') }}" class="btn-secondary">Add item</a>
+        </div>
+        <div id="scan-result" class="glass-panel" style="margin-top:1rem; display:none;"></div>
+    </div>
+</section>
+
+<script>
+(function () {
+  const input = document.getElementById('scan-code');
+  const btn = document.getElementById('scan-lookup-btn');
+  const out = document.getElementById('scan-result');
+  const url = {{ url_for('inventory.barcode_lookup')|tojson }};
+
+  async function lookup() {
+    const code = (input.value || '').trim();
+    if (!code) return;
+    out.style.display = 'block';
+    out.textContent = 'Looking up…';
+    try {
+      const resp = await fetch(url + '?code=' + encodeURIComponent(code), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
+      });
+      const data = await resp.json();
+      if (data.source === 'local' && data.item) {
+        const it = data.item;
+        out.innerHTML = '<strong>Found (local):</strong> ' +
+          (it.name || 'Item') +
+          (it.id ? ' — <a href="/inventory/items/edit/' + it.id + '">Edit</a>' : '');
+      } else if (data.source && data.source !== 'none') {
+        out.textContent = 'External: ' + JSON.stringify(data);
+      } else {
+        out.textContent = 'Not found in catalog.';
+      }
+    } catch (e) {
+      out.textContent = 'Lookup failed.';
+    }
+  }
+
+  btn?.addEventListener('click', lookup);
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); lookup(); }
+  });
+})();
+</script>
+{% endblock %}

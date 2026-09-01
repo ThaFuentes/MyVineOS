@@ -1,0 +1,53 @@
+<div class="form-group">
+    <label for="cost_fees" class="control-label">Cost / Fees (optional)</label>
+    <input type="number" id="cost_fees" name="cost_fees" class="form-input" step="0.01" min="0"
+           value="{{ cost_value }}" placeholder="0.00">
+    <p class="help-text">If this has a price, people see Pay with Stripe / PayPal / etc. on the event page. Paid fees post as Event Income, not tithes.</p>
+</div>
+
+<div class="form-group">
+    <label>
+        <input type="checkbox" name="payment_required" {% if payment_required %}checked{% endif %}>
+        Require payment to register
+    </label>
+</div>
+
+<div class="form-group">
+    <label for="payment_url" class="control-label">This event’s Stripe / PayPal link</label>
+    <input type="url" id="payment_url" name="payment_url" class="form-input"
+           value="{{ payment_url }}" placeholder="https://buy.stripe.com/...">
+    <p class="help-text">Paste a Stripe Payment Link, PayPal.me, Tithe.ly event link, or any checkout URL just for this event.</p>
+</div>
+
+{% if giving_options %}
+<div class="form-group">
+    <label class="control-label">Also accept these church giving methods</label>
+    <p class="help-text">From Settings → Online Giving. Leave all unchecked to offer every enabled method.</p>
+    {% set selected = (payment_option_ids or '')|string %}
+    {% set none_on = selected == '0' %}
+    {% set all_on = not selected %}
+    {% for opt in giving_options %}
+    <label style="display:flex; gap:0.45rem; align-items:center; font-weight:500; margin:0.25rem 0;">
+        <input type="checkbox" name="payment_option_ids" value="{{ opt.id }}"
+               {% if all_on or (not none_on and (opt.id|string) in selected.split(',')) %}checked{% endif %}>
+        {{ opt.name }}{% if opt.option_type %} ({{ opt.option_type }}){% endif %}
+        {% if opt.url %}<span class="help-text" style="margin:0;"> — link set</span>{% endif %}
+    </label>
+    {% endfor %}
+</div>
+{% else %}
+<p class="help-text">No church-wide Stripe/PayPal options yet. Add them in
+  <a href="{{ url_for('settings.online_giving') }}">Settings → Online Giving</a>, or paste a link above.</p>
+{% endif %}
+
+<div class="form-group">
+    <label for="payment_note" class="control-label">Payment note (optional)</label>
+    <input type="text" id="payment_note" name="payment_note" class="form-input"
+           value="{{ payment_note }}" placeholder="Put the event name in the Stripe memo">
+</div>
+
+<div class="form-group">
+    <label for="capacity" class="control-label">Capacity (optional)</label>
+    <input type="number" id="capacity" name="capacity" class="form-input" min="1"
+           value="{{ capacity }}" placeholder="Leave blank for no limit">
+</div>

@@ -1,0 +1,32 @@
+{% extends "base.html" if session.get('user_id') else "base_public.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/legal/legal.css') }}?v=20260709">
+{% block legal_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">{% block page_title %}Legal & Policies{% endblock %}</h1>
+<p class="page-description">{% block page_description %}Church policies, community guidelines, and legal notices.{% endblock %}</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<nav class="legal-nav" aria-label="Legal sections">
+    <a href="{{ url_for('legal.legal_index') }}"
+       class="legal-nav-link {{ 'active' if request.endpoint == 'legal.legal_index' else '' }}">All Policies</a>
+    {% if can_manage|default(user_has_permission('manage_legal_notices')) %}
+    <a href="{{ url_for('legal.manage_list') }}"
+       class="legal-nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('legal.manage') or request.endpoint in ['legal.create_notice', 'legal.edit_notice'] else '' }}">Manage</a>
+    {% endif %}
+</nav>
+
+{% block legal_content %}{% endblock %}
+{% endblock %}

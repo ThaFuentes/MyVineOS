@@ -1,0 +1,22 @@
+{% extends "volunteers/base_vol.html" %}
+{% block title %}Volunteer Teams{% endblock %}
+
+{% block vol_content %}
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+  <h1 class="page-title" style="margin:0;">Teams</h1>
+  <a href="{{ url_for('volunteers.team_new') }}" class="btn btn-primary">New team</a>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:0.75rem;">
+  {% for t in teams %}
+  <a href="{{ url_for('volunteers.team_detail', team_id=t.id) }}" class="glass-panel" style="padding:1rem; text-decoration:none; color:inherit; border-left:4px solid {{ t.color }};">
+    <strong>{{ t.name }}</strong>
+    {% if not t.active %}<span style="opacity:0.5;"> (inactive)</span>{% endif %}
+    <div style="font-size:0.85rem; opacity:0.75; margin-top:0.35rem;">
+      {{ t.role_count or 0 }} roles · {{ t.member_count or 0 }} people
+    </div>
+    {% if t.description %}<p style="margin:0.4rem 0 0; font-size:0.85rem; opacity:0.7;">{{ t.description[:100] }}</p>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

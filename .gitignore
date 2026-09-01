@@ -181,3 +181,6 @@ project_structure.txt
 NOTES.local.md
 TODO.local.md
 scratch/
+
+# Community-layer sandbox is tracked on branch social-media (MyChurch/).
+# Secrets, venv, uploads, and runtime junk are ignored by MyChurch/.gitignore.

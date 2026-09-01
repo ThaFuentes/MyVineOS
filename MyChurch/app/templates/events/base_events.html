@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+{% block events_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<nav class="mod-subnav" aria-label="Events">
+  <a href="{{ url_for('events.events') }}"
+     class="{% if request.endpoint == 'events.events' %}is-active{% endif %}">Events</a>
+  {% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
+  <a href="{{ url_for('events.add_event') }}"
+     class="{% if request.endpoint in ['events.add_event', 'events.edit_event'] %}is-active{% endif %}">Add event</a>
+  {% endif %}
+</nav>
+
+{% if request.endpoint != 'events.events' %}
+<h1 class="page-title">{% block page_title %}Events{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+{% else %}
+{% block events_list_title %}{% endblock %}
+{% endif %}
+
+{% block events_content %}{% endblock %}
+{% endblock %}

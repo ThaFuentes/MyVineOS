@@ -1,0 +1,73 @@
+{% extends "attendance/base_attendance.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/attendance_reports.css') }}?v=20260715rep1">
+{% endblock %}
+
+{% block attendance_content %}
+<div class="att-rep">
+  <p style="margin:0 0 0.85rem;">
+    <a href="{{ url_for('attendance.attendance_reports', range='custom', start=date, end=date, grain='day') }}"
+       class="btn btn-secondary" style="min-height:auto;padding:0.4rem 0.8rem;">← Reports</a>
+    <a href="{{ url_for('attendance.attendance_dashboard') }}"
+       class="btn btn-secondary" style="min-height:auto;padding:0.4rem 0.8rem;">Dashboard</a>
+  </p>
+
+  <div class="glass-panel att-rep-hero">
+    <h1 style="margin:0 0 0.35rem; font-size:1.35rem;">{{ nice_date }}</h1>
+    <p style="margin:0; opacity:0.78;">Day roster and surrounding week / month context.</p>
+  </div>
+
+  <div class="att-dash-kpis">
+    <div class="glass-panel att-dash-kpi">
+      <strong>{{ count }}</strong>
+      <span>Checked in today</span>
+    </div>
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='custom', start=week_start, end=week_end, grain='day') }}">
+        <strong>{{ week_summary.total_checkins }}</strong>
+        <span>This week</span>
+      </a>
+    </div>
+    <div class="glass-panel att-dash-kpi">
+      <a href="{{ url_for('attendance.attendance_reports', range='custom', start=month_start, end=month_end, grain='day') }}">
+        <strong>{{ month_summary.total_checkins }}</strong>
+        <span>This month</span>
+      </a>
+    </div>
+    <div class="glass-panel att-dash-kpi">
+      <strong>{{ week_summary.unique_people }}</strong>
+      <span>Unique this week</span>
+    </div>
+  </div>
+
+  <div class="glass-panel att-panel">
+    <h2>Roster</h2>
+    <p class="panel-lead">{{ count }} member{{ 's' if count != 1 else '' }} checked in on this date.</p>
+    {% if attendees %}
+    <div class="att-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Username</th>
+            <th>Check-in time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for att in attendees %}
+          <tr>
+            <td>{{ att.first_name }} {{ att.last_name }}</td>
+            <td>{{ att.username or '—' }}</td>
+            <td>{{ att.check_in_time }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="no-data" style="margin:0;">No check-ins recorded for this date.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

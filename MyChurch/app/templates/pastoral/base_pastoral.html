@@ -1,0 +1,118 @@
+{# app/templates/pastoral/base_pastoral.html
+   Pastoral shell shares site-wide theme + Display prefs (same account settings as main app).
+#}
+{% set s = g.settings if g.get('settings') else {} %}
+{% set user_theme = session.get('user_theme') or 'cyan-glow' %}
+{% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
+{% set bible_font_scale = session.get('bible_font_scale') or 'md' %}
+<!DOCTYPE html>
+<html lang="en"
+      data-theme="{{ user_theme }}"
+      data-font-scale="{{ ui_font_scale }}"
+      data-bible-scale="{{ bible_font_scale }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="{% if user_theme == 'soft-light' %}#f4f7fb{% elif user_theme == 'tropical' %}#0a3d38{% else %}#0a0a0a{% endif %}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="{% if user_theme == 'soft-light' %}default{% else %}black-translucent{% endif %}">
+  <meta name="apple-mobile-web-app-title" content="Pastoral">
+  <meta name="mobile-web-app-capable" content="yes">
+  {% include 'partials/security_scripts.html' %}
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
+  <title>{% block title %}Pastoral Command Center{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
+
+  <!-- Same theme stack as main site -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260901rail2">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/base_pastoral.css') }}?v=20260716nav1">
+
+  <style>
+    :root {
+      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
+    }
+    body {
+      background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
+      background-size: cover;
+      background-attachment: fixed;
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-main);
+      color: var(--text-primary, #e0e0e0);
+      overflow-x: hidden;
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="pastoral-shell">
+
+  <header class="top-bar pastoral-top-bar">
+    <div class="church-name">Pastoral</div>
+    <div class="user-info">
+      {% include 'partials/display_prefs.html' %}
+
+      <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="btn btn-secondary pn-btn pn-dash" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Dashboard"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.planning.index') }}" class="btn btn-secondary pn-btn pn-plan" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Planning"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.sermons.list') }}" class="btn btn-secondary pn-btn pn-sermons" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Sermons"><i class="fa-solid fa-book-open" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.podium.index') }}" class="btn btn-secondary pn-btn pn-podium" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Podium"><i class="fa-solid fa-microphone" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary pn-btn pn-care" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Care"><i class="fa-solid fa-heart" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-secondary pn-btn pn-illustrations" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Illustrations"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></a>
+      <a href="{{ url_for('pastoral.bible.bible_study') }}" class="btn btn-secondary pn-btn pn-bible" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Bible"><i class="fa-solid fa-scroll" aria-hidden="true"></i></a>
+      {% if session.get('user_role') in ['Admin', 'Owner'] %}
+      <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="btn btn-secondary pn-btn pn-upload" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Bible translations"><i class="fa-solid fa-download" aria-hidden="true"></i></a>
+      {% endif %}
+      <a href="{{ url_for('church.church_home') }}" class="btn btn-secondary pn-btn pn-main" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Church home"><i class="fa-solid fa-house" aria-hidden="true"></i></a>
+    </div>
+  </header>
+
+  <div class="page-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block pastoral_content %}{% endblock %}
+  </div>
+
+  <nav class="bottom-nav" aria-label="Pastoral mobile nav">
+    <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="pn-dash {{ 'active' if request.endpoint == 'pastoral.dashboard_pastoral' else '' }}">
+      <span class="icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>
+      <span class="label">Dash</span>
+    </a>
+    <a href="{{ url_for('pastoral.planning.index') }}" class="pn-plan {{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.planning') else '' }}">
+      <span class="icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span>
+      <span class="label">Plan</span>
+    </a>
+    <a href="{{ url_for('pastoral.sermons.list') }}" class="pn-sermons {{ 'active' if request.endpoint and (request.endpoint.startswith('pastoral.sermons') or request.endpoint.startswith('pastoral.podium')) else '' }}">
+      <span class="icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
+      <span class="label">Sermons</span>
+    </a>
+    <a href="{{ url_for('pastoral.podium.index') }}" class="pn-podium {{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.podium') else '' }}">
+      <span class="icon"><i class="fa-solid fa-microphone" aria-hidden="true"></i></span>
+      <span class="label">Podium</span>
+    </a>
+    <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="pn-care {{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.care') else '' }}">
+      <span class="icon"><i class="fa-solid fa-heart" aria-hidden="true"></i></span>
+      <span class="label">Care</span>
+    </a>
+    <a href="{{ url_for('pastoral.illustrations.library') }}" class="pn-illustrations {{ 'active' if request.endpoint and request.endpoint.startswith('pastoral.illustrations') else '' }}">
+      <span class="icon"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></span>
+      <span class="label">Illustrations</span>
+    </a>
+  </nav>
+
+  <script src="{{ url_for('static', filename='js/app-shell.js') }}"></script>
+  {% if session.get('user_id') %}
+  <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260715theme"></script>
+  {% endif %}
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
