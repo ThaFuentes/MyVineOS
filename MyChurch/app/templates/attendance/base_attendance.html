@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+{% endblock %}
+
+{% block content %}
+<div class="att-mod">
+  <h1 class="page-title">Attendance</h1>
+  <p class="page-description">
+    Check-ins, kiosk sessions, and full historical reporting — day through multi-year.
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <nav class="settings-nav att-subnav" aria-label="Attendance sections">
+    <a href="{{ url_for('attendance.attendance_dashboard') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'attendance.attendance_dashboard' else '' }}">Dashboard</a>
+    <a href="{{ url_for('attendance.attendance_reports') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint in ['attendance.attendance_reports', 'attendance.attendance_export_csv'] or (request.endpoint == 'attendance.day_detail') else '' }}">
+      <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Reports
+    </a>
+    <a href="{{ url_for('attendance.open_kiosk') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'attendance.open_kiosk' else '' }}">Open kiosk</a>
+    {% if 'attendance.kiosk_sessions' in (request.endpoint or '') or true %}
+    <a href="{{ url_for('attendance.kiosk_sessions') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'attendance.kiosk_sessions' else '' }}">Sessions</a>
+    {% endif %}
+  </nav>
+
+  {% block attendance_content %}{% endblock %}
+</div>
+{% endblock %}

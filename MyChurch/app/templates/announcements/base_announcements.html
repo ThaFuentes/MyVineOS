@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+{% block announcements_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+{% if request.endpoint != 'announcements.announcements' %}
+<p class="help-text" style="margin:0 0 0.75rem;">
+  <a href="{{ url_for('announcements.announcements') }}">← Announcements</a>
+</p>
+<h1 class="page-title">{% block page_title %}Announcements{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+{% endif %}
+
+{% block announcements_content %}{% endblock %}
+{% endblock %}

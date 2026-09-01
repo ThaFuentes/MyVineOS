@@ -1,0 +1,63 @@
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<div class="glass-panel inv-hero">
+  <h1>Categories &amp; locations</h1>
+  <p>
+    Organize the catalog by ministry need, and store stock in real places
+    (closets, kitchen, AV booth). Defaults seed on a fresh database.
+  </p>
+</div>
+
+<div class="inv-two-col">
+  <div class="glass-panel inv-panel" style="margin-bottom:0;">
+    <h2>Categories</h2>
+    <p class="lead">Used when creating catalog items.</p>
+    <ul style="margin:0 0 1.15rem; padding-left:1.2rem; line-height:1.7;">
+      {% for c in categories %}
+      <li>{{ c.name }}</li>
+      {% else %}
+      <li style="opacity:0.7;">None yet — add one below.</li>
+      {% endfor %}
+    </ul>
+    <form method="POST" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="action" value="add_category">
+      <label>New category name *
+        <input type="text" name="cat_name" class="form-input" required placeholder="e.g. Communion supplies">
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Add category</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="glass-panel inv-panel" style="margin-bottom:0;">
+    <h2>Storage locations</h2>
+    <p class="lead">Where batches live for receive, transfer, and FIFO use.</p>
+    <ul style="margin:0 0 1.15rem; padding-left:1.2rem; line-height:1.7;">
+      {% for loc in locations %}
+      <li>
+        {{ loc.name }}
+        {% if loc.building_area %}<span style="opacity:0.65;"> · {{ loc.building_area }}</span>{% endif %}
+      </li>
+      {% else %}
+      <li style="opacity:0.7;">None yet — add one below.</li>
+      {% endfor %}
+    </ul>
+    <form method="POST" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="action" value="add_location">
+      <label>New location name *
+        <input type="text" name="loc_name" class="form-input" required placeholder="e.g. Main storage">
+      </label>
+      <label>Building / area
+        <input type="text" name="building_area" class="form-input" placeholder="Kitchen, Sanctuary…">
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Add location</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

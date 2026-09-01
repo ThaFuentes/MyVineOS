@@ -1,0 +1,112 @@
+{# Pinboard: existing stuff + one Photo / Link add. No per-type admin forms. #}
+<section class="glass-panel profile-manage" data-add-to-page>
+  <h2 class="section-title">On the page</h2>
+
+  {% if photos %}
+  <div class="profile-gallery">
+    {% for p in photos %}
+    <figure>
+      <img src="{{ p.url }}" alt="{{ p.caption or 'Photo' }}">
+      <form method="post" action="{{ url_for('church.page_item_delete') }}" class="profile-remove">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="scope" value="{{ manage_scope }}">
+        <input type="hidden" name="kind" value="photo">
+        <input type="hidden" name="item_id" value="{{ p.id }}">
+        {% if campus %}<input type="hidden" name="campus_id" value="{{ campus.id }}">{% endif %}
+        <button type="submit" class="profile-x" aria-label="Remove">×</button>
+      </form>
+    </figure>
+    {% endfor %}
+    {% if allow_photos|default(true) %}
+    <label class="profile-plus" title="Add a photo">
+      <input type="file" name="photo_quick" accept="image/*" hidden data-photo-auto>
+      <span>+</span>
+    </label>
+    {% endif %}
+  </div>
+  {% elif allow_photos|default(true) %}
+  <label class="profile-plus profile-plus-wide" title="Add a photo">
+    <input type="file" name="photo_quick" accept="image/*" hidden data-photo-auto>
+    <span>+ Photo</span>
+  </label>
+  {% endif %}
+
+  {% if links %}
+  <ul class="profile-link-list profile-link-edit">
+    {% for item in links %}
+    <li>
+      <span class="feed-type-pill" data-type="{{ item.kind }}">{{ item.kind }}</span>
+      {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+      {% else %}{{ item.title }}{% endif %}
+      <form method="post" action="{{ url_for('church.page_item_delete') }}" class="profile-remove">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="scope" value="{{ manage_scope }}">
+        <input type="hidden" name="kind" value="link">
+        <input type="hidden" name="item_id" value="{{ item.id }}">
+        {% if campus %}<input type="hidden" name="campus_id" value="{{ campus.id }}">{% endif %}
+        <button type="submit" class="profile-x" aria-label="Remove">×</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('church.page_item_add') }}" class="profile-link-add" data-link-form>
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="scope" value="{{ manage_scope }}">
+    <input type="hidden" name="item_type" value="website" data-link-kind>
+    {% if campus %}<input type="hidden" name="campus_id" value="{{ campus.id }}">{% endif %}
+    <div class="profile-tag-row" role="group" aria-label="Tag">
+      {% for tag, label in [('prayer','Prayer'),('sermon','Sermon'),('book','Book'),('dream','Dream'),('prophecy','Prophecy'),('event','Event'),('blog','Blog'),('website','Link')] %}
+      <button type="button" class="profile-tag{% if tag=='website' %} is-on{% endif %}" data-tag="{{ tag }}">{{ label }}</button>
+      {% endfor %}
+    </div>
+    <input type="url" name="url" class="form-input" placeholder="Paste a link" required>
+    <input type="text" name="title" class="form-input" maxlength="255" placeholder="Name (optional)">
+    <button type="submit" class="btn btn-primary">Add</button>
+  </form>
+</section>
+
+<form method="post" action="{{ url_for('church.page_item_add') }}" enctype="multipart/form-data" hidden data-photo-form>
+  {% include 'partials/csrf_field.html' %}
+  <input type="hidden" name="scope" value="{{ manage_scope }}">
+  <input type="hidden" name="item_type" value="photo">
+  {% if campus %}<input type="hidden" name="campus_id" value="{{ campus.id }}">{% endif %}
+  <input type="file" name="photo" accept="image/*" data-photo-slot>
+</form>
+
+<script>
+(function () {
+  var root = document.querySelector('[data-add-to-page]');
+  if (!root) return;
+  var auto = root.querySelectorAll('[data-photo-auto]');
+  var photoForm = document.querySelector('[data-photo-form]');
+  var slot = photoForm && photoForm.querySelector('[data-photo-slot]');
+  auto.forEach(function (inp) {
+    inp.addEventListener('change', function () {
+      if (!inp.files || !inp.files[0] || !slot) return;
+      var dt = new DataTransfer();
+      dt.items.add(inp.files[0]);
+      slot.files = dt.files;
+      photoForm.submit();
+    });
+  });
+  var linkForm = root.querySelector('[data-link-form]');
+  if (linkForm) {
+    var kind = linkForm.querySelector('[data-link-kind]');
+    var url = linkForm.querySelector('input[name="url"]');
+    var title = linkForm.querySelector('input[name="title"]');
+    root.querySelectorAll('[data-tag]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        kind.value = btn.getAttribute('data-tag');
+        root.querySelectorAll('[data-tag]').forEach(function (b) { b.classList.toggle('is-on', b === btn); });
+      });
+    });
+    linkForm.addEventListener('submit', function () {
+      if (!title.value.trim() && url.value) {
+        try { title.value = new URL(url.value).hostname.replace(/^www\./, ''); } catch (e) {}
+      }
+    });
+  }
+})();
+</script>

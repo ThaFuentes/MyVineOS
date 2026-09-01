@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Moderation review{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=30">
+{% endblock %}
+
+{% block content %}
+<div class="church-page">
+  <header class="feed-page-head">
+    <div>
+      <p class="page-kicker">Oversight</p>
+      <h1 class="page-title">Moderation review</h1>
+      <p class="page-description">What site mods hid, shadowed, warned, or removed — plus Admin/Owner account actions. Reverse puts the original back. Looks good closes it.</p>
+    </div>
+    <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+      {% if can_moderate %}
+      <a class="btn btn-secondary" href="/church/moderation">Mod desk</a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('church.church_home') }}">Church home</a>
+    </div>
+  </header>
+
+  <nav class="profile-mobile-tabs" aria-label="Filter" style="display:flex; margin-bottom:1rem;">
+    {% for key, label in [('active','Open'), ('upheld','Looks good'), ('reversed','Reversed'), ('all','All')] %}
+    <a class="btn btn-sm {{ 'btn-primary' if status_filter == key else 'btn-secondary' }}" href="/church/moderation/review?status={{ key }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if rows %}
+  <ul class="profile-serving-list">
+    {% for a in rows %}
+    <li class="glass-panel profile-serving-row" style="margin-bottom:0.45rem;">
+      <div>
+        <strong>{{ a.label }}</strong>
+        <span>
+          by {{ a.actor_name or a.actor_username or ('user #' ~ a.actor_id) }}
+          {% if a.target_username %} · on @{{ a.target_username }}{% endif %}
+          · {{ a.created_at }}
+          · {{ a.status }}
+        </span>
+        {% if a.preview %}<span>{{ a.preview }}</span>{% endif %}
+        {% if a.reason %}<span>{{ a.reason }}</span>{% endif %}
+        {% if a.reverse_note %}<span>Reversal note: {{ a.reverse_note }}</span>{% endif %}
+      </div>
+      {% if a.can_reverse %}
+      <div class="profile-serving-actions">
+        <form method="post">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action_id" value="{{ a.id }}">
+          <input class="form-input" name="note" placeholder="Optional note" style="max-width:10rem;">
+          <button class="btn btn-primary btn-sm" name="decision" value="reverse">Reverse</button>
+          <button class="btn btn-secondary btn-sm" name="decision" value="uphold">Looks good</button>
+        </form>
+      </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="profile-muted">Nothing in this list.</p>
+  {% endif %}
+</div>
+{% endblock %}

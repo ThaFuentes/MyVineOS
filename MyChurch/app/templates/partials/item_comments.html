@@ -1,0 +1,26 @@
+{# Inline comments + reply. Guests can reply on church/community surfaces, not member pages. #}
+{% if item.comments %}
+<ul class="wall-replies">
+  {% for c in item.comments[:4] %}
+  <li><strong>{{ (c.name or c.contributor_name or 'Member') | censor }}</strong> {{ (c.comment or c.prayer or c.body) | censor }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if item.id and item.type in ('prayer','announcement','event','sermon','dream','prophecy','photo') %}
+  {% if guest_can_comment or session.get('user_id') %}
+  <form method="post" action="{{ url_for('compose.compose_reply') }}" class="wall-reply">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="content_type" value="{{ item.type }}">
+    <input type="hidden" name="parent_id" value="{{ item.id }}">
+    <input type="hidden" name="surface" value="{{ wall_surface|default('community') }}">
+    <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+    {% if not session.get('user_id') %}
+    <input type="text" name="name" placeholder="Your name" required>
+    {% endif %}
+    <input type="text" name="body" placeholder="Reply…" required>
+    <button type="submit" class="btn btn-primary">Reply</button>
+  </form>
+  {% elif not session.get('user_id') %}
+  <p class="compose-hint">Guests reply in <a href="{{ url_for('public.public_dashboard.public_community') }}">Community</a>.</p>
+  {% endif %}
+{% endif %}

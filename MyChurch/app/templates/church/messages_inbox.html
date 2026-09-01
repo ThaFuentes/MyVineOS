@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Notes{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=27">
+{% endblock %}
+{% block content %}
+<div class="mail-shell">
+  <header class="mail-head">
+    <p class="profile-kicker">Private</p>
+    <h1 class="page-title">Notes</h1>
+    <p class="page-description">
+      One-to-one, group (they have to accept), or open notes anyone in this church can join.
+      Locked on this server — the text is never emailed. You can get a ping or an optional “someone replied” email.
+    </p>
+    <p class="mail-push-row">
+      <button type="button" class="btn btn-secondary" id="note-push-btn" hidden>Turn on phone alerts</button>
+      <span class="profile-muted" id="note-push-status"></span>
+      <a class="profile-quiet-link" href="{{ url_for('profile.security') }}">Email alerts</a>
+    </p>
+  </header>
+
+  {% if invites %}
+  <section class="mail-section">
+    <h2 class="profile-card-title">Invites waiting</h2>
+    <ul class="mail-inbox">
+      {% for inv in invites %}
+      <li class="mail-invite glass-panel">
+        <div>
+          <strong>{{ inv.title }}</strong>
+          <span class="mail-kicker">{{ inv.host_name }} invited you · {{ inv.when_label }}</span>
+        </div>
+        <div class="mail-invite-actions">
+          <form method="post" action="{{ url_for('church.notes_accept', thread_id=inv.id) }}">
+            {% include 'partials/csrf_field.html' %}
+            <button class="profile-me-btn" type="submit">Join</button>
+          </form>
+          <form method="post" action="{{ url_for('church.notes_decline', thread_id=inv.id) }}">
+            {% include 'partials/csrf_field.html' %}
+            <button class="profile-me-btn profile-me-btn-quiet" type="submit">No thanks</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if threads %}
+  <ul class="mail-inbox">
+    {% for t in threads %}
+    <li>
+      <a class="mail-row{% if t.unread %} is-unread{% endif %}{% if t.is_church %} is-church{% endif %}{% if t.is_room %} is-room{% endif %}{% if t.is_open %} is-open{% endif %}"
+         href="{{ url_for('church.messages_thread', thread_id=t.id) }}">
+        <span class="mail-avatar" aria-hidden="true">
+          {% if t.pic_url %}<img src="{{ t.pic_url }}" alt="">{% else %}{{ t.initials }}{% endif %}
+        </span>
+        <span class="mail-copy">
+          <span class="mail-row-top">
+            <strong>{{ t.other_name }}</strong>
+            <time>{{ t.when_label or '' }}</time>
+          </span>
+          {% if t.kicker %}<span class="mail-kicker">{{ t.kicker }}</span>{% endif %}
+          <span class="mail-preview">{% if t.preview_from_me %}You: {% endif %}{{ t.preview }}</span>
+        </span>
+        {% if t.unread %}<span class="mail-dot" aria-label="Unread"></span>{% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="glass-panel mail-empty">
+    <p>No notes yet. Open someone’s page, start a group, or join an open note.</p>
+  </div>
+  {% endif %}
+
+  <section class="glass-panel mail-create">
+    <h2 class="profile-card-title">Start a note</h2>
+    <form method="post" action="{{ url_for('church.notes_new') }}" class="styled-form">
+      {% include 'partials/csrf_field.html' %}
+      <label class="profile-field-label" for="note-title">Name</label>
+      <input id="note-title" name="title" class="form-input" required maxlength="160" placeholder="Prayer circle, parking crew…">
+      <fieldset class="mail-join-type">
+        <label><input type="radio" name="join" value="invite" checked> Group — invited people have to accept</label>
+        <label><input type="radio" name="join" value="open"> Open — anyone in this church can join</label>
+      </fieldset>
+      {% if people %}
+      <p class="profile-field-label">Invite (optional)</p>
+      <div class="mail-people-pick">
+        {% for p in people %}
+        <label>
+          <input type="checkbox" name="user_ids" value="{{ p.id }}">
+          {{ p.display_name }}
+        </label>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <button class="profile-me-btn" type="submit">Start note</button>
+    </form>
+  </section>
+
+  {% if open_rooms %}
+  <section class="mail-section">
+    <h2 class="profile-card-title">Open notes you can join</h2>
+    <ul class="mail-inbox">
+      {% for r in open_rooms %}
+      <li class="mail-invite glass-panel">
+        <div>
+          <strong>{{ r.title }}</strong>
+          <span class="mail-kicker">{{ r.members or 0 }} in this note · {{ r.when_label }}</span>
+        </div>
+        <form method="post" action="{{ url_for('church.notes_join', thread_id=r.id) }}">
+          {% include 'partials/csrf_field.html' %}
+          <button class="profile-me-btn" type="submit">Join</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>
+<script src="{{ url_for('static', filename='js/notes-push.js') }}?v=1" data-vapid="{{ vapid_public or '' }}"></script>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends "volunteers/base_vol.html" %}
+{% block title %}{{ event.title }}{% endblock %}
+
+{% block vol_content %}
+<p style="margin:0 0 0.75rem;"><a href="{{ url_for('volunteers.schedule') }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">← Schedule</a></p>
+
+<div class="glass-panel" style="padding:1.1rem; margin-bottom:1rem;">
+  <h1 style="margin:0 0 0.35rem; font-size:1.3rem; color:var(--primary);">{{ event.title }}</h1>
+  <p style="margin:0; opacity:0.8;">
+    {{ event.event_date }}{% if event.start_time %} · {{ event.start_time }}{% endif %}
+    {% if event.location %} · {{ event.location }}{% endif %}
+    {% if event.team_name %} · <span class="vol-team-dot" style="background:{{ event.team_color }};"></span>{{ event.team_name }}{% endif %}
+  </p>
+  <form method="post" class="styled-form" style="margin-top:0.85rem;">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+      <label>Title <input type="text" name="title" class="form-input" value="{{ event.title }}"></label>
+      <label>Date <input type="date" name="event_date" class="form-input" value="{{ event.event_date }}"></label>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.5rem;">
+      <label>Start <input type="time" name="start_time" class="form-input" value="{{ event.start_time or '' }}"></label>
+      <label>End <input type="time" name="end_time" class="form-input" value="{{ event.end_time or '' }}"></label>
+      <label>Team
+        <select name="team_id" class="form-input">
+          <option value="">—</option>
+          {% for t in teams %}
+          <option value="{{ t.id }}" {% if event.team_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <label>Location <input type="text" name="location" class="form-input" value="{{ event.location or '' }}"></label>
+    <label>Notes <textarea name="notes" class="form-input" rows="2">{{ event.notes or '' }}</textarea></label>
+    <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem;">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <button type="submit" name="action" value="fill_rotations" class="btn btn-secondary">Fill from all rotations</button>
+      <button type="submit" name="action" value="delete" class="btn btn-secondary" style="color:#fca5a5;"
+              onclick="return confirm('Delete this event and all assignments?');">Delete</button>
+    </div>
+  </form>
+</div>
+
+<div class="vol-two-col" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;">
+  <div class="glass-panel" style="padding:1rem;">
+    <h2 style="margin:0 0 0.65rem; font-size:1.05rem;">Assignments</h2>
+    {% if assignments %}
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead><tr><th>Person</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for a in assignments %}
+          <tr>
+            <td>{{ a.display_name }}</td>
+            <td>{{ a.role_name }}</td>
+            <td><span class="vol-pill vol-pill--{{ a.status }}">{{ a.status }}</span></td>
+            <td style="white-space:nowrap;">
+              {% if a.status == 'pending' %}
+              <form method="post" style="display:inline;">
+                {% include 'partials/csrf_field.html' %}
+                <input type="hidden" name="action" value="resend">
+                <input type="hidden" name="assignment_id" value="{{ a.id }}">
+                <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.2rem 0.4rem;font-size:0.75rem;">Re-send</button>
+              </form>
+              {% endif %}
+              <form method="post" style="display:inline;">
+                {% include 'partials/csrf_field.html' %}
+                <input type="hidden" name="action" value="remove_assignment">
+                <input type="hidden" name="assignment_id" value="{{ a.id }}">
+                <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.2rem 0.4rem;font-size:0.75rem;color:#fca5a5;">×</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="opacity:0.7;">No one assigned yet — add people or apply a rotation.</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="glass-panel" style="padding:1rem; margin-bottom:0.85rem;">
+      <h2 style="margin:0 0 0.5rem; font-size:1.05rem;">Assign someone</h2>
+      <form method="post" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="assign">
+        <label>Person
+          <select name="user_id" class="form-input" required>
+            <option value="">—</option>
+            {% for p in picker %}
+            <option value="{{ p.id }}">{{ p.last_name }}, {{ p.first_name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        {% if roles %}
+        <label>Role
+          <select name="role_id" class="form-input" id="role-pick" onchange="var o=this.options[this.selectedIndex]; document.getElementById('role-name').value=o.dataset.name||'';">
+            <option value="">Custom…</option>
+            {% for r in roles %}
+            <option value="{{ r.id }}" data-name="{{ r.name }}">{{ r.name }} ({{ r.slots }} slots){% if r.skill_name %} · skill: {{ r.skill_name }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        {% endif %}
+        <label>Role name <input type="text" name="role_name" id="role-name" class="form-input" value="Volunteer" required></label>
+        <label style="display:flex;align-items:center;gap:0.4rem;">
+          <input type="checkbox" name="notify" value="1" checked> Email invite with accept/decline links
+        </label>
+        <button type="submit" class="btn btn-primary">Assign (pending)</button>
+      </form>
+    </div>
+
+    {% if rotations %}
+    <div class="glass-panel" style="padding:1rem; margin-bottom:0.85rem;">
+      <h2 style="margin:0 0 0.5rem; font-size:1.05rem;">Apply rotation</h2>
+      <form method="post" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="apply_rotation">
+        <label>Rotation
+          <select name="rotation_id" class="form-input" required>
+            {% for r in rotations %}
+            <option value="{{ r.id }}">{{ r.name }} → {{ r.role_name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>How many people <input type="number" name="slots" class="form-input" value="1" min="1" max="20"></label>
+        <button type="submit" class="btn btn-secondary">Apply round-robin</button>
+      </form>
+    </div>
+    {% endif %}
+
+    {% if suggestions %}
+    <div class="glass-panel" style="padding:1rem;">
+      <h2 style="margin:0 0 0.5rem; font-size:1.05rem;">Skill-based suggestions</h2>
+      {% for role in roles %}
+        {% set sug = suggestions.get(role.id) or [] %}
+        {% if sug %}
+        <div style="margin-bottom:0.65rem; font-size:0.88rem;">
+          <strong>{{ role.name }}</strong>
+          {% if role.skill_name %}<span style="opacity:0.65;"> (needs {{ role.skill_name }})</span>{% endif %}
+          <ul style="margin:0.25rem 0 0; padding-left:1.1rem;">
+            {% for m in sug[:5] %}
+            <li>
+              {{ m.first_name }} {{ m.last_name }}
+              {% if m.skill_match %}<span class="vol-skill-match">✓ skill match</span>{% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

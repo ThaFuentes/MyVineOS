@@ -1,0 +1,64 @@
+{% extends "security/base_security.html" %}
+
+{% block security_content %}
+<div class="glass" style="padding:1rem; border-radius:12px; margin-bottom:1.25rem;">
+  <h2 class="section-title" style="font-size:1.05rem; margin-top:0;">Who can open Security</h2>
+  <ul class="sec-muted" style="margin:0 0 0.75rem 1.1rem; line-height:1.55;">
+    <li><strong>Owner, Admin, Staff</strong> — always (role).</li>
+    <li><strong>Group permission</strong> — add <code>manage_security</code> to a permission group.</li>
+    <li><strong>Named grant</strong> — add a specific username below (good for one person without changing groups).</li>
+  </ul>
+
+  <form method="POST" class="styled-form" style="display:flex; flex-wrap:wrap; gap:0.65rem; align-items:end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <input type="hidden" name="action" value="grant">
+    <div class="form-group">
+      <label class="control-label" for="username">Username</label>
+      <input type="text" id="username" name="username" class="form-control" required placeholder="exact username" autocomplete="off">
+    </div>
+    <div class="form-group" style="flex:1; min-width:12rem;">
+      <label class="control-label" for="notes">Note (optional)</label>
+      <input type="text" id="notes" name="notes" class="form-control" placeholder="e.g. weekend IT volunteer">
+    </div>
+    <button type="submit" class="btn btn-primary">Grant access</button>
+  </form>
+</div>
+
+{% if grants %}
+<div class="table-wrapper glass">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Role</th>
+        <th>Granted by</th>
+        <th>When</th>
+        <th>Note</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for g in grants %}
+      <tr>
+        <td>{{ g.username }} <span class="sec-muted">{{ g.first_name or '' }} {{ g.last_name or '' }}</span></td>
+        <td>{{ g.role }}</td>
+        <td>{{ g.granted_by_name or '—' }}</td>
+        <td>{{ g.created_at }}</td>
+        <td>{{ g.notes or '—' }}</td>
+        <td>
+          <form method="POST" class="sec-inline-form" onsubmit="return confirm('Remove Security access for {{ g.username }}?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" name="action" value="revoke">
+            <input type="hidden" name="user_id" value="{{ g.user_id }}">
+            <button type="submit" class="btn btn-sm btn-secondary">Revoke</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="sec-muted">No extra named grants yet. Owner/Admin/Staff and anyone with the <code>manage_security</code> group permission can already open the console.</p>
+{% endif %}
+{% endblock %}

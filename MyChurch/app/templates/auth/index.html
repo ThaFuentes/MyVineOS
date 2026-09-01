@@ -1,0 +1,196 @@
+{% extends "base_public.html" %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+{% set look = appearance or {} %}
+{% set title = ('Welcome to ' + g.settings.get('church_name')) if g.settings.get('church_name') else 'Welcome' %}
+{% set lede = look.welcome_tagline if look else 'A loving community rooted in faith, growing together in Christ. Explore events, prayers, sermons, and more.' %}
+{% set kicker = look.welcome_kicker if look else '' %}
+{% set images = welcome_hero_images if welcome_hero_images is defined else [] %}
+{% set mode = look.welcome_hero_mode if look else 'theme' %}
+{% set interval = look.welcome_hero_interval_sec if look else 6 %}
+{% set ctas = welcome_ctas if welcome_ctas is defined else [] %}
+{% set features = welcome_features if welcome_features is defined else [] %}
+{% set quick_links = welcome_quick_links if welcome_quick_links is defined else [] %}
+{% include 'partials/hero_banner.html' %}
+
+<div class="welcome-home">
+
+  {% if look.get('welcome_show_featured', True) and features %}
+  <section class="welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">{{ look.welcome_featured_heading or 'This week at our church' }}</h2>
+    </div>
+    <div class="welcome-feature-grid">
+      {% for item in features %}
+      <article class="glass-panel welcome-feature-card">
+        {% if item.url and item.filename %}
+        <div class="welcome-feature-photo" style="background-image:url('{{ item.url }}');" role="img" aria-label="{{ item.title }}"></div>
+        {% endif %}
+        <div class="welcome-feature-body">
+          <h3>{{ item.title }}</h3>
+          {% if item.body %}<p>{{ item.body }}</p>{% endif %}
+          {% if item.link_url %}
+          <a href="{{ item.link_url }}" class="btn btn-secondary">{{ item.link_label or 'Learn more' }}</a>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% set feed_preview = welcome_feed_preview if welcome_feed_preview is defined else [] %}
+  {% if feed_preview %}
+  <section class="welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">Latest</h2>
+      {% if welcome_feed_url %}
+      <a href="{{ welcome_feed_url }}" class="btn btn-secondary welcome-inline-btn">Open feed</a>
+      {% endif %}
+    </div>
+    <div class="welcome-stack">
+      {% for item in feed_preview %}
+      <a {% if item.detail_url %}href="{{ item.detail_url }}"{% endif %} class="welcome-item welcome-item-link">
+        <div class="welcome-item-top">
+          <strong>{{ item.title }}</strong>
+          <span class="welcome-item-date">{{ item.type_label }}{% if item.formatted_date %} · {{ item.formatted_date }}{% endif %}</span>
+        </div>
+        {% if item.body %}
+        <p class="welcome-item-meta">{{ item.body | truncate(110) }}</p>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if look.get('welcome_show_quick_links', True) and quick_links %}
+  <nav class="welcome-quick-links" aria-label="Popular pages">
+    {% for link in quick_links %}
+    {% if link.url %}
+    <a href="{{ link.url }}" class="welcome-quick-link">
+      <i class="fa-solid {{ link.icon }}" aria-hidden="true"></i>
+      <span>{{ link.label }}</span>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% if look.get('welcome_show_services', True) %}
+  <section class="glass-panel welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">Upcoming services</h2>
+    </div>
+    <p class="welcome-block-lede">The next two Sundays — custom weeks from Pastoral Planning or your standard schedule.</p>
+    {% if upcoming_services %}
+    <div class="welcome-stack">
+      {% for service in upcoming_services %}
+      <article class="welcome-item {% if service.is_override %}is-special{% endif %}">
+        <div class="welcome-item-top">
+          <strong>{{ service.title }}</strong>
+          <span class="welcome-item-date">{{ service.date_label }}</span>
+        </div>
+        <p class="welcome-item-meta">
+          {% if service.start_time %}Service: {{ service.start_time }}{% endif %}
+          {% if service.worship_start_time %}{% if service.start_time %} · {% endif %}Worship: {{ service.worship_start_time }}{% endif %}
+          {% if service.preacher %} · <strong>{{ service.preacher }}</strong>{% endif %}
+          {% if service.is_override %} · <span class="welcome-item-flag">Custom week</span>{% endif %}
+        </p>
+        {% if service.roles %}
+        <p class="welcome-item-roles">
+          {% for r in service.roles %}
+            <span>{{ r.role_name }}: {{ r.name }}</span>
+          {% endfor %}
+        </p>
+        {% endif %}
+        {% if service.notes %}
+        <div class="welcome-item-notes">
+          <div class="welcome-item-notes-label">Order of service / notes</div>
+          <div class="service-notes-body">{{ service.notes | safe }}</div>
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="welcome-empty">Upcoming service dates will appear here once set up in the Pastoral area.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if look.get('welcome_show_about', True) %}
+  <section class="glass-panel welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">About our church</h2>
+    </div>
+    <div class="welcome-about-grid">
+      {% if g.settings.get('pastor') %}
+      <div class="welcome-about-card">
+        <strong>Pastor / Leader</strong>
+        <p>{{ g.settings.get('pastor') }}</p>
+      </div>
+      {% endif %}
+      {% if g.settings.get('address') %}
+      <div class="welcome-about-card">
+        <strong>Location</strong>
+        <p>{{ g.settings.get('address') | nl2br }}</p>
+      </div>
+      {% endif %}
+      {% if g.settings.get('phone_number') %}
+      <div class="welcome-about-card">
+        <strong>Phone</strong>
+        <p>{{ g.settings.get('phone_number') }}</p>
+      </div>
+      {% endif %}
+    </div>
+    {% if not g.settings.get('pastor') and not g.settings.get('address') and not g.settings.get('phone_number') %}
+    <p class="welcome-empty">Church details will appear here once configured in Settings.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if look.get('welcome_show_events', True) %}
+  <section class="glass-panel welcome-block">
+    <div class="welcome-block-head">
+      <h2 class="section-title">Upcoming events</h2>
+      {% if welcome_events_url %}
+      <a href="{{ welcome_events_url }}" class="btn btn-secondary welcome-inline-btn">View all</a>
+      {% endif %}
+    </div>
+    {% if upcoming_events %}
+    <div class="welcome-stack">
+      {% for event in upcoming_events %}
+      {% set event_href = event.detail_url or welcome_events_url %}
+      <a {% if event_href %}href="{{ event_href }}"{% endif %} class="welcome-item welcome-item-link">
+        <div class="welcome-item-top">
+          <strong>{{ event.event_name }}</strong>
+          <span class="welcome-item-date">
+            {{ event.formatted_date }}{% if event.formatted_time %} · {{ event.formatted_time }}{% endif %}
+          </span>
+        </div>
+        {% if event.description %}
+        <p class="welcome-item-meta">{{ event.description | truncate(120) }}</p>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="welcome-empty">No upcoming public events scheduled. Check back soon!</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <p class="welcome-browse-note">
+    Use the navigation above to browse Events, Sermons, Announcements, Prayers, and more without signing in.
+  </p>
+
+  {% if look.get('welcome_show_verse', True) %}
+  <p class="bible-verse welcome-verse">
+    {{ look.welcome_verse if look else '"I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit." — John 15:5' }}
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

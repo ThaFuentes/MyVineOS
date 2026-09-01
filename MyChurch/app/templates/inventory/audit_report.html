@@ -1,0 +1,73 @@
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<div class="glass-panel inv-hero">
+  <h1>Stock audit</h1>
+  <p>
+    Live system counts for every active catalog item. Use this for physical counts —
+    low and out-of-stock rows are highlighted.
+  </p>
+</div>
+
+<div class="inv-actions">
+  <form method="post" action="{{ url_for('inventory.clear_audit') }}" style="display:inline;">
+    {% include 'partials/csrf_field.html' %}
+    <button type="submit" class="btn btn-secondary">Refresh snapshot</button>
+  </form>
+  <a href="{{ url_for('inventory.items_list', show='low') }}" class="btn btn-secondary">Low stock only</a>
+</div>
+
+<div class="glass-panel inv-panel">
+  <h2>{{ report|length }} items</h2>
+  <div class="inv-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>SKU</th>
+          <th>Unit</th>
+          <th>On hand</th>
+          <th>Min</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report %}
+        <tr>
+          <td>
+            <a href="{{ url_for('inventory.item_detail', item_id=row.id) }}">{{ row.name }}</a>
+            {% if row.is_kit %}<span class="inv-badge inv-badge--kit">Kit</span>{% endif %}
+          </td>
+          <td>{{ row.sku or '—' }}</td>
+          <td>{{ row.unit }}</td>
+          <td class="{% if row.status == 'out' %}inv-stock-out{% elif row.status == 'low' %}inv-stock-low{% else %}inv-stock-ok{% endif %}">
+            <strong>{{ row.current }}</strong>
+          </td>
+          <td>{{ row.min_stock_level if row.min_stock_level is not none else '—' }}</td>
+          <td>
+            {% if row.is_kit %}
+            <span class="inv-badge inv-badge--kit">Set</span>
+            {% elif row.status == 'out' %}
+            <span class="inv-badge inv-badge--out">Out</span>
+            {% elif row.status == 'low' %}
+            <span class="inv-badge inv-badge--low">Low</span>
+            {% else %}
+            <span class="inv-badge inv-badge--ok">OK</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not row.is_kit %}
+            <a href="{{ url_for('inventory.receive_stock', item_id=row.id) }}"
+               class="btn btn-secondary" style="min-height:auto;padding:0.28rem 0.55rem;font-size:0.78rem;">Receive</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="no-data">No active items in the catalog yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

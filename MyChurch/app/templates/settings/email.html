@@ -1,0 +1,351 @@
+<!-- app/templates/settings/email.html -->
+<!-- Full path: myvinechurchonline/app/templates/settings/email.html -->
+<!-- File name: email.html -->
+<!-- Brief, detailed purpose: Dedicated Settings page for managing MULTIPLE email accounts.
+   Extends base_settings.html -> glass wrapper, menu, flash.
+   - Test send from selected account.
+   - Add new account form.
+   - Table list with collapsible inline edit (like online_giving).
+   - Set default, delete (protect default).
+   - Username shown decrypted, password blank (leave blank to keep).
+   - Incoming optional (collapsible).
+   - Provider preset for new account only.
+   - Uses only global CSS classes. -->
+
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+
+<section class="content-section">
+    <h2 class="section-title">Email Accounts</h2>
+    <p class="help-text">
+        One place for all church email accounts. Name them as you like (e.g. Main Email, Incoming Emails).
+        Any account with <strong>incoming POP3 or IMAP</strong> is available under
+        <strong>Donations → Email gifts → Check emails</strong>. No second mailbox setup.
+    </p>
+
+    <!-- Test Email Form (only if accounts exist) -->
+    {% if accounts %}
+    <div class="card glass" style="max-width: 900px; margin: 2rem auto;">
+        <h3 class="section-subtitle">Send Test Email</h3>
+        <form method="POST" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="send_test">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="test_account">From Account</label>
+                    <select name="test_account" id="test_account" required>
+                        {% for acc in accounts %}
+                        <option value="{{ acc.id }}" {% if acc.is_default %}selected{% endif %}>{{ acc.name }} ({{ acc.outgoing_server }}){% if acc.is_default %} - Default{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label for="test_to">To Address</label>
+                    <input type="email" name="test_to" id="test_to" required value="client_test@poweredby.top" placeholder="client_test@poweredby.top">
+                </div>
+                <div class="form-group full-width">
+                    <label for="test_subject">Subject</label>
+                    <input type="text" name="test_subject" id="test_subject" value="MyVineChurch.Online Test Email">
+                </div>
+                <div class="form-group full-width">
+                    <label for="test_body">Message Body</label>
+                    <textarea name="test_body" id="test_body" rows="8">Hello,
+
+This is an automated test email from MyVineChurch.Online using the selected account.
+
+If you received this, the configuration is working!
+
+Church: {{ settings.church_name or 'MyVine Church' }}
+
+Thank you,
+The MyVineChurch.Online System</textarea>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Send Test Email</button>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <p class="no-data">No email accounts configured yet. Add one below to enable emailing and testing.</p>
+    {% endif %}
+
+    <!-- Add New Account Form -->
+    <div class="card glass" style="max-width: 900px; margin: 2rem auto;">
+        <h3 class="section-subtitle">Add New Email Account</h3>
+        <form method="POST" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="add_account">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="name">Account name / label <span class="required">*</span></label>
+                    <input type="text" name="name" id="name" required placeholder="e.g. Main Email, Giving inbox, Events">
+                </div>
+                <div class="form-group full-width">
+                    <label for="provider_preset">Provider Preset (for new account)</label>
+                    <select id="provider_preset">
+                        <option value="custom">Custom</option>
+                        <option value="poweredby" selected>PoweredBy.Top (mail.poweredby.top)</option>
+                        <option value="gmail">Gmail</option>
+                        <option value="outlook">Outlook/Office365</option>
+                    </select>
+                </div>
+            </div>
+
+            <h4 class="section-subtitle">Outgoing SMTP (required for sending)</h4>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="outgoing_server">Server <span class="required">*</span></label>
+                    <input type="text" name="outgoing_server" id="outgoing_server" required value="mail.poweredby.top" placeholder="mail.poweredby.top">
+                </div>
+                <div class="form-group">
+                    <label for="outgoing_port">Port <span class="required">*</span></label>
+                    <input type="number" name="outgoing_port" id="outgoing_port" required value="465">
+                </div>
+                <div class="form-group">
+                    <label for="outgoing_encryption">Encryption</label>
+                    <select name="outgoing_encryption" id="outgoing_encryption">
+                        <option value="SSL" selected>SSL (port 465)</option>
+                        <option value="TLS">TLS / STARTTLS (port 587)</option>
+                        <option value="None">None</option>
+                    </select>
+                    <p class="help-text">PoweredBy.Top: use <strong>mail.poweredby.top</strong>, port <strong>465</strong>, encryption <strong>SSL</strong>.</p>
+                </div>
+                <div class="form-group full-width">
+                    <label for="outgoing_username">Username/Email <span class="required">*</span></label>
+                    <input type="email" name="outgoing_username" id="outgoing_username" required placeholder="e.g., events@myvinechurch.online">
+                </div>
+                <div class="form-group full-width">
+                    <label for="outgoing_password">Password (leave blank if not changing)</label>
+                    <input type="password" name="outgoing_password" id="outgoing_password" placeholder="Enter only to set/change">
+                </div>
+            </div>
+
+            <h4 class="section-subtitle">Incoming mail (POP3 / IMAP)</h4>
+            <p class="help-text">Required for a Giving inbox. Optional for send-only accounts.</p>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="incoming_protocol">Protocol</label>
+                    <select name="incoming_protocol" id="incoming_protocol">
+                        <option value="">None (send only)</option>
+                        <option value="POP3">POP3</option>
+                        <option value="IMAP">IMAP</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="incoming_server">Server</label>
+                    <input type="text" name="incoming_server" id="incoming_server" placeholder="e.g. pop.gmail.com / mail.myvinechurch.online">
+                </div>
+                <div class="form-group">
+                    <label for="incoming_port">Port</label>
+                    <input type="number" name="incoming_port" id="incoming_port" placeholder="995 POP3 SSL / 993 IMAP SSL">
+                </div>
+                <div class="form-group">
+                    <label for="incoming_encryption">Encryption</label>
+                    <select name="incoming_encryption" id="incoming_encryption">
+                        <option value="SSL">SSL</option>
+                        <option value="TLS">TLS</option>
+                        <option value="None">None</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label for="incoming_username">Username/Email</label>
+                    <input type="email" name="incoming_username" id="incoming_username" placeholder="Leave blank to use outgoing username">
+                </div>
+                <div class="form-group full-width">
+                    <label for="incoming_password">Incoming password</label>
+                    <input type="password" name="incoming_password" id="incoming_password">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:0.75rem;">
+                <label>
+                    <input type="checkbox" name="make_default">
+                    <strong>Main / default sender</strong> — system emails (notifications, receipts when sending)
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="is_giving_inbox" value="1">
+                    <strong>Giving inbox</strong> — Donations “Check emails” pulls payment notifications from this account’s POP3/IMAP
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Add Account</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Existing Accounts List -->
+    {% if accounts %}
+    <h3 class="section-subtitle">Existing Email Accounts ({{ accounts|length }})</h3>
+    <div class="table-wrapper glass">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name / purpose</th>
+                    <th>Outgoing</th>
+                    <th>Incoming</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for acc in accounts %}
+                <tr>
+                    <td>
+                        <strong>{{ acc.name }}</strong>
+                        {% if acc.is_default %} <span class="badge badge-success">Main sender</span>{% endif %}
+                        {% if acc.is_giving_inbox %} <span class="badge badge-success">Giving inbox</span>{% endif %}
+                    </td>
+                    <td>{% if acc.outgoing_server %}{{ acc.outgoing_server }}:{{ acc.outgoing_port }} ({{ acc.outgoing_encryption or 'None' }}){% else %}—{% endif %}</td>
+                    <td>
+                        {% if acc.has_incoming %}
+                        {{ acc.incoming_protocol }} {{ acc.incoming_server }}:{{ acc.incoming_port or '—' }}
+                        {% if acc.last_scan_at %}<div class="help-text" style="margin:0;">Last gift check: {{ acc.last_scan_at }}</div>{% endif %}
+                        {% if acc.last_error %}<div style="color:#ff9a78; font-size:0.8rem;">{{ acc.last_error }}</div>{% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <details class="collapsible-controls inline">
+                            <summary class="btn-small btn-primary-small">Edit</summary>
+                            <div class="potluck-content">
+                                <form method="POST" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+                                    <input type="hidden" name="action" value="update_account">
+                                    <input type="hidden" name="account_id" value="{{ acc.id }}">
+                                    <input type="hidden" name="old_outgoing_password" value="{{ acc.outgoing_password }}">
+                                    <input type="hidden" name="old_incoming_password" value="{{ acc.incoming_password }}">
+
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Account Name</label>
+                                            <input type="text" name="name" value="{{ acc.name }}" required>
+                                        </div>
+                                    </div>
+
+                                    <h4 class="section-subtitle">Outgoing SMTP</h4>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Server</label>
+                                            <input type="text" name="outgoing_server" value="{{ acc.outgoing_server }}" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Port</label>
+                                            <input type="number" name="outgoing_port" value="{{ acc.outgoing_port }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Encryption</label>
+                                            <select name="outgoing_encryption">
+                                                <option value="TLS" {% if acc.outgoing_encryption == 'TLS' %}selected{% endif %}>TLS</option>
+                                                <option value="SSL" {% if acc.outgoing_encryption == 'SSL' %}selected{% endif %}>SSL</option>
+                                                <option value="None" {% if not acc.outgoing_encryption %}selected{% endif %}>None</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label>Username/Email</label>
+                                            <input type="email" name="outgoing_username" value="{{ acc.outgoing_username_dec }}">
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label>Password (leave blank to keep current)</label>
+                                            <input type="password" name="outgoing_password">
+                                        </div>
+                                    </div>
+
+                                    <h4 class="section-subtitle">Incoming (POP3 / IMAP)</h4>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Protocol</label>
+                                            <select name="incoming_protocol">
+                                                <option value="">None</option>
+                                                <option value="IMAP" {% if acc.incoming_protocol == 'IMAP' %}selected{% endif %}>IMAP</option>
+                                                <option value="POP3" {% if acc.incoming_protocol == 'POP3' %}selected{% endif %}>POP3</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Server</label>
+                                            <input type="text" name="incoming_server" value="{{ acc.incoming_server or '' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Port</label>
+                                            <input type="number" name="incoming_port" value="{{ acc.incoming_port or '' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Encryption</label>
+                                            <select name="incoming_encryption">
+                                                <option value="SSL" {% if acc.incoming_encryption == 'SSL' %}selected{% endif %}>SSL</option>
+                                                <option value="TLS" {% if acc.incoming_encryption == 'TLS' %}selected{% endif %}>TLS</option>
+                                                <option value="None" {% if not acc.incoming_encryption %}selected{% endif %}>None</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label>Username/Email</label>
+                                            <input type="email" name="incoming_username" value="{{ acc.incoming_username_dec }}">
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label>Password (leave blank to keep)</label>
+                                            <input type="password" name="incoming_password">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group" style="margin-top:0.5rem;">
+                                        <label>
+                                            <input type="checkbox" name="make_default" {% if acc.is_default %}checked{% endif %}>
+                                            Main / default sender
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="checkbox" name="is_giving_inbox" value="1" {% if acc.is_giving_inbox %}checked{% endif %}>
+                                            Giving inbox (Donations email gifts)
+                                        </label>
+                                    </div>
+
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn-primary">Save Changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </details>
+
+                        <!-- Delete -->
+                        <form method="POST" style="display:inline; margin-left:0.5rem;"
+                              onsubmit="return confirm('Delete this email account?');">
+        {% include 'partials/csrf_field.html' %}
+                            <input type="hidden" name="action" value="delete_account">
+                            <input type="hidden" name="account_id" value="{{ acc.id }}">
+                            <button type="submit" class="btn-small btn-danger-small">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</section>
+
+<script>
+  // Provider preset filler for NEW account only
+  (function applyPresetOnLoad() {
+    const preset = document.getElementById('provider_preset');
+    if (preset && preset.value === 'poweredby') preset.dispatchEvent(new Event('change'));
+  })();
+  document.getElementById('provider_preset').addEventListener('change', function() {
+    const p = this.value;
+    const cfg = {
+      poweredby: { outServer:'mail.poweredby.top', outPort:465, outEnc:'SSL' },
+      gmail: { outServer:'smtp.gmail.com', outPort:587, outEnc:'TLS' },
+      outlook: { outServer:'smtp-mail.outlook.com', outPort:587, outEnc:'TLS' }
+    };
+    if (cfg[p]) {
+      const c = cfg[p];
+      document.getElementById('outgoing_server').value = c.outServer;
+      document.getElementById('outgoing_port').value = c.outPort;
+      document.getElementById('outgoing_encryption').value = c.outEnc;
+    }
+  });
+</script>
+
+{% endblock %}

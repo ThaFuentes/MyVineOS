@@ -1,0 +1,302 @@
+{% extends "attendance/base_attendance.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/attendance_reports.css') }}?v=20260715rep1">
+{% endblock %}
+
+{% block attendance_content %}
+<div class="att-rep">
+
+  <div class="glass-panel att-rep-hero">
+    <h1><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Attendance reports</h1>
+    <p>
+      Full-scale history: day, week, month, quarter, year, multi-year, or any custom range.
+      Campus filters apply when multi-campus is enabled.
+    </p>
+  </div>
+
+  {# Quick presets #}
+  <div class="att-rep-presets" role="navigation" aria-label="Report range presets">
+    {% for key, label in range_presets if key != 'custom' %}
+    <a href="{{ url_for('attendance.attendance_reports', range=key, grain=grain_req) }}"
+       class="{{ 'is-active' if period.range_key == key else '' }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  {# Custom filters #}
+  <div class="glass-panel att-rep-filters">
+    <form method="get" class="att-rep-filters-form" action="{{ url_for('attendance.attendance_reports') }}">
+      <input type="hidden" name="range" value="custom">
+      <div class="field">
+        <label for="start">From</label>
+        <input type="date" id="start" name="start" class="form-input" value="{{ start_str }}" required>
+      </div>
+      <div class="field">
+        <label for="end">To</label>
+        <input type="date" id="end" name="end" class="form-input" value="{{ end_str }}" required>
+      </div>
+      <div class="field">
+        <label for="grain">Group by</label>
+        <select id="grain" name="grain" class="form-input">
+          {% for gkey, glabel in grain_options %}
+          <option value="{{ gkey }}" {% if grain_req == gkey %}selected{% endif %}>{{ glabel }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field field-actions">
+        <button type="submit" class="btn btn-primary">Run report</button>
+        <a class="btn btn-secondary"
+           href="{{ url_for('attendance.attendance_export_csv', range=period.range_key, start=start_str, end=end_str) }}">
+          <i class="fa-solid fa-download" aria-hidden="true"></i> CSV
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <p style="margin:0 0 0.85rem; font-size:0.95rem; opacity:0.85;">
+    Showing <strong>{{ period.label }}</strong>
+    · {{ start_str }} → {{ end_str }}
+    · grouped by <strong>{{ grain }}</strong>
+  </p>
+
+  {# KPIs #}
+  {% set d_chk = comparison.delta_checkins %}
+  {% set d_uni = comparison.delta_unique %}
+  <div class="att-kpi-grid">
+    <div class="glass-panel att-kpi">
+      <strong>{{ summary.total_checkins }}</strong>
+      <span>Total check-ins</span>
+      {% if d_chk is not none %}
+      <span class="delta {{ 'up' if d_chk > 0 else ('down' if d_chk < 0 else 'flat') }}">
+        {% if d_chk > 0 %}+{% endif %}{{ d_chk }}% vs prior
+      </span>
+      {% endif %}
+    </div>
+    <div class="glass-panel att-kpi">
+      <strong>{{ summary.unique_people }}</strong>
+      <span>Unique people</span>
+      {% if d_uni is not none %}
+      <span class="delta {{ 'up' if d_uni > 0 else ('down' if d_uni < 0 else 'flat') }}">
+        {% if d_uni > 0 %}+{% endif %}{{ d_uni }}% vs prior
+      </span>
+      {% endif %}
+    </div>
+    <div class="glass-panel att-kpi">
+      <strong>{{ summary.days_with_attendance }}</strong>
+      <span>Days with attendance</span>
+    </div>
+    <div class="glass-panel att-kpi">
+      <strong>{{ summary.avg_per_active_day }}</strong>
+      <span>Avg / active day</span>
+    </div>
+    <div class="glass-panel att-kpi">
+      <strong>{{ summary.avg_per_calendar_day }}</strong>
+      <span>Avg / calendar day</span>
+    </div>
+    <div class="glass-panel att-kpi">
+      <strong>{{ summary.peak_count }}</strong>
+      <span>Peak day{% if summary.peak_date %} · {{ summary.peak_date }}{% endif %}</span>
+      {% if summary.peak_date %}
+      <span class="delta flat">
+        <a href="{{ url_for('attendance.day_detail', date=summary.peak_date) }}">View day</a>
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <p class="att-compare-note">
+    Compared to prior period
+    {{ comparison.previous_start }} → {{ comparison.previous_end }}
+    ({{ comparison.previous.total_checkins }} check-ins · {{ comparison.previous.unique_people }} people).
+  </p>
+
+  {# Trend chart #}
+  <div class="glass-panel att-panel">
+    <h2>Trend · by {{ grain }}</h2>
+    <p class="panel-lead">Bar height is relative to the busiest bucket in this range.</p>
+    {% if series %}
+    <div class="att-chart" role="img" aria-label="Attendance trend chart">
+      {% for s in series %}
+      <div class="att-chart-bar" title="{{ s.label }}: {{ s.checkins }} check-ins, {{ s.unique_people }} people">
+        <span class="bar-val">{{ s.checkins }}</span>
+        <div class="bar" style="height: {{ s.bar_px }}px;"></div>
+        <span class="bar-label">{{ s.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-data" style="margin:0;">No check-ins in this range.</p>
+    {% endif %}
+  </div>
+
+  <div class="att-two-col">
+    {# Day of week #}
+    <div class="glass-panel att-panel" style="margin-bottom:0;">
+      <h2>By day of week</h2>
+      <p class="panel-lead">Which weekdays draw the most people in this range.</p>
+      {% for d in dow %}
+      <div class="att-dow-row">
+        <div>{{ d.name }}</div>
+        <div class="track"><div class="fill" style="width:{{ d.pct }}%;"></div></div>
+        <div class="count">{{ d.checkins }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {# Series table #}
+    <div class="glass-panel att-panel" style="margin-bottom:0;">
+      <h2>Period totals</h2>
+      <p class="panel-lead">Check-ins and unique people per {{ grain }}.</p>
+      <div class="att-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Check-ins</th>
+              <th>Unique</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in series if s.checkins > 0 or grain != 'day' %}
+            <tr>
+              <td>
+                {% if grain == 'day' and s.period_key|length == 10 %}
+                <a href="{{ url_for('attendance.day_detail', date=s.period_key) }}">{{ s.label }}</a>
+                {% else %}
+                {{ s.label }}
+                {% endif %}
+              </td>
+              <td>{{ s.checkins }}</td>
+              <td>{{ s.unique_people }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" style="opacity:0.7;">No data</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {# Multi-year month grid #}
+  <div class="glass-panel att-panel">
+    <h2>Multi-year month grid (5 years)</h2>
+    <p class="panel-lead">
+      Monthly check-in totals across recent years — useful for seasonal patterns and long-term growth.
+    </p>
+    <div class="att-table-wrap">
+      <table class="data-table att-yoy-table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            {% for y in yoy.years %}
+            <th>{{ y }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in yoy.rows %}
+          <tr>
+            <td>{{ row.label }}</td>
+            {% for y in yoy.years %}
+            {% set val = row['y' ~ y] %}
+            {% set heat = ((val / yoy_max) * 45) if yoy_max else 0 %}
+            <td class="att-yoy-cell">
+              <span class="att-yoy-heat"
+                    style="background: color-mix(in srgb, var(--primary) {{ heat if heat > 4 else 4 }}%, transparent);">
+                {{ val if val else '—' }}
+              </span>
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="att-two-col">
+    {# Top attendees #}
+    <div class="glass-panel att-panel" style="margin-bottom:0;">
+      <h2>Most frequent</h2>
+      <p class="panel-lead">People with the most check-ins in this range.</p>
+      <div class="att-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Name</th><th>Visits</th><th>First</th><th>Last</th></tr>
+          </thead>
+          <tbody>
+            {% for p in top_attendees %}
+            <tr>
+              <td>{{ p.last_name }}, {{ p.first_name }}</td>
+              <td><strong>{{ p.visits }}</strong></td>
+              <td>{{ p.first_in_range }}</td>
+              <td>{{ p.last_in_range }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" style="opacity:0.7;">No attendees</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# First-timers #}
+    <div class="glass-panel att-panel" style="margin-bottom:0;">
+      <h2>First-time check-ins</h2>
+      <p class="panel-lead">People whose <em>first ever</em> recorded visit falls in this range.</p>
+      <div class="att-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Name</th><th>First visit</th></tr>
+          </thead>
+          <tbody>
+            {% for p in first_timers %}
+            <tr>
+              <td>{{ p.last_name }}, {{ p.first_name }}</td>
+              <td>
+                {% if p.first_visit %}
+                <a href="{{ url_for('attendance.day_detail', date=p.first_visit) }}">{{ p.first_visit }}</a>
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="2" style="opacity:0.7;">None in this range</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if daily_rows and grain != 'day' %}
+  <div class="glass-panel att-panel">
+    <h2>Active days in range</h2>
+    <p class="panel-lead">Drill into any day with check-ins.</p>
+    <div class="att-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Date</th><th>Check-ins</th><th>Unique</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for d in daily_rows|reverse %}
+          <tr>
+            <td>{{ d.label }}</td>
+            <td>{{ d.checkins }}</td>
+            <td>{{ d.unique_people }}</td>
+            <td>
+              {% if d.period_key|length == 10 %}
+              <a href="{{ url_for('attendance.day_detail', date=d.period_key) }}" class="btn btn-secondary"
+                 style="min-height:auto;padding:0.3rem 0.6rem;font-size:0.8rem;">Details</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

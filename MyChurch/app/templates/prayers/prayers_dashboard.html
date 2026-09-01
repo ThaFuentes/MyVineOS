@@ -1,0 +1,60 @@
+{% extends "prayers/base_prayers.html" %}
+
+{% block prayers_content %}
+{% set page_heading = 'Prayers' %}
+{% set page_action_url = url_for('prayers.add_prayer') %}
+{% set page_action_label = 'Ask for prayer' %}
+{% include 'partials/page_hero.html' %}
+
+<div class="member-feed">
+  {% if prayers %}
+    {% for p in prayers %}
+    <article class="glass-panel member-post">
+      <a class="member-post-hit" href="{{ url_for('prayers.view_prayer', prayer_id=p.id) }}">
+        <h2>{{ p.title }}</h2>
+        <p class="member-post-meta">
+          {{ p.creator_name or 'Someone' }}
+          {% if p.formatted_date %} · {{ p.formatted_date }}
+          {% elif p.date_posted %} · {{ p.date_posted.strftime('%B %d, %Y') if p.date_posted.strftime is defined else p.date_posted }}
+          {% endif %}
+        </p>
+        {% if p.description %}
+        <p class="member-post-body">{{ p.description | truncate(220) }}</p>
+        {% endif %}
+        <p class="member-post-foot">
+          {% if p.response_count %}{{ p.response_count }} standing with them{% else %}Be the first to pray{% endif %}
+        </p>
+      </a>
+      {% set can_edit = is_logged_in and ((p.user_id == current_user_id) or is_staff_plus) %}
+      {% if can_edit or is_admin_owner %}
+      <div class="entity-actions">
+        {% if is_admin_owner and p.status == 'pending' %}
+        <form action="{{ url_for('prayers.approve_prayer', prayer_id=p.id) }}" method="post" class="inline-form">
+          {% include 'partials/csrf_field.html' %}
+          <button type="submit" class="btn-primary btn-small">Approve</button>
+        </form>
+        {% endif %}
+        {% if can_edit %}
+        <a href="{{ url_for('prayers.edit_prayer', prayer_id=p.id) }}" class="btn-secondary btn-small">Edit</a>
+        {% endif %}
+        {% if is_admin_owner %}
+        <form action="{{ url_for('prayers.delete_prayer', prayer_id=p.id) }}" method="post" class="inline-form">
+          {% include 'partials/csrf_field.html' %}
+          <button type="submit" class="btn-danger btn-small"
+                  onclick="return confirm('Delete this prayer request?');">Delete</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  {% else %}
+    <div class="glass-panel empty-state">
+      No prayer requests yet.
+      <div style="margin-top:0.75rem;">
+        <a href="{{ url_for('prayers.add_prayer') }}" class="btn btn-primary">Ask for prayer</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

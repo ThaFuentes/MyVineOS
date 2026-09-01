@@ -1,0 +1,44 @@
+{% extends "sermons/base_sermons.html" %}
+
+{% block sermons_content %}
+{% set page_heading = 'Sermons' %}
+{% if session.user_role in ['Staff', 'Admin', 'Owner'] %}
+  {% set page_action_url = url_for('sermons.upload_sermon') %}
+  {% set page_action_label = 'Add a sermon' %}
+{% endif %}
+{% include 'partials/page_hero.html' %}
+
+<div class="member-feed">
+  {% if sermons %}
+    {% for s in sermons %}
+    <article class="glass-panel member-post">
+      <a class="member-post-hit" href="{{ url_for('sermons.view_sermon', sermon_id=s.id) }}">
+        <h2>{{ s.title }}</h2>
+        <p class="member-post-meta">
+          {{ s.uploader or 'Church' }}
+          {% if s.date %} · {{ s.date }}{% endif %}
+        </p>
+        {% if s.details %}
+        <p class="member-post-body">{{ s.details | truncate(220) }}</p>
+        {% endif %}
+        {% if s.comment_count %}
+        <p class="member-post-foot">{{ s.comment_count }} comment{{ 's' if s.comment_count != 1 else '' }}</p>
+        {% endif %}
+      </a>
+      {% if session.user_role in ['Staff', 'Admin', 'Owner'] or session.user_id == s.uploaded_by %}
+      <div class="entity-actions">
+        <a href="{{ url_for('sermons.edit_sermon', sermon_id=s.id) }}" class="btn-secondary btn-small">Edit</a>
+        <form action="{{ url_for('sermons.delete_sermon', sermon_id=s.id) }}" method="post" class="inline-form">
+          {% include 'partials/csrf_field.html' %}
+          <button type="submit" class="btn-danger btn-small"
+                  onclick="return confirm('Delete this sermon?');">Delete</button>
+        </form>
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  {% else %}
+    <div class="glass-panel empty-state">No sermons posted yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

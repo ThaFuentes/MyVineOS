@@ -1,0 +1,21 @@
+{# Compact official updates so a long wall does not hide what just changed. #}
+{% set updates = rail_updates|default([]) %}
+{% if updates %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">Recently on this page</h2>
+  <ul class="profile-link-list rail-updates">
+    {% for item in updates %}
+    <li>
+      <span class="feed-type-pill" data-type="{{ item.type }}">{{ item.type_label or (item.type|title) }}</span>
+      {% if item.detail_url or item.url %}
+      <a href="{{ item.detail_url or item.url }}">{{ item.title }}</a>
+      {% else %}
+      <strong>{{ item.title }}</strong>
+      {% endif %}
+      {% if item.formatted_date %}<span>{{ item.formatted_date }}</span>
+      {% elif item.when %}<span>{{ item.when }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}

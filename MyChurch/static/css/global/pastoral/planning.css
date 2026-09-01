@@ -1,0 +1,42 @@
+/* app/static/css/global/pastoral/planning.css */
+/* Full path: WebChurchMan/app/static/css/global/pastoral/planning.css */
+/* File name: planning.css */
+/* Brief, detailed purpose:
+   Styles for Service Planning list and edit pages.
+   - Mini calendar strip
+   - Role assignment rows
+   - Quill light theme tweaks */
+
+.mini-calendars {
+    padding: 0 1rem;
+}
+.mini-calendar .grid-7 {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+.mini-calendar div {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+.has-plan {
+    font-weight: bold;
+}
+
+/* Role rows */
+.assignment-row .remove-role-btn {
+    background: #dc3545;
+    color: #fff;
+}
+
+/* Quill light for notes */
+.quill-light .ql-container {
+    background: #1e1e1e;
+    color: #fff;
+}
+.quill-light .ql-toolbar {
+    background: #2d2d2d;
+    border-color: var(--border);
+}

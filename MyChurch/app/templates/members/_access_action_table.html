@@ -1,0 +1,163 @@
+{# Expandable enable + fine-grained actions table.
+   Expects: status_rows (from area_status_rows)
+#}
+<div class="acc-table-wrap glass-panel">
+  <table class="acc-table" id="acc-table">
+    <thead>
+      <tr>
+        <th class="acc-col-tool">Tool</th>
+        <th class="acc-col-on">Access</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for area in status_rows %}
+      <tr class="acc-row {% if area.enabled %}is-on{% else %}is-off{% endif %}" data-area="{{ area.id }}">
+        <td class="acc-tool-cell">
+          <button type="button" class="acc-expand-btn" data-expand="{{ area.id }}" aria-expanded="{{ 'true' if area.enabled else 'false' }}">
+            <span class="acc-chevron" aria-hidden="true">▸</span>
+            <i class="fa-solid {{ area.icon|default('fa-key') }}" aria-hidden="true"></i>
+            <span class="acc-tool-name">{{ area.label }}</span>
+          </button>
+          <div class="acc-tool-desc">{{ area.description }}</div>
+        </td>
+        <td class="acc-on-cell">
+          <label class="acc-switch">
+            <input type="checkbox" class="acc-enable" name="enable_{{ area.id }}" value="1"
+                   data-area="{{ area.id }}"
+                   {% if area.enabled %}checked{% endif %}>
+            <span class="acc-switch-ui" data-on="ON" data-off="OFF"></span>
+          </label>
+        </td>
+      </tr>
+      <tr class="acc-detail-row {% if area.enabled %}is-open{% endif %}" data-detail="{{ area.id }}" {% if not area.enabled %}hidden{% endif %}>
+        <td colspan="2">
+          <div class="acc-actions">
+            <div class="acc-actions-title">What can they do in <strong>{{ area.label }}</strong>?</div>
+            {% for act in area.actions %}
+            <label class="acc-action-check">
+              <input type="checkbox" class="acc-act" name="act_{{ area.id }}_{{ act.id }}" value="1"
+                     data-area="{{ area.id }}"
+                     {% if act.checked %}checked{% endif %}
+                     {% if not area.enabled %}disabled{% endif %}>
+              <span>{{ act.label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .acc-table-wrap { padding: 0; overflow: hidden; border-radius: 16px; }
+  .acc-table { width: 100%; border-collapse: collapse; }
+  .acc-table th {
+    text-align: left; padding: 0.85rem 1rem; font-size: 0.9rem;
+    opacity: 0.75; border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .acc-col-on { width: 7.5rem; text-align: center !important; }
+  .acc-row td { padding: 0.85rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: middle; }
+  .acc-row.is-on { background: rgba(93, 202, 122, 0.06); }
+  .acc-row.is-off { background: transparent; }
+  .acc-expand-btn {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: none; border: none; color: inherit; cursor: pointer;
+    font-size: 1.1rem; font-weight: 800; padding: 0; text-align: left;
+  }
+  .acc-chevron { display: inline-block; transition: transform 0.15s ease; width: 1rem; }
+  .acc-row.is-on .acc-chevron, tr.acc-detail-row.is-open .acc-chevron { transform: rotate(90deg); }
+  .acc-detail-row.is-open .acc-chevron { }
+  .acc-tool-desc { font-size: 0.92rem; opacity: 0.75; margin-top: 0.25rem; margin-left: 1.5rem; }
+  .acc-on-cell { text-align: center; }
+  .acc-switch { position: relative; display: inline-flex; cursor: pointer; user-select: none; }
+  .acc-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .acc-switch-ui {
+    min-width: 4.25rem; min-height: 2.5rem; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 0.95rem; letter-spacing: 0.04em;
+    background: rgba(224, 112, 112, 0.25); color: #f0b0b0;
+    border: 2px solid rgba(224, 112, 112, 0.45);
+  }
+  .acc-switch input:checked + .acc-switch-ui {
+    background: rgba(47, 158, 79, 0.85); color: #fff;
+    border-color: #8eefaa;
+  }
+  .acc-switch-ui::after { content: attr(data-off); }
+  .acc-switch input:checked + .acc-switch-ui::after { content: attr(data-on); }
+  .acc-detail-row td {
+    padding: 0 1rem 1rem 1rem;
+    background: rgba(0,0,0,0.18);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .acc-actions {
+    margin-left: 1.5rem; padding: 0.85rem 1rem;
+    border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03);
+  }
+  .acc-actions-title { font-weight: 700; margin-bottom: 0.55rem; font-size: 1rem; }
+  .acc-action-check {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.45rem 0; font-size: 1.02rem; cursor: pointer;
+  }
+  .acc-action-check input {
+    width: 1.25rem; height: 1.25rem; flex-shrink: 0; cursor: pointer;
+  }
+  .acc-action-check input:disabled + span { opacity: 0.45; }
+  @media (max-width: 560px) {
+    .acc-tool-desc { margin-left: 0; }
+    .acc-actions { margin-left: 0; }
+  }
+</style>
+<script>
+(function () {
+  function syncArea(areaId) {
+    const enable = document.querySelector('.acc-enable[data-area="' + areaId + '"]');
+    const detail = document.querySelector('[data-detail="' + areaId + '"]');
+    const row = document.querySelector('.acc-row[data-area="' + areaId + '"]');
+    const on = !!(enable && enable.checked);
+    if (row) {
+      row.classList.toggle('is-on', on);
+      row.classList.toggle('is-off', !on);
+    }
+    if (detail) {
+      detail.hidden = !on;
+      detail.classList.toggle('is-open', on);
+    }
+    document.querySelectorAll('.acc-act[data-area="' + areaId + '"]').forEach((cb) => {
+      cb.disabled = !on;
+      if (!on) cb.checked = false;
+    });
+    // If turned ON and nothing checked, check first action
+    if (on) {
+      const acts = document.querySelectorAll('.acc-act[data-area="' + areaId + '"]');
+      let any = false;
+      acts.forEach((a) => { if (a.checked) any = true; });
+      if (!any && acts.length) acts[0].checked = true;
+    }
+  }
+  document.querySelectorAll('.acc-enable').forEach((el) => {
+    el.addEventListener('change', () => syncArea(el.getAttribute('data-area')));
+  });
+  document.querySelectorAll('.acc-expand-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-expand');
+      const enable = document.querySelector('.acc-enable[data-area="' + id + '"]');
+      if (enable && !enable.checked) {
+        enable.checked = true;
+        syncArea(id);
+        return;
+      }
+      const detail = document.querySelector('[data-detail="' + id + '"]');
+      if (!detail) return;
+      const open = detail.hidden;
+      detail.hidden = !open;
+      detail.classList.toggle('is-open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+  // initial
+  document.querySelectorAll('.acc-enable').forEach((el) => syncArea(el.getAttribute('data-area')));
+})();
+</script>

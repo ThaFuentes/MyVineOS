@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}{{ church_name }}{% if branch_name %} · {{ branch_name }}{% endif %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=31">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/volunteers.css') }}?v=20260714a">
+{% endblock %}
+
+{% block content %}
+{% set contact = contact|default({}) %}
+{% set gathering = gathering|default({}) %}
+{% set campus = campus|default({}) %}
+<div class="profile-shell church-profile {% if is_org %}is-org{% else %}is-branch{% endif %}" {% if palette_style %}style="{{ palette_style }}"{% endif %}>
+
+  {% set edit_href = url_for('church.church_edit', campus=campus.id) if campus and not is_org else url_for('church.church_edit') %}
+  <aside class="profile-gutter profile-gutter-left">
+    {% set you_panel_class = 'profile-you-desktop' %}
+    {% set you_editors_href = (edit_href ~ '#page-people') if can_edit else '' %}
+    {% set you_edit_look_href = edit_href if can_edit else '' %}
+    {% set you_message_church = true %}
+    {% set you_message_campus = 0 if is_org else (campus.id or 0) %}
+    {% include 'church/_you_panel.html' %}
+    <div class="profile-info-desktop">
+      {% include 'church/_serving.html' %}
+      {% include 'church/_church_info.html' %}
+    </div>
+    {% include 'church/_community_apps.html' %}
+  </aside>
+
+  <div class="profile-center">
+    {% set display_name = church_name %}
+    {% set identity_kicker = 'Your branch' if (not is_org and campus and viewer_branch_id and campus.id == viewer_branch_id) else ('Branch' if not is_org else 'Church') %}
+    {% set can_change_look = can_edit %}
+    {% set manage_scope = 'church' %}
+    {% include 'church/_identity.html' %}
+
+    <div class="profile-me-bar" role="region" aria-label="Post, feed, or message">
+      {% if compose_types %}
+        {% set compose_launch_label = 'Post as the church' if can_post|default(can_edit) else 'Share with the church' %}
+        {% include 'partials/compose_card.html' %}
+      {% endif %}
+      <a class="profile-me-btn{% if compose_types %} profile-me-btn-quiet{% endif %}" href="{{ url_for('public.public_dashboard.public_community') }}">
+        <i class="fa-solid fa-rss" aria-hidden="true"></i> Feed
+      </a>
+      {% if session.get('user_id') %}
+      <form method="post" action="{{ url_for('church.message_church') }}" class="profile-message-church">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="campus_id" value="{{ 0 if is_org else (campus.id or 0) }}">
+        <button class="profile-me-btn profile-me-btn-quiet" type="submit">
+          <i class="fa-solid fa-envelope" aria-hidden="true"></i> Send a note
+        </button>
+      </form>
+      {% endif %}
+    </div>
+
+    {% set profile_kind = 'church' %}
+    {% include 'church/_profile_sheets.html' %}
+
+    {% set wall_title = (branch_name ~ ' wall') if (not is_org and branch_name) else 'Church wall' %}
+    {% set wall_hint = 'Official posts for this page. The newspaper — other people’s posts, follows first — lives on the Feed, not here.' %}
+    {% set empty_text = 'This wall is waiting for a first post — a Sunday note, a photo from the lobby, or this week’s verse.' %}
+    {% set guest_can_comment = true %}
+    {% set wall_surface = 'church' %}
+    {% include 'church/_wall.html' %}
+  </div>
+
+  <aside class="profile-gutter profile-gutter-right">
+    {% include 'church/_office_apps.html' %}
+  </aside>
+</div>
+<script src="{{ url_for('static', filename='js/global/church_profile_sheets.js') }}?v=1"></script>
+{% endblock %}

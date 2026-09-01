@@ -1,0 +1,70 @@
+{% extends "inventory/base_inventory.html" %}
+
+{% block inventory_content %}
+<div class="glass-panel inv-panel" style="max-width:36rem;">
+  <h2>Receive stock</h2>
+  <p class="lead">
+    Add inventory into a location as a new batch. Use this for purchases, donations, or restocks.
+  </p>
+
+  <form method="POST" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+
+    <label>Item *
+      <select name="item_id" class="form-input" required>
+        <option value="">— Select item —</option>
+        {% for it in items if not it.is_kit %}
+        <option value="{{ it.id }}"
+          {% if preselect and preselect|string == it.id|string %}selected{% endif %}>
+          {{ it.name }}{% if it.sku %} ({{ it.sku }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <p class="help-text">Kits don’t hold stock — receive their components instead.</p>
+
+    <label>Location *
+      <select name="location_id" class="form-input" required>
+        <option value="">— Select location —</option>
+        {% for loc in locations %}
+        <option value="{{ loc.id }}">{{ loc.name }}{% if loc.building_area %} · {{ loc.building_area }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div class="form-row">
+      <label>Quantity *
+        <input type="number" name="quantity" class="form-input" min="1" required placeholder="1">
+      </label>
+      <label>Cost per unit
+        <input type="number" name="cost_per_unit" class="form-input" step="0.01" min="0" placeholder="Optional">
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>Purchase / received date
+        <input type="date" name="purchase_date" class="form-input">
+      </label>
+      <label>Expiration date
+        <input type="date" name="expiration_date" class="form-input">
+      </label>
+    </div>
+
+    <label>Notes
+      <textarea name="notes" class="form-input" rows="2" placeholder="PO number, donor, invoice…"></textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Receive stock</button>
+      <a href="{{ url_for('inventory.items_list') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+
+  {% if not locations %}
+  <p class="help-text" style="margin-top:1rem;">
+    Add a storage location first under
+    <a href="{{ url_for('inventory.cat_location') }}">Categories &amp; locations</a>.
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/inventory.css') }}?v=20260715inv1">
+{% endblock %}
+
+{% block content %}
+<div class="inv-mod">
+  <h1 class="page-title">Inventory</h1>
+  <p class="page-description">
+    Catalog, stock levels, kits/sets, receive &amp; transfer, and audit — built for long-term church operations.
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% set ep = request.endpoint or '' %}
+  <nav class="settings-nav" aria-label="Inventory sections">
+    <a href="{{ url_for('inventory.inventory_dashboard') }}"
+       class="settings-nav-link {{ 'active' if ep == 'inventory.inventory_dashboard' else '' }}">Dashboard</a>
+    <a href="{{ url_for('inventory.items_list') }}"
+       class="settings-nav-link {{ 'active' if ep in ['inventory.items_list','inventory.item_detail','inventory.item_manage'] else '' }}">Catalog</a>
+    <a href="{{ url_for('inventory.item_manage') }}"
+       class="settings-nav-link {{ 'active' if ep == 'inventory.item_manage' and not request.view_args.get('item_id') else '' }}">Add item</a>
+    <a href="{{ url_for('inventory.receive_stock') }}"
+       class="settings-nav-link {{ 'active' if ep == 'inventory.receive_stock' else '' }}">Receive</a>
+    <a href="{{ url_for('inventory.stock_move') }}"
+       class="settings-nav-link {{ 'active' if ep == 'inventory.stock_move' else '' }}">Stock moves</a>
+    <a href="{{ url_for('inventory.cat_location') }}"
+       class="settings-nav-link {{ 'active' if ep == 'inventory.cat_location' else '' }}">Categories &amp; locations</a>
+    <a href="{{ url_for('inventory.scan') }}"
+       class="settings-nav-link {{ 'active' if ep == 'inventory.scan' else '' }}">Barcode</a>
+    <a href="{{ url_for('inventory.audit_report') }}"
+       class="settings-nav-link {{ 'active' if ep == 'inventory.audit_report' else '' }}">Audit</a>
+  </nav>
+
+  {% block inventory_content %}{% endblock %}
+</div>
+{% endblock %}

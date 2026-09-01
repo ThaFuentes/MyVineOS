@@ -1,0 +1,344 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+<section class="content-section">
+  <h2 class="section-title">Welcome page</h2>
+  <p class="help-text">
+    Choose the photos, words, and sections guests see first. Staff photos, an event, or this Sunday’s gathering — you pick.
+    <a href="{{ url_for('auth.auth_index') }}">Preview welcome</a>
+    ·
+    <a href="{{ url_for('auth.login') }}">Preview login</a>
+  </p>
+
+  <form method="POST" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save_copy">
+
+    <div class="settings-card">
+      <h3 class="section-subtitle">Banner words</h3>
+      <div class="form-group">
+        <label for="welcome_kicker">Small line above the title (optional)</label>
+        <input type="text" id="welcome_kicker" name="welcome_kicker" maxlength="160"
+               value="{{ appearance.welcome_kicker }}"
+               placeholder="Sundays at 10am · Everyone is welcome">
+      </div>
+      <div class="form-group">
+        <label for="welcome_tagline">Welcome sentence</label>
+        <textarea id="welcome_tagline" name="welcome_tagline" rows="2">{{ appearance.welcome_tagline }}</textarea>
+      </div>
+      <div class="form-group">
+        <label for="welcome_verse">Verse or footer line (optional)</label>
+        <textarea id="welcome_verse" name="welcome_verse" rows="2">{{ appearance.welcome_verse }}</textarea>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="welcome_hero_mode">Welcome photos</label>
+          <select id="welcome_hero_mode" name="welcome_hero_mode">
+            <option value="theme" {% if appearance.welcome_hero_mode == 'theme' %}selected{% endif %}>Use the site theme only</option>
+            <option value="image" {% if appearance.welcome_hero_mode == 'image' %}selected{% endif %}>One photo</option>
+            <option value="rotating" {% if appearance.welcome_hero_mode == 'rotating' %}selected{% endif %}>Rotating photos</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="welcome_hero_interval_sec">Rotate every (seconds)</label>
+          <input type="number" min="3" max="30" id="welcome_hero_interval_sec"
+                 name="welcome_hero_interval_sec" value="{{ appearance.welcome_hero_interval_sec }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h3 class="section-subtitle">What guests see</h3>
+      <p class="help-text">Turn off anything you do not want on the front page. Highlights you add below only show if that box is checked.</p>
+      <div class="welcome-toggle-grid">
+        <label class="checkbox-label">
+          <input type="checkbox" name="welcome_show_featured" value="1" {% if appearance.welcome_show_featured %}checked{% endif %}>
+          Photo highlights (staff, events, or anything you add)
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="welcome_show_services" value="1" {% if appearance.welcome_show_services %}checked{% endif %}>
+          Upcoming services
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="welcome_show_events" value="1" {% if appearance.welcome_show_events %}checked{% endif %}>
+          Upcoming events
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="welcome_show_about" value="1" {% if appearance.welcome_show_about %}checked{% endif %}>
+          About our church
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="welcome_show_quick_links" value="1" {% if appearance.welcome_show_quick_links %}checked{% endif %}>
+          Quick links (Events, Sermons, Bible, and more)
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="welcome_show_verse" value="1" {% if appearance.welcome_show_verse %}checked{% endif %}>
+          Verse at the bottom
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="welcome_show_ctas" value="1" {% if appearance.welcome_show_ctas %}checked{% endif %}>
+          Buttons on the welcome banner
+        </label>
+      </div>
+      <div class="form-group" style="margin-top:0.85rem;">
+        <label for="welcome_featured_heading">Heading above photo highlights</label>
+        <input type="text" id="welcome_featured_heading" name="welcome_featured_heading" maxlength="160"
+               value="{{ appearance.welcome_featured_heading }}">
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h3 class="section-subtitle">Banner buttons</h3>
+      <p class="help-text">
+        Leave these blank to use Events, Sermons, and Give (if online giving is on).
+        Use a page on this site (<code>/public/events</code>) or a full https link.
+      </p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="welcome_cta1_label">First button label</label>
+          <input type="text" id="welcome_cta1_label" name="welcome_cta1_label" maxlength="80"
+                 value="{{ appearance.welcome_cta1_label }}" placeholder="Plan a visit">
+        </div>
+        <div class="form-group">
+          <label for="welcome_cta1_url">First button link</label>
+          <input type="text" id="welcome_cta1_url" name="welcome_cta1_url" maxlength="500"
+                 value="{{ appearance.welcome_cta1_url }}" placeholder="/public/events">
+        </div>
+        <div class="form-group">
+          <label for="welcome_cta2_label">Second button label</label>
+          <input type="text" id="welcome_cta2_label" name="welcome_cta2_label" maxlength="80"
+                 value="{{ appearance.welcome_cta2_label }}" placeholder="Watch the latest sermon">
+        </div>
+        <div class="form-group">
+          <label for="welcome_cta2_url">Second button link</label>
+          <input type="text" id="welcome_cta2_url" name="welcome_cta2_url" maxlength="500"
+                 value="{{ appearance.welcome_cta2_url }}" placeholder="/public/sermons">
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h3 class="section-subtitle">Login page</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="login_hero_mode">Login background</label>
+          <select id="login_hero_mode" name="login_hero_mode">
+            <option value="theme" {% if appearance.login_hero_mode == 'theme' %}selected{% endif %}>Use the site theme only</option>
+            <option value="image" {% if appearance.login_hero_mode == 'image' %}selected{% endif %}>One photo</option>
+            <option value="rotating" {% if appearance.login_hero_mode == 'rotating' %}selected{% endif %}>Rotating photos</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="login_hero_interval_sec">Rotate every (seconds)</label>
+          <input type="number" min="3" max="30" id="login_hero_interval_sec"
+                 name="login_hero_interval_sec" value="{{ appearance.login_hero_interval_sec }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">Save welcome page</button>
+    </div>
+  </form>
+</section>
+
+<section class="content-section">
+  <h2 class="section-title">Welcome banner photos</h2>
+  <p class="help-text">These fill the big photo at the top. Choose “One photo” or “Rotating photos” above so guests see them.</p>
+  <form method="POST" enctype="multipart/form-data" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="upload_hero">
+    <input type="hidden" name="surface" value="welcome">
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="welcome_image">Add a photo</label>
+        <input type="file" id="welcome_image" name="hero_image" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label for="welcome_caption">Caption (optional)</label>
+        <input type="text" id="welcome_caption" name="caption" placeholder="Easter Sunday">
+      </div>
+    </div>
+    <button type="submit" class="btn-primary">Upload welcome photo</button>
+  </form>
+  <div class="hero-thumb-grid" style="margin-top:1rem;">
+    {% for img in welcome_images %}
+    <div class="hero-thumb">
+      <img src="{{ img.url }}" alt="{{ img.caption or 'Welcome photo' }}">
+      <div class="hero-thumb-meta">
+        {{ img.caption or 'Welcome photo' }}
+        <div class="entity-actions" style="margin-top:0.35rem;">
+          <form method="POST">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="toggle_hero">
+            <input type="hidden" name="image_id" value="{{ img.id }}">
+            <input type="hidden" name="enabled" value="{{ 0 if img.enabled else 1 }}">
+            <button class="btn-secondary btn-small" type="submit">{{ 'Hide' if img.enabled else 'Show' }}</button>
+          </form>
+          <form method="POST">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="delete_hero">
+            <input type="hidden" name="image_id" value="{{ img.id }}">
+            <button class="btn-danger btn-small" type="submit">Remove</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <p class="help-text">No welcome photos yet. The default theme is used until you add one.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="content-section">
+  <h2 class="section-title">Photo highlights</h2>
+  <p class="help-text">
+    Add a staff photo, this Sunday’s gathering, an event flyer, or anything else you want guests to see first.
+    Each highlight can have a photo, a short note, and an optional button.
+  </p>
+  <form method="POST" enctype="multipart/form-data" class="styled-form settings-card">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="save_feature">
+    <h3 class="section-subtitle">Add a highlight</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="feature_title">Title</label>
+        <input type="text" id="feature_title" name="title" maxlength="160" required placeholder="Meet our pastors">
+      </div>
+      <div class="form-group">
+        <label for="feature_image">Photo</label>
+        <input type="file" id="feature_image" name="feature_image" accept="image/*">
+      </div>
+      <div class="form-group full-width">
+        <label for="feature_body">Short note (optional)</label>
+        <textarea id="feature_body" name="body" rows="2" maxlength="800" placeholder="We would love to meet you this Sunday."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="feature_link_label">Button label (optional)</label>
+        <input type="text" id="feature_link_label" name="link_label" maxlength="80" placeholder="See the team">
+      </div>
+      <div class="form-group">
+        <label for="feature_link_url">Button link (optional)</label>
+        <input type="text" id="feature_link_url" name="link_url" maxlength="500" placeholder="/public/events">
+      </div>
+    </div>
+    <button type="submit" class="btn-primary">Add highlight</button>
+  </form>
+
+  <div class="welcome-feature-admin" style="margin-top:1rem;">
+    {% for item in welcome_features %}
+    <article class="settings-card welcome-feature-admin-card">
+      {% if item.url %}
+      <img src="{{ item.url }}" alt="{{ item.title }}" class="welcome-feature-admin-img">
+      {% endif %}
+      <form method="POST" enctype="multipart/form-data" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="save_feature">
+        <input type="hidden" name="feature_id" value="{{ item.id }}">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="feature_title_{{ item.id }}">Title</label>
+            <input type="text" id="feature_title_{{ item.id }}" name="title" maxlength="160" required value="{{ item.title }}">
+          </div>
+          <div class="form-group">
+            <label for="feature_image_{{ item.id }}">Replace photo</label>
+            <input type="file" id="feature_image_{{ item.id }}" name="feature_image" accept="image/*">
+          </div>
+          <div class="form-group full-width">
+            <label for="feature_body_{{ item.id }}">Short note</label>
+            <textarea id="feature_body_{{ item.id }}" name="body" rows="2" maxlength="800">{{ item.body or '' }}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="feature_link_label_{{ item.id }}">Button label</label>
+            <input type="text" id="feature_link_label_{{ item.id }}" name="link_label" maxlength="80" value="{{ item.link_label or '' }}">
+          </div>
+          <div class="form-group">
+            <label for="feature_link_url_{{ item.id }}">Button link</label>
+            <input type="text" id="feature_link_url_{{ item.id }}" name="link_url" maxlength="500" value="{{ item.link_url or '' }}">
+          </div>
+        </div>
+        <div class="entity-actions">
+          <button class="btn-primary btn-small" type="submit">Save</button>
+        </div>
+      </form>
+      <div class="entity-actions" style="margin-top:0.5rem;">
+        <form method="POST">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="toggle_feature">
+          <input type="hidden" name="feature_id" value="{{ item.id }}">
+          <input type="hidden" name="enabled" value="{{ 0 if item.enabled else 1 }}">
+          <button class="btn-secondary btn-small" type="submit">{{ 'Hide' if item.enabled else 'Show' }}</button>
+        </form>
+        <form method="POST">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="move_feature_up">
+          <input type="hidden" name="feature_id" value="{{ item.id }}">
+          <button class="btn-secondary btn-small" type="submit">Up</button>
+        </form>
+        <form method="POST">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="move_feature_down">
+          <input type="hidden" name="feature_id" value="{{ item.id }}">
+          <button class="btn-secondary btn-small" type="submit">Down</button>
+        </form>
+        <form method="POST">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="delete_feature">
+          <input type="hidden" name="feature_id" value="{{ item.id }}">
+          <button class="btn-danger btn-small" type="submit">Remove</button>
+        </form>
+      </div>
+    </article>
+    {% else %}
+    <p class="help-text">No highlights yet. Add a staff photo or event picture above and it will appear on the welcome page.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="content-section">
+  <h2 class="section-title">Login photos</h2>
+  <form method="POST" enctype="multipart/form-data" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="action" value="upload_hero">
+    <input type="hidden" name="surface" value="login">
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="login_image">Add a photo</label>
+        <input type="file" id="login_image" name="hero_image" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label for="login_caption">Caption (optional)</label>
+        <input type="text" id="login_caption" name="caption">
+      </div>
+    </div>
+    <button type="submit" class="btn-primary">Upload login photo</button>
+  </form>
+  <div class="hero-thumb-grid" style="margin-top:1rem;">
+    {% for img in login_images %}
+    <div class="hero-thumb">
+      <img src="{{ img.url }}" alt="{{ img.caption or 'Login photo' }}">
+      <div class="hero-thumb-meta">
+        {{ img.caption or 'Login photo' }}
+        <div class="entity-actions" style="margin-top:0.35rem;">
+          <form method="POST">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="toggle_hero">
+            <input type="hidden" name="image_id" value="{{ img.id }}">
+            <input type="hidden" name="enabled" value="{{ 0 if img.enabled else 1 }}">
+            <button class="btn-secondary btn-small" type="submit">{{ 'Hide' if img.enabled else 'Show' }}</button>
+          </form>
+          <form method="POST">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="delete_hero">
+            <input type="hidden" name="image_id" value="{{ img.id }}">
+            <button class="btn-danger btn-small" type="submit">Remove</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <p class="help-text">No login photos yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

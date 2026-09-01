@@ -1,0 +1,60 @@
+{# Community apps — public for guests, member apps when signed in. #}
+{% set logged_in = session.get('user_id') %}
+<nav class="glass-panel profile-card profile-app-rail" aria-label="Community">
+  <h2 class="profile-card-title">Community</h2>
+  <div class="profile-app-list">
+    <a href="{{ url_for('public.public_dashboard.public_community') }}">
+      <i class="fa-solid fa-rss" aria-hidden="true"></i> Feed
+    </a>
+    <a href="{{ url_for('church.people') }}">
+      <i class="fa-solid fa-users" aria-hidden="true"></i> People
+    </a>
+    {% if logged_in and user_has_permission('moderate_site') %}
+    <a href="/church/moderation">
+      <i class="fa-solid fa-user-shield" aria-hidden="true"></i> Site moderation
+    </a>
+    {% endif %}
+    {% if logged_in and user_has_permission('review_moderation') %}
+    <a href="/church/moderation/review">
+      <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Moderation review
+    </a>
+    {% endif %}
+    <a href="{% if logged_in %}{{ url_for('events.events') }}{% else %}{{ url_for('public.public_events.public_events') }}{% endif %}">
+      <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Events
+    </a>
+    <a href="{% if logged_in %}{{ url_for('prayers.prayers') }}{% else %}{{ url_for('public.public_prayers.public_prayers') }}{% endif %}">
+      <i class="fa-solid fa-hands-praying" aria-hidden="true"></i> Prayers
+    </a>
+    <a href="{% if logged_in %}{{ url_for('sermons.sermons') }}{% else %}{{ url_for('public.public_sermons.public_sermons') }}{% endif %}">
+      <i class="fa-solid fa-book-open" aria-hidden="true"></i> Sermons
+    </a>
+    <a href="{% if logged_in %}{{ url_for('announcements.announcements') }}{% else %}{{ url_for('public.public_announcements.public_announcements') }}{% endif %}">
+      <i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Announcements
+    </a>
+    {% if module_on('dreams') %}
+    <a href="{% if logged_in %}{{ url_for('dreams.dreams') }}{% elif endpoint_exists('public.public_dreams.public_dreams') %}{{ url_for('public.public_dreams.public_dreams') }}{% else %}{{ url_for('auth.login') }}{% endif %}">
+      <i class="fa-solid fa-cloud-moon" aria-hidden="true"></i> Dreams
+    </a>
+    {% endif %}
+    {% if module_on('prophecies') %}
+    <a href="{% if logged_in %}{{ url_for('prophecies.list_prophecies') }}{% elif endpoint_exists('public.public_prophecies.public_prophecies') %}{{ url_for('public.public_prophecies.public_prophecies') }}{% else %}{{ url_for('auth.login') }}{% endif %}">
+      <i class="fa-solid fa-scroll" aria-hidden="true"></i> Prophecies
+    </a>
+    {% endif %}
+    {% if module_on('bible_study') %}
+    <a href="{{ url_for('bible.member_study') }}">
+      <i class="fa-solid fa-book-bible" aria-hidden="true"></i> Bible
+    </a>
+    {% endif %}
+    {% if module_on('curriculum') and endpoint_exists('curriculum.catalog') %}
+    <a href="{{ url_for('curriculum.catalog') }}">
+      <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Study Courses
+    </a>
+    {% endif %}
+    {% if promotions_nav_visible|default(false) %}
+    <a href="{{ url_for('public.promotions_list') }}">
+      <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i> Partners
+    </a>
+    {% endif %}
+  </div>
+</nav>

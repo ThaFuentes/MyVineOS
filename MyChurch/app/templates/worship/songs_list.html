@@ -1,0 +1,111 @@
+{% extends "worship/base_worship.html" %}
+
+{% block worship_title %}Song Library{% endblock %}
+
+{% block worship_content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+  <h1 style="margin:0; font-size:1.35rem; color:var(--primary);">Song Library</h1>
+  {% if can_manage %}
+  <div style="display:flex; flex-wrap:wrap; gap:0.45rem;">
+    <a href="{{ url_for('worship.songs_public_domain') }}" class="btn btn-secondary">PD starter pack</a>
+    <a href="{{ url_for('worship.songs_import') }}" class="btn btn-secondary">Import / AI</a>
+    <a href="{{ url_for('worship.song_new') }}" class="btn btn-primary">+ Add Song</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if songs %}
+{% if can_manage %}
+{# Hardcoded path — never url_for this endpoint (avoids 500 if deploy/restart lag leaves route unregistered). #}
+<form method="post" action="/worship/songs/send-to-setlist" id="send-setlist-form" class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:0.85rem;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined and csrf_token else '' }}">
+  <div style="display:flex; flex-wrap:wrap; gap:0.65rem; align-items:flex-end;">
+    <div style="flex:1 1 220px;">
+      <label style="display:block; font-size:0.8rem; opacity:0.75; margin-bottom:0.25rem;">Send selected songs to</label>
+      <select name="target" id="send-target" class="form-input" style="width:100%;" required>
+        <option value="">— choose destination —</option>
+        <optgroup label="Date setlists">
+          {% for sl in setlists or [] %}
+          <option value="setlist:{{ sl.id }}">
+            {{ sl.title }}{% if sl.service_date %} ({{ sl.service_date }}){% endif %}
+          </option>
+          {% else %}
+          <option value="" disabled>No date setlists yet — create one under Date Overrides</option>
+          {% endfor %}
+        </optgroup>
+        <optgroup label="Weekly default (that day)">
+          {% for t in weekly_templates or [] %}
+          <option value="template:{{ t.weekday }}">
+            {{ t.weekday_name if t.weekday_name is defined else ('Day ' ~ t.weekday) }} default — {{ t.title }}
+          </option>
+          {% else %}
+          <option value="" disabled>No weekly defaults yet</option>
+          {% endfor %}
+        </optgroup>
+        <option value="week_all">Entire week — all weekly defaults (practice week)</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary" id="send-btn" disabled>Send to list</button>
+    <button type="button" class="btn btn-secondary" id="select-all-btn">Select all</button>
+    <button type="button" class="btn btn-secondary" id="select-none-btn">Clear</button>
+  </div>
+  <p style="margin:0.55rem 0 0; font-size:0.8rem; opacity:0.65;">
+    Check one or more songs, pick a setlist or weekly default day (or entire week), then send.
+  </p>
+</form>
+{% endif %}
+
+<div style="display:grid; gap:0.6rem;" id="song-rows">
+  {% for s in songs %}
+  <div class="glass-panel song-row" style="padding:0.75rem 1rem; display:flex; gap:0.75rem; align-items:center;">
+    {% if can_manage %}
+    <label style="display:flex; align-items:center; gap:0.45rem; cursor:pointer; flex-shrink:0;">
+      <input type="checkbox" name="song_ids" value="{{ s.id }}" form="send-setlist-form" class="song-check">
+      <span style="font-size:0.75rem; opacity:0.55;">Select</span>
+    </label>
+    {% endif %}
+    <a href="{{ url_for('worship.song_edit', song_id=s.id) }}" style="text-decoration:none; flex:1; min-width:0; color:inherit;">
+      <strong>{{ s.title }}</strong>
+      {% if s.artist %}<span style="opacity:0.7;"> - {{ s.artist }}</span>{% endif %}
+      {% if s.ccli_song_number %}<div style="font-size:0.8rem; opacity:0.55; margin-top:0.2rem;">CCLI {{ s.ccli_song_number }}</div>{% endif %}
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+{% if can_manage %}
+<script>
+(function () {
+  var checks = function () { return Array.prototype.slice.call(document.querySelectorAll('.song-check')); };
+  var btn = document.getElementById('send-btn');
+  var target = document.getElementById('send-target');
+  if (!btn || !target) return;
+  function sync() {
+    var n = checks().filter(function (c) { return c.checked; }).length;
+    btn.disabled = !(n > 0 && target.value);
+    btn.textContent = n ? ('Send ' + n + ' song' + (n === 1 ? '' : 's') + ' to list') : 'Send to list';
+  }
+  var rows = document.getElementById('song-rows');
+  if (rows) rows.addEventListener('change', sync);
+  target.addEventListener('change', sync);
+  var allBtn = document.getElementById('select-all-btn');
+  var noneBtn = document.getElementById('select-none-btn');
+  if (allBtn) allBtn.onclick = function () { checks().forEach(function (c) { c.checked = true; }); sync(); };
+  if (noneBtn) noneBtn.onclick = function () { checks().forEach(function (c) { c.checked = false; }); sync(); };
+  sync();
+})();
+</script>
+{% endif %}
+{% else %}
+<div class="glass-panel" style="padding:1.5rem; text-align:center; opacity:0.75;">
+  No songs in the library yet.
+  {% if can_manage %}
+  <p style="margin:0.75rem 0 0;">
+    Start with the <a href="{{ url_for('worship.songs_public_domain') }}">public domain pack</a>,
+    <a href="{{ url_for('worship.songs_import') }}">import a chart with AI</a>,
+    or <a href="{{ url_for('worship.song_new') }}">add a song manually</a>.
+  </p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

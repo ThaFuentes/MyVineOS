@@ -1,0 +1,92 @@
+{% if not hide_upcoming|default(false) %}
+{% include 'church/_upcoming_service.html' %}
+{% endif %}
+
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">Contact</h2>
+  <p><span>Name</span> {{ display_name }}</p>
+  {% if church_context.church_name %}
+  <p><span>Church</span> <a href="{{ church_context.page_url or url_for('church.church_home') }}">{{ church_context.church_name }}</a></p>
+  {% endif %}
+  {% if church_context.branch_name %}<p><span>Branch</span> {{ church_context.branch_name }}</p>{% endif %}
+</section>
+
+{% if stats %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">Stats</h2>
+  <p><strong>{{ stats.followers }}</strong> followers · <strong>{{ stats.following }}</strong> following</p>
+</section>
+{% endif %}
+
+{% if following %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">Following</h2>
+  <ul class="profile-follow-row">
+    {% for f in following %}
+    <li>
+      {% if f.page_url %}
+      <a href="{{ f.page_url }}" title="{{ f.display_name }}">
+        <span class="profile-person-pic" aria-hidden="true">
+          {% if f.pic_url %}<img src="{{ f.pic_url }}" alt="">{% else %}{{ f.initials }}{% endif %}
+        </span>
+        <span>{{ f.display_name }}</span>
+      </a>
+      {% else %}
+      <span class="profile-person-pic" aria-hidden="true">{{ f.initials }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if session.get('user_id') and not is_owner %}
+<div class="profile-actions">
+  <form method="post" action="{{ url_for('church.follow_user', username=owner.username) }}">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="follow" value="{{ '0' if is_following else '1' }}">
+    <button class="profile-me-btn" type="submit">{{ 'Following' if is_following else 'Follow' }}</button>
+  </form>
+  {% if allow_messages %}
+  <form method="post" action="{{ url_for('church.start_message', username=owner.username) }}">
+    {% include 'partials/csrf_field.html' %}
+    <button class="profile-me-btn profile-me-btn-quiet" type="submit">Send a note</button>
+  </form>
+  {% endif %}
+  <form method="post" action="{{ url_for('church.block_user', username=owner.username) }}">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="block" value="1">
+    <button class="btn btn-secondary" type="submit">Block</button>
+  </form>
+</div>
+{% endif %}
+
+{% if badges and space.show_training %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">Badges</h2>
+  <ul class="profile-link-list">
+    {% for b in badges %}
+    <li><strong>{{ b.badge_kind }}</strong> <span>{{ b.series_title or 'Study course' }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if not hide_gallery|default(false) %}
+{% include 'church/_gallery.html' %}
+{% endif %}
+{% set items = links %}
+{% set section_title = 'On their page' %}
+{% include 'church/_links.html' %}
+
+<section class="glass-panel profile-about">
+  <h2>About me</h2>
+  {% if about %}<p>{{ about | nl2br }}</p>{% endif %}
+  <dl class="profile-facts">
+    {% if space.occupation %}<div><dt>Does</dt><dd>{{ space.occupation }}</dd></div>{% endif %}
+    {% if space.hometown %}<div><dt>From</dt><dd>{{ space.hometown }}</dd></div>{% endif %}
+    {% if birthday_label %}<div><dt>Birthday</dt><dd>{{ birthday_label }}</dd></div>{% endif %}
+    {% if space.interests %}<div><dt>Into</dt><dd>{{ space.interests }}</dd></div>{% endif %}
+    {% if space.accent_color %}<div><dt>Color</dt><dd><span class="profile-swatch" style="background:{{ space.accent_color }}"></span></dd></div>{% endif %}
+  </dl>
+</section>

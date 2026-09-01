@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+{% block prophecies_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+{% if request.endpoint != 'prophecies.list_prophecies' %}
+<p class="help-text" style="margin:0 0 0.75rem;">
+  <a href="{{ url_for('prophecies.list_prophecies') }}">← Prophecies</a>
+</p>
+<h1 class="page-title">{% block page_title %}Prophecies{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+{% endif %}
+
+{% block prophecies_content %}{% endblock %}
+{% endblock %}

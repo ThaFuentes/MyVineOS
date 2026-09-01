@@ -1,0 +1,13 @@
+{% set types = sheet_compose_types|default([]) %}
+{% if types and request.endpoint != 'compose.compose_form' %}
+<dialog class="compose-sheet" id="compose-sheet">
+  <form method="dialog" class="compose-sheet-closebar">
+    <button type="submit" class="profile-x" aria-label="Close">×</button>
+  </form>
+  <p class="page-kicker">Stay on this page</p>
+  <h2 class="page-title compose-sheet-title">Share</h2>
+  {% set compose_types = types %}
+  {% set next_url = request.full_path.rstrip('?') %}
+  {% include 'partials/compose_form.html' %}
+</dialog>
+{% endif %}

@@ -1,0 +1,29 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/ua882038/public_html/myvineos.poweredby.top"
+PassengerBaseURI "/"
+PassengerPython "/home/ua882038/virtualenv/public_html/myvineos.poweredby.top/3.13/bin/python"
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+<IfModule Litespeed>
+</IfModule>
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END
+
+# Security headers (LiteSpeed / HostM compatible)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # HSTS - enable only when HTTPS is stable in prod
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# Prevent listing directories
+Options -Indexes
+
+# Block common bad bots / scanners (basic) - commented to let PBT handle UA/rate/reputation instead
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteCond %{HTTP_USER_AGENT} (bot|crawler|spider|scan|curl|wget|python|java|nikto|sqlmap) [NC]
+#     RewriteRule .* - [F,L]
+# </IfModule>

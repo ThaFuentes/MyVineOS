@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+{% block prayers_page_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+{% if request.endpoint != 'prayers.prayers' %}
+<p class="help-text" style="margin:0 0 0.75rem;">
+  <a href="{{ url_for('prayers.prayers') }}">← Prayers</a>
+</p>
+<h1 class="page-title">{% block page_title %}Prayers{% endblock %}</h1>
+<p class="page-description">{% block page_description %}{% endblock %}</p>
+{% endif %}
+
+{% block prayers_content %}{% endblock %}
+{% endblock %}

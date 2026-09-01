@@ -1,0 +1,148 @@
+{# Mobile overlay sheets. Wall stays put; About / photos / Sunday slide over it. #}
+{% set pending = serving_pending|default([]) %}
+{% set accepted = serving_accepted|default([]) %}
+
+{% if pending %}
+<div class="profile-serve-ping" role="status">
+  <div>
+    <strong>You’re asked to serve</strong>
+    <span>{{ pending[0].role_name }}{% if pending[0].serve_date %} · {{ pending[0].serve_date }}{% endif %}</span>
+  </div>
+  <div class="profile-serving-actions">
+    {% set a = pending[0] %}
+    {% if a.source == 'volunteer' %}
+    <form method="post" action="{{ url_for('volunteers.my_respond', assignment_id=a.id) }}">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="decision" value="accept">
+      <button type="submit" class="btn btn-primary btn-sm">Yes</button>
+    </form>
+    <form method="post" action="{{ url_for('volunteers.my_respond', assignment_id=a.id) }}">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="decision" value="decline">
+      <button type="submit" class="btn btn-secondary btn-sm">Can’t</button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('church.serve_reply') }}">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="token" value="{{ a.token }}">
+      <input type="hidden" name="decision" value="accept">
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <button type="submit" class="btn btn-primary btn-sm">Yes</button>
+    </form>
+    <form method="post" action="{{ url_for('church.serve_reply') }}">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="token" value="{{ a.token }}">
+      <input type="hidden" name="decision" value="decline">
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <button type="submit" class="btn btn-secondary btn-sm">Can’t</button>
+    </form>
+    {% endif %}
+    {% if pending|length > 1 %}
+    <button type="button" class="btn btn-secondary btn-sm" data-sheet="serve">All {{ pending|length }}</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<nav class="profile-mobile-tabs" aria-label="On this page">
+  <button type="button" class="is-on" data-close-sheet>Wall</button>
+  {% if profile_kind == 'member' %}
+  <button type="button" data-sheet="about">About</button>
+  <button type="button" data-sheet="photos">Photos</button>
+  {% else %}
+  <button type="button" data-sheet="sunday">Sunday</button>
+  <button type="button" data-sheet="about">About</button>
+  {% endif %}
+  {% if pending or accepted %}
+  <button type="button" data-sheet="serve"{% if pending %} class="has-ping"{% endif %}>
+    Serve
+    {% include 'partials/serving_badges.html' %}
+  </button>
+  {% endif %}
+</nav>
+
+{% if profile_kind == 'member' %}
+<div class="profile-sheet" id="profile-sheet-about" hidden>
+  <button type="button" class="profile-sheet-backdrop" data-close-sheet aria-label="Close"></button>
+  <div class="profile-sheet-card" role="dialog" aria-labelledby="sheet-about-title">
+    <header class="profile-sheet-head">
+      <h2 id="sheet-about-title">About</h2>
+      <button type="button" class="profile-sheet-x" data-close-sheet aria-label="Close">×</button>
+    </header>
+    <div class="profile-sheet-body">
+      {% set hide_upcoming = true %}
+      {% set hide_gallery = true %}
+      {% include 'church/_member_info.html' %}
+    </div>
+  </div>
+</div>
+<div class="profile-sheet" id="profile-sheet-photos" hidden>
+  <button type="button" class="profile-sheet-backdrop" data-close-sheet aria-label="Close"></button>
+  <div class="profile-sheet-card" role="dialog" aria-labelledby="sheet-photos-title">
+    <header class="profile-sheet-head">
+      <h2 id="sheet-photos-title">Photos</h2>
+      <button type="button" class="profile-sheet-x" data-close-sheet aria-label="Close">×</button>
+    </header>
+    <div class="profile-sheet-body">
+      {% include 'church/_gallery.html' %}
+      {% if not photos %}
+      <p class="profile-muted">No photos on this page yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="profile-sheet" id="profile-sheet-sunday" hidden>
+  <button type="button" class="profile-sheet-backdrop" data-close-sheet aria-label="Close"></button>
+  <div class="profile-sheet-card" role="dialog" aria-labelledby="sheet-sunday-title">
+    <header class="profile-sheet-head">
+      <h2 id="sheet-sunday-title">This Sunday</h2>
+      <button type="button" class="profile-sheet-x" data-close-sheet aria-label="Close">×</button>
+    </header>
+    <div class="profile-sheet-body">
+      {% include 'church/_upcoming_service.html' %}
+      {% include 'church/_recent_updates.html' %}
+      {% if worship %}
+      <section class="glass-panel profile-card">
+        <h2 class="profile-card-title">Worship lineup</h2>
+        <p class="profile-gathering"><strong>{{ worship.title }}</strong></p>
+        {% if worship.service_date %}<p class="profile-muted">{{ worship.service_date }}</p>{% endif %}
+        {% if worship.songs %}
+        <ul class="profile-link-list">
+          {% for song in worship.songs %}<li>{{ song }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+      </section>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<div class="profile-sheet" id="profile-sheet-about" hidden>
+  <button type="button" class="profile-sheet-backdrop" data-close-sheet aria-label="Close"></button>
+  <div class="profile-sheet-card" role="dialog" aria-labelledby="sheet-church-about-title">
+    <header class="profile-sheet-head">
+      <h2 id="sheet-church-about-title">About</h2>
+      <button type="button" class="profile-sheet-x" data-close-sheet aria-label="Close">×</button>
+    </header>
+    <div class="profile-sheet-body">
+      {% set hide_sunday_bits = true %}
+      {% include 'church/_church_info.html' %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if pending or accepted or serving|default([]) %}
+<div class="profile-sheet" id="profile-sheet-serve" hidden>
+  <button type="button" class="profile-sheet-backdrop" data-close-sheet aria-label="Close"></button>
+  <div class="profile-sheet-card" role="dialog" aria-labelledby="sheet-serve-title">
+    <header class="profile-sheet-head">
+      <h2 id="sheet-serve-title">Serve</h2>
+      <button type="button" class="profile-sheet-x" data-close-sheet aria-label="Close">×</button>
+    </header>
+    <div class="profile-sheet-body">
+      {% include 'church/_serving.html' %}
+    </div>
+  </div>
+</div>
+{% endif %}

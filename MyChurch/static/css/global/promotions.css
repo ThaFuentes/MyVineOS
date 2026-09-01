@@ -1,0 +1,81 @@
+.promotions-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+}
+.promotions-header {
+  margin-bottom: 1.25rem;
+}
+.promotions-intro {
+  max-width: 42rem;
+  white-space: pre-wrap;
+}
+.promotions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.promotion-card {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.promotion-card-media {
+  aspect-ratio: 16 / 10;
+  background: rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.promotion-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.promotion-card-body {
+  padding: 1rem 1.05rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+}
+.promotion-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  color: var(--primary, #3dbf9a);
+}
+.promotion-title {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.3;
+  color: var(--text-primary, #e8edf4);
+}
+.promotion-subtitle {
+  margin: 0;
+  font-size: 0.92rem;
+  opacity: 0.78;
+}
+.promotion-text {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  opacity: 0.9;
+  white-space: pre-wrap;
+  flex: 1;
+}
+.promotion-link {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}

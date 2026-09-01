@@ -1,0 +1,22 @@
+{% set photos = photos|default([]) %}
+{% set photo_total = photo_total|default(photos|length) %}
+{% if photos %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">Photos</h2>
+  <div class="profile-gallery">
+    {% for p in photos %}
+    <figure>
+      <a href="{{ p.view_url or url_for('church.photo_view', photo_id=p.id) }}">
+        <img src="{{ p.url }}" alt="{{ (p.caption or 'Photo') | censor }}">
+      </a>
+      {% if p.caption %}<figcaption>{{ p.caption | censor }}</figcaption>{% endif %}
+    </figure>
+    {% endfor %}
+  </div>
+  {% if photo_album_url and photo_total > (photos|length) %}
+  <a class="profile-quiet-link" href="{{ photo_album_url }}">View all {{ photo_total }} photos</a>
+  {% elif photo_album_url %}
+  <a class="profile-quiet-link" href="{{ photo_album_url }}">Open album</a>
+  {% endif %}
+</section>
+{% endif %}

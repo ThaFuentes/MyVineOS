@@ -1,0 +1,34 @@
+{# Church page link — church pic (not the wide banner) + this week's speaker. #}
+{% set ctx = church_context|default({}) %}
+{% if ctx %}
+<a class="church-strip has-pic" href="{{ ctx.page_url or url_for('church.church_home') }}">
+  <span class="church-strip-pic" aria-hidden="true">
+    {% if ctx.pic_url %}
+    <img src="{{ ctx.pic_url }}" alt="">
+    {% else %}
+    <span>{{ (ctx.church_name or 'C')[0]|upper }}</span>
+    {% endif %}
+  </span>
+  <span class="church-strip-copy">
+    <span class="church-strip-kicker">{{ strip_kicker|default('Their church') }}</span>
+    <span class="church-strip-name">{{ ctx.church_name }}{% if ctx.branch_name %} · {{ ctx.branch_name }}{% endif %}</span>
+    <span class="church-strip-next">
+      {% set roles = ctx.filled_roles or [] %}
+      {% if roles %}
+        {% for r in roles %}
+          <strong>{{ r.role_name }}:</strong> {{ r.name }}{% if not loop.last %} · {% endif %}
+        {% endfor %}
+      {% elif ctx.speaker %}
+        <strong>Preacher:</strong> {{ ctx.speaker }}
+      {% else %}
+        Service
+      {% endif %}
+      {% if ctx.start_time %} · {{ ctx.start_time }}{% endif %}
+      {% if ctx.date_label %} · {{ ctx.date_label }}{% endif %}
+    </span>
+    {% if ctx.upcoming and (ctx.upcoming.is_override or ctx.upcoming.speaker != ctx.speaker) %}
+    <span class="church-strip-soon">Coming up · {{ ctx.upcoming.speaker }}{% if ctx.upcoming.date_label %} · {{ ctx.upcoming.date_label }}{% endif %}</span>
+    {% endif %}
+  </span>
+</a>
+{% endif %}

@@ -1,0 +1,52 @@
+{% extends "base_public.html" %}
+
+{% block title %}{{ page_title or 'Give' }}{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div>
+    <p class="page-kicker">{% if event %}Event fee{% else %}Give{% endif %}</p>
+    <h1 class="page-title">{{ page_title or 'Give' }}</h1>
+    <p class="page-description">
+      {% if event %}
+        You’re covering <strong>{{ event.event_name }}</strong>
+        {% if amount %} — ${{ '%.2f'|format(amount) }}{% endif %}.
+        This is an event fee, not a tithe. We never take card numbers on this site — you finish on the processor you choose.
+      {% else %}
+        {{ welcome_text or 'Thank you for supporting this church. We never take card numbers here — you finish on your church’s giving provider.' }}
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+{% if online_options %}
+<div class="giving-grid">
+  {% for opt in online_options %}
+  <article class="glass-panel giving-card">
+    <h2 class="section-title" style="margin-bottom:0.35rem;">{{ opt.name }}</h2>
+    {% if opt.option_type %}<p class="help-text" style="margin:0 0 0.5rem;">{{ opt.option_type }}</p>{% endif %}
+    {% if opt.image_path %}
+    <img src="{{ url_for('static', filename='uploads/donations/' + opt.image_path) }}" alt="">
+    {% endif %}
+    {% if opt.url %}
+    <p><a class="btn btn-primary" href="{{ opt.url }}" target="_blank" rel="noopener noreferrer">{% if event %}Pay{% else %}Give{% endif %} with {{ opt.name }}</a></p>
+    {% endif %}
+    {% if opt.embed_code %}
+    <div class="giving-embed">{{ opt.embed_code | safe }}</div>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel empty-state">
+  <p>Online giving isn’t set up yet. Reach the church office and they can point you to the right place.</p>
+</div>
+{% endif %}
+
+{% if thank_you_text %}
+<p class="page-description" style="margin-top:1rem;">{{ thank_you_text }}</p>
+{% endif %}
+{% if extra_html %}
+<div class="glass-panel giving-extra">{{ extra_html | safe }}</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,181 @@
+<!-- MYVINECHURCH.ONLINE/app/templates/base.html -->
+<!-- Full path: MYVINECHURCH.ONLINE/app/templates/base.html -->
+<!-- File name: base.html -->
+<!-- Brief, detailed purpose: Master layout template inherited by all private pages. -->
+<!-- Overhauled for phone app / webapp feel:
+  - Primary nav = fixed bottom bar on phones (Home / Community / My Stuff / Manager)
+  - Sticky top app bar + .page-content viewport
+  - PWA manifest + apple + standalone metas (installable as real app, no browser chrome)
+  - app-shell.js for native tap feedback
+  - Desktop falls back to clean top nav
+  Only the nav active logic + Gathering link updated from very old original. -->
+
+{% set s = g.settings if g is defined else {} %}
+{% set church_theme = session.get('church_default_theme') or (s.get('default_ui_theme') if s else none) or 'cyan-glow' %}
+{% set user_theme = session.get('user_theme') or church_theme or 'cyan-glow' %}
+{% set ui_font_scale = session.get('ui_font_scale') or 'md' %}
+{% set bible_font_scale = session.get('bible_font_scale') or 'md' %}
+{% set personal_theme_wins = session.get('ui_use_personal_theme') or session.get('user_id') is not none %}
+<!DOCTYPE html>
+<html lang="en"
+      data-theme="{{ user_theme }}"
+      data-font-scale="{{ ui_font_scale }}"
+      data-bible-scale="{{ bible_font_scale }}">
+<head>
+  <meta charset="UTF-8">
+  <!-- Proper mobile viewport + web app / phone app feel -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="{% if user_theme == 'soft-light' %}#f4f7fb{% elif user_theme == 'tropical' %}#062820{% else %}#0a0a0a{% endif %}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="{% if user_theme == 'soft-light' %}default{% else %}black-translucent{% endif %}">
+  <meta name="apple-mobile-web-app-title" content="MyVine">
+  <meta name="mobile-web-app-capable" content="yes">
+  {% include 'partials/security_scripts.html' %}
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/dashboard_bg1.png') }}">
+
+  <title>{% block title %}{% endblock %}{% if s.get('church_name') %} | {{ s.get('church_name') }}{% endif %}</title>
+
+  <!-- THEME (data-theme vars + font scales) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
+
+  <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260901serve">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/enterprise.css') }}?v=20260827voice">
+  <!-- Large text / elderly-friendly: cards grow & wrap (Display page text size) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/dashboard_tiles.css') }}?v=20260716a11y">
+  <!-- Template UI icons only (never used in server log print statements) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+  <!-- Legacy kept only if needed for specific modules; overhaul.css is now primary for layout and mobile. -->
+
+  {% block extra_css %}{% endblock %}
+
+  <!-- Dynamic favicon -->
+  {% set fav = s.get('favicon_path') %}
+  <link rel="icon" href="{{ url_for('static', filename='images/' ~ fav if fav else 'favicon.ico') }}">
+
+  <!-- Branding: church defaults only when personal theme is not active (personal wins for logged-in) -->
+  <style>
+    :root {
+      --font-main: '{{ s.get('font_family', "system-ui, -apple-system, sans-serif") }}';
+      {% if not personal_theme_wins %}
+      --primary: {{ s.get('primary_color', '#00FFFF') }};
+      --primary-hover: {{ s.get('primary_hover_color', '#00cccc') }};
+      {% set bg_image = s.get('background_image') %}
+      {% if bg_image %}
+      --bg-page: linear-gradient(rgba(0,0,0,{{ s.get('background_opacity', 0.68) }}),
+                                rgba(0,0,0,{{ s.get('background_opacity', 0.68) }})),
+                 url('{{ url_for('static', filename='images/' ~ bg_image) }}');
+      {% endif %}
+      {% endif %}
+    }
+
+    /* Minimal body reset - overhaul.css handles most layout now */
+    body {
+      background: var(--bg-page, linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%));
+      background-size: cover;
+      background-attachment: fixed;
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-main);
+      overflow-x: hidden;
+    }
+  </style>
+
+</head>
+
+<body {% block body_style %}{% endblock %}>
+
+  <!-- NEW OVERHAULED TOP APP BAR (mobile-first, clean) -->
+  <header class="top-bar">
+    <div class="church-name">
+      {{ s.get('church_name') or 'Church Portal' }}
+    </div>
+
+    <div class="user-info">
+      {% if session.get('user_id') %}
+        <form method="get" action="{{ url_for('church.people') }}" class="people-search-form" role="search">
+          <label class="visually-hidden" for="top-people-q">Find people</label>
+          <input id="top-people-q" type="search" name="q" placeholder="Find people…" value="">
+          <button type="submit" aria-label="Search people"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
+        </form>
+        {% include 'partials/campus_switcher.html' %}
+        {% include 'partials/display_prefs.html' %}
+        <div class="user-chip">
+          <i class="fa-solid fa-user" aria-hidden="true"></i> {{ session.username|default('Member') }}
+          <span style="opacity:0.7; font-size:0.75em;">{{ session.user_role|default('') }}</span>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Logout</a>
+      {% else %}
+        {% include 'partials/display_prefs.html' %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Login / Register</a>
+      {% endif %}
+      <div class="clock desktop-only" id="clock" style="font-size:0.8rem; margin-left:0.5rem; opacity:0.7;">--:--</div>
+    </div>
+  </header>
+
+  <!-- Desktop top nav: private groups when signed in; same public menu as homepage when guest -->
+  <nav class="top-nav">
+    {% if session.get('user_id') %}
+      {% include 'partials/nav_private_groups.html' %}
+    {% else %}
+      {% include 'partials/nav_public_top.html' %}
+    {% endif %}
+  </nav>
+
+  {# Mobile bottom nav: tabs open sheets (Community / Office / My Stuff / More). Desktop uses top-nav only. #}
+  {% if session.get('user_id') %}
+    {% include 'partials/nav_private_bottom.html' %}
+  {% else %}
+    {% include 'partials/nav_public_bottom.html' %}
+  {% endif %}
+
+  <!-- NEW CLEAN CONTENT WRAPPER -->
+  <div class="page-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <footer style="text-align:center; padding:0.6rem 0.5rem 4.75rem; font-size:0.65rem; color:var(--text-muted); opacity:0.45;">
+    <a href="{{ url_for('legal.legal_index') }}" style="color:inherit; text-decoration:none; margin-right:0.75rem;">Legal & Policies</a>
+    (c) {{ g.get('current_year', '2026') }} {{ s.get('church_name') or 'Church Portal' }}
+  </footer>
+
+  {% include 'partials/compose_sheet.html' %}
+
+  {% block scripts %}
+    <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=20260716nav2"></script>
+    <script src="{{ url_for('static', filename='js/enterprise.js') }}?v=20260826sheet"></script>
+    <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260715theme"></script>
+    <script>
+      function updateClock() {
+        const now = new Date();
+        const clockEl = document.getElementById('clock');
+        if (clockEl) {
+          clockEl.textContent = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+        }
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+    </script>
+  {% endblock %}
+</body>
+</html>

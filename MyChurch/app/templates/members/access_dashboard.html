@@ -1,0 +1,78 @@
+{% extends "members/base_members.html" %}
+{% block page_title %}Access{% endblock %}
+{% block page_description %}
+  One control plane: <strong>who can open which tools</strong>, with fine-grained actions.
+  No group permission grants — no second source of access.
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/access_control.css') }}?v=20260723single1">
+<style>
+  .access-hub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .access-hub-card {
+    display: flex; flex-direction: column; gap: 0.65rem;
+    padding: 1.25rem 1.2rem; border-radius: 16px;
+    border: 2px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.22);
+    text-decoration: none; color: inherit; min-height: 11rem;
+    transition: border-color 0.15s ease, transform 0.12s ease;
+  }
+  .access-hub-card:hover { border-color: rgba(90, 200, 255, 0.5); transform: translateY(-2px); }
+  .access-hub-card h2 { margin: 0; font-size: 1.35rem; font-weight: 800; }
+  .access-hub-card p { margin: 0; flex: 1; font-size: 1.02rem; line-height: 1.45; opacity: 0.9; }
+  .access-hub-meta { font-size: 0.95rem; font-weight: 700; opacity: 0.75; }
+  .access-hub-go { font-weight: 800; color: #8ed9ff; }
+</style>
+{% endblock %}
+
+{% block members_content %}
+{% include 'members/_access_subnav.html' %}
+
+<div class="ac-hero glass-panel">
+  <h2>Access dashboard</h2>
+  <p>
+    <strong>People</strong> get tools one person at a time.
+    <strong>Visitors</strong> (not logged in) get the same style of checkboxes for public community areas.
+  </p>
+</div>
+
+<div class="access-hub-grid">
+  <a class="access-hub-card" href="{{ url_for('members.access_visitors') }}">
+    <h2><i class="fa-solid fa-globe" aria-hidden="true"></i> Visitors</h2>
+    <p>
+      Not logged in. Same idea: ON + View / Create / Comment per community tab.
+      e.g. Dreams: see only — no comment, no submit.
+    </p>
+    <div class="access-hub-meta">Public site policy</div>
+    <span class="access-hub-go">Set visitor tools →</span>
+  </a>
+
+  <a class="access-hub-card" href="{{ url_for('members.access_people') }}">
+    <h2><i class="fa-solid fa-users" aria-hidden="true"></i> People tools</h2>
+    <p>Logged-in accounts. Open anyone. Enable tools. Set fine-grained actions.</p>
+    <div class="access-hub-meta">{{ people_count }} people</div>
+    <span class="access-hub-go">Open people →</span>
+  </a>
+
+  <a class="access-hub-card" href="{{ url_for('members.access_templates') }}">
+    <h2><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Templates</h2>
+    <p>Named packs for people (not visitors). Shortcuts that write the same tool list.</p>
+    <div class="access-hub-meta">{{ template_count }} template{{ 's' if template_count != 1 else '' }}</div>
+    <span class="access-hub-go">Manage templates →</span>
+  </a>
+</div>
+
+<div class="glass-panel" style="padding:1rem; margin-top:1.25rem;">
+  <strong>How to use it</strong>
+  <ol style="margin:0.5rem 0 0; padding-left:1.25rem; line-height:1.55; font-size:1.05rem;">
+    <li><strong>Visitors</strong> — what the public can see / submit / comment on community tabs.</li>
+    <li><strong>People tools</strong> — accounting, donations, moderate, create, etc. for each account.</li>
+    <li>If a tool is <strong>OFF</strong> for them, they should not see the button (not just a deny message).</li>
+  </ol>
+</div>
+{% endblock %}

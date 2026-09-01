@@ -1,0 +1,69 @@
+{% extends "base.html" if session.get('user_id') else "base_public.html" %}
+
+{% block title %}{{ display_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=31">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/volunteers.css') }}?v=20260714a">
+{% endblock %}
+
+{% block content %}
+{% set contact = contact|default({}) %}
+<div class="profile-shell member-profile" {% if palette_style or (space and space.accent_color) %}style="{{ palette_style }}{% if space and space.accent_color %} --profile-serve-on: {{ space.accent_color }};{% endif %}"{% endif %}>
+
+  <aside class="profile-gutter profile-gutter-left">
+    {% set you_panel_class = 'profile-you-desktop' %}
+    {% set you_has_page = true %}
+    {% set you_edit_page = url_for('church.edit_my_page') if is_owner else '' %}
+    {% set you_messages = is_owner %}
+    {% include 'church/_you_panel.html' %}
+    <div class="profile-info-desktop">
+      {% include 'church/_serving.html' %}
+      {% include 'church/_member_info.html' %}
+    </div>
+    {% include 'church/_community_apps.html' %}
+  </aside>
+
+  <div class="profile-center">
+    {% include 'partials/church_context_strip.html' %}
+    {% set identity_kicker = owner.role or 'Member' %}
+    {% set can_change_look = is_owner %}
+    {% set manage_scope = 'member' %}
+    {% include 'church/_identity.html' %}
+
+    {% if is_owner and warnings %}
+    <div class="profile-serve-ping" role="status" style="display:block; margin:0.6rem 0;">
+      {% for w in warnings %}
+      <p style="margin:0.2rem 0;"><strong>A note from the church</strong> — {{ w.reason or w.preview }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="profile-me-bar" role="region" aria-label="Post or open the feed">
+      {% if is_owner and compose_types %}
+        {% set compose_launch_label = 'Share with the church' %}
+        {% include 'partials/compose_card.html' %}
+      {% endif %}
+      <a class="profile-me-btn{% if is_owner and compose_types %} profile-me-btn-quiet{% endif %}" href="{{ url_for('public.public_dashboard.public_community') }}">
+        <i class="fa-solid fa-rss" aria-hidden="true"></i> Feed
+      </a>
+    </div>
+
+    {% set profile_kind = 'member' %}
+    {% include 'church/_profile_sheets.html' %}
+
+    {% set wall_title = display_name ~ "'s wall" %}
+    {% set wall_hint = 'What they made, linked, and follow. Public posts are open to guests; private is members; personal is only them. The Feed is a separate page.' %}
+    {% set guest_can_comment = false %}
+    {% set wall_surface = 'member' %}
+    {% set empty_text = 'This wall is still quiet. Posts they write, links they add, and people they follow will land here.' %}
+    {% include 'church/_wall.html' %}
+  </div>
+
+  <aside class="profile-gutter profile-gutter-right">
+    {% include 'church/_office_apps.html' %}
+  </aside>
+</div>
+<script src="{{ url_for('static', filename='js/global/church_profile_sheets.js') }}?v=1"></script>
+{% endblock %}

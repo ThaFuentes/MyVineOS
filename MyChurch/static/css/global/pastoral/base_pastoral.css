@@ -1,0 +1,445 @@
+/* static/css/global/pastoral/base_pastoral.css */
+/* Full path: WebChurchMan/static/css/global/pastoral/base_pastoral.css */
+/* File name: base_pastoral.css */
+/* Brief, detailed purpose:
+#   Global base styles for ALL Pastoral Area pages – extracted from base_pastoral.html
+#   • Consistent dark theme (#000–#222) with cyan accents (#00FFFF / #00AAAA)
+#   • Fixed header with glowing title (left) + right-aligned navigation
+#   • Glass-card effect, button polish, typography, responsive behavior
+#   • Fully modular – no inline styles remain in templates
+#   • Subtle hover/focus states, smooth transitions, accessibility improvements
+#   • Scrollbar styling (dark/cyan) – optional but matches theme
+#   • 2026 rebuild standards: clean, maintainable, no redundancy
+*/
+
+:root {
+  /* Pastoral follows site theme vars; these are fallbacks for older pastoral CSS */
+  --cyan: var(--primary, #00FFFF);
+  --cyan-dark: var(--primary-hover, #00AAAA);
+  --bg-dark: transparent;
+  --bg-darker: transparent;
+  --pastoral-card: #252525;
+  --text-light: var(--text-primary, #FFFFFF);
+  /* note: do not self-reference --text-muted; use site token via fallback only in consumers */
+  --border-cyan: var(--primary-border, rgba(0, 255, 255, 0.3));
+  --shadow-cyan: 0 10px 40px rgba(0, 170, 170, 0.2);
+  --glass-blur: blur(10px);
+  --transition: all 0.25s ease;
+}
+
+/* Do not force a pure-black body — inherit site theme background */
+body.pastoral-shell {
+  background: var(--bg-page) !important;
+  color: var(--text-primary, #e0e0e0);
+}
+
+/* ── Pastoral top bar: never let title and nav sit on top of each other ── */
+body.pastoral-shell .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem 0.75rem;
+  row-gap: 0.45rem;
+  min-height: 3.25rem;
+  height: auto;
+  padding: 0.45rem 0.75rem;
+  overflow: visible;
+}
+
+body.pastoral-shell .top-bar .church-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: min(40%, 16rem) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+body.pastoral-shell .top-bar .user-info {
+  flex: 1 1 14rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem !important;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Icon-first nav: keep chips compact so they don't crush the title */
+body.pastoral-shell .top-bar .user-info a.pn-btn {
+  border: 1px solid transparent !important;
+  font-weight: 600 !important;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Display prefs sits in the nav row without overlapping links */
+body.pastoral-shell .top-bar .display-prefs {
+  position: relative;
+  z-index: 1001;
+  flex: 0 0 auto;
+}
+body.pastoral-shell .top-bar .display-prefs-panel {
+  right: 0;
+  left: auto;
+  z-index: 1100;
+}
+
+@media (max-width: 900px) {
+  body.pastoral-shell .top-bar .church-name {
+    max-width: 100% !important;
+    flex: 1 1 100%;
+    text-align: left;
+  }
+  body.pastoral-shell .top-bar .user-info {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* Multi-color pastoral top-bar / bottom-nav (icons readable, not all cyan) */
+.top-bar .user-info a.pn-btn {
+  border: 1px solid transparent !important;
+  font-weight: 600 !important;
+}
+
+/* Brighter multi-color pastoral icons (readable on dark default theme) */
+.top-bar .user-info a.pn-dash { color: #6ed4ff !important; border-color: rgba(110, 212, 255, 0.6) !important; background: rgba(110, 212, 255, 0.16) !important; }
+.top-bar .user-info a.pn-plan { color: #ffc85a !important; border-color: rgba(255, 200, 90, 0.6) !important; background: rgba(255, 200, 90, 0.16) !important; }
+.top-bar .user-info a.pn-sermons { color: #4dffc8 !important; border-color: rgba(77, 255, 200, 0.6) !important; background: rgba(77, 255, 200, 0.16) !important; }
+.top-bar .user-info a.pn-podium { color: #ff9a78 !important; border-color: rgba(255, 154, 120, 0.65) !important; background: rgba(255, 154, 120, 0.18) !important; }
+.top-bar .user-info a.pn-care { color: #ff8fd0 !important; border-color: rgba(255, 143, 208, 0.6) !important; background: rgba(255, 143, 208, 0.16) !important; }
+.top-bar .user-info a.pn-illustrations { color: #c4a1ff !important; border-color: rgba(196, 161, 255, 0.6) !important; background: rgba(196, 161, 255, 0.16) !important; }
+.top-bar .user-info a.pn-bible { color: #ffd56a !important; border-color: rgba(255, 213, 106, 0.6) !important; background: rgba(255, 213, 106, 0.16) !important; }
+.top-bar .user-info a.pn-upload { color: #6fe0f0 !important; border-color: rgba(111, 224, 240, 0.6) !important; background: rgba(111, 224, 240, 0.16) !important; }
+.top-bar .user-info a.pn-main { color: #e0e6f0 !important; border-color: rgba(224, 230, 240, 0.45) !important; background: rgba(255, 255, 255, 0.1) !important; }
+
+.top-bar .user-info a.pn-btn .fa-solid {
+  filter: brightness(1.3) drop-shadow(0 0 6px currentColor);
+}
+
+.bottom-nav a.pn-dash { color: #6ed4ff; }
+.bottom-nav a.pn-plan { color: #ffc85a; }
+.bottom-nav a.pn-sermons { color: #4dffc8; }
+.bottom-nav a.pn-podium { color: #ff9a78; }
+.bottom-nav a.pn-care { color: #ff8fd0; }
+.bottom-nav a.pn-illustrations { color: #c4a1ff; }
+
+.bottom-nav a.pn-dash.active,
+.bottom-nav a.pn-dash:hover { color: #9ae4ff !important; }
+.bottom-nav a.pn-plan.active,
+.bottom-nav a.pn-plan:hover { color: #ffd88a !important; }
+.bottom-nav a.pn-sermons.active,
+.bottom-nav a.pn-sermons:hover { color: #7affd8 !important; }
+.bottom-nav a.pn-podium.active,
+.bottom-nav a.pn-podium:hover { color: #ffb49a !important; }
+.bottom-nav a.pn-care.active,
+.bottom-nav a.pn-care:hover { color: #ffb0e0 !important; }
+.bottom-nav a.pn-illustrations.active,
+.bottom-nav a.pn-illustrations:hover { color: #d8c0ff !important; }
+
+.bottom-nav .icon i {
+  filter: brightness(1.25) drop-shadow(0 0 6px currentColor);
+}
+
+/* Soft-light theme: pastoral still dark shell — keep icons bright */
+html[data-theme="soft-light"] .top-bar .user-info a.pn-btn {
+  color: inherit;
+}
+
+/* ────────────────────────────────────────────────
+   Pastoral Command Center — multi-color hub tiles
+   (replaces dark-blue PNGs that were hard to see)
+───────────────────────────────────────────────── */
+.pastoral-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 0.75rem;
+}
+
+.pastoral-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  text-decoration: none;
+  min-height: 7.5rem;
+  height: auto;
+  padding: 1rem 0.7rem;
+  border-left: 4px solid var(--pt-accent, #6ed4ff);
+  color: inherit;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pastoral-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+.pastoral-tile-icon {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 0.45rem;
+  color: var(--pt-accent, #6ed4ff);
+  filter: brightness(1.25) saturate(1.2) drop-shadow(0 0 10px currentColor);
+}
+
+.pastoral-tile-title {
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: #f2f7fc;
+  margin-bottom: 0.2rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.pastoral-tile-sub {
+  font-size: 0.78rem;
+  opacity: 0.78;
+  line-height: 1.3;
+  color: #c5d0e0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+/* Distinct accents per tool */
+.pastoral-tile-dash { --pt-accent: #7aa2ff; }          /* indigo — overview */
+.pastoral-tile-sermons { --pt-accent: #4dffc8; }       /* teal — preaching */
+.pastoral-tile-illustrations { --pt-accent: #c4a1ff; } /* violet — creative */
+.pastoral-tile-planning { --pt-accent: #ffc85a; }      /* amber — calendar */
+.pastoral-tile-roles { --pt-accent: #6ed4ff; }         /* sky — people */
+.pastoral-tile-podium { --pt-accent: #ff9a78; }        /* coral — stage */
+.pastoral-tile-care { --pt-accent: #ff6b8a; }          /* rose — care */
+.pastoral-tile-bible { --pt-accent: #f0d060; }         /* gold — scripture */
+.pastoral-tile-upload { --pt-accent: #5ad4a8; }        /* mint — install */
+.pastoral-tile-export { --pt-accent: #ff8fd0; }        /* pink — files */
+.pastoral-tile-main { --pt-accent: #9ab0c8; }          /* slate — main app */
+
+.pastoral-upcoming {
+  border: 1px solid rgba(110, 212, 255, 0.35);
+  border-top: 3px solid #6ed4ff;
+}
+
+html[data-theme="soft-light"] .pastoral-tile-title {
+  color: #1a2838;
+}
+
+html[data-theme="soft-light"] .pastoral-tile-sub {
+  color: #5a6b7e;
+}
+
+html[data-theme="soft-light"] .pastoral-tile-icon {
+  filter: none;
+}
+
+@media (max-width: 480px) {
+  .pastoral-tile {
+    min-height: 112px;
+  }
+  .pastoral-tile-icon {
+    font-size: 1.75rem;
+  }
+}
+
+/* Don't zero padding/margin on everything — that crushed forms (curriculum, settings, etc.). */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  /* Theme-driven (overhaul/theme.css); pastoral-shell reinforces */
+  font-family: var(--font-main, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Soft light: multi-color nav still readable */
+html[data-theme="soft-light"] .top-bar .user-info a.pn-btn {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="soft-light"] .pastoral-tile-title {
+  color: #1a2838;
+}
+
+/* ────────────────────────────────────────────────
+   FIXED HEADER – Title left, Nav right
+───────────────────────────────────────────────── */
+.pastoral-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 90px;
+  background: linear-gradient(to bottom, var(--bg-dark), var(--bg-darker));
+  border-bottom: 3px solid var(--cyan);
+  box-shadow: var(--shadow-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  z-index: 1000;
+}
+
+/* Title – left side, glowing cyan */
+.pastoral-title {
+  font-size: 2.4rem;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--cyan-dark);
+  text-shadow: 0 0 20px var(--cyan);
+}
+
+/* Navigation – RIGHT side, compact buttons */
+.pastoral-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.95rem;
+  padding: 0.55rem 1.25rem;
+  border-radius: 50px;
+  transition: var(--transition);
+}
+
+.nav-btn i {
+  margin-right: 0.55rem;
+  font-size: 1.1rem;
+}
+
+/* Outline cyan buttons */
+.btn-outline-cyan {
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  background: transparent;
+}
+
+.btn-outline-cyan:hover,
+.btn-outline-cyan:focus-visible {
+  background: rgba(0, 255, 255, 0.12);
+  color: var(--text-light);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  outline: none;
+}
+
+/* Solid cyan button (Podium Mode) */
+.btn-cyan {
+  background: var(--cyan-dark);
+  border: 1px solid var(--cyan);
+  color: var(--text-light);
+}
+
+.btn-cyan:hover,
+.btn-cyan:focus-visible {
+  background: var(--cyan);
+  color: var(--bg-dark);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+  outline: none;
+}
+
+/* ────────────────────────────────────────────────
+   MAIN CONTENT – Pushed down for fixed header
+───────────────────────────────────────────────── */
+.pastoral-main {
+  padding-top: 90px;
+  min-height: calc(100vh - 90px);
+}
+
+/* ────────────────────────────────────────────────
+   GLASS CARD – Reusable in child templates
+───────────────────────────────────────────────── */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-cyan);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+/* ────────────────────────────────────────────────
+   TEXT UTILITIES
+───────────────────────────────────────────────── */
+.text-cyan {
+  color: var(--cyan) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* ────────────────────────────────────────────────
+   RESPONSIVE ADJUSTMENTS
+───────────────────────────────────────────────── */
+@media (max-width: 992px) {
+  .pastoral-title {
+    font-size: 2.1rem;
+  }
+  .pastoral-nav {
+    gap: 0.9rem;
+  }
+  .nav-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .pastoral-header {
+    padding: 0 1.25rem;
+    height: auto;
+    padding-bottom: 0.75rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pastoral-title {
+    margin-bottom: 0.75rem;
+    font-size: 1.95rem;
+    text-align: center;
+    width: 100%;
+  }
+  .pastoral-nav {
+    width: 100%;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+}
+
+/* ────────────────────────────────────────────────
+   DARK/CYAN SCROLLBAR (optional – matches theme)
+───────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-darker);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cyan-dark);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan);
+}

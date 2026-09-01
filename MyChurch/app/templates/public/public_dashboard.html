@@ -1,0 +1,141 @@
+{% extends "base.html" if session.get('user_id') else "base_public.html" %}
+
+{% block title %}Feed{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=31">
+{% endblock %}
+
+{% block content %}
+{% set feed_type = feed_type|default('') %}
+{% set feed_when = feed_when|default('all') %}
+{% set guest_can_comment = true %}
+{% set wall_surface = 'community' %}
+{% set contact = contact|default({}) %}
+{% set campus = campus|default({}) %}
+<div class="profile-shell feed-profile">
+
+  <aside class="profile-gutter profile-gutter-left">
+    {% set you_panel_class = 'profile-you-desktop' %}
+    {% set you_has_page = viewer_space %}
+    {% include 'church/_you_panel.html' %}
+    <div class="profile-info-desktop">
+      {% include 'church/_feed_rail.html' %}
+    </div>
+    {% include 'church/_community_apps.html' %}
+  </aside>
+
+  <div class="profile-center">
+    <div class="feed-page">
+      <header class="feed-page-head">
+        <div>
+          <p class="page-kicker">Newspaper</p>
+          <h1 class="page-title">Feed</h1>
+          <p class="page-description">{% if session.get('user_id') %}People you follow first, then {% if has_branches %}your branch, then {% endif %}the rest of the church. Public posts are open to guests. Private stays with signed-in members. Personal never leaves someone’s own page.{% else %}Public posts from this church family. Sign in to see private member posts and people you follow first.{% endif %}</p>
+        </div>
+        <div class="feed-page-actions">
+          <a href="{{ home_url|default(url_for('church.church_home')) }}" class="btn btn-secondary">{% if has_branches and viewer_branch_name %}{{ viewer_branch_name }}{% else %}Church page{% endif %}</a>
+          <a href="{{ url_for('church.people') }}" class="btn btn-secondary">People</a>
+        </div>
+      </header>
+
+      {% set you_panel_class = 'profile-you-mobile' %}
+      {% set you_has_page = viewer_space %}
+      {% include 'church/_you_panel.html' %}
+
+      {% if compose_types %}
+        {% set compose_launch_label = 'Add a post' %}
+        {% include 'partials/compose_card.html' %}
+      {% endif %}
+
+      <nav class="feed-filters" aria-label="Filter the feed">
+        <div class="feed-filter-row" role="group" aria-label="What to show">
+          {% for chip in feed_type_filters %}
+          <a class="feed-chip {% if chip.active %}is-active{% endif %}" href="{{ chip.href }}">{{ chip.label }}</a>
+          {% endfor %}
+        </div>
+        <div class="feed-filter-row" role="group" aria-label="When">
+          {% for chip in feed_when_filters %}
+          <a class="feed-chip feed-chip-quiet {% if chip.active %}is-active{% endif %}" href="{{ chip.href }}">{{ chip.label }}</a>
+          {% endfor %}
+        </div>
+      </nav>
+
+      <div class="profile-info-mobile">
+        {% include 'church/_feed_rail.html' %}
+      </div>
+
+      {% if feed %}
+      <div class="feed-stack">
+        {% set ns = namespace(group='') %}
+        {% for item in feed %}
+        {% if item.group and item.group != ns.group %}
+          {% set ns.group = item.group %}
+          <h2 class="feed-group-label">{{ item.group }}</h2>
+        {% endif %}
+        <article class="glass-panel feed-card{% if item.from_follow %} is-follow{% endif %}">
+          <div class="feed-card-body">
+            <div class="feed-card-head">
+              <span class="feed-type-pill" data-type="{{ item.type }}">{{ item.type_label }}</span>
+              {% if item.from_follow %}
+              <span class="feed-type-pill" data-type="follow">Following</span>
+              {% endif %}
+              <span class="feed-card-meta">
+                {% if item.formatted_date %}{{ item.formatted_date }}{% endif %}
+                {% if item.formatted_time %} · {{ item.formatted_time }}{% endif %}
+                {% if item.author_url and (item.creator_name or item.posted_by) %}
+                  · <a href="{{ item.author_url }}">{{ item.creator_name or item.posted_by }}</a>
+                {% elif item.creator_name or item.posted_by %}
+                  · {{ item.creator_name or item.posted_by }}
+                {% endif %}
+              </span>
+            </div>
+            {% if item.shadowed_badge %}<p class="wall-mod-flag">Shadowed — only the author sees this.</p>{% endif %}
+            {% include 'church/_wall_moderate.html' %}
+            <h3>{{ item.title | censor }}</h3>
+            {% if item.image_url %}
+            <p><img class="profile-wall-img" src="{{ item.image_url }}" alt=""></p>
+            {% endif %}
+            {% if item.body %}
+            <p>{{ item.body | censor | truncate(180) }}</p>
+            {% endif %}
+            {% include 'partials/item_comments.html' %}
+            {% if item.detail_url %}
+            <div class="feed-card-foot">
+              <a class="feed-card-open" href="{{ item.detail_url }}">Open</a>
+            </div>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="glass-panel feed-empty">
+        <p>Nothing matches these filters. Try All dates, or open Prayers / Events directly.</p>
+        <div class="feed-empty-links">
+          <a href="{{ url_for('public.public_events.public_events') }}">Events</a>
+          <a href="{{ url_for('public.public_prayers.public_prayers') }}">Prayers</a>
+          <a href="{{ url_for('public.public_sermons.public_sermons') }}">Sermons</a>
+          <a href="{{ url_for('public.public_announcements.public_announcements') }}">Updates</a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <aside class="profile-gutter profile-gutter-right">
+    {% include 'church/_office_apps.html' %}
+    {% if not session.get('user_id') %}
+    <section class="glass-panel profile-card">
+      <h2 class="profile-card-title">Join in</h2>
+      <p class="profile-muted">Sign in to follow people, see private posts, and keep a page of your own.</p>
+      <div class="profile-app-list">
+        <a href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Log in</a>
+        <a href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Sign up</a>
+      </div>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

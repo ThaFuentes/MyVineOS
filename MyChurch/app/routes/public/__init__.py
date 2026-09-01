@@ -1,0 +1,280 @@
+# MYVINECHURCH.ONLINE/app/routes/public/__init__.py
+# Full path: MYVINECHURCH.ONLINE/app/routes/public/__init__.py
+# File name: __init__.py
+# Brief, detailed purpose: Main public blueprint package initializer.
+# public_bp now has url_prefix='/public' so all community features live cleanly under /public/dreams, /public/events, etc.
+# Registers the sub-blueprints (public_dashboard for the feed at /public/, plus public_dreams etc.).
+# Sub bps use names like 'public_dreams' so full endpoints are 'public.public_dreams.public_dreams' (unambiguous).
+# Private bps (short names at /dreams etc.) are registered earlier but paths no longer collide.
+
+from flask import Blueprint, flash, redirect, url_for, request, session, jsonify
+
+# 
+# Main public blueprint (url_prefix='/public' for clean public community area)
+# 
+public_bp = Blueprint(
+    'public',
+    __name__,
+    url_prefix='/public',
+    template_folder='../templates/public',
+    static_folder='../static'
+)
+
+# 
+# Register all public feature sub-blueprints
+# (Each sub-module defines its own bp in its __init__.py)
+# 
+
+# Public Dashboard (homepage feed) - becomes /public/ and /public/public
+from .public_dashboard import dashboard_bp
+public_bp.register_blueprint(dashboard_bp)
+
+# Announcements -> /public/announcements
+from .announcements import announcements_bp
+public_bp.register_blueprint(announcements_bp)
+
+# Dreams & Visions -> /public/dreams
+from .dreams import dreams_bp
+public_bp.register_blueprint(dreams_bp)
+
+# Events (potluck, signups, comments) -> /public/events
+from .events import events_bp
+public_bp.register_blueprint(events_bp)
+
+# Prayers -> /public/prayers
+from .prayers import prayers_bp
+public_bp.register_blueprint(prayers_bp)
+
+# Prophecies -> /public/prophecies
+from .prophecies import prophecies_bp
+public_bp.register_blueprint(prophecies_bp)
+
+# Sermons -> /public/sermons
+from .sermons import sermons_bp
+public_bp.register_blueprint(sermons_bp)
+
+@public_bp.before_request
+def block_guest_bot_posts():
+    """Captcha + honeypot for guest prayer/comment posts. Signed-in members skip."""
+    from urllib.parse import urlparse
+    from app.utils.guest_guard import should_guard_public_post, allow_guest_post
+
+    if not should_guard_public_post():
+        return None
+    if allow_guest_post(request.form):
+        return None
+    back = request.referrer or ''
+    host = request.host or ''
+    parsed = urlparse(back) if back else None
+    if not back or (parsed and parsed.netloc and parsed.netloc != host):
+        back = url_for('public.public_dashboard.public_dashboard')
+    return redirect(back)
+
+def _safe_giving_options(rows):
+    from werkzeug.utils import secure_filename
+    from app.utils.appearance import sanitize_public_href
+    from app.utils.html_sanitize import sanitize_plain_text, sanitize_donate_embed
+
+    out = []
+    for raw in rows or []:
+        if not raw.get('enabled'):
+            continue
+        url = sanitize_public_href(raw.get('url') or '')
+        embed = sanitize_donate_embed(raw.get('embed_code') or '')
+        if not url and not embed:
+            continue
+        image = secure_filename(raw.get('image_path') or '') if raw.get('image_path') else ''
+        out.append({
+            'id': raw.get('id'),
+            'name': sanitize_plain_text(raw.get('name') or 'Give'),
+            'option_type': sanitize_plain_text(raw.get('option_type') or ''),
+            'url': url,
+            'embed_code': embed,
+            'image_path': image or None,
+        })
+    return out
+
+
+@public_bp.route('/donate')
+def donate():
+    """Public giving page. Card data never hits this server — outbound processor links only."""
+    from flask import abort, render_template, request, session
+    from app.routes.settings import load_settings, load_online_options
+    from app.models.db import get_db
+    from app.utils.html_sanitize import sanitize_plain_text, sanitize_rich_html
+    import pymysql
+
+    settings = load_settings() or {}
+    giving_on = str(settings.get('online_donations_enabled') or '').strip() not in ('', '0', 'false', 'False')
+    event = None
+    amount = None
+    event_id = request.args.get('event_id', type=int)
+    if event_id:
+        db = get_db()
+        cur = db.cursor(pymysql.cursors.DictCursor)
+        cur.execute(
+            """
+            SELECT id, event_name, cost_fees, visibility
+            FROM events WHERE id = %s
+            """,
+            (event_id,),
+        )
+        row = cur.fetchone()
+        vis = (row or {}).get('visibility') or 'private'
+        if row and (vis == 'public' or session.get('user_id')):
+            event = row
+            event['event_name'] = sanitize_plain_text(event.get('event_name') or '')
+        else:
+            event = None
+    if not giving_on and not event:
+        abort(404)
+    try:
+        if event and event.get('cost_fees') not in (None, ''):
+            amount = float(event['cost_fees'])
+        elif amount is None:
+            amount = None
+    except (TypeError, ValueError):
+        amount = None
+    extra = sanitize_rich_html(settings.get('donations_extra_text') or '')
+    return render_template(
+        'public/donate.html',
+        settings=settings,
+        online_options=_safe_giving_options(load_online_options()),
+        event=event,
+        amount=amount,
+        extra_html=extra,
+        welcome_text=sanitize_plain_text(settings.get('donations_welcome_text') or ''),
+        thank_you_text=sanitize_plain_text(settings.get('donations_thank_you_text') or ''),
+        page_title=sanitize_plain_text(settings.get('donations_page_title') or '') or 'Give',
+    )
+
+
+@public_bp.route('/promotions')
+@public_bp.route('/partners')
+def promotions_list():
+    """Public + member page for Ministry Partners (missionaries, prophets, ministries)."""
+    from flask import abort, render_template, session
+    from app.models import promotions as promo_model
+    from app.models.module_toggles import get_module_toggles, is_module_enabled
+
+    if not is_module_enabled('promotions', get_module_toggles()):
+        abort(404)
+    items = promo_model.list_promotions(published_only=True)
+    if not items:
+        abort(404)
+    meta = promo_model.get_page_meta()
+    is_logged_in = bool(session.get('user_id'))
+    return render_template(
+        'public/promotions.html',
+        base_layout='base.html' if is_logged_in else 'base_public.html',
+        items=items,
+        page_title=meta.get('page_title') or 'Ministry Partners',
+        page_intro=meta.get('page_intro') or '',
+        is_logged_in=is_logged_in,
+    )
+
+
+@public_bp.route('/promotions/image/<path:filename>')
+@public_bp.route('/partners/image/<path:filename>')
+def promotion_image(filename):
+    """Serve Ministry Partner photos (public)."""
+    from flask import abort, current_app, send_from_directory
+    from app.models import promotions as promo_model
+    # Path traversal guard
+    name = (filename or '').replace('\\', '/').split('/')[-1]
+    if not name or name.startswith('.'):
+        abort(404)
+    folder = promo_model.promotions_upload_dir(current_app)
+    return send_from_directory(folder, name)
+
+
+@public_bp.route('/ui-preferences', methods=['POST'])
+def ui_preferences():
+    """
+    Display prefs for visitors and members on public pages.
+    Always stores in this browser session. Logged-in users also persist to their account.
+    """
+    from app.utils.ui_prefs import (
+        apply_ui_prefs_to_session,
+        save_user_ui_prefs,
+        normalize_theme,
+        normalize_font_scale,
+        normalize_bible_scale,
+        get_church_default_theme,
+        CHURCH_DEFAULT_TOKEN,
+    )
+
+    payload = request.get_json(silent=True) or {}
+    theme = (
+        request.form.get('theme')
+        or payload.get('theme')
+        or request.values.get('theme')
+        or session.get('user_theme')
+    )
+    font_scale = (
+        request.form.get('font_scale')
+        or payload.get('font_scale')
+        or request.values.get('font_scale')
+        or session.get('ui_font_scale')
+    )
+    bible_scale = (
+        request.form.get('bible_scale')
+        or payload.get('bible_scale')
+        or request.values.get('bible_scale')
+        or session.get('bible_font_scale')
+    )
+
+    raw_theme = (theme or '').strip().lower()
+    follow_church = raw_theme in ('', CHURCH_DEFAULT_TOKEN, 'default', 'church-default')
+    font_scale = normalize_font_scale(font_scale)
+    bible_scale = normalize_bible_scale(bible_scale)
+    church = get_church_default_theme()
+
+    if follow_church:
+        effective = church
+        session['guest_display_prefs'] = False
+        session['ui_use_personal_theme'] = 0
+    else:
+        effective = normalize_theme(theme)
+        session['guest_display_prefs'] = True
+        session['ui_use_personal_theme'] = 1
+
+    apply_ui_prefs_to_session(
+        session,
+        theme=CHURCH_DEFAULT_TOKEN if follow_church else effective,
+        font_scale=font_scale,
+        bible_scale=bible_scale,
+        use_personal=not follow_church,
+        church_default=church,
+    )
+    session.modified = True
+
+    saved = {
+        'theme': effective,
+        'font_scale': font_scale,
+        'bible_scale': bible_scale,
+        'use_personal': not follow_church,
+        'church_default': church,
+    }
+    user_id = session.get('user_id')
+    if user_id:
+        try:
+            saved = save_user_ui_prefs(user_id, theme, font_scale, bible_scale)
+            apply_ui_prefs_to_session(
+                session,
+                theme=saved['theme'] if saved.get('use_personal') else CHURCH_DEFAULT_TOKEN,
+                font_scale=saved['font_scale'],
+                bible_scale=saved['bible_scale'],
+                use_personal=bool(saved.get('use_personal')),
+                church_default=saved.get('church_default'),
+            )
+            session['ui_use_personal_theme'] = 1 if saved.get('use_personal') else 0
+        except Exception as exc:
+            print(f"public.ui_preferences account save: {exc}")
+            return jsonify({'ok': True, **saved, 'persisted': 'session'})
+
+    return jsonify({
+        'ok': True,
+        **saved,
+        'persisted': 'account' if user_id else 'session',
+    })

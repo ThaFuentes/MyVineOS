@@ -1,0 +1,488 @@
+import json
+import secrets
+import pymysql
+from datetime import datetime, time, timedelta, date
+from app.models.db import get_db
+from app.models.worship.sections import resolve_display_sections
+
+
+def _norm_time(v):
+    if v is None:
+        return None
+    if isinstance(v, time):
+        return v
+    if isinstance(v, timedelta):
+        s = v.seconds
+        return time(s // 3600, (s % 3600) // 60)
+    return v
+
+
+def list_setlists(limit=50):
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute("""
+        SELECT * FROM worship_setlists ORDER BY service_date DESC, id DESC LIMIT %s
+    """, (limit,))
+    rows = cur.fetchall()
+    for r in rows:
+        r['service_time'] = _norm_time(r.get('service_time'))
+        r['rehearsal_time'] = _norm_time(r.get('rehearsal_time'))
+    return rows
+
+
+def get_setlist(setlist_id: int):
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute("SELECT * FROM worship_setlists WHERE id = %s", (setlist_id,))
+    row = cur.fetchone()
+    if not row:
+        return None
+    row['service_time'] = _norm_time(row.get('service_time'))
+    row['rehearsal_time'] = _norm_time(row.get('rehearsal_time'))
+    row['assignments'] = get_assignments(setlist_id)
+    row['songs'] = get_setlist_songs(setlist_id)
+    return row
+
+
+def get_assignments(setlist_id: int):
+    ensure_assignment_guest_columns()
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    try:
+        cur.execute("""
+            SELECT a.*,
+                   COALESCE(
+                     NULLIF(TRIM(CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,''))), ''),
+                     NULLIF(TRIM(a.guest_name), '')
+                   ) AS user_full_name,
+                   u.username, u.email
+            FROM worship_setlist_assignments a
+            LEFT JOIN users u ON u.id = a.user_id
+            WHERE a.setlist_id = %s ORDER BY a.role_name
+        """, (setlist_id,))
+    except Exception:
+        cur.execute("""
+            SELECT a.*, CONCAT(u.first_name,' ',u.last_name) AS user_full_name, u.username, u.email
+            FROM worship_setlist_assignments a
+            LEFT JOIN users u ON u.id = a.user_id
+            WHERE a.setlist_id = %s ORDER BY a.role_name
+        """, (setlist_id,))
+    return cur.fetchall() or []
+
+
+def save_assignments(setlist_id: int, rows: list):
+    ensure_assignment_guest_columns()
+    from app.models.serving import ensure_serving_columns, _snapshot, serving_fields_for_insert, after_setlist_saved
+    ensure_serving_columns()
+    prev = _snapshot('worship_setlist_assignments', 'setlist_id = %s', (int(setlist_id),))
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM worship_setlist_assignments WHERE setlist_id = %s", (setlist_id,))
+    for row in rows:
+        role = (row.get('role_name') or '').strip()
+        if not role:
+            continue
+        uid = row.get('user_id')
+        if uid in ('', 'None', None, 0, '0'):
+            uid = None
+        else:
+            try:
+                uid = int(uid)
+            except (TypeError, ValueError):
+                uid = None
+        guest = (row.get('guest_name') or '').strip() or None
+        if uid:
+            guest = None
+        if not uid and not guest:
+            continue
+        key = (int(uid), role) if uid else None
+        status, token, notified, responded = serving_fields_for_insert(prev.get(key) if key else None, uid)
+        try:
+            cur.execute("""
+                INSERT INTO worship_setlist_assignments
+                    (setlist_id, role_name, user_id, guest_name, status, response_token, notified_at, responded_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (setlist_id, role, uid, guest, status, token, notified, responded))
+        except Exception:
+            if uid:
+                cur.execute("""
+                    INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id)
+                    VALUES (%s, %s, %s)
+                """, (setlist_id, role, uid))
+            else:
+                cur.execute("""
+                    INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id, guest_name)
+                    VALUES (%s, %s, %s, %s)
+                """, (setlist_id, role, uid, guest))
+    db.commit()
+    try:
+        after_setlist_saved(setlist_id)
+    except Exception as exc:
+        print(f'worship serving: {exc}')
+
+
+def get_setlist_songs(setlist_id: int, chart_key: str | None = None):
+    """
+    Songs on a setlist for prompter / plan views.
+
+    chart_key: when set (e.g. 'bass', 'lead_guitar'), overlay that role chart's
+    sections so each musician gets their own prompter content.
+    """
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute("""
+        SELECT ss.*, s.title, s.artist, s.ccli_song_number, s.copyright_line, s.publisher,
+               s.copyright_year, s.sections_json, s.play_order_json, s.lyrics_raw, s.notes_permanent
+        FROM worship_setlist_songs ss
+        JOIN worship_songs s ON s.id = ss.song_id
+        WHERE ss.setlist_id = %s ORDER BY ss.sort_order, ss.id
+    """, (setlist_id,))
+    rows = cur.fetchall()
+    chart_key = (chart_key or '').strip() or None
+    for r in rows:
+        try:
+            r['sections'] = json.loads(r.get('sections_json') or '[]')
+        except json.JSONDecodeError:
+            r['sections'] = []
+        try:
+            r['arrangement'] = json.loads(r.get('arrangement_json') or '[]')
+        except json.JSONDecodeError:
+            r['arrangement'] = []
+        r['chart_key'] = chart_key or 'full_band'
+        r['chart_display_name'] = 'Full band (default)'
+        if chart_key and chart_key not in ('full_band', 'primary', ''):
+            try:
+                from app.models.worship.charts import get_chart_by_key
+                chart = get_chart_by_key(int(r['song_id']), chart_key)
+                if chart and (chart.get('sections') or chart.get('lyrics_raw')):
+                    if chart.get('sections'):
+                        r['sections'] = chart['sections']
+                    if chart.get('play_order'):
+                        r['play_order'] = chart['play_order']
+                        r['play_order_json'] = json.dumps(chart['play_order'])
+                    r['chart_display_name'] = chart.get('display_name') or chart_key
+            except Exception:
+                pass
+        r['display_sections'] = resolve_display_sections(r, r['arrangement'])
+    return rows
+
+
+def apply_chart_to_plan(plan: dict, chart_key: str | None = None) -> dict:
+    """Return a shallow copy of a setlist/template plan with role-chart prompter sections."""
+    if not plan:
+        return plan
+    out = dict(plan)
+    chart_key = (chart_key or '').strip() or None
+    out['prompter_chart_key'] = chart_key or 'full_band'
+    songs = out.get('songs') or []
+    if not songs:
+        return out
+    # If this is a setlist with id, reload songs with chart overlay
+    if plan.get('source') != 'template' and plan.get('id') and chart_key:
+        out['songs'] = get_setlist_songs(int(plan['id']), chart_key=chart_key)
+        return out
+    # Template or already-loaded songs: overlay charts in place
+    if chart_key and chart_key not in ('full_band', 'primary', ''):
+        try:
+            from app.models.worship.charts import get_chart_by_key
+        except Exception:
+            get_chart_by_key = None
+        new_songs = []
+        for s in songs:
+            row = dict(s)
+            row['chart_key'] = chart_key
+            if get_chart_by_key and row.get('song_id'):
+                try:
+                    chart = get_chart_by_key(int(row['song_id']), chart_key)
+                    if chart and chart.get('sections'):
+                        row['sections'] = chart['sections']
+                        if chart.get('play_order'):
+                            row['play_order'] = chart['play_order']
+                        row['chart_display_name'] = chart.get('display_name') or chart_key
+                        row['display_sections'] = resolve_display_sections(row, row.get('arrangement'))
+                except Exception:
+                    pass
+            new_songs.append(row)
+        out['songs'] = new_songs
+    return out
+
+
+def ensure_public_token(setlist_id: int):
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute("SELECT public_token FROM worship_setlists WHERE id = %s", (setlist_id,))
+    row = cur.fetchone()
+    if row and row.get('public_token'):
+        return row['public_token']
+    token = secrets.token_urlsafe(18)
+    cur.execute("UPDATE worship_setlists SET public_token = %s WHERE id = %s", (token, setlist_id))
+    db.commit()
+    return token
+
+
+def copy_template_songs_to_setlist(setlist_id: int, template_songs: list):
+    db = get_db()
+    cur = db.cursor()
+    for s in template_songs or []:
+        cur.execute("""
+            INSERT INTO worship_setlist_songs (setlist_id, song_id, sort_order, arrangement_json, song_key)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (
+            setlist_id, s['song_id'], s.get('sort_order', 0),
+            s.get('arrangement_json') or '[]', s.get('song_key'),
+        ))
+    db.commit()
+
+
+def create_setlist(data: dict, user_id: int):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        INSERT INTO worship_setlists (service_date, title, service_time, rehearsal_time,
+            rehearsal_location, notes, is_published, created_by, updated_by)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    """, (
+        data.get('service_date') or None, data['title'],
+        data.get('service_time'), data.get('rehearsal_time'),
+        data.get('rehearsal_location'), data.get('notes'),
+        1 if data.get('is_published') else 0, user_id, user_id,
+    ))
+    db.commit()
+    return cur.lastrowid
+
+
+def update_setlist(setlist_id: int, data: dict, user_id: int):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        UPDATE worship_setlists SET service_date=%s, title=%s, service_time=%s, rehearsal_time=%s,
+            rehearsal_location=%s, notes=%s, is_published=%s, updated_by=%s
+        WHERE id=%s
+    """, (
+        data.get('service_date') or None, data['title'],
+        data.get('service_time'), data.get('rehearsal_time'),
+        data.get('rehearsal_location'), data.get('notes'),
+        1 if data.get('is_published') else 0, user_id, setlist_id,
+    ))
+    db.commit()
+
+
+def add_song_to_setlist(setlist_id: int, song_id: int, sort_order: int = 99):
+    from app.models.worship.sections import (
+        default_play_order_from_sections,
+        parse_play_order,
+    )
+
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute(
+        "SELECT sections_json, play_order_json FROM worship_songs WHERE id = %s",
+        (song_id,),
+    )
+    song = cur.fetchone()
+    arrangement = []
+    if song:
+        arrangement = parse_play_order(song.get('play_order_json'))
+        if not arrangement:
+            try:
+                secs = json.loads(song.get('sections_json') or '[]')
+            except json.JSONDecodeError:
+                secs = []
+            arrangement = default_play_order_from_sections(secs)
+    cur.execute("""
+        INSERT INTO worship_setlist_songs (setlist_id, song_id, sort_order, arrangement_json)
+        VALUES (%s, %s, %s, %s)
+    """, (setlist_id, song_id, sort_order, json.dumps(arrangement)))
+    db.commit()
+    return cur.lastrowid
+
+
+def remove_setlist_song(item_id: int, setlist_id: int):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM worship_setlist_songs WHERE id = %s AND setlist_id = %s", (item_id, setlist_id))
+    db.commit()
+
+
+def ensure_assignment_guest_columns():
+    """Allow non-members (guest_name) on worship defaults and setlist assignments."""
+    db = get_db()
+    cur = db.cursor()
+    for table in (
+        'worship_default_assignments',
+        'worship_setlist_assignments',
+        'worship_weekly_template_assignments',
+        'worship_template_assignments',
+    ):
+        try:
+            cur.execute(f"""
+                SELECT COLUMN_NAME, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'user_id'
+            """, (table,))
+            row = cur.fetchone()
+            if row:
+                nullable = row[1] if not isinstance(row, dict) else row.get('IS_NULLABLE')
+                if str(nullable).upper() == 'NO':
+                    cur.execute(f"ALTER TABLE {table} MODIFY COLUMN user_id INT UNSIGNED NULL")
+                    db.commit()
+        except Exception as exc:
+            print(f'worship guest migrate user_id {table}: {exc}')
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        try:
+            cur.execute("""
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'guest_name'
+            """, (table,))
+            if not cur.fetchone():
+                cur.execute(f"ALTER TABLE {table} ADD COLUMN guest_name VARCHAR(160) NULL")
+                db.commit()
+        except Exception as exc:
+            print(f'worship guest migrate guest_name {table}: {exc}')
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
+
+def get_default_assignments():
+    """Defaults for worship roles — members and/or non-member guest names."""
+    ensure_assignment_guest_columns()
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    try:
+        cur.execute("""
+            SELECT d.*,
+                   COALESCE(
+                     NULLIF(TRIM(CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,''))), ''),
+                     NULLIF(TRIM(d.guest_name), ''),
+                     NULL
+                   ) AS user_full_name
+            FROM worship_default_assignments d
+            LEFT JOIN users u ON u.id = d.user_id
+            ORDER BY d.role_name
+        """)
+    except Exception:
+        cur.execute("""
+            SELECT d.*, CONCAT(u.first_name,' ',u.last_name) AS user_full_name
+            FROM worship_default_assignments d
+            LEFT JOIN users u ON u.id = d.user_id
+        """)
+    return cur.fetchall() or []
+
+
+def save_default_assignments(rows: list):
+    """Save role → member and/or guest_name (non-member)."""
+    ensure_assignment_guest_columns()
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM worship_default_assignments")
+    for row in rows:
+        role = (row.get('role_name') or '').strip()
+        if not role:
+            continue
+        uid = row.get('user_id')
+        if uid in ('', 'None', None, 0, '0'):
+            uid = None
+        else:
+            try:
+                uid = int(uid)
+            except (TypeError, ValueError):
+                uid = None
+        guest = (row.get('guest_name') or '').strip() or None
+        if uid:
+            guest = None
+        if not uid and not guest:
+            # Keep role shell empty so defaults still list standard roles
+            try:
+                cur.execute(
+                    "INSERT INTO worship_default_assignments (role_name, user_id, guest_name) VALUES (%s, NULL, NULL)",
+                    (role,),
+                )
+            except Exception:
+                pass
+            continue
+        try:
+            cur.execute(
+                "INSERT INTO worship_default_assignments (role_name, user_id, guest_name) VALUES (%s, %s, %s)",
+                (role, uid, guest),
+            )
+        except Exception:
+            if uid:
+                cur.execute(
+                    "INSERT INTO worship_default_assignments (role_name, user_id) VALUES (%s, %s)",
+                    (role, uid),
+                )
+    db.commit()
+
+
+def apply_defaults_to_setlist(setlist_id: int):
+    ensure_assignment_guest_columns()
+    for d in get_default_assignments():
+        role = (d.get('role_name') or '').strip()
+        if not role:
+            continue
+        uid = d.get('user_id')
+        guest = (d.get('guest_name') or '').strip() or None
+        if not uid and not guest:
+            continue
+        db = get_db()
+        cur = db.cursor()
+        try:
+            cur.execute("""
+                INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id, guest_name)
+                VALUES (%s, %s, %s, %s)
+            """, (setlist_id, role, uid, guest if not uid else None))
+            db.commit()
+        except Exception:
+            try:
+                if uid:
+                    cur.execute("""
+                        INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id)
+                        VALUES (%s, %s, %s)
+                    """, (setlist_id, role, uid))
+                    db.commit()
+                else:
+                    db.rollback()
+            except Exception:
+                db.rollback()
+
+
+def delete_setlist(setlist_id: int):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM worship_setlist_songs WHERE setlist_id = %s", (setlist_id,))
+    cur.execute("DELETE FROM worship_setlist_assignments WHERE setlist_id = %s", (setlist_id,))
+    cur.execute("DELETE FROM worship_setlists WHERE id = %s", (setlist_id,))
+    db.commit()
+    return cur.rowcount > 0
+
+
+def plan_is_active_schedule(plan) -> bool:
+    """
+    True only when worship leadership has set something up:
+    at least one song and/or one role assignment.
+    Empty weekly defaults must not invent a "next service" every weekday.
+    """
+    if not plan:
+        return False
+    songs = plan.get('songs') or []
+    assignments = plan.get('assignments') or []
+    return bool(songs) or bool(assignments)
+
+
+def get_upcoming_setlist():
+    """
+    Next service that is actually scheduled (songs or people assigned).
+    Does not advertise blank weekly defaults for every matching weekday.
+    """
+    from app.models.worship import templates as tmpl
+    today = date.today()
+    for offset in range(0, 60):
+        check = today + timedelta(days=offset)
+        plan = tmpl.get_setlist_for_date(check.strftime('%Y-%m-%d'))
+        if plan_is_active_schedule(plan):
+            return plan
+    return None
