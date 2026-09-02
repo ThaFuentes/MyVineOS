@@ -1235,6 +1235,7 @@ def church_wall(include_members: bool = False, limit: int = 24, campus_id: int =
                     'creator_name': official,
                     'author_id': row.get('user_id'),
                     'deletable': True,
+                    'can_manage_wall': can_edit_church_page(wall_campus),
                     'visibility': row.get('visibility') or 'public',
                     'shadowed': bool(row.get('shadowed')),
                     'detail_url': '',

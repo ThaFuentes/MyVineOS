@@ -526,13 +526,20 @@ def delete_post(post_id: int, actor_id: int) -> tuple[bool, str]:
     allowed = owner == actor
     if not allowed:
         try:
+            from flask import session
             from app.models import church_community as cc
-            mapped = cc.get_postings([((row.get('kind') or 'post'), int(post_id))])
-            meta = mapped.get(((row.get('kind') or 'post'), int(post_id))) or {}
-            if (meta.get('posted_as') or '') in ('church', 'campus') and cc.can_edit_church_page(
-                int(meta.get('campus_id') or 0)
-            ):
+            if (session.get('user_role') or '') in ('Owner', 'Admin'):
                 allowed = True
+            else:
+                mapped = cc.get_postings([((row.get('kind') or 'post'), int(post_id))])
+                meta = mapped.get(((row.get('kind') or 'post'), int(post_id))) or {}
+                voice = (meta.get('posted_as') or '').strip()
+                campus_id = int(meta.get('campus_id') or 0)
+                if voice in ('church', 'campus') and cc.can_edit_church_page(campus_id):
+                    allowed = True
+                elif cc.can_edit_church_page(0):
+                    # Official church wall is theirs to curate, including worship auto-posts.
+                    allowed = True
         except Exception:
             allowed = False
     if not allowed:
