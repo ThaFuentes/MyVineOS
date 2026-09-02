@@ -669,7 +669,73 @@ a.profile-me-btn-quiet {
 .profile-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
+  overflow: visible;
+}
+.family-add-pop {
+  position: relative;
+  display: inline-block;
+}
+.family-add-pop > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+  border-radius: 999px;
+  border: 1px solid var(--primary-border, rgba(255,255,255,0.18));
+  background: transparent;
+  color: inherit;
+}
+.family-add-pop > summary::-webkit-details-marker,
+.family-add-pop > summary::marker { display: none; content: ''; }
+.family-add-pop[open] > summary {
+  border-color: var(--primary, #4dffc8);
+  color: var(--primary, #4dffc8);
+}
+.family-add-pop-card {
+  position: absolute;
+  z-index: 50;
+  left: 0;
+  top: calc(100% + 0.4rem);
+  width: min(18rem, 78vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border-radius: 0.85rem;
+  background: var(--bg-panel, #12181f);
+  border: 1px solid var(--primary-border, rgba(255,255,255,0.16));
+  box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+}
+.family-add-pop-card .form-input,
+.family-add-pop-card select {
+  font-size: 0.88rem;
+  min-height: 2.1rem;
+  width: 100%;
+}
+.family-add-pop-card .help-text {
+  margin: 0;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+.family-add-pop-card .btn { width: 100%; min-height: 2.1rem; }
+.family-add-status {
+  margin: 0;
+  font-size: 0.82rem;
+  opacity: 0.8;
+}
+.family-add-inline { margin: 0; }
+.profile-family-privacy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
 }
 
 .profile-join p {
