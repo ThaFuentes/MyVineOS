@@ -73,6 +73,11 @@ def create_app():
     if not (os.getenv("SKIP_DB_BUILD") in ("1", "true", "yes", "TRUE") or os.getenv("TESTING") == "1"):
         with app.app_context():
             build_all(verbose=False)
+            try:
+                from app.models.help_pack import ensure_builtin_help
+                ensure_builtin_help()
+            except Exception as help_err:
+                print(f"help pack seed skipped: {help_err}")
     # Global settings
     @app.before_request
     def load_global_settings():

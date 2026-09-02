@@ -24,6 +24,25 @@ from app.routes.help.queries import (
 FORMAT_ID = "myvine_help_v1"
 PACK_VERSION = 1
 
+START_HERE = (
+    ("your-first-week", "Your first week", "The map: Home, Feed, your page, Notes, Sunday."),
+    ("church-page-feed-member", "Church page, Feed, your page", "Three different places — don’t mix them up."),
+    ("notes-how-to", "Notes", "Private messages, groups, and rooms."),
+    ("this-sunday-serving", "This Sunday & serving", "Who’s on, and how to say yes."),
+    ("install-the-app", "Install the app", "Home screen on your phone or computer."),
+    ("bible-and-study-courses", "Bible & courses", "Read, highlight, take a path."),
+)
+
+
+def ensure_builtin_help() -> None:
+    """Merge the built-in enterprise pack so new guides show up after deploy."""
+    try:
+        from app.help_content.enterprise_pack import build_enterprise_pack
+        pack = build_enterprise_pack()
+        import_pack(pack, user_id=1, replace_bodies=True)
+    except Exception as exc:
+        print(f"ensure_builtin_help: {exc}")
+
 
 def _ser_value(v: Any) -> Any:
     if isinstance(v, datetime):
