@@ -208,36 +208,43 @@ body.pastoral-shell .bible-stage-toolbar {
     background: rgba(0, 0, 0, 0.35);
   }
 
-  /* Study workspace: books | chapter | tools. Guests skip the notes row. */
+  /* Study workspace: books | notes+chapter | tools. */
   .bible-stage.is-study {
     display: grid;
     grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(260px, 320px);
     grid-template-areas:
       "toolbar toolbar toolbar"
-      "canon main tools"
-      "canon notes tools";
+      "canon center tools";
     gap: 0.75rem 1rem;
     align-items: stretch;
     min-height: calc(100vh - 7.5rem);
   }
-  .bible-stage.is-study.is-guest {
-    grid-template-areas:
-      "toolbar toolbar toolbar"
-      "canon main tools";
-  }
   .bible-stage.is-study .bible-stage-toolbar { grid-area: toolbar; }
-  .bible-stage.is-study .bible-stage-main {
-    grid-area: main;
+  .bible-stage.is-study .bible-stage-center {
+    grid-area: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    min-height: 0;
     max-height: calc(100vh - 8rem);
-    min-height: 70vh;
+  }
+  .bible-stage.is-study .member-notes-panel {
+    flex: 0 1 auto;
+    max-height: 13.5rem;
+    overflow: auto;
+    margin: 0;
+  }
+  .bible-stage.is-study .bible-stage-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
     padding: 1.15rem 1.5rem 2rem;
     font-size: 1.08rem;
     line-height: 1.7;
   }
-  .bible-stage.is-study.is-guest .bible-stage-main {
+  .bible-stage.is-study.is-guest .bible-stage-center {
     max-height: calc(100vh - 7.25rem);
   }
-  .bible-stage.is-study .member-notes-panel { grid-area: notes; }
   .bible-stage.is-study #member-canon-flyout,
   .bible-stage.is-study #member-tools-flyout {
     position: sticky;
