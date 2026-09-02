@@ -566,6 +566,101 @@ a.profile-me-btn-quiet {
   margin: 0.4rem 0;
 }
 
+.wall-media {
+  margin: 0.55rem 0 0.75rem;
+  background: rgba(0, 0, 0, 0.32);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.wall-media img {
+  display: block;
+  width: 100%;
+  max-height: min(70vh, 34rem);
+  object-fit: contain;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+.wall-text,
+.wall-see-full,
+.wall-see-preview {
+  margin: 0.35rem 0 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.wall-see-more {
+  margin: 0.35rem 0 0;
+}
+.wall-see-more > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.wall-see-more > summary::-webkit-details-marker { display: none; }
+.wall-see-toggle {
+  display: inline-block;
+  margin-top: 0.35rem;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+.wall-see-more .is-less { display: none; }
+.wall-see-more[open] .is-more { display: none; }
+.wall-see-more[open] .is-less { display: inline; }
+.wall-see-more[open] .wall-see-preview { display: none; }
+.wall-link-card {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  margin: 0.7rem 0 0.15rem;
+  padding: 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+.wall-link-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  background: rgba(var(--primary-rgb, 0, 255, 255), 0.08);
+}
+.wall-link-thumb {
+  flex: 0 0 7.5rem;
+  min-height: 5.2rem;
+  background: #111 center / cover no-repeat;
+}
+.wall-link-icon {
+  flex: 0 0 3.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  background: rgba(var(--primary-rgb, 0, 255, 255), 0.1);
+  font-size: 1.15rem;
+}
+.wall-link-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem 0.65rem 0;
+  min-width: 0;
+}
+.wall-link-host {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  opacity: 0.65;
+}
+.wall-link-label {
+  font-weight: 700;
+  color: var(--primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .profile-muted {
   opacity: 0.75;
   font-size: 0.95rem;

@@ -1,0 +1,50 @@
+{# Shared post body for church wall + Feed: full image, See more on long text, link card. #}
+{% set wall_title = (item.title or '')|censor %}
+{% set wall_body = (item.body or '')|censor %}
+{% set wall_url = (item.url or '')|trim %}
+{% if wall_title and wall_url and wall_title == wall_url %}
+  {% set wall_title = '' %}
+{% endif %}
+{% if wall_title %}
+<h3>{{ wall_title }}</h3>
+{% endif %}
+{% if item.image_url %}
+<figure class="wall-media">
+  <img src="{{ item.image_url }}" alt="">
+</figure>
+{% endif %}
+{% if wall_body %}
+  {% if wall_body|length > 320 %}
+  <details class="wall-see-more">
+    <summary>
+      <span class="wall-see-preview">{{ wall_body[:280] }}…</span>
+      <span class="wall-see-toggle"><span class="is-more">See more</span><span class="is-less">See less</span></span>
+    </summary>
+    <p class="wall-see-full">{{ wall_body }}</p>
+  </details>
+  {% else %}
+  <p class="wall-text">{{ wall_body }}</p>
+  {% endif %}
+{% endif %}
+{% if wall_url %}
+  {% set wall_host = wall_url.replace('https://','').replace('http://','').split('/')[0] %}
+  {% set wall_yid = '' %}
+  {% if 'youtu.be/' in wall_url %}
+    {% set wall_yid = wall_url.split('youtu.be/')[1].split('?')[0].split('/')[0] %}
+  {% elif 'watch?v=' in wall_url %}
+    {% set wall_yid = wall_url.split('watch?v=')[1].split('&')[0] %}
+  {% elif 'youtube.com/embed/' in wall_url %}
+    {% set wall_yid = wall_url.split('youtube.com/embed/')[1].split('?')[0].split('/')[0] %}
+  {% endif %}
+  <a class="wall-link-card" href="{{ wall_url }}" rel="noopener noreferrer" target="_blank">
+    {% if wall_yid %}
+    <span class="wall-link-thumb" style="background-image:url('https://i.ytimg.com/vi/{{ wall_yid }}/hqdefault.jpg')"></span>
+    {% else %}
+    <span class="wall-link-icon" aria-hidden="true"><i class="fa-solid fa-link"></i></span>
+    {% endif %}
+    <span class="wall-link-copy">
+      <span class="wall-link-host">{{ wall_host }}</span>
+      <span class="wall-link-label">{% if wall_title %}{{ wall_title }}{% else %}Open link{% endif %}</span>
+    </span>
+  </a>
+{% endif %}

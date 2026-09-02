@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=31">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=33">
 {% endblock %}
 
 {% block content %}
@@ -101,13 +101,7 @@
             </div>
             {% if item.shadowed_badge %}<p class="wall-mod-flag">Shadowed — only the author sees this.</p>{% endif %}
             {% include 'church/_wall_moderate.html' %}
-            <h3>{{ item.title | censor }}</h3>
-            {% if item.image_url %}
-            <p><img class="profile-wall-img" src="{{ item.image_url }}" alt=""></p>
-            {% endif %}
-            {% if item.body %}
-            <p>{{ item.body | censor | truncate(180) }}</p>
-            {% endif %}
+            {% include 'church/_wall_body.html' %}
             {% include 'partials/item_comments.html' %}
             {% if item.detail_url %}
             <div class="feed-card-foot">
