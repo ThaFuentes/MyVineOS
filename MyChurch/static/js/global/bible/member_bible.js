@@ -245,7 +245,7 @@
     if (!host) return;
     const nums = Array.from(selectedVerses).sort((a, b) => a - b);
     if (!nums.length) {
-      host.innerHTML = '<p class="small text-muted mb-0">Tap a verse in the chapter. Strong’s words, related verses, and a second translation show here.</p>';
+      host.innerHTML = '<p class="small text-muted mb-0">The first verse of the chapter opens here. Tap another verse to move study tools to it.</p>';
       return;
     }
     const v = nums[0];
@@ -357,12 +357,12 @@
       setPickerMode('verse');
       return;
     }
-    loadChapter(n).then(() => setPickerMode('verse'));
+    loadChapter(n, { scrollToVerse: 1 }).then(() => setPickerMode('verse'));
   }
 
   function pickVerse(n) {
     if (mainView !== 'chapter') restoreChapter();
-    scrollToVerse(n);
+    selectAndFocusVerse(n);
     closeFlyouts();
   }
 
@@ -549,7 +549,6 @@
     if (maxChapter > 0) chapter = Math.max(1, Math.min(chapter, maxChapter));
     currentChapter = chapter;
     selectedVerses = new Set();
-    updateSelectionBar();
     const chSel = el('member-bible-chapter');
     if (chSel?.options.length) chSel.value = String(chapter);
     if (main()) main().innerHTML = '<p class="small text-muted">Loading…</p>';
@@ -577,6 +576,7 @@
       updateFavButtons();
       storeVerses(data.verses);
       currentNotes = data.notes || [];
+      selectedVerses = new Set([resolveFocusVerse(opts.scrollToVerse)]);
       // Chapter render uses currentNotes for 📝 markers
       await loadCompareChapter();
       if (notesPanelTab === 'all') {
@@ -585,11 +585,11 @@
         renderNotesPanel(currentNotes, { mode: 'passage' });
       }
       updateNav();
-      if (opts.scrollToVerse) {
-        requestAnimationFrame(() => scrollToVerse(opts.scrollToVerse));
-      }
+      const focusV = resolveFocusVerse(opts.scrollToVerse);
+      selectedVerses = new Set([focusV]);
+      selectAndFocusVerse(focusV);
       // Remember place so reopening Bible continues here (version + book + chapter)
-      saveReadingPlace({ verse: opts.scrollToVerse || getVisibleVerseAnchor() || 1 });
+      saveReadingPlace({ verse: focusV });
     } catch (e) {
       if (main()) main().innerHTML = '<p class="text-muted">Chapter not found.</p>';
       storeVerses([]);
@@ -668,7 +668,8 @@
       const hl = highlightClass(v.verse, highlights);
       const isFav = favoriteVerses.has(v.verse);
       const hasNote = noted.has(v.verse);
-      html += `<div class="member-bible-verse${hl}${isFav ? ' is-favorite' : ''}${hasNote ? ' has-note' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
+      const isSel = selectedVerses.has(Number(v.verse));
+      html += `<div class="member-bible-verse${hl}${isFav ? ' is-favorite' : ''}${hasNote ? ' has-note' : ''}${isSel ? ' verse-selected' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
       html += `<span class="member-bible-verse-num">${v.verse}</span>`;
       if (isLoggedIn && hasNote) {
         html += `<button type="button" class="member-note-marker" data-open-note-verse="${v.verse}" title="Open your note on this verse" aria-label="Open note">📝</button>`;
@@ -763,21 +764,55 @@
     return result;
   }
 
-  function updateSelectionBar() {
-    const bar = el('member-selection-bar');
-    const label = el('member-selection-label');
-    if (!bar) return;
-    if (!selectedVerses.size) {
-      bar.style.display = 'none';
+  function resolveFocusVerse(requested) {
+    const nums = verseNums.length
+      ? verseNums
+      : Array.from(main()?.querySelectorAll('.member-bible-verse') || [])
+        .map((l) => parseInt(l.dataset.verse, 10))
+        .filter((n) => n > 0);
+    const want = parseInt(requested, 10) || 0;
+    if (want && nums.includes(want)) return want;
+    return nums[0] || 1;
+  }
+
+  function paintSelectedVerses() {
+    main()?.querySelectorAll('.member-bible-verse').forEach((l) => {
+      const n = parseInt(l.dataset.verse, 10);
+      l.classList.toggle('verse-selected', selectedVerses.has(n));
+    });
+  }
+
+  function scrollChapterToVerse(n) {
+    const content = main();
+    const line = content?.querySelector(`.member-bible-verse[data-verse="${n}"]`);
+    if (!content) return;
+    const first = verseNums[0] || 1;
+    if (!line || n === first) {
+      content.scrollTop = 0;
       return;
     }
-    bar.style.display = '';
-    const nums = Array.from(selectedVerses).sort((a, b) => a - b);
-    if (label) {
-      label.textContent = nums.length === 1
-        ? `${currentBook} ${currentChapter}:${nums[0]}`
-        : `${currentBook} ${currentChapter}:${nums[0]}–${nums[nums.length - 1]} (${nums.length} verses)`;
-    }
+    const cRect = content.getBoundingClientRect();
+    const lRect = line.getBoundingClientRect();
+    const pad = parseInt(getComputedStyle(content).paddingTop, 10) || 0;
+    content.scrollTop = Math.max(0, content.scrollTop + (lRect.top - cRect.top) - pad);
+  }
+
+  function selectAndFocusVerse(n) {
+    const v = resolveFocusVerse(n);
+    selectedVerses = new Set([v]);
+    paintSelectedVerses();
+    el('member-bible-num-grid')?.querySelectorAll('button').forEach((b) => {
+      b.classList.toggle('active', pickerMode === 'verse' && parseInt(b.textContent, 10) === v);
+    });
+    main()?.querySelectorAll('.member-bible-verse').forEach((l) => {
+      l.classList.toggle('highlight', parseInt(l.dataset.verse, 10) === v);
+    });
+    fillStudyFocus();
+    requestAnimationFrame(() => scrollChapterToVerse(v));
+  }
+
+  function updateSelectionBar() {
+    paintSelectedVerses();
   }
 
   function selectedScripture() {
@@ -885,31 +920,17 @@
           if (selectedVerses.has(v)) selectedVerses.delete(v);
           else selectedVerses.add(v);
         } else {
-          if (selectedVerses.size === 1 && selectedVerses.has(v)) selectedVerses.clear();
-          else {
-            selectedVerses.clear();
-            selectedVerses.add(v);
-          }
+          selectedVerses = new Set([v]);
         }
-        content.querySelectorAll('.member-bible-verse').forEach((l) => {
-          l.classList.toggle('verse-selected', selectedVerses.has(parseInt(l.dataset.verse, 10)));
-        });
-        updateSelectionBar();
+        if (!selectedVerses.size) selectedVerses = new Set([v]);
+        paintSelectedVerses();
         fillStudyFocus();
       });
     });
   }
 
   function scrollToVerse(n) {
-    el('member-bible-num-grid')?.querySelectorAll('button').forEach((b) => {
-      b.classList.toggle('active', pickerMode === 'verse' && parseInt(b.textContent, 10) === n);
-    });
-    main()?.querySelectorAll('.member-bible-verse').forEach((l) => l.classList.remove('highlight'));
-    const line = main()?.querySelector(`.member-bible-verse[data-verse="${n}"]`);
-    if (line) {
-      line.classList.add('highlight');
-      line.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    selectAndFocusVerse(n);
   }
 
   function restoreChapter() {
@@ -1993,15 +2014,15 @@
     el('member-nav-mode-verse')?.addEventListener('click', () => setPickerMode('verse'));
     el('member-bible-chapter')?.addEventListener('change', () => {
       const ch = parseInt(el('member-bible-chapter').value, 10);
-      if (ch) loadChapter(ch);
+      if (ch) loadChapter(ch, { scrollToVerse: 1 });
     });
     el('member-bible-prev')?.addEventListener('click', () => {
       closeFlyouts();
-      loadChapter(currentChapter - 1);
+      loadChapter(currentChapter - 1, { scrollToVerse: 1 });
     });
     el('member-bible-next')?.addEventListener('click', () => {
       closeFlyouts();
-      loadChapter(currentChapter + 1);
+      loadChapter(currentChapter + 1, { scrollToVerse: 1 });
     });
     el('member-bible-back')?.addEventListener('click', restoreChapter);
     el('member-bible-translation')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
