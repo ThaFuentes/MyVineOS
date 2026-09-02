@@ -407,7 +407,7 @@ def publish_worship_update(user_id: int | None, setlist: dict | None = None, tem
         return
     from flask import url_for
 
-    raw_title = (row.get('title') or 'Worship lineup').strip() or 'Worship lineup'
+    raw_title = (row.get('title') or 'Worship team').strip() or 'Worship team'
     title = raw_title if raw_title.lower().startswith('worship') else f'Worship · {raw_title}'
     title = title[:255]
     sd = row.get('service_date')
@@ -429,16 +429,6 @@ def publish_worship_update(user_id: int | None, setlist: dict | None = None, tem
         bits.append(f'Rehearsal {rehearsal}')
     if bits:
         lines.append(' · '.join(bits))
-    songs = []
-    for item in (row.get('songs') or [])[:10]:
-        if isinstance(item, dict):
-            name = item.get('title') or item.get('name') or item.get('song_title') or ''
-        else:
-            name = str(item or '')
-        if name:
-            songs.append(name)
-    if songs:
-        lines.append(' · '.join(songs))
     for assignment in row.get('assignments') or []:
         role_name = (assignment.get('role_name') or '').strip()
         name = (
