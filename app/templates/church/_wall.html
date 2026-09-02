@@ -52,16 +52,7 @@
       </div>
       {% if item.shadowed_badge %}<p class="wall-mod-flag">Shadowed — only the author sees this.</p>{% endif %}
       {% include 'church/_wall_moderate.html' %}
-      <h3>{{ item.title | censor }}</h3>
-      {% if item.image_url %}
-      <p><img class="profile-wall-img" src="{{ item.image_url }}" alt=""></p>
-      {% endif %}
-      {% if item.body %}
-      <p>{{ item.body | censor | truncate(220) }}</p>
-      {% endif %}
-      {% if item.url %}
-      <p><a href="{{ item.url }}" rel="noopener noreferrer" target="_blank">{{ item.url }}</a></p>
-      {% endif %}
+      {% include 'church/_wall_body.html' %}
       {% include 'partials/item_comments.html' %}
     </article>
     {% endfor %}
