@@ -316,6 +316,22 @@ def identity_url(filename: str | None) -> str:
     return url_for('church.serve_identity', filename=filename)
 
 
+def default_church_banner() -> str:
+    return url_for('static', filename='images/defaults/church_banner.jpg')
+
+
+def default_church_avatar() -> str:
+    return url_for('static', filename='images/defaults/church_avatar.jpg')
+
+
+def church_banner_url(hero_path: str | None) -> str:
+    return identity_url(hero_path) or default_church_banner()
+
+
+def church_avatar_url(portrait_path: str | None) -> str:
+    return identity_url(portrait_path) or default_church_avatar()
+
+
 def save_identity_file(file_storage, prefix: str) -> str | None:
     if not file_storage or not file_storage.filename:
         return None
@@ -897,9 +913,9 @@ def church_portrait_url(campus_id: int = 0) -> str:
             (int(campus_id or 0),),
         )
         row = cur.fetchone() or {}
-        return identity_url(row.get('portrait_path'))
+        return church_avatar_url(row.get('portrait_path'))
     except Exception:
-        return ''
+        return default_church_avatar()
 
 
 def _member_portraits(user_ids: list[int]) -> dict[int, str]:
