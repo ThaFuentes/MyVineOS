@@ -26,7 +26,7 @@
       <input type="hidden" name="banner_x" value="{{ banner_x|default(50) }}">
       <input type="hidden" name="banner_y" value="{{ banner_y|default(50) }}">
     </form>
-    {% if banner_url %}<p class="myspace-drag-hint">Drag the banner to frame it</p>{% endif %}
+    {% if banner_url and not banner_is_default|default(false) %}<p class="myspace-drag-hint">Drag the banner to frame it</p>{% endif %}
     {% endif %}
   </div>
   <div class="myspace-who">

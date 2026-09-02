@@ -545,11 +545,11 @@ def church_context_for_user(user_id: int | None) -> dict:
     pic_url = ''
     try:
         from app.models import social as social_model
-        pic_url = social_model.identity_url((page or {}).get('portrait_path'))
-        banner_url = social_model.identity_url((page or {}).get('hero_path'))
+        pic_url = social_model.church_avatar_url((page or {}).get('portrait_path'))
+        banner_url = social_model.church_banner_url((page or {}).get('hero_path'))
     except Exception:
-        pic_url = ''
-        banner_url = ''
+        pic_url = social_model.default_church_avatar()
+        banner_url = social_model.default_church_banner()
     speaking = []
     if user_id:
         for row in gatherings:
@@ -1633,16 +1633,7 @@ def staff_on_page(campus: Optional[dict] = None) -> list[dict]:
 
 def hero_for_profile() -> str:
     try:
-        from app.utils.appearance import list_hero_images
-        images = list_hero_images('welcome') or list_hero_images('login') or []
-        if images:
-            return images[0].get('url') or ''
+        from app.models.social import default_church_banner
+        return default_church_banner()
     except Exception:
-        pass
-    settings = getattr(g, 'settings', None) or {} if has_request_context() else {}
-    logo = (settings.get('logo_path') or settings.get('icon_path') or '').strip()
-    if not logo:
-        return ''
-    if logo.startswith('http') or logo.startswith('/'):
-        return logo
-    return '/static/images/' + logo.lstrip('/')
+        return '/static/images/defaults/church_banner.jpg'
