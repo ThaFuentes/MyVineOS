@@ -540,6 +540,20 @@
   }
 }
 
+.bible-stage-center {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 0;
+}
+.member-notes-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  margin-bottom: 0.4rem;
+}
 .member-notes-panel { padding: 0.75rem 1rem; border-radius: 12px; }
 .member-note-item {
   padding: 0.55rem 0.25rem;
@@ -638,9 +652,13 @@
 
 /* Readable note cards */
 .member-notes-panel {
-  padding: 1rem 1.15rem;
+  padding: 0.7rem 0.9rem 0.65rem;
   border-radius: 14px;
   background: rgba(8, 18, 28, 0.55);
+}
+#member-notes-hint {
+  margin: 0.35rem 0 0.4rem;
+  font-size: 0.8rem;
 }
 .member-notes-empty {
   margin: 0;

@@ -1489,7 +1489,7 @@
     if (!notes?.length) {
       list.innerHTML = mode === 'all'
         ? '<p class="member-notes-empty">No notes yet. Tap a verse → <strong>Note</strong> to start.</p>'
-        : '<p class="member-notes-empty">No notes on this passage yet. Tap a verse → <strong>Note</strong>, or switch to <strong>All my notes</strong>.</p>';
+        : '<p class="member-notes-empty">No notes on this passage yet. Tap a verse → <strong>Note</strong>.</p>';
       return;
     }
     renderNoteCards(list, notes, mode);
