@@ -195,28 +195,50 @@ body.pastoral-shell .bible-stage-toolbar {
   30% { background: rgba(0, 255, 255, 0.08); }
 }
 
-@media (min-width: 1100px) {
+/* Bible is a workspace — don't trap it in the 860–980px page column. */
+.page-content:has(.bible-stage) {
+  max-width: min(1480px, 100%) !important;
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 960px) {
   .bible-flyout-backdrop.open {
     background: rgba(0, 0, 0, 0.35);
   }
 
-  /* Study workspace: books | text | tools stay on screen. Read mode keeps flyouts. */
+  /* Study workspace: books | chapter | tools. Guests skip the notes row. */
   .bible-stage.is-study {
     display: grid;
-    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(280px, 340px);
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(260px, 320px);
     grid-template-areas:
       "toolbar toolbar toolbar"
       "canon sel tools"
       "canon main tools"
       "canon notes tools";
-    gap: 0.65rem;
-    align-items: start;
+    gap: 0.75rem 1rem;
+    align-items: stretch;
+    min-height: calc(100vh - 7.5rem);
+  }
+  .bible-stage.is-study.is-guest {
+    grid-template-areas:
+      "toolbar toolbar toolbar"
+      "canon sel tools"
+      "canon main tools";
   }
   .bible-stage.is-study .bible-stage-toolbar { grid-area: toolbar; }
   .bible-stage.is-study #member-selection-bar { grid-area: sel; }
   .bible-stage.is-study .bible-stage-main {
     grid-area: main;
-    max-height: calc(100vh - 8.5rem);
+    max-height: calc(100vh - 8rem);
+    min-height: 70vh;
+    padding: 1.15rem 1.5rem 2rem;
+    font-size: 1.08rem;
+    line-height: 1.7;
+  }
+  .bible-stage.is-study.is-guest .bible-stage-main {
+    max-height: calc(100vh - 7.25rem);
   }
   .bible-stage.is-study .member-notes-panel { grid-area: notes; }
   .bible-stage.is-study #member-canon-flyout,
@@ -236,9 +258,12 @@ body.pastoral-shell .bible-stage-toolbar {
   .bible-stage.is-study .bible-flyout-close { display: none; }
   .bible-stage.is-study .bible-flyout-backdrop { display: none !important; }
   .bible-stage.is-study .bible-flyout-trigger { display: none; }
+  .bible-stage.is-study .bible-stage-toolbar-actions {
+    flex-wrap: nowrap;
+  }
 }
 
-@media (max-width: 1099px) {
+@media (max-width: 959px) {
   .bible-mode-toggle { display: none !important; }
 }
 /* Same number grid for chapters and verses */
