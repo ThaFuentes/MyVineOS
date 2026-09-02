@@ -48,3 +48,18 @@
     if (e.key === 'Escape') closeSheets();
   });
 })();
+
+(function () {
+  function closeFamilyPops(except) {
+    document.querySelectorAll('details.family-add-pop[open]').forEach((d) => {
+      if (d !== except) d.removeAttribute('open');
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const pop = e.target.closest('details.family-add-pop');
+    if (!pop) closeFamilyPops(null);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeFamilyPops(null);
+  });
+})();

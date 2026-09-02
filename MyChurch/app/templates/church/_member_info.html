@@ -62,6 +62,7 @@
 {% include 'church/_family.html' %}
 
 {% if session.get('user_id') and not is_owner %}
+{% set fam_st = (family_link.status if family_link else '') %}
 <div class="profile-actions">
   <form method="post" action="{{ url_for('church.follow_user', username=owner.username) }}">
     {% include 'partials/csrf_field.html' %}
@@ -73,6 +74,41 @@
     {% include 'partials/csrf_field.html' %}
     <button class="profile-me-btn profile-me-btn-quiet" type="submit">Send a note</button>
   </form>
+  {% endif %}
+  {% if fam_st == 'approved' %}
+  <p class="family-add-status">You’re family</p>
+  {% elif fam_st == 'pending' and family_link.user_id == session.get('user_id') %}
+  <p class="family-add-status">Family request sent — waiting for them</p>
+  {% elif fam_st == 'pending' and family_link.relative_id == session.get('user_id') %}
+  <form method="post" action="{{ url_for('church.family_respond', relation_id=family_link.id) }}" class="family-add-inline">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="accept" value="1">
+    <input type="hidden" name="show_on_page" value="1">
+    <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+    <button type="submit" class="btn btn-primary btn-sm">Accept family</button>
+  </form>
+  <form method="post" action="{{ url_for('church.family_respond', relation_id=family_link.id) }}" class="family-add-inline">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="accept" value="0">
+    <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+    <button type="submit" class="btn btn-secondary btn-sm">Decline</button>
+  </form>
+  {% else %}
+  <details class="family-add-pop">
+    <summary>Add as family</summary>
+    <form method="post" action="{{ url_for('church.family_request', username=owner.username) }}" class="family-add-pop-card">
+      {% include 'partials/csrf_field.html' %}
+      <label class="profile-field-label" for="family-relation">How are they family to you?</label>
+      <select id="family-relation" name="relation" class="form-input" required>
+        <option value="">Choose…</option>
+        {% for val, lab in family_choices %}
+        <option value="{{ val }}">{{ lab }}</option>
+        {% endfor %}
+      </select>
+      <p class="help-text">They have to accept before this shows on either page.</p>
+      <button type="submit" class="btn btn-primary btn-sm">Ask them</button>
+    </form>
+  </details>
   {% endif %}
   <form method="post" action="{{ url_for('church.block_user', username=owner.username) }}">
     {% include 'partials/csrf_field.html' %}

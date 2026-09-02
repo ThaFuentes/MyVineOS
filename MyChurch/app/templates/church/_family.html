@@ -1,5 +1,5 @@
-{# Family on a member page: list, add, pending, parent privacy. #}
-{% if family or family_pending or (session.get('user_id') and not is_owner) or can_parent_privacy %}
+{# Family list + pending + parent privacy. Add-as-family lives in the compact popover. #}
+{% if family or family_pending or can_parent_privacy %}
 <section class="glass-panel profile-card profile-family">
   <h2 class="profile-card-title">Family</h2>
   {% if family %}
@@ -18,8 +18,6 @@
     </li>
     {% endfor %}
   </ul>
-  {% elif is_owner %}
-  <p class="profile-muted">No family linked yet. Open someone’s page and choose Add as family.</p>
   {% endif %}
 
   {% if family_pending %}
@@ -47,37 +45,8 @@
   </ul>
   {% endif %}
 
-  {% if session.get('user_id') and not is_owner %}
-    {% set st = (family_link.status if family_link else '') %}
-    {% if st == 'approved' %}
-    <p class="profile-muted">You’re family.</p>
-    {% elif st == 'pending' and family_link.user_id == session.get('user_id') %}
-    <p class="profile-muted">Request sent — waiting for them to accept.</p>
-    {% elif st == 'pending' and family_link.relative_id == session.get('user_id') %}
-    <form method="post" action="{{ url_for('church.family_respond', relation_id=family_link.id) }}" class="profile-family-add">
-      {% include 'partials/csrf_field.html' %}
-      <input type="hidden" name="accept" value="1">
-      <label class="church-check"><input type="checkbox" name="show_on_page" value="1" checked> Show on my page</label>
-      <button type="submit" class="profile-me-btn">Accept family request</button>
-    </form>
-    {% else %}
-    <form method="post" action="{{ url_for('church.family_request', username=owner.username) }}" class="profile-family-add">
-      {% include 'partials/csrf_field.html' %}
-      <label class="profile-field-label" for="family-relation">Add as family</label>
-      <select id="family-relation" name="relation" class="form-input" required>
-        <option value="">How are they family to you?</option>
-        {% for val, lab in family_choices %}
-        <option value="{{ val }}">{{ lab }}</option>
-        {% endfor %}
-      </select>
-      <label class="church-check"><input type="checkbox" name="show_on_page" value="1" checked> Show on my page</label>
-      <button type="submit" class="profile-me-btn">Add as family</button>
-    </form>
-    {% endif %}
-  {% endif %}
-
   {% if can_parent_privacy %}
-  <form method="post" action="{{ url_for('church.child_privacy', username=owner.username) }}" class="profile-family-add" style="margin-top:0.85rem;">
+  <form method="post" action="{{ url_for('church.child_privacy', username=owner.username) }}" class="profile-family-privacy">
     {% include 'partials/csrf_field.html' %}
     <p class="profile-field-label">Child page privacy</p>
     <p class="help-text">You’re a parent. These settings override theirs until they are 18.</p>
@@ -88,7 +57,7 @@
       <label><input type="checkbox" name="show_family" value="1" {% if space.show_family or space.show_family is none %}checked{% endif %}> Show family on their page</label>
       <label><input type="checkbox" name="allow_messages" value="1" {% if space.allow_messages %}checked{% endif %}> Let people send them notes</label>
     </div>
-    <button type="submit" class="btn btn-primary">Save child privacy</button>
+    <button type="submit" class="btn btn-primary btn-sm">Save child privacy</button>
   </form>
   {% endif %}
 </section>
