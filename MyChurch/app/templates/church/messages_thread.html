@@ -15,7 +15,7 @@
         {% if thread_kicker %}<p class="profile-kicker">{{ thread_kicker }}</p>{% endif %}
         <h1 class="mail-thread-name">{{ thread_title }}</h1>
         {% if church_thread %}
-        <p class="mail-thread-hint">Pastors and page editors can read this and reply for the church.</p>
+        <p class="mail-thread-hint">Ministers and page editors can read this and reply for the church.</p>
         {% elif room_thread %}
         <p class="mail-thread-hint">{% if thread.thread_kind == 'open' %}Anyone signed in at this church can join.{% else %}Invited people have to accept before they see this.{% endif %}</p>
         {% endif %}

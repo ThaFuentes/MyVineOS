@@ -11,7 +11,7 @@ from html import escape
 from flask import g, jsonify, make_response, request, session, url_for
 
 
-_SCRIPT_VER = "church1"
+_SCRIPT_VER = "church2"
 _CHOICES = frozenset({"dismissed", "installed", "no", "yes", "never"})
 _SURFACES = frozenset({"phone", "desktop"})
 

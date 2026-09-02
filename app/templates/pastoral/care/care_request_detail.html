@@ -48,7 +48,7 @@
 <!-- Assigned Pastors + inline assign form (no collapse, always available; no BS dep) -->
 <div class="glass-panel">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-    <strong>Assigned Pastors/Staff</strong>
+    <strong>Assigned Ministers/Staff</strong>
   </div>
 
   {% if assignments %}
@@ -77,7 +77,7 @@
       <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
         <div style="flex:2; min-width:160px;">
           <select name="pastor_id" required style="width:100%; padding:0.45rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
-            <option value="">-- Select Pastor/Staff --</option>
+            <option value="">-- Select Minister/Staff --</option>
             {% for pastor in pastoral_team %}
               <option value="{{ pastor.id }}">{{ pastor.first_name }} {{ pastor.last_name }}</option>
             {% endfor %}

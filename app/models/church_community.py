@@ -536,7 +536,8 @@ def church_context_for_user(user_id: int | None) -> dict:
     if not gathering.get('speaker'):
         for role in upcoming_service.get('filled_roles') or []:
             if (role.get('role_name') or '').lower().strip() in (
-                'preacher', 'pastor', 'speaker', 'guest speaker', 'guest preacher',
+                'preacher', 'pastor', 'minister', 'speaker',
+                'guest speaker', 'guest preacher', 'guest minister',
             ):
                 gathering['speaker'] = (role.get('name') or '').strip()
                 break
@@ -1624,7 +1625,7 @@ def staff_on_page(campus: Optional[dict] = None) -> list[dict]:
     ):
         out.insert(0, {
             'display_name': pastor,
-            'role': 'Pastor',
+            'role': 'Minister',
             'username': '',
             'page_url': '',
         })

@@ -81,7 +81,7 @@
       <div class="help-text small" style="margin:0; line-height:1.45;">
         {% if c.city or c.state %}{{ c.city }}{% if c.city and c.state %}, {% endif %}{{ c.state }}{% endif %}
         {% if c.phone %}<br>{{ c.phone }}{% endif %}
-        {% if c.pastor_name %}<br>Pastor: {{ c.pastor_name }}{% endif %}
+        {% if c.pastor_name %}<br>Minister: {{ c.pastor_name }}{% endif %}
         <br>{{ (members_by_campus.get(c.id) or [])|length }} member{{ 's' if (members_by_campus.get(c.id) or [])|length != 1 else '' }} linked
         {% if c.content_isolation %}<br><strong>Content stays on this branch</strong> — other campuses cannot browse it.{% endif %}
       </div>
@@ -168,7 +168,7 @@
       <div class="form-group">
         <label for="c-pastor">Campus pastor</label>
         <input type="text" name="pastor_name" id="c-pastor" class="form-input"
-               placeholder="Pastor name" maxlength="160">
+               placeholder="Minister name" maxlength="160">
       </div>
 
       <div class="form-group full-width">

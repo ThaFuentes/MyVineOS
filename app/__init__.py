@@ -45,7 +45,7 @@ def create_app():
     # Additional Flask security configs
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    app.config['PERMANENT_SESSION_LIFETIME'] = 86400
+    app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30
     app.config['PREFERRED_URL_SCHEME'] = 'https' if os.getenv('REQUIRE_HTTPS', 'False').lower() in ('1','true','yes') else 'http'
     if os.getenv("DEBUG_MODE", "False").lower() != "true":
         app.config['DEBUG'] = False
@@ -300,6 +300,13 @@ def create_app():
     # (old |nl2br|censor showed literal "<br>" on prayers/dreams/etc.)
     app.jinja_env.filters['nl2br'] = jinja_nl2br
     app.jinja_env.filters['censor'] = jinja_censor
+    def _role_label(name):
+        try:
+            from app.models.pastoral.service_plans import role_label
+            return role_label(name)
+        except Exception:
+            return name or ''
+    app.jinja_env.filters['role_label'] = _role_label
 
     def _safe_url_for(endpoint, **values):
         try:

@@ -102,7 +102,7 @@
         {% if service.roles %}
         <p class="welcome-item-roles">
           {% for r in service.roles %}
-            <span>{{ r.role_name }}: {{ r.name }}</span>
+            <span>{{ r.role_name|role_label }}: {{ r.name }}</span>
           {% endfor %}
         </p>
         {% endif %}
@@ -129,7 +129,7 @@
     <div class="welcome-about-grid">
       {% if g.settings.get('pastor') %}
       <div class="welcome-about-card">
-        <strong>Pastor / Leader</strong>
+        <strong>Minister / Leader</strong>
         <p>{{ g.settings.get('pastor') }}</p>
       </div>
       {% endif %}

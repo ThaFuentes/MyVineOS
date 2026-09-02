@@ -35,7 +35,7 @@
   {% if us.get('filled_roles') %}
   <ul class="profile-role-list">
     {% for r in us.filled_roles %}
-    <li><strong>{{ r.role_name }}:</strong> {{ r.name }}</li>
+    <li><strong>{{ r.role_name|role_label }}:</strong> {{ r.name }}</li>
     {% endfor %}
   </ul>
   {% endif %}

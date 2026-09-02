@@ -119,16 +119,32 @@ def _assignment_display_name(assignment: dict) -> str | None:
 
 
 _PREACHER_ROLES = {
-    'preacher', 'pastor', 'speaker',
-    'guest speaker', 'guest preacher', 'guest pastor',
+    'preacher', 'pastor', 'speaker', 'minister',
+    'guest speaker', 'guest preacher', 'guest pastor', 'guest minister',
 }
+
+ROLE_DISPLAY = {
+    'preacher': 'Minister',
+    'pastor': 'Minister',
+    'minister': 'Minister',
+    'guest preacher': 'Guest minister',
+    'guest pastor': 'Guest minister',
+    'guest minister': 'Guest minister',
+}
+
+
+def role_label(role: str) -> str:
+    r = (role or '').strip()
+    if not r:
+        return r
+    return ROLE_DISPLAY.get(r.lower(), r)
 
 
 def _is_preacher_role(role: str) -> bool:
     r = (role or '').lower().strip()
     if r in _PREACHER_ROLES:
         return True
-    return 'preach' in r
+    return 'preach' in r or r.endswith('minister') or ' minister' in r
 
 
 def _extract_preacher_info(plan: dict) -> dict:
@@ -800,7 +816,7 @@ SERVICE_WORSHIP_ROLES = [
 ]
 
 SERVICE_CORE_ROLES = [
-    'Preacher',
+    'Minister',
 ]
 
 
@@ -847,6 +863,28 @@ def ensure_default_assignment_schema():
             db.rollback()
         except Exception:
             pass
+    _rename_preacher_role_to_minister(cur, db)
+
+
+def _rename_preacher_role_to_minister(cur, db) -> None:
+    """Sunday slot is Minister — keep old Preacher/Pastor rows in sync."""
+    tables = (
+        'default_service_plan_assignments',
+        'service_plan_assignments',
+        'service_plan_template_assignments',
+    )
+    for table in tables:
+        try:
+            cur.execute(
+                f"UPDATE {table} SET role_name='Minister' "
+                "WHERE role_name IN ('Preacher','Pastor')"
+            )
+            db.commit()
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
 
 
 def get_volunteer_team_role_names() -> list[str]:
@@ -1184,8 +1222,8 @@ def build_full_service_assignments(existing=None, date_str: str | None = None, *
         }
 
     built = []
-    # 1) Preacher
-    built.append(_resolve('Preacher', 'pastoral', pickers=pastoral_pickers))
+    # 1) Minister (was Preacher)
+    built.append(_resolve('Minister', 'pastoral', pickers=pastoral_pickers))
     # 2) Worship band roles
     for role in worship_role_names:
         built.append(_resolve(role, 'worship', pickers=worship_pickers))
@@ -1368,7 +1406,7 @@ def sync_worship_defaults_into_pastoral():
         for role in get_volunteer_team_role_names():
             _upsert_default_role(role, None, overwrite_user=False)
 
-        _upsert_default_role('Preacher', None, overwrite_user=False)
+        _upsert_default_role('Minister', None, overwrite_user=False)
     except Exception as exc:
         print(f'sync_worship_defaults_into_pastoral: {exc}')
 
@@ -1411,7 +1449,7 @@ def get_default_assignments():
                 LEFT JOIN users u ON d.user_id = u.id
                 ORDER BY
                   CASE
-                    WHEN d.role_name = 'Preacher' THEN 0
+                    WHEN d.role_name IN ('Minister', 'Preacher', 'Pastor') THEN 0
                     WHEN d.role_name = 'Worship Leader' THEN 1
                     ELSE 10
                   END,
@@ -1515,9 +1553,9 @@ def seed_default_sunday_template():
     creator_id = owner['id']
 
     # Seed empty slots only — do not force Worship Leader or anyone else
-    assignments = [{'role_name': 'Preacher', 'user_id': creator_id, 'guest_name': None}]
+    assignments = [{'role_name': 'Minister', 'user_id': creator_id, 'guest_name': None}]
     for role in cohesive_service_role_names():
-        if role == 'Preacher':
+        if role in ('Preacher', 'Pastor', 'Minister'):
             continue
         assignments.append({'role_name': role, 'user_id': None, 'guest_name': None})
 

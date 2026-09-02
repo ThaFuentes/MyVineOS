@@ -218,6 +218,9 @@
       <i class="fa-solid fa-ticket" aria-hidden="true"></i> My Tickets
     </a>
     {% endif %}
+    <button type="button" class="nav-sheet-link js-pwa-install" hidden>
+      <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i> Install app
+    </button>
     <a href="{{ url_for('help.help_index') }}" class="nav-sheet-link {{ 'active' if ep.startswith('help.') else '' }}">
       <i class="fa-solid fa-circle-question" aria-hidden="true"></i> Help
     </a>
