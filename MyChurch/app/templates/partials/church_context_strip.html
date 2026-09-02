@@ -16,10 +16,10 @@
       {% set roles = ctx.filled_roles or [] %}
       {% if roles %}
         {% for r in roles %}
-          <strong>{{ r.role_name }}:</strong> {{ r.name }}{% if not loop.last %} · {% endif %}
+          <strong>{{ r.role_name|role_label }}:</strong> {{ r.name }}{% if not loop.last %} · {% endif %}
         {% endfor %}
       {% elif ctx.speaker %}
-        <strong>Preacher:</strong> {{ ctx.speaker }}
+        <strong>Minister:</strong> {{ ctx.speaker }}
       {% else %}
         Service
       {% endif %}

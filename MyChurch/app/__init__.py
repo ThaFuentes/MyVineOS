@@ -42,12 +42,10 @@ def create_app():
     app = Flask(__name__, static_folder=static_folder)
     # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-insecure-change-this-immediately-2026'
-    # Isolate sandbox cookies from live myvinechurch.online on the same host.
-    app.config['SESSION_COOKIE_NAME'] = os.environ.get('SESSION_COOKIE_NAME') or 'mychurch_sandbox_session'
     # Additional Flask security configs
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    app.config['PERMANENT_SESSION_LIFETIME'] = 86400
+    app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30
     app.config['PREFERRED_URL_SCHEME'] = 'https' if os.getenv('REQUIRE_HTTPS', 'False').lower() in ('1','true','yes') else 'http'
     if os.getenv("DEBUG_MODE", "False").lower() != "true":
         app.config['DEBUG'] = False
@@ -71,9 +69,6 @@ def create_app():
         init_security(app)
     except Exception as sec_err:
         print("WARNING: Could not init PoweredByTop security early: " + str(sec_err))
-    # PBT overwrites SESSION_COOKIE_NAME; pin sandbox cookie after init so :5002
-    # cannot steal the live site session on :5001.
-    app.config['SESSION_COOKIE_NAME'] = os.environ.get('SESSION_COOKIE_NAME') or 'mychurch_sandbox_session'
     # Silent DB schema initialization (skippable for tests / import verification with no DB)
     if not (os.getenv("SKIP_DB_BUILD") in ("1", "true", "yes", "TRUE") or os.getenv("TESTING") == "1"):
         with app.app_context():
@@ -305,6 +300,13 @@ def create_app():
     # (old |nl2br|censor showed literal "<br>" on prayers/dreams/etc.)
     app.jinja_env.filters['nl2br'] = jinja_nl2br
     app.jinja_env.filters['censor'] = jinja_censor
+    def _role_label(name):
+        try:
+            from app.models.pastoral.service_plans import role_label
+            return role_label(name)
+        except Exception:
+            return name or ''
+    app.jinja_env.filters['role_label'] = _role_label
 
     def _safe_url_for(endpoint, **values):
         try:

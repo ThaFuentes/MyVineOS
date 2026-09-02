@@ -176,7 +176,8 @@
         ".myvine-pwa-go,.myvine-pwa-skip,.myvine-pwa-never{border-radius:8px;padding:.4rem .75rem;font-size:.85rem;font-weight:600;cursor:pointer}" +
         ".myvine-pwa-go{border:0;background:#00b8c4;color:#041416}" +
         ".myvine-pwa-skip{border:1px solid #495057;background:transparent;color:#ced4da}" +
-        ".myvine-pwa-never{border:0;background:transparent;color:#868e96;text-decoration:underline;font-weight:500}";
+        ".myvine-pwa-never{border:0;background:transparent;color:#868e96;text-decoration:underline;font-weight:500}" +
+        "html.standalone .js-pwa-install{display:none!important}";
       document.head.appendChild(style);
     }
     document.body.appendChild(wrap);
@@ -249,8 +250,16 @@
       setTimeout(function () {
         if (isStandalone() || alreadyDecided(readLocalChoice()) || shownThisVisit()) return;
         if (deferredPrompt || document.getElementById("myvine-pwa-install")) return;
-        if (needsManualHint()) maybeShow("hint");
+        maybeShow(deferredPrompt ? "prompt" : "hint");
       }, 1800);
+    });
+  }
+
+  function revealInstallLinks() {
+    if (isStandalone()) return;
+    document.querySelectorAll(".js-pwa-install").forEach(function (el) {
+      el.hidden = false;
+      el.removeAttribute("hidden");
     });
   }
 
@@ -263,10 +272,19 @@
       persistChoice("installed");
       return;
     }
-    if (alreadyDecided(readLocalChoice())) return;
+    revealInstallLinks();
+    window.MyVineShowInstall = function () {
+      hideBanner();
+      showBanner(deferredPrompt ? "prompt" : "hint");
+    };
+    document.addEventListener("click", function (e) {
+      const btn = e.target.closest && e.target.closest(".js-pwa-install");
+      if (!btn) return;
+      e.preventDefault();
+      window.MyVineShowInstall();
+    });
 
     const start = function () {
-      if (alreadyDecided(readLocalChoice())) return;
       setupInstallPrompt();
     };
 

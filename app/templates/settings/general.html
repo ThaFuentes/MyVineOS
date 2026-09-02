@@ -27,7 +27,7 @@
                 {% endif %}
             </div>
             <div class="settings-preview-item">
-                <strong>Pastor / Leader</strong>
+                <strong>Minister / Leader</strong>
                 {% if settings.pastor %}
                 <span>{{ settings.pastor }}</span>
                 {% else %}
@@ -69,10 +69,10 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="pastor">Pastor / Primary Leader</label>
+                    <label for="pastor">Minister / Primary Leader</label>
                     <input type="text" id="pastor" name="pastor"
                            value="{{ settings.pastor or '' }}"
-                           placeholder="e.g. Pastor John Smith">
+                           placeholder="e.g. Minister Jane Smith">
                 </div>
 
                 <div class="form-group">

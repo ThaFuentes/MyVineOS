@@ -26,6 +26,9 @@
     {% if logged_in %}
     <a href="{{ url_for('church.people') }}"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Find people</a>
     {% endif %}
+    <button type="button" class="js-pwa-install profile-quiet-btn" hidden>
+      <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i> Install app
+    </button>
     {% if logged_in and endpoint_exists('church.messages') %}
     <a href="{{ url_for('church.messages') }}">
       <i class="fa-solid fa-envelope" aria-hidden="true"></i> Notes

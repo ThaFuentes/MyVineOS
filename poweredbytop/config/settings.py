@@ -94,7 +94,7 @@ BLOCKED_COUNTRIES = []
 # Cookie sessions are per-browser/device. Concurrent multi-device logins are supported
 # (phone + laptop + tablet). There is no single server-side "one session only" token.
 SESSION_COOKIE_NAME = "pbt_vetted_session"
-VETTED_SESSION_TTL = 86400 * 14  # 14 days permanent session lifetime per device
+VETTED_SESSION_TTL = 86400 * 30  # 30 days; refreshed on each request while in use
 CSRF_PROTECTION = True
 SESSION_COOKIE_SECURE = os.getenv('REQUIRE_HTTPS', 'False').lower() in ('1', 'true', 'yes', 'TRUE') or os.getenv('FLASK_ENV') == 'production'  # Set True in prod HTTPS
 # Do NOT bind vetted/auth session validity to client IP. Mobile carriers, Wi‑Fi,

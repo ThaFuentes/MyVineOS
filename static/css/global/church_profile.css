@@ -410,7 +410,8 @@ a.profile-me-btn-quiet {
   gap: 0.35rem;
 }
 
-.profile-app-list a {
+.profile-app-list a,
+.profile-app-list button.js-pwa-install {
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -423,10 +424,16 @@ a.profile-me-btn-quiet {
   font-size: 0.92rem;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--primary-border, rgba(0, 255, 255, 0.18));
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .profile-app-list a:hover,
-.profile-app-list a:focus {
+.profile-app-list a:focus,
+.profile-app-list button.js-pwa-install:hover,
+.profile-app-list button.js-pwa-install:focus {
   border-color: var(--primary);
   color: var(--primary);
 }

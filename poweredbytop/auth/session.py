@@ -105,6 +105,9 @@ def is_vetted() -> bool:
     if time.time() - vetted_ts > VETTED_SESSION_TTL:
         clear_vetted()
         return False
+    # Sliding window: using the site keeps this device signed in.
+    session['pbt_vetted_ts'] = int(time.time())
+    session.permanent = True
 
     current_ip = get_real_ip(request)
     # Always remember last IP for logs / support, never as an exclusive key
@@ -280,6 +283,7 @@ def bind_login_session(user=None) -> None:
     session[_SESS_FAM] = _device_family()
     session[_SESS_FP] = _current_device_fp()
     session[_SESS_IP] = get_real_ip(request)
+    session.permanent = True
     session.modified = True
 
 
@@ -323,27 +327,27 @@ def check_login_session() -> bool:
     bound_ip = session.get(_SESS_IP) or ""
     fam = _device_family()
     bound_fam = session.get(_SESS_FAM) or ""
+    fp = _current_device_fp()
+    bound_fp = session.get(_SESS_FP) or ""
     same_net = _ips_same_client(bound_ip, ip) or (bound_ip == ip)
     same_fam = bool(bound_fam) and bound_fam == fam
-    if same_fam:
+    same_fp = bool(bound_fp) and fp and bound_fp == fp
+    if same_fp or same_fam:
         if not same_net:
             session[_SESS_IP] = ip
-            session.modified = True
+        session[_SESS_FAM] = fam
+        if fp:
+            session[_SESS_FP] = fp
+        session.modified = True
         return True
     if same_net:
         bind_login_session()
         return True
-    logger(f"Session bind fail: device+ip mismatch user={uid}")
-    try:
-        from poweredbytop.core.security import log_security_event
-        log_security_event(
-            "session_bind_fail",
-            f"device+ip mismatch user={uid}",
-            severity="high",
-        )
-    except Exception:
-        pass
-    return False
+    # Phone LTE/Wi-Fi + Safari UA drift used to look like a stolen cookie and
+    # kicked ministers out mid-morning. Rebind this device instead of logging out.
+    logger(f"Session bind rebind (family/ip drift) user={uid}")
+    bind_login_session()
+    return True
 
 
 def enforce_bound_session():
