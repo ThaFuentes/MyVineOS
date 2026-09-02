@@ -4,8 +4,8 @@
 {% block title %}Bible{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260901woj">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260901xrefnav">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260902desk">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260902desk">
 {% endblock %}
 
 {% block content %}
@@ -31,7 +31,7 @@
     {% endif %}
 </div>
 
-<div class="bible-stage{% if not is_logged_in %} is-guest{% endif %}" id="member-bible-stage">
+<div class="bible-stage is-study{% if not is_logged_in %} is-guest{% endif %}" id="member-bible-stage">
     <div class="bible-stage-toolbar glass-panel" style="padding:0.5rem 0.65rem;">
         <button type="button" id="member-open-canon" class="btn btn-secondary btn-sm bible-flyout-trigger"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Books</button>
         <h2 id="member-bible-title" class="bible-stage-title">Select a book</h2>
@@ -314,5 +314,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260901xrefnav"></script>
+<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260902desk"></script>
 {% endblock %}

@@ -124,6 +124,35 @@
   display: none !important;
 }
 
+.member-bible-header {
+  margin-bottom: 0.75rem;
+}
+@media (min-width: 960px) {
+  .member-bible-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 1.25rem;
+    margin-bottom: 0.65rem;
+  }
+  .member-bible-header .page-title {
+    margin: 0;
+    font-size: 1.35rem;
+  }
+  .member-bible-header .page-description {
+    margin: 0;
+    flex: 1 1 18rem;
+    font-size: 0.9rem;
+    opacity: 0.82;
+  }
+  .bible-stage.is-study .member-bible-verse {
+    margin-bottom: 0.55rem;
+    padding: 0.2rem 0.15rem;
+    font-size: 1.06rem;
+    line-height: 1.68;
+  }
+}
+
 .member-bible-verse {
   margin-bottom: 0.85rem;
   padding: 0.35rem 0.2rem;

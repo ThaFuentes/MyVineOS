@@ -170,14 +170,14 @@
 
   function isDesktopStudy() {
     return !!(el('member-bible-stage')?.classList.contains('is-study')
-      && window.matchMedia('(min-width: 1100px)').matches);
+      && window.matchMedia('(min-width: 960px)').matches);
   }
 
   function applyStudyMode(on) {
     const stage = el('member-bible-stage');
     if (!stage) return;
     studyModeWanted = !!on;
-    const desktop = window.matchMedia('(min-width: 1100px)').matches;
+    const desktop = window.matchMedia('(min-width: 960px)').matches;
     const useStudy = on && desktop;
     stage.classList.toggle('is-study', useStudy);
     el('member-mode-study')?.classList.toggle('active', useStudy);
