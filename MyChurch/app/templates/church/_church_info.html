@@ -3,21 +3,6 @@
 {% include 'church/_recent_updates.html' %}
 {% endif %}
 
-{% if worship and not hide_sunday_bits|default(false) %}
-<section class="glass-panel profile-card">
-  <h2 class="profile-card-title">Worship lineup</h2>
-  <p class="profile-gathering"><strong>{{ worship.title }}</strong></p>
-  {% if worship.service_date %}<p class="profile-muted">{{ worship.service_date }}</p>{% endif %}
-  {% if worship.songs %}
-  <ul class="profile-link-list">
-    {% for song in worship.songs %}
-    <li>{{ song }}</li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-</section>
-{% endif %}
-
 {% if not is_org and has_branches %}
 <section class="glass-panel profile-card">
   <h2 class="profile-card-title">This church</h2>

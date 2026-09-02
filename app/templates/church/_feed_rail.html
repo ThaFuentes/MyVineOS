@@ -4,21 +4,6 @@
 {% include 'church/_upcoming_service.html' %}
 {% include 'church/_recent_updates.html' %}
 
-{% if worship %}
-<section class="glass-panel profile-card">
-  <h2 class="profile-card-title">Worship lineup</h2>
-  <p class="profile-gathering"><strong>{{ worship.title }}</strong></p>
-  {% if worship.service_date %}<p class="profile-muted">{{ worship.service_date }}</p>{% endif %}
-  {% if worship.songs %}
-  <ul class="profile-link-list">
-    {% for song in worship.songs[:5] %}
-    <li>{{ song }}</li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-</section>
-{% endif %}
-
 {% if contact and (contact.phone or contact.email or contact.address or contact.line) %}
 <section class="glass-panel profile-card">
   <h2 class="profile-card-title">Contact</h2>
