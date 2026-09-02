@@ -40,7 +40,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
 
   <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260901serve">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260902more">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/enterprise.css') }}?v=20260827voice">
   <!-- Large text / elderly-friendly: cards grow & wrap (Display page text size) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
@@ -125,7 +125,7 @@
     {% endif %}
   </nav>
 
-  {# Mobile bottom nav: tabs open sheets (Community / Office / My Stuff / More). Desktop uses top-nav only. #}
+  {# Mobile bottom nav: Home / Feed / Bible / My Stuff / More. Desktop uses top-nav only. #}
   {% if session.get('user_id') %}
     {% include 'partials/nav_private_bottom.html' %}
   {% else %}

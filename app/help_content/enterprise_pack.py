@@ -398,8 +398,8 @@ docs/help_packs/
             """
 ## Desktop vs phone
 
-- **Desktop:** top nav groups — Community, Church Office, Ministry, My Stuff.
-- **Phone:** bottom bar — Home, Community, Office, My Stuff, More. Tap a tab to open a sheet of links.
+- **Desktop:** Home, Feed, Bible, then groups — Community, Church Office, Ministry, My Stuff.
+- **Phone:** bottom bar — Home, Feed, Bible, My Stuff, More. Tap **More** for Events, Prayers, Sermons, Office, and the rest.
 
 ## Dashboard tiles
 

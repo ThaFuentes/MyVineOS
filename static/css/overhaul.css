@@ -383,6 +383,19 @@ img, video {
   color: var(--primary, #0ff);
   font-weight: 700;
 }
+.nav-sheet-heading {
+  margin: 0.85rem 0.35rem 0.25rem;
+  padding: 0.15rem 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary, #0ff);
+  opacity: 0.85;
+}
+.nav-sheet-heading:first-child {
+  margin-top: 0.2rem;
+}
 .nav-sheet-close {
   width: 2.25rem;
   height: 2.25rem;
