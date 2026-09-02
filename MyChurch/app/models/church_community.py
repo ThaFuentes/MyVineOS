@@ -119,28 +119,36 @@ def save_church_page(campus_id: int, about: str, verse: str, user_id: int | None
     db = get_db()
     cur = db.cursor()
     colors = colors or {}
-    cur.execute(
-        """
-        INSERT INTO church_pages (campus_id, about, verse, updated_by, accent_color, bg_color, text_color)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE
-            about = VALUES(about),
-            verse = VALUES(verse),
-            updated_by = VALUES(updated_by),
-            accent_color = VALUES(accent_color),
-            bg_color = VALUES(bg_color),
-            text_color = VALUES(text_color)
-        """,
-        (
-            int(campus_id or 0),
-            about or None,
-            (verse or '')[:255] or None,
-            user_id,
-            colors.get('accent_color'),
-            colors.get('bg_color'),
-            colors.get('text_color'),
-        ),
-    )
+    cid = int(campus_id or 0)
+    about_val = (about or '').strip() or None
+    verse_val = (verse or '')[:255].strip() or None
+    cur.execute("SELECT campus_id FROM church_pages WHERE campus_id = %s", (cid,))
+    exists = bool(cur.fetchone())
+    if exists:
+        cur.execute(
+            """
+            UPDATE church_pages
+            SET about = %s, verse = %s, updated_by = %s,
+                accent_color = %s, bg_color = %s, text_color = %s
+            WHERE campus_id = %s
+            """,
+            (
+                about_val, verse_val, user_id,
+                colors.get('accent_color'), colors.get('bg_color'), colors.get('text_color'),
+                cid,
+            ),
+        )
+    else:
+        cur.execute(
+            """
+            INSERT INTO church_pages (campus_id, about, verse, updated_by, accent_color, bg_color, text_color)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                cid, about_val, verse_val, user_id,
+                colors.get('accent_color'), colors.get('bg_color'), colors.get('text_color'),
+            ),
+        )
     db.commit()
 
 
@@ -170,11 +178,45 @@ def create_member_space(user_id: int, about: str = '', favorite_verse: str = '')
 
 
 def update_member_space(user_id: int, data: dict) -> None:
+    """Persist bio first so a later optional-column mismatch cannot drop About me."""
     db = get_db()
     cur = db.cursor()
+    uid = int(user_id)
+    about = (data.get('about') if 'about' in data else None)
+    if 'about' in data:
+        about = (about or '').strip() or None
+        cur.execute(
+            "UPDATE member_spaces SET about = %s WHERE user_id = %s",
+            (about, uid),
+        )
+        db.commit()
+    verse = data.get('favorite_verse') if 'favorite_verse' in data else None
+    if 'favorite_verse' in data:
+        verse = (verse or '')[:255].strip() or None
+        cur.execute(
+            "UPDATE member_spaces SET favorite_verse = %s WHERE user_id = %s",
+            (verse, uid),
+        )
+        db.commit()
+    bio_bits = []
+    bio_args = []
+    for col, raw, n in (
+        ('hometown', data.get('hometown') if 'hometown' in data else None, 160),
+        ('occupation', data.get('occupation') if 'occupation' in data else None, 160),
+        ('interests', data.get('interests') if 'interests' in data else None, 500),
+    ):
+        if col not in data:
+            continue
+        bio_bits.append(f"{col} = %s")
+        bio_args.append((raw or '')[:n].strip() or None)
+    if bio_bits:
+        bio_args.append(uid)
+        cur.execute(
+            f"UPDATE member_spaces SET {', '.join(bio_bits)} WHERE user_id = %s",
+            bio_args,
+        )
+        db.commit()
     args_full = (
-        data.get('about') or None,
-        (data.get('favorite_verse') or '')[:255] or None,
         1 if data.get('show_to_visitors') else 0,
         1 if data.get('show_training') else 0,
         1 if data.get('allow_messages') else 0,
@@ -183,24 +225,19 @@ def update_member_space(user_id: int, data: dict) -> None:
         data.get('accent_color') or None,
         data.get('bg_color') or None,
         data.get('text_color') or None,
-        (data.get('hometown') or '')[:160] or None,
-        (data.get('occupation') or '')[:160] or None,
-        (data.get('interests') or '')[:500] or None,
         data.get('banner_pos') if data.get('banner_pos') in ('top', 'center', 'bottom') else None,
         1 if data.get('show_replies') else 0,
         0 if data.get('show_church_feed') in (0, False, '0') else 1,
         0 if data.get('show_follows') in (0, False, '0') else 1,
         0 if data.get('show_in_directory') in (0, False, '0') else 1,
         1 if data.get('page_private') else 0,
-        int(user_id),
+        uid,
     )
     try:
         cur.execute(
             """
             UPDATE member_spaces
-            SET about = %s,
-                favorite_verse = %s,
-                show_to_visitors = %s,
+            SET show_to_visitors = %s,
                 show_training = %s,
                 allow_messages = %s,
                 show_stats = %s,
@@ -208,9 +245,6 @@ def update_member_space(user_id: int, data: dict) -> None:
                 accent_color = %s,
                 bg_color = %s,
                 text_color = %s,
-                hometown = %s,
-                occupation = %s,
-                interests = %s,
                 banner_pos = %s,
                 show_replies = %s,
                 show_church_feed = %s,
@@ -223,41 +257,39 @@ def update_member_space(user_id: int, data: dict) -> None:
         )
         db.commit()
         return
-    except Exception:
+    except Exception as exc:
         db.rollback()
-        cur.execute(
-            """
-            UPDATE member_spaces
-            SET about = %s, favorite_verse = %s, show_to_visitors = %s, show_training = %s,
-                allow_messages = %s, show_stats = %s, allow_guest_comments = %s,
-                accent_color = %s, bg_color = %s, text_color = %s, hometown = %s,
-                occupation = %s, interests = %s, banner_pos = %s, show_replies = %s,
-                show_church_feed = %s, show_in_directory = %s, page_private = %s
-            WHERE user_id = %s
-            """,
-            (
-                data.get('about') or None,
-                (data.get('favorite_verse') or '')[:255] or None,
-                1 if data.get('show_to_visitors') else 0,
-                1 if data.get('show_training') else 0,
-                1 if data.get('allow_messages') else 0,
-                1 if data.get('show_stats') else 0,
-                1 if data.get('allow_guest_comments') else 0,
-                data.get('accent_color') or None,
-                data.get('bg_color') or None,
-                data.get('text_color') or None,
-                (data.get('hometown') or '')[:160] or None,
-                (data.get('occupation') or '')[:160] or None,
-                (data.get('interests') or '')[:500] or None,
-                data.get('banner_pos') if data.get('banner_pos') in ('top', 'center', 'bottom') else None,
-                1 if data.get('show_replies') else 0,
-                0 if data.get('show_church_feed') in (0, False, '0') else 1,
-                0 if data.get('show_in_directory') in (0, False, '0') else 1,
-                1 if data.get('page_private') else 0,
-                int(user_id),
-            ),
-        )
-        db.commit()
+        print(f'update_member_space extras: {exc}')
+        try:
+            cur.execute(
+                """
+                UPDATE member_spaces
+                SET show_to_visitors = %s, show_training = %s,
+                    allow_messages = %s, show_stats = %s, allow_guest_comments = %s,
+                    accent_color = %s, bg_color = %s, text_color = %s, banner_pos = %s,
+                    show_replies = %s, show_in_directory = %s, page_private = %s
+                WHERE user_id = %s
+                """,
+                (
+                    1 if data.get('show_to_visitors') else 0,
+                    1 if data.get('show_training') else 0,
+                    1 if data.get('allow_messages') else 0,
+                    1 if data.get('show_stats') else 0,
+                    1 if data.get('allow_guest_comments') else 0,
+                    data.get('accent_color') or None,
+                    data.get('bg_color') or None,
+                    data.get('text_color') or None,
+                    data.get('banner_pos') if data.get('banner_pos') in ('top', 'center', 'bottom') else None,
+                    1 if data.get('show_replies') else 0,
+                    0 if data.get('show_in_directory') in (0, False, '0') else 1,
+                    1 if data.get('page_private') else 0,
+                    uid,
+                ),
+            )
+            db.commit()
+        except Exception as exc2:
+            db.rollback()
+            print(f'update_member_space extras fallback: {exc2}')
 
 
 def get_user_public(user_id: int) -> Optional[dict]:
@@ -1145,6 +1177,93 @@ def profile_contact(campus: Optional[dict] = None) -> dict:
     }
 
 
+PIN_MAX = 8
+PIN_SKIP_TYPES = ('badge', 'comment')
+
+
+def _pin_key(item_type, item_id):
+    try:
+        iid = int(item_id or 0)
+    except (TypeError, ValueError):
+        return None
+    kind = (item_type or '').strip()
+    if not kind or not iid or kind in PIN_SKIP_TYPES:
+        return None
+    return (kind, iid)
+
+
+def list_pins(owner_type: str, owner_id: int) -> list[tuple]:
+    cur = _cur()
+    try:
+        cur.execute(
+            """
+            SELECT item_type, item_id FROM page_pins
+            WHERE owner_type = %s AND owner_id = %s
+            ORDER BY pinned_at DESC, id DESC
+            """,
+            ((owner_type or 'church').strip(), int(owner_id or 0)),
+        )
+        return [
+            (str(r.get('item_type') or ''), int(r.get('item_id') or 0))
+            for r in (cur.fetchall() or [])
+            if r.get('item_id')
+        ]
+    except Exception:
+        return []
+
+
+def set_pin(owner_type: str, owner_id: int, item_type: str, item_id: int, pinned: bool, user_id: int | None) -> tuple[bool, str]:
+    key = _pin_key(item_type, item_id)
+    if not key:
+        return False, 'That item cannot be pinned.'
+    kind, iid = key
+    otype = (owner_type or 'church').strip()
+    oid = int(owner_id or 0)
+    db = get_db()
+    cur = db.cursor()
+    if not pinned:
+        cur.execute(
+            """
+            DELETE FROM page_pins
+            WHERE owner_type = %s AND owner_id = %s AND item_type = %s AND item_id = %s
+            """,
+            (otype, oid, kind, iid),
+        )
+        db.commit()
+        return True, 'Unpinned.'
+    existing = list_pins(otype, oid)
+    if (kind, iid) in existing:
+        return True, 'Already pinned.'
+    if len(existing) >= PIN_MAX:
+        return False, f'You can pin up to {PIN_MAX} posts on this page.'
+    cur.execute(
+        """
+        INSERT INTO page_pins (owner_type, owner_id, item_type, item_id, pinned_by)
+        VALUES (%s, %s, %s, %s, %s)
+        """,
+        (otype, oid, kind, iid, user_id),
+    )
+    db.commit()
+    return True, 'Pinned to the top of this page.'
+
+
+def apply_pins(items: list[dict], owner_type: str, owner_id: int, can_pin: bool = False) -> list[dict]:
+    pins = list_pins(owner_type, owner_id)
+    pinset = set(pins)
+    rank = {k: i for i, k in enumerate(pins)}
+    for item in items:
+        key = _pin_key(item.get('type'), item.get('id'))
+        item['pinned'] = bool(key and key in pinset)
+        item['pinnable'] = bool(key)
+        item['can_pin'] = bool(can_pin and key)
+        item['pin_owner_type'] = owner_type
+        item['pin_owner_id'] = int(owner_id or 0)
+    pinned = [i for i in items if i.get('pinned')]
+    rest = [i for i in items if not i.get('pinned')]
+    pinned.sort(key=lambda x: rank.get(_pin_key(x.get('type'), x.get('id')) or ('', 0), 99))
+    return pinned + rest
+
+
 def church_wall(include_members: bool = False, limit: int = 24, campus_id: int = 0) -> list[dict]:
     """Official church / branch wall only — not personal member posts."""
     try:
@@ -1257,7 +1376,18 @@ def church_wall(include_members: bool = False, limit: int = 24, campus_id: int =
             print(f'church_wall compose posts: {exc}')
         out.sort(key=lambda x: str(x.get('sort_dt') or x.get('when') or ''), reverse=True)
         viewer_id = session.get('user_id') if has_request_context() else None
-        out = visible_items(out, viewer_id, surface='church')[:limit]
+        out = visible_items(out, viewer_id, surface='church')
+        wall_campus = int(campus_id or 0)
+        try:
+            out = apply_pins(
+                out,
+                'campus' if wall_campus else 'church',
+                wall_campus,
+                can_pin=can_edit_church_page(wall_campus),
+            )[:limit]
+        except Exception as exc:
+            print(f'church_wall pins: {exc}')
+            out = out[:limit]
         try:
             from app.models.moderation import flag_wall_moderation
             out = flag_wall_moderation(out)
@@ -1492,6 +1622,8 @@ def member_wall(user_id: int, username: str = '', space: dict | None = None) -> 
         feed = flag_wall_moderation(feed)
     except Exception:
         pass
+    viewer_id = session.get('user_id') if has_request_context() else None
+    feed = apply_pins(feed, 'member', uid, can_pin=bool(viewer_id and int(viewer_id) == uid))
     return feed[:40]
 
 

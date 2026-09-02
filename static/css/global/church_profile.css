@@ -1024,6 +1024,38 @@ a.profile-me-btn-quiet {
   margin: 0;
   line-height: 1.55;
 }
+.profile-about-main {
+  margin: 0.65rem 0 0.85rem;
+}
+.wall-pin {
+  margin-left: auto;
+}
+.wall-pin-btn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  min-height: 1.85rem;
+  cursor: pointer;
+}
+.wall-pin-btn.is-on,
+.wall-pin-btn:hover {
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  color: var(--primary);
+  background: rgba(var(--primary-rgb, 0, 255, 255), 0.12);
+}
+.wall-pin-flag {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+  opacity: 0.85;
+}
 
 .profile-facts {
   margin: 0.85rem 0 0;
@@ -1900,6 +1932,81 @@ a.profile-me-btn-quiet {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+.notice-card {
+  margin: 0 0 0.85rem;
+  padding: 0.85rem 1rem 0.7rem;
+}
+.notice-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+.notice-card-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.notice-count {
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #ffe14a;
+  color: #111;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.notice-clear {
+  border: 1px solid rgba(255,255,255,0.16);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  cursor: pointer;
+}
+.notice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.notice-item a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.55rem;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255,255,255,0.04);
+}
+.notice-item.is-new a {
+  background: rgba(255, 225, 74, 0.12);
+  border: 1px solid rgba(255, 225, 74, 0.28);
+}
+.notice-kind {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.notice-body {
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
 }
 
 .profile-app-list a {

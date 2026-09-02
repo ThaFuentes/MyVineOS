@@ -28,8 +28,9 @@
 
   <form method="post" class="styled-form glass-panel">
     {% include 'partials/csrf_field.html' %}
-    <label class="profile-field-label" for="about">About me</label>
-    <textarea id="about" name="about" class="form-input profile-about-input" rows="5" placeholder="Who you are, what you love, how you serve…">{{ (space.about if space else '') or '' }}</textarea>
+    <label class="profile-field-label" for="about_text">About me</label>
+    <textarea id="about_text" name="about_text" class="form-input profile-about-input" rows="6" placeholder="Who you are, what you love, how you serve…">{{ (space.about if space else '') or '' }}</textarea>
+    <p class="help-text">This shows on your page under your name. Color is separate — both save together.</p>
     <input id="favorite_verse" name="favorite_verse" class="form-input" type="text" maxlength="255" placeholder="A quote under your name" value="{{ (space.favorite_verse if space else '') or '' }}">
     <div class="profile-info-grid">
       <div>

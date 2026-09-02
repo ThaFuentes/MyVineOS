@@ -81,7 +81,13 @@
 
 <section class="glass-panel profile-about">
   <h2>About me</h2>
-  {% if about %}<p>{{ about | nl2br }}</p>{% endif %}
+  {% if about %}
+  <p>{{ about | nl2br }}</p>
+  {% elif is_owner %}
+  <p class="profile-muted">Nothing here yet. <a href="{{ url_for('church.edit_my_page') }}">Add an About me</a> — it saves with your color and the rest of this page.</p>
+  {% else %}
+  <p class="profile-muted">They haven’t written an About me yet.</p>
+  {% endif %}
   <dl class="profile-facts">
     {% if space.occupation %}<div><dt>Does</dt><dd>{{ space.occupation }}</dd></div>{% endif %}
     {% if space.hometown %}<div><dt>From</dt><dd>{{ space.hometown }}</dd></div>{% endif %}

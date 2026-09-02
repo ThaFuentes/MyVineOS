@@ -151,7 +151,8 @@
     {% if campus %}
     <input type="hidden" name="campus" value="{{ campus.id }}">
     {% endif %}
-    <textarea id="about" name="about" class="form-input profile-about-input" rows="5" placeholder="About this church…">{{ page.about or '' }}</textarea>
+    <label class="profile-field-label" for="about_text">About this church</label>
+    <textarea id="about_text" name="about_text" class="form-input profile-about-input" rows="6" placeholder="Who you are as a church, what you believe, how to find you…">{{ page.about or '' }}</textarea>
     <input id="verse" name="verse" class="form-input" type="text" maxlength="255" placeholder="A quote under the name" value="{{ page.verse or '' }}">
     <label class="profile-color-row" for="accent_color">
       Page color

@@ -42,6 +42,20 @@
           {% endif %}
         </span>
         {% set own_post = session.get('user_id') and item.author_id and item.author_id|int == session.get('user_id')|int %}
+        {% if item.can_pin %}
+        <form method="post" action="{{ url_for('church.pin_wall_item') }}" class="wall-pin">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="owner_type" value="{{ item.pin_owner_type }}">
+          <input type="hidden" name="owner_id" value="{{ item.pin_owner_id }}">
+          <input type="hidden" name="item_type" value="{{ item.type }}">
+          <input type="hidden" name="item_id" value="{{ item.id }}">
+          <input type="hidden" name="pinned" value="{{ '0' if item.pinned else '1' }}">
+          <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+          <button type="submit" class="wall-pin-btn{% if item.pinned %} is-on{% endif %}" title="{% if item.pinned %}Unpin from top{% else %}Pin to the top of this page{% endif %}">
+            {% if item.pinned %}Unpin{% else %}Pin{% endif %}
+          </button>
+        </form>
+        {% endif %}
         {% if item.id and item.deletable and (own_post or item.can_manage_wall or item.moderatable or can_edit|default(false)) %}
         <form method="post" action="{{ url_for('church.delete_wall_post', post_id=item.id) }}" class="wall-delete" onsubmit="return confirm('Remove this from the church wall?');">
           {% include 'partials/csrf_field.html' %}
@@ -50,6 +64,7 @@
         </form>
         {% endif %}
       </div>
+      {% if item.pinned %}<p class="wall-pin-flag">Pinned to the top</p>{% endif %}
       {% if item.shadowed_badge %}<p class="wall-mod-flag">Shadowed — only the author sees this.</p>{% endif %}
       {% include 'church/_wall_moderate.html' %}
       {% include 'church/_wall_body.html' %}

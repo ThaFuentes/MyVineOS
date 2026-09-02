@@ -714,6 +714,18 @@ def create_app():
             return dict(serving_pending_count=0, serving_accepted_count=0)
 
     @app.context_processor
+    def inject_notices():
+        uid = session.get('user_id')
+        if not uid:
+            return dict(notice_new_count=0, notice_items=[])
+        try:
+            from app.models.notices import notice_bundle
+            bundle = notice_bundle(uid)
+            return dict(notice_new_count=bundle.get('count') or 0, notice_items=bundle.get('items') or [])
+        except Exception:
+            return dict(notice_new_count=0, notice_items=[])
+
+    @app.context_processor
     def inject_custom_modules():
         from flask import session as flask_session
         try:

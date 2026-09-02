@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=33">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=35">
 {% endblock %}
 
 {% block content %}
@@ -43,6 +43,8 @@
       {% set you_panel_class = 'profile-you-mobile' %}
       {% set you_has_page = viewer_space %}
       {% include 'church/_you_panel.html' %}
+
+      {% include 'church/_notices.html' %}
 
       {% if compose_types %}
         {% set compose_launch_label = 'Add a post' %}

@@ -399,7 +399,7 @@ def church_edit():
             except Exception:
                 flash('Could not remove that person.', 'error')
             return redirect(edit_url + '#page-people')
-        about = (request.form.get('about') or '').strip()
+        about = (request.form.get('about_text') or request.form.get('about') or '').strip()
         verse = (request.form.get('verse') or '').strip()
         if contains_censored_word(f'{about} {verse}'):
             flash('That text contains a prohibited word.', 'error')
@@ -418,8 +418,10 @@ def church_edit():
             target_id=campus_id or None,
             change_details=f'Updated church page for campus {campus_id}',
         )
-        flash('Saved.', 'success')
-        return redirect(edit_url)
+        flash('Saved the church about and page color.', 'success')
+        if campus_id:
+            return redirect(url_for('church.church_home', campus_id=campus_id))
+        return redirect(url_for('church.church_home'))
     editors = cc.list_page_editors(campus_id)
     taken = {int(e['user_id']) for e in editors}
     choices = []
@@ -650,7 +652,7 @@ def create_page():
         if request.form.get('not_now'):
             flash('You can create a page later from Home.', 'info')
             return redirect(url_for('church.church_home'))
-        about = (request.form.get('about') or '').strip()
+        about = (request.form.get('about_text') or request.form.get('about') or '').strip()
         verse = (request.form.get('favorite_verse') or '').strip()
         cc.create_member_space(uid, about=about, favorite_verse=verse)
         cc.update_member_space(uid, {
@@ -689,7 +691,7 @@ def edit_my_page():
         return redirect(url_for('church.create_page'))
     user = cc.get_user_public(uid)
     if request.method == 'POST':
-        about = (request.form.get('about') or '').strip()
+        about = (request.form.get('about_text') or request.form.get('about') or '').strip()
         verse = (request.form.get('favorite_verse') or '').strip()
         if contains_censored_word(f'{about} {verse}'):
             flash('That text contains a prohibited word.', 'error')
@@ -720,8 +722,8 @@ def edit_my_page():
             show_birthday=1 if request.form.get('show_birthday') == '1' else 0,
             updated_by=uid,
         )
-        flash('Saved.', 'success')
-        return redirect(url_for('church.edit_my_page'))
+        flash('Saved your page — About me, color, and the rest.', 'success')
+        return redirect(url_for('church.member_page', username=user['username']))
     return render_template(
         'church/create_page.html',
         space=space,
