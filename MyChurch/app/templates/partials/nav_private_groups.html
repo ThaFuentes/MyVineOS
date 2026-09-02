@@ -14,6 +14,8 @@
    class="{{ 'active' if ep.startswith('church.church_') else '' }}">Home</a>
 <a href="{{ url_for('public.public_dashboard.public_community') }}"
    class="{{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">Feed</a>
+<a href="{{ url_for('bible.member_study') }}"
+   class="{{ 'active' if ep.startswith('bible.') else '' }}">Bible</a>
 {% if session.get('username') %}
 <a href="{{ url_for('church.member_page', username=session.username) }}"
    class="{{ 'active' if ep == 'church.member_page' else '' }}">My page</a>
