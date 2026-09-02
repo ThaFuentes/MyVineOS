@@ -45,6 +45,71 @@ def moderate_wall_post(post_id):
     return redirect(url_for('church.church_home'))
 
 
+@church_bp.route('/u/<username>/family', methods=['POST'])
+@login_required
+def family_request(username):
+    from app.models import family_links as fam
+    user = cc.get_user_by_username(username)
+    if not user:
+        return _unknown()
+    try:
+        ok, msg = fam.request_link(
+            session['user_id'], user['id'],
+            request.form.get('relation') or '',
+            show_on_page=request.form.get('show_on_page') != '0',
+        )
+    except ValueError as exc:
+        ok, msg = False, str(exc)
+    flash(msg, 'success' if ok else 'error')
+    return redirect(url_for('church.member_page', username=username))
+
+
+@church_bp.route('/family/<int:relation_id>/respond', methods=['POST'])
+@login_required
+def family_respond(relation_id):
+    from app.models import family_links as fam
+    accept = request.form.get('accept') != '0'
+    ok, msg = fam.respond_link(
+        relation_id, session['user_id'], accept,
+        show_on_page=request.form.get('show_on_page') != '0',
+    )
+    flash(msg, 'success' if ok else 'error')
+    nxt = (request.form.get('next') or '').strip()
+    if nxt.startswith('/') and not nxt.startswith('//'):
+        return redirect(nxt)
+    return redirect(url_for('church.member_page', username=session.get('username') or ''))
+
+
+@church_bp.route('/family/<int:relation_id>/remove', methods=['POST'])
+@login_required
+def family_remove(relation_id):
+    from app.models import family_links as fam
+    ok, msg = fam.remove_link(relation_id, session['user_id'])
+    flash(msg, 'success' if ok else 'error')
+    nxt = (request.form.get('next') or '').strip()
+    if nxt.startswith('/') and not nxt.startswith('//'):
+        return redirect(nxt)
+    return redirect(url_for('church.member_page', username=session.get('username') or ''))
+
+
+@church_bp.route('/u/<username>/child-privacy', methods=['POST'])
+@login_required
+def child_privacy(username):
+    from app.models import family_links as fam
+    user = cc.get_user_by_username(username)
+    if not user:
+        return _unknown()
+    ok, msg = fam.set_child_privacy(session['user_id'], user['id'], {
+        'page_private': request.form.get('page_private') == '1',
+        'show_to_visitors': request.form.get('show_to_visitors') == '1',
+        'show_in_directory': request.form.get('show_in_directory') == '1',
+        'show_family': request.form.get('show_family') == '1',
+        'allow_messages': request.form.get('allow_messages') == '1',
+    })
+    flash(msg, 'success' if ok else 'error')
+    return redirect(url_for('church.member_page', username=username))
+
+
 @church_bp.route('/notices/seen', methods=['POST'])
 @login_required
 def notices_seen():

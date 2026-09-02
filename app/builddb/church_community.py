@@ -66,6 +66,10 @@ def create_tables(cursor):
         ('show_follows', "TINYINT(1) NOT NULL DEFAULT 1"),
         ('show_in_directory', "TINYINT(1) NOT NULL DEFAULT 1"),
         ('page_private', "TINYINT(1) NOT NULL DEFAULT 0"),
+        ('show_family', "TINYINT(1) NOT NULL DEFAULT 1"),
+        ('show_title', "TINYINT(1) NOT NULL DEFAULT 0"),
+        ('privacy_locked_by', "INT UNSIGNED NULL"),
+        ('privacy_locked_at', "DATETIME NULL"),
     ):
         _col('member_spaces', col, definition)
 

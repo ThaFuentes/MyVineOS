@@ -61,7 +61,10 @@ def create_tables(cursor):
         'status':         "VARCHAR(20) NOT NULL DEFAULT 'pending'",
         'requested_at':   "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         'responded_at':   "DATETIME DEFAULT NULL",
-        'approved_by':    "INT UNSIGNED DEFAULT NULL"
+        'approved_by':    "INT UNSIGNED DEFAULT NULL",
+        'label':          "VARCHAR(24) NULL",
+        'show_user':      "TINYINT(1) NOT NULL DEFAULT 1",
+        'show_relative':  "TINYINT(1) NOT NULL DEFAULT 1",
     }
 
     for col, definition in columns_to_ensure.items():

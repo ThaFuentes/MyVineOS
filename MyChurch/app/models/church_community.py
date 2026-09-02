@@ -290,6 +290,39 @@ def update_member_space(user_id: int, data: dict) -> None:
         except Exception as exc2:
             db.rollback()
             print(f'update_member_space extras fallback: {exc2}')
+    if 'show_family' in data:
+        try:
+            cur.execute(
+                "UPDATE member_spaces SET show_family = %s WHERE user_id = %s",
+                (1 if data.get('show_family') else 0, uid),
+            )
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            print(f'update_member_space show_family: {exc}')
+    if 'show_title' in data:
+        try:
+            cur.execute(
+                "UPDATE member_spaces SET show_title = %s WHERE user_id = %s",
+                (1 if data.get('show_title') else 0, uid),
+            )
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            print(f'update_member_space show_title: {exc}')
+            try:
+                cur.execute(
+                    "ALTER TABLE member_spaces ADD COLUMN show_title TINYINT(1) NOT NULL DEFAULT 0"
+                )
+                db.commit()
+                cur.execute(
+                    "UPDATE member_spaces SET show_title = %s WHERE user_id = %s",
+                    (1 if data.get('show_title') else 0, uid),
+                )
+                db.commit()
+            except Exception as exc2:
+                db.rollback()
+                print(f'update_member_space show_title add: {exc2}')
 
 
 def get_user_public(user_id: int) -> Optional[dict]:
@@ -1726,42 +1759,119 @@ def find_people(query: str = '', viewer_id: int | None = None, limit: int = 40) 
 
 
 def staff_on_page(campus: Optional[dict] = None) -> list[dict]:
-    """Pastors / leads with a member page, for the church profile strip."""
+    """Who can edit or moderate this church / branch page — About People strip.
+
+    Owner and site Admins always can. Page admins, editors, and posters come
+    from church_page_editors for this campus. Site mods (moderate_site) show
+    on the main church page. A campus minister name is last if it is not
+    already a listed person.
+    """
+    campus_id = int((campus or {}).get('id') or 0)
+    seen: dict = {}
+
+    def _display(row: dict) -> str:
+        name = f"{(row.get('first_name') or '').strip()} {(row.get('last_name') or '').strip()}".strip()
+        return name or (row.get('username') or '').strip() or (row.get('display_name') or '').strip() or 'Member'
+
+    def _add(row: dict, role: str, rank: int) -> None:
+        try:
+            uid = int(row.get('id') or row.get('user_id') or 0)
+        except (TypeError, ValueError):
+            uid = 0
+        username = (row.get('username') or '').strip()
+        person = {
+            'id': uid or None,
+            'user_id': uid or None,
+            'username': username,
+            'display_name': _display(row),
+            'role': role,
+            'page_url': f"/church/u/{username}" if username else '',
+            '_rank': rank,
+        }
+        key = uid if uid else f"name:{(person['display_name'] or '').lower()}"
+        prev = seen.get(key)
+        if prev and int(prev.get('_rank') or 99) <= rank:
+            return
+        seen[key] = person
+
     try:
         cur = _cur()
         cur.execute(
             """
-            SELECT u.id, u.username, u.first_name, u.last_name, u.role,
-                   u.primary_campus_id
+            SELECT u.id, u.username, u.first_name, u.last_name, u.role
             FROM users u
-            INNER JOIN member_spaces m ON m.user_id = u.id
             WHERE u.role IN ('Owner', 'Admin')
-            ORDER BY u.role = 'Owner' DESC, u.first_name ASC
-            LIMIT 8
+            ORDER BY u.role = 'Owner' DESC, u.first_name ASC, u.last_name ASC
             """
         )
-        rows = list(cur.fetchall() or [])
+        for row in cur.fetchall() or []:
+            site_role = (row.get('role') or 'Admin').strip()
+            if site_role == 'Owner':
+                _add(row, 'Owner', 0)
+            else:
+                _add(row, 'Admin', 1)
     except Exception:
-        rows = []
-    out = []
-    for row in rows:
-        name = f"{(row.get('first_name') or '').strip()} {(row.get('last_name') or '').strip()}".strip()
-        out.append({
-            **row,
-            'display_name': name or row.get('username'),
-            'page_url': f"/church/u/{row.get('username')}",
-        })
-    pastor = (campus or {}).get('pastor_name') or ''
-    if pastor and not any(
-        pastor.lower() in (p.get('display_name') or '').lower() for p in out
-    ):
-        out.insert(0, {
-            'display_name': pastor,
-            'role': 'Minister',
-            'username': '',
-            'page_url': '',
-        })
-    return out
+        pass
+
+    grant_labels = {
+        'admin': ('Page admin', 2),
+        'editor': ('Editor', 3),
+        'poster': ('Poster', 5),
+    }
+    for row in list_page_editors(campus_id):
+        grant = (row.get('editor_role') or '').strip().lower()
+        label, rank = grant_labels.get(grant, ('Editor', 3))
+        _add(row, label, rank)
+
+    if campus_id == 0:
+        try:
+            cur = _cur()
+            cur.execute(
+                """
+                SELECT DISTINCT u.id, u.username, u.first_name, u.last_name, u.role
+                FROM users u
+                INNER JOIN user_permissions up ON up.user_id = u.id
+                WHERE up.permission_key IN ('moderate_site', 'review_moderation')
+                """
+            )
+            for row in cur.fetchall() or []:
+                if (row.get('role') or '') in ('Owner', 'Admin'):
+                    continue
+                _add(row, 'Moderator', 4)
+        except Exception:
+            pass
+
+    pastor = ((campus or {}).get('pastor_name') or '').strip()
+    if pastor:
+        already = any(
+            pastor.lower() in (p.get('display_name') or '').lower()
+            for p in seen.values()
+        )
+        if not already:
+            _add({'first_name': pastor, 'username': ''}, 'Minister', 6)
+
+    people = list(seen.values())
+    people.sort(key=lambda p: (int(p.get('_rank') or 99), (p.get('display_name') or '').lower()))
+    uids = [int(p['user_id']) for p in people if p.get('user_id')]
+    shown: set[int] = set()
+    if uids:
+        try:
+            cur = _cur()
+            placeholders = ','.join(['%s'] * len(uids))
+            cur.execute(
+                f"SELECT user_id FROM member_spaces WHERE COALESCE(show_title, 0) = 1 AND user_id IN ({placeholders})",
+                uids,
+            )
+            shown = {int(r['user_id']) for r in (cur.fetchall() or []) if r.get('user_id')}
+        except Exception:
+            shown = set()
+    for person in people:
+        uid = person.get('user_id')
+        person['show_title'] = bool(uid and int(uid) in shown)
+        if not person['show_title']:
+            person['role'] = ''
+        person.pop('_rank', None)
+    return people[:24]
 
 
 def hero_for_profile() -> str:

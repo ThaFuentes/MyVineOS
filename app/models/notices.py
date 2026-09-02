@@ -103,6 +103,21 @@ def list_notices(user_id: int, limit: int = 12) -> list[dict]:
         print(f'notices notes: {exc}')
 
     try:
+        from app.models.family_links import pending_incoming
+        for row in pending_incoming(uid) or []:
+            when = row.get('requested_at') or row.get('id')
+            items.append({
+                'kind': 'family',
+                'title': 'Family request',
+                'body': f"{row.get('name') or 'Someone'} wants you as {row.get('label') or 'family'}",
+                'when': when,
+                'url': row.get('page_url') or url_for('church.member_page', username=''),
+                'is_new': True,
+            })
+    except Exception as exc:
+        print(f'notices family: {exc}')
+
+    try:
         from app.models.serving import my_serving
         for row in my_serving(uid, upcoming_only=True, limit=12) or []:
             if (row.get('status') or '') != 'pending':

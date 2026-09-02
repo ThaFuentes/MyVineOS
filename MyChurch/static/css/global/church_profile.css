@@ -676,6 +676,10 @@ a.profile-me-btn-quiet {
   margin-bottom: 0.75rem;
 }
 
+.profile-card .profile-muted {
+  margin: 0 0 0.55rem;
+}
+
 .profile-branch-list,
 .profile-people {
   list-style: none;
@@ -684,6 +688,10 @@ a.profile-me-btn-quiet {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+}
+
+.profile-people + p {
+  margin: 0.7rem 0 0;
 }
 
 .profile-branch-list a,
@@ -1288,6 +1296,10 @@ a.profile-me-btn-quiet {
 
   .profile-info-desktop {
     display: none;
+  }
+
+  .profile-about-main {
+    display: block;
   }
 
   .profile-info-mobile {
@@ -2006,6 +2018,33 @@ a.profile-me-btn-quiet {
 .notice-body {
   font-size: 0.92rem;
   line-height: 1.35;
+}
+.profile-family-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.profile-family-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+}
+.profile-family-list span {
+  font-size: 0.82rem;
+  opacity: 0.75;
+}
+.profile-family-add {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+.profile-family-act {
+  display: inline;
 }
 }
 

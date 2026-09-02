@@ -56,12 +56,18 @@
     </div>
     <label class="church-check"><input type="checkbox" name="show_birthday" value="1" {% if user and user.show_birthday %}checked{% endif %}> Show birthday on my page (month and day only)</label>
     <p class="profile-field-label" style="margin-top:1rem;">Privacy</p>
+    {% if privacy_locked %}
+    <p class="help-text">A parent set these privacy settings. You can change them when you are 18.</p>
+    {% else %}
     <p class="help-text">Page: public (guests), members-only (signed in), or only you. Each post has its own setting too — public / private / personal.</p>
     <div class="profile-toggles">
       <label><input type="checkbox" name="page_private" value="1" {% if space and space.page_private %}checked{% endif %}> Only I can see this page</label>
       <label><input type="checkbox" name="show_to_visitors" value="1" {% if space and space.show_to_visitors %}checked{% endif %}> Public page (guests can view)</label>
       <label><input type="checkbox" name="show_in_directory" value="1" {% if not space or space.show_in_directory %}checked{% endif %}> Show me in People so others can find me</label>
+      <label><input type="checkbox" name="show_family" value="1" {% if not space or space.show_family %}checked{% endif %}> Show my family on this page</label>
+      <label><input type="checkbox" name="show_title" value="1" {% if space and space.show_title %}checked{% endif %}> Show my title (Owner, Admin, …) on my page</label>
     </div>
+    {% endif %}
     <p class="profile-field-label" style="margin-top:1rem;">What shows on your wall</p>
     <p class="help-text">Your wall is what you write, link, and follow. The church newspaper stays in Community — it does not dump onto your page.</p>
     <div class="profile-toggles">

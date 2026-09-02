@@ -12,12 +12,21 @@
 {% set show_office = can_view_members() or (module_on('donations') and can_view_donations()) or (module_on('bills') and can_access_bills()) or (module_on('inventory') and can_manage_inventory()) or (module_on('accounting') and endpoint_exists('accounting.dashboard') and can_access_accounting()) or (module_on('attendance') and can_manage_attendance()) or (module_on('volunteers') and endpoint_exists('volunteers.dashboard') and can_access_volunteers_admin()) or (module_on('communications') and endpoint_exists('communications.dashboard') and can_access_communications()) or (dashboard_custom_modules or [])|length > 0 %}
 {% set show_ministry = show_pastoral or (module_on('worship') and can_access_worship|default(false)) or user_has_permission('moderate_site') or user_has_permission('review_moderation') or (module_on('gathering_manager') and can_access_gathering_place|default(false)) or (module_on('ai_insights') and endpoint_exists('ai_insights.index') and session.get('user_role') in ['Staff', 'Admin', 'Owner']) or (module_on('ticket_manager') and show_ticket_mgr) or (module_on('change_log') and session.get('user_role') in ['Staff', 'Admin', 'Owner']) or show_security %}
 
-<nav class="bottom-nav bottom-nav--sheets" aria-label="Primary mobile navigation" id="private-bottom-nav">
+{% set my_page_url = url_for('church.member_page', username=session.username) if session.get('username') else url_for('church.create_page') %}
+{% set home_active = ep.startswith('church.church_') and ep != 'church.member_page' %}
+<nav class="bottom-nav bottom-nav--sheets bottom-nav--six" aria-label="Primary mobile navigation" id="private-bottom-nav">
   <a href="{{ home_url|default(url_for('church.church_home')) }}"
-     class="bottom-nav-item {{ 'active' if ep.startswith('church.church_') else '' }}"
+     class="bottom-nav-item {{ 'active' if home_active else '' }}"
      data-nav-direct="1">
     <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
     <span class="label">Home</span>
+  </a>
+
+  <a href="{{ my_page_url }}"
+     class="bottom-nav-item {{ 'active' if ep == 'church.member_page' else '' }}"
+     data-nav-direct="1">
+    <span class="icon"><i class="fa-solid fa-circle-user" aria-hidden="true"></i></span>
+    <span class="label">My page</span>
   </a>
 
   <a href="{{ url_for('public.public_dashboard.public_community') }}"
