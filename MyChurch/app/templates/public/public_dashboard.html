@@ -90,6 +90,14 @@
                   · {{ item.creator_name or item.posted_by }}
                 {% endif %}
               </span>
+              {% set own_post = session.get('user_id') and item.author_id and item.author_id|int == session.get('user_id')|int %}
+              {% if item.id and item.deletable and (own_post or item.can_manage_wall or item.moderatable) %}
+              <form method="post" action="{{ url_for('church.delete_wall_post', post_id=item.id) }}" class="wall-delete" onsubmit="return confirm('Remove this from the wall?');">
+                {% include 'partials/csrf_field.html' %}
+                <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+                <button type="submit" class="profile-x" title="Remove from this wall" aria-label="Remove from this wall">×</button>
+              </form>
+              {% endif %}
             </div>
             {% if item.shadowed_badge %}<p class="wall-mod-flag">Shadowed — only the author sees this.</p>{% endif %}
             {% include 'church/_wall_moderate.html' %}
