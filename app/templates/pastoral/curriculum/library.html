@@ -1,7 +1,7 @@
 {% extends "pastoral/base_pastoral.html" %}
 {% block title %}Curriculum Studio{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260716form">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260901access">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -9,8 +9,8 @@
   <div class="glass-panel curr-hero">
     <h1><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Curriculum Studio</h1>
     <p>
-      Build discipleship courses with study material, media, quizzes, and fill-in-the-blank —
-      clear enough for a busy Tuesday, strong enough for a full semester path.
+      Build a course, pick who can take it (admins, staff, members, public — any mix),
+      publish, done. Public courses can be read and completed with <strong>no saved record</strong>.
     </p>
     <div class="curr-hero-actions">
       <a href="{{ url_for('pastoral.curriculum_studio.series_new') }}" class="btn-primary">
@@ -75,7 +75,8 @@
         <div class="curr-meta">
           <span class="curr-pill curr-pill--{{ s.status }}">{{ s.status }}</span>
           <span class="curr-pill">{{ s.lesson_count or 0 }} lessons</span>
-          <span class="curr-pill">{{ s.audience }}</span>
+          <span class="curr-pill">{{ s.access_summary or s.audience }}</span>
+          {% if s.is_public %}<span class="curr-pill curr-pill--public">Public · no guest record</span>{% endif %}
           {% if st.enrolled %}<span class="curr-pill">{{ st.enrolled }} learners</span>{% endif %}
         </div>
       </div>

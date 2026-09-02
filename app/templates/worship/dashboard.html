@@ -8,6 +8,23 @@
   <p style="margin:0; opacity:0.75; font-size:0.9rem;">Weekly defaults, date overrides, prompter &amp; play tracking</p>
 </div>
 
+{% if ccli_quarter %}
+<div class="glass-panel" style="margin-bottom:1rem; padding:0.85rem 1rem;">
+  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.5rem; align-items:center;">
+    <div>
+      <strong>CCLI this quarter</strong>
+      <div style="font-size:0.88rem; opacity:0.8; margin-top:0.2rem;">
+        {{ ccli_quarter.unique_count }} unique CCLI #
+        · {{ ccli_quarter.rows|length }} uses
+        {% if ccli_quarter.missing_count %} · <span style="color:#ff9a78;">{{ ccli_quarter.missing_count }} missing a number</span>{% endif %}
+        {% if ccli_quarter.church_license %} · license {{ ccli_quarter.church_license }}{% endif %}
+      </div>
+    </div>
+    <a href="{{ url_for('worship.ccli_report', period='quarter') }}" class="btn btn-primary">Open CCLI report</a>
+  </div>
+</div>
+{% endif %}
+
 {% if leaders %}
 <div class="glass-panel" style="padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.9rem;">
   <strong>Worship leaders / managers:</strong>

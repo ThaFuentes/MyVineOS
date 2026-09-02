@@ -1,0 +1,19 @@
+{% set items = items|default([]) %}
+{% if items %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">{{ section_title|default('Links') }}</h2>
+  <ul class="profile-link-list">
+    {% for item in items %}
+    <li>
+      <span class="feed-type-pill" data-type="{{ item.kind }}">{{ item.kind or 'link' }}</span>
+      {% if item.url %}
+      <a href="{{ item.url }}" rel="noopener noreferrer" target="_blank">{{ item.title }}</a>
+      {% else %}
+      <strong>{{ item.title }}</strong>
+      {% endif %}
+      {% if item.note %}<span>{{ item.note }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}

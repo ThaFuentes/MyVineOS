@@ -32,8 +32,8 @@
       {% else %}
       Awaiting your response
       <div style="display:flex; gap:0.5rem; justify-content:center; margin-top:1rem;">
-        <a class="btn btn-primary" href="{{ url_for('volunteers.respond', token=assignment.response_token, action='accept') }}">Accept</a>
-        <a class="btn btn-secondary" href="{{ url_for('volunteers.respond', token=assignment.response_token, action='decline') }}">Decline</a>
+        <a class="btn btn-primary" href="{{ url_for(respond_endpoint|default('volunteers.respond'), token=assignment.response_token, action='accept') }}">Accept</a>
+        <a class="btn btn-secondary" href="{{ url_for(respond_endpoint|default('volunteers.respond'), token=assignment.response_token, action='decline') }}">Decline</a>
       </div>
       {% endif %}
     </div>

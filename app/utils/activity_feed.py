@@ -3,7 +3,7 @@
 from flask import url_for
 
 
-def _item(kind, title, when, url, author='', body=''):
+def _item(kind, title, when, url, author='', body='', visibility='public', object_id=None):
     return {
         'type': kind,
         'title': title or 'Untitled',
@@ -11,6 +11,8 @@ def _item(kind, title, when, url, author='', body=''):
         'url': url,
         'author': author or '',
         'body': body or '',
+        'visibility': visibility or 'public',
+        'id': object_id,
     }
 
 
@@ -23,6 +25,9 @@ def build_member_feed(prayers, dreams, prophecies, sermons, announcements, event
             row.get('datetime') or row.get('date_posted'),
             url_for('prayers.view_prayer', prayer_id=row['id']),
             row.get('poster_username') or '',
+            row.get('body') or row.get('description') or '',
+            row.get('visibility') or 'public',
+            row.get('id'),
         ))
     for row in dreams or []:
         feed.append(_item(
@@ -31,6 +36,9 @@ def build_member_feed(prayers, dreams, prophecies, sermons, announcements, event
             row.get('datetime') or row.get('date_posted'),
             url_for('dreams.view_dream', dream_id=row['id']),
             row.get('poster_username') or '',
+            row.get('body') or row.get('description') or '',
+            row.get('visibility') or 'public',
+            row.get('id'),
         ))
     for row in prophecies or []:
         feed.append(_item(
@@ -39,6 +47,9 @@ def build_member_feed(prayers, dreams, prophecies, sermons, announcements, event
             row.get('datetime') or row.get('created_at'),
             url_for('prophecies.view_prophecy', prophecy_id=row['id']),
             row.get('poster_username') or '',
+            row.get('body') or row.get('description') or '',
+            row.get('visibility') or 'public',
+            row.get('id'),
         ))
     for row in sermons or []:
         feed.append(_item(
@@ -47,6 +58,9 @@ def build_member_feed(prayers, dreams, prophecies, sermons, announcements, event
             row.get('datetime') or row.get('uploaded_at'),
             url_for('sermons.view_sermon', sermon_id=row['id']),
             row.get('poster_username') or '',
+            row.get('body') or row.get('notes') or '',
+            row.get('visibility') or 'public',
+            row.get('id'),
         ))
     for row in announcements or []:
         feed.append(_item(
@@ -55,6 +69,9 @@ def build_member_feed(prayers, dreams, prophecies, sermons, announcements, event
             row.get('datetime') or row.get('created_at'),
             url_for('announcements.view_announcement', ann_id=row['id']),
             row.get('poster_username') or '',
+            row.get('body') or row.get('content') or '',
+            row.get('visibility') or 'public',
+            row.get('id'),
         ))
     for row in events or []:
         feed.append(_item(
@@ -63,6 +80,9 @@ def build_member_feed(prayers, dreams, prophecies, sermons, announcements, event
             row.get('event_date') or row.get('datetime'),
             url_for('events.view_event', event_id=row['id']),
             '',
+            row.get('body') or row.get('description') or '',
+            row.get('visibility') or 'public',
+            row.get('id'),
         ))
     feed.sort(key=lambda x: str(x.get('when') or ''), reverse=True)
     return feed[:24]

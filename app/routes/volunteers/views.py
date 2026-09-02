@@ -379,14 +379,19 @@ def settings():
 @volunteers_bp.route('/my-schedule')
 @login_required
 def my_schedule():
-    upcoming = vol.my_assignments(_uid(), upcoming_only=True)
-    all_rows = vol.my_assignments(_uid(), upcoming_only=False, limit=40)
+    try:
+        from app.models.serving import my_serving
+        upcoming = my_serving(_uid(), upcoming_only=True, limit=40)
+        all_rows = my_serving(_uid(), upcoming_only=False, limit=40)
+    except Exception:
+        upcoming = vol.my_assignments(_uid(), upcoming_only=True)
+        all_rows = vol.my_assignments(_uid(), upcoming_only=False, limit=40)
     today = vol.church_today_str()
     past = []
     for a in all_rows:
-        d = a.get('event_date')
-        ds = d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d)[:10]
-        if ds < today:
+        d = a.get('event_date') or a.get('serve_date')
+        ds = d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d or '')[:10]
+        if ds and ds < today:
             past.append(a)
     past = past[:15]
 

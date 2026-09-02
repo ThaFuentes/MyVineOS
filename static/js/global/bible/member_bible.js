@@ -23,6 +23,9 @@
   let favBook = false;
   let pickerMode = 'chapter';
   let verseNums = [];
+  let compareTranslation = '';
+  let compareChapter = null;
+  let studyModeWanted = false;
 
   const el = (id) => document.getElementById(id);
   const base = '/bible';
@@ -138,6 +141,7 @@
   }
 
   function openFlyout(which) {
+    if (isDesktopStudy()) return;
     const canon = el('member-canon-flyout');
     const tools = el('member-tools-flyout');
     const backdrop = el('member-bible-backdrop');
@@ -164,7 +168,37 @@
     backdrop?.setAttribute('aria-hidden', 'false');
   }
 
+  function isDesktopStudy() {
+    return !!(el('member-bible-stage')?.classList.contains('is-study')
+      && window.matchMedia('(min-width: 1100px)').matches);
+  }
+
+  function applyStudyMode(on) {
+    const stage = el('member-bible-stage');
+    if (!stage) return;
+    studyModeWanted = !!on;
+    const desktop = window.matchMedia('(min-width: 1100px)').matches;
+    const useStudy = on && desktop;
+    stage.classList.toggle('is-study', useStudy);
+    el('member-mode-study')?.classList.toggle('active', useStudy);
+    el('member-mode-read')?.classList.toggle('active', !useStudy);
+    try { localStorage.setItem('member_bible_mode', on ? 'study' : 'read'); } catch (e) { /* ignore */ }
+    if (useStudy) {
+      el('member-canon-flyout')?.classList.add('open');
+      el('member-tools-flyout')?.classList.add('open');
+      el('member-canon-flyout')?.setAttribute('aria-hidden', 'false');
+      el('member-tools-flyout')?.setAttribute('aria-hidden', 'false');
+      el('member-bible-backdrop')?.classList.remove('open');
+      el('member-bible-backdrop')?.setAttribute('aria-hidden', 'true');
+    }
+  }
+
   function closeFlyouts() {
+    if (isDesktopStudy()) {
+      el('member-bible-backdrop')?.classList.remove('open');
+      el('member-bible-backdrop')?.setAttribute('aria-hidden', 'true');
+      return;
+    }
     el('member-canon-flyout')?.classList.remove('open');
     el('member-tools-flyout')?.classList.remove('open');
     el('member-bible-backdrop')?.classList.remove('open');
@@ -173,6 +207,85 @@
     el('member-canon-flyout')?.setAttribute('aria-hidden', 'true');
     el('member-tools-flyout')?.setAttribute('aria-hidden', 'true');
     el('member-bible-backdrop')?.setAttribute('aria-hidden', 'true');
+  }
+
+  function compareTextForVerse(verseNum) {
+    if (!compareChapter || !compareTranslation) return '';
+    const row = (compareChapter.verses || []).find((v) => Number(v.verse) === Number(verseNum));
+    if (!row || !row.text) return '';
+    const code = (compareChapter.translation || compareTranslation || '').replace(/^online:/, '');
+    return `<div class="member-bible-compare"><span class="small text-muted">${escapeHtml(code)}</span> ${escapeHtml(row.text)}</div>`;
+  }
+
+  async function loadCompareChapter() {
+    compareChapter = null;
+    const other = (el('member-compare-translation')?.value || '').trim();
+    compareTranslation = other;
+    if (!other || other === translation()) {
+      if (chapterData) renderChapter(chapterData);
+      fillStudyFocus();
+      return;
+    }
+    try {
+      const bookSlug = encodeURIComponent(currentBook);
+      const resp = await fetch(`${base}/chapter/${bookSlug}/${currentChapter}?translation=${encodeURIComponent(other)}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      if (resp.ok) compareChapter = await resp.json();
+    } catch (e) {
+      compareChapter = null;
+    }
+    if (chapterData) renderChapter(chapterData);
+    fillStudyFocus();
+  }
+
+  function fillStudyFocus() {
+    const host = el('member-study-focus-body');
+    if (!host) return;
+    const nums = Array.from(selectedVerses).sort((a, b) => a - b);
+    if (!nums.length) {
+      host.innerHTML = '<p class="small text-muted mb-0">Tap a verse in the chapter. Strong’s words, related verses, and a second translation show here.</p>';
+      return;
+    }
+    const v = nums[0];
+    const line = main()?.querySelector(`.member-bible-verse[data-verse="${v}"]`);
+    const text = line?.dataset.text || '';
+    const ref = `${currentBook} ${currentChapter}:${nums.length === 1 ? v : nums[0] + '–' + nums[nums.length - 1]}`;
+    const strongs = (chapterData?.strongs && (chapterData.strongs[v] || chapterData.strongs[String(v)])) || [];
+    const xrefs = (chapterData?.cross_refs && (chapterData.cross_refs[v] || chapterData.cross_refs[String(v)])) || [];
+    const wojRow = (chapterData?.verses || []).find((row) => Number(row.verse) === Number(v));
+    let html = `<div class="study-focus-ref">${escapeHtml(ref)}</div>`;
+    html += `<p class="study-focus-text">${renderVerseText(text, strongs, wojRow?.woj)}</p>`;
+    html += compareTextForVerse(v);
+    if (strongs.length) {
+      html += '<p class="small text-muted mb-1">Original words</p><div class="strongs-chips">';
+      strongs.forEach((s) => {
+        const num = s.strongs_number || '';
+        const tip = [num, s.transliteration, s.lemma].filter(Boolean).join(' · ');
+        html += `<button type="button" class="strongs-chip" data-strongs="${escapeAttr(num)}" title="${escapeAttr(tip)}">${escapeHtml(s.surface_word || s.lemma || num)}</button>`;
+      });
+      html += '</div>';
+    }
+    if (xrefs.length) {
+      html += '<p class="small text-muted mt-2 mb-1">Related</p>';
+      xrefs.slice(0, 8).forEach((r) => {
+        html += `<button type="button" class="member-xref-link${r.kind === 'messianic' ? ' messianic' : ''}" data-book="${escapeAttr(r.book)}" data-chapter="${r.chapter}" data-verse="${r.verse}" data-end-verse="${r.end_verse || ''}">${escapeHtml(r.reference)}</button> `;
+      });
+    }
+    host.innerHTML = html;
+    host.querySelectorAll('[data-strongs]').forEach((node) => {
+      node.addEventListener('click', (e) => {
+        e.preventDefault();
+        showStrongs(node.dataset.strongs);
+      });
+    });
+    host.querySelectorAll('.member-xref-link').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openXrefFromButton(btn);
+      });
+    });
   }
 
   function scrollToChapterSection() {
@@ -380,14 +493,13 @@
   }
 
   async function saveReadingPlace(extra = {}) {
-    // Guests: never write place/version to server or localStorage (always church default next visit)
-    if (!isLoggedIn) return;
-    if (!csrfToken()) return;
     const body = placePayload(extra);
     try {
       localStorage.setItem('member_bible_place', JSON.stringify(body));
-      localStorage.setItem('member_bible_translation', body.translation || '');
+      if (body.translation) localStorage.setItem('member_bible_translation', body.translation);
     } catch (e) { /* ignore */ }
+    if (!isLoggedIn) return;
+    if (!csrfToken()) return;
     try {
       await apiPost(urls.place || `${base}/place`, body);
     } catch (e) {
@@ -423,8 +535,8 @@
       toast(saved.message || `Saved as your study Bible: ${String(val).replace(/^online:/, '')}`);
     } else if (!isLoggedIn) {
       toast(anchor
-        ? `Switched for this visit · ${currentBook} ${currentChapter}:${anchor} (log in to keep a default)`
-        : `Switched for this visit · ${currentBook} ${currentChapter} (log in to keep a default)`);
+        ? `This browser will reopen at ${currentBook} ${currentChapter}:${anchor}`
+        : `This browser will reopen at ${currentBook} ${currentChapter}`);
     } else {
       toast(anchor
         ? `Switched · stayed at ${currentBook} ${currentChapter}:${anchor}`
@@ -466,7 +578,7 @@
       storeVerses(data.verses);
       currentNotes = data.notes || [];
       // Chapter render uses currentNotes for 📝 markers
-      renderChapter(data);
+      await loadCompareChapter();
       if (notesPanelTab === 'all') {
         loadAllNotesPanel();
       } else {
@@ -503,14 +615,14 @@
     if (messianic.length) {
       html += '<div class="member-xref-row"><span class="member-xref-label messianic">✝ Related to Jesus</span> ';
       messianic.slice(0, 4).forEach((r) => {
-        html += `<button type="button" class="member-xref-link messianic" data-book="${escapeAttr(r.book)}" data-chapter="${r.chapter}" data-verse="${r.verse}" title="${escapeAttr(r.label || r.reference)}">${escapeHtml(r.reference)}</button> `;
+        html += `<button type="button" class="member-xref-link messianic" data-book="${escapeAttr(r.book)}" data-chapter="${r.chapter}" data-verse="${r.verse}" data-end-verse="${r.end_verse || ''}" title="${escapeAttr(r.label || r.reference)}">${escapeHtml(r.reference)}</button> `;
       });
       html += '</div>';
     }
     if (related.length) {
       html += '<div class="member-xref-row"><span class="member-xref-label">See also</span> ';
       related.forEach((r) => {
-        html += `<button type="button" class="member-xref-link" data-book="${escapeAttr(r.book)}" data-chapter="${r.chapter}" data-verse="${r.verse}">${escapeHtml(r.reference)}</button> `;
+        html += `<button type="button" class="member-xref-link" data-book="${escapeAttr(r.book)}" data-chapter="${r.chapter}" data-verse="${r.verse}" data-end-verse="${r.end_verse || ''}">${escapeHtml(r.reference)}</button> `;
       });
       html += '</div>';
     }
@@ -558,19 +670,25 @@
       const hasNote = noted.has(v.verse);
       html += `<div class="member-bible-verse${hl}${isFav ? ' is-favorite' : ''}${hasNote ? ' has-note' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
       html += `<span class="member-bible-verse-num">${v.verse}</span>`;
-      if (hasNote) {
+      if (isLoggedIn && hasNote) {
         html += `<button type="button" class="member-note-marker" data-open-note-verse="${v.verse}" title="Open your note on this verse" aria-label="Open note">📝</button>`;
       }
-      html += `<button type="button" class="member-verse-heart${isFav ? ' on' : ''}" data-heart-verse="${v.verse}" title="Favorite verse" aria-label="Favorite">${isFav ? '♥' : '♡'}</button>`;
-      html += `<span class="member-bible-verse-text">${linkStrongs(v.text, strongs)}</span>`;
+      if (isLoggedIn) {
+        html += `<button type="button" class="member-verse-heart${isFav ? ' on' : ''}" data-heart-verse="${v.verse}" title="Favorite verse" aria-label="Favorite">${isFav ? '♥' : '♡'}</button>`;
+      }
+      html += `<span class="member-bible-verse-text">${renderVerseText(v.text, strongs, v.woj)}</span>`;
       html += xrefHtml(v.verse, crossRefs);
-      // One Highlight button uses the default color from the top toolbar
-      html += `<div class="member-verse-actions">
-        <button type="button" class="btn btn-warning btn-sm" data-hl-verse="${v.verse}" title="Highlight with your default color">Highlight</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-hl-clear-verse="${v.verse}" title="Clear highlight">Clear</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-copy="${escapeAttr(ref)}" data-copy-text="${escapeAttr(v.text)}">Copy</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-note-verse="${v.verse}">${hasNote ? 'Edit note' : 'Note'}</button>
-      </div>`;
+      html += compareTextForVerse(v.verse);
+      html += `<div class="member-verse-actions">`;
+      if (isLoggedIn) {
+        html += `<button type="button" class="btn btn-warning btn-sm" data-hl-verse="${v.verse}" title="Highlight with your default color">Highlight</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-hl-clear-verse="${v.verse}" title="Clear highlight">Clear</button>`;
+      }
+      html += `<button type="button" class="btn btn-secondary btn-sm" data-copy="${escapeAttr(ref)}" data-copy-text="${escapeAttr(v.text)}">Copy</button>`;
+      if (isLoggedIn) {
+        html += `<button type="button" class="btn btn-secondary btn-sm" data-note-verse="${v.verse}">${hasNote ? 'Edit note' : 'Note'}</button>`;
+      }
+      html += `</div>`;
       html += '</div>';
     });
     content.innerHTML = html || '<p class="text-muted">Empty chapter.</p>';
@@ -579,17 +697,48 @@
     bindMainChapterEvents();
   }
 
-  function linkStrongs(text, strongsList) {
+  function segmentsFromWoj(text, spans) {
+    const raw = String(text || '');
+    const list = (spans || [])
+      .map((s) => ({ start: Number(s.start) || 0, end: Number(s.end) || 0 }))
+      .filter((s) => s.end > s.start && s.start < raw.length)
+      .sort((a, b) => a.start - b.start);
+    if (!list.length) return [{ text: raw, woj: false }];
+    const out = [];
+    let i = 0;
+    list.forEach((s) => {
+      const a = Math.max(0, Math.min(raw.length, s.start));
+      const b = Math.max(a, Math.min(raw.length, s.end));
+      if (a > i) out.push({ text: raw.slice(i, a), woj: false });
+      if (b > a) out.push({ text: raw.slice(a, b), woj: true });
+      i = Math.max(i, b);
+    });
+    if (i < raw.length) out.push({ text: raw.slice(i), woj: false });
+    return out.filter((s) => s.text);
+  }
+
+  function renderVerseText(text, strongsList, woj) {
+    const segs = segmentsFromWoj(text, woj);
+    const used = new Set();
+    return segs.map((seg, idx) => {
+      const inner = linkStrongs(seg.text, strongsList, { used, chips: idx === segs.length - 1 });
+      return seg.woj ? `<span class="words-of-jesus">${inner}</span>` : inner;
+    }).join('');
+  }
+
+  function linkStrongs(text, strongsList, opts) {
+    opts = opts || {};
+    if (!text) return '';
     if (!strongsList?.length) return escapeHtml(text);
     let result = escapeHtml(text);
-    const used = new Set();
+    const used = opts.used || new Set();
     const sorted = [...strongsList].sort((a, b) =>
       String(b.surface_word || '').length - String(a.surface_word || '').length
     );
     sorted.forEach((s) => {
       const word = (s.surface_word || '').trim();
       const num = (s.strongs_number || '').trim();
-      if (!word || !num) return;
+      if (!word || !num || used.has(num)) return;
       const re = new RegExp(`(?<![\\w-])(${escapeRegex(word)})(?![\\w-])`, 'i');
       let replaced = false;
       result = result.replace(re, (m) => {
@@ -600,14 +749,16 @@
         return `<button type="button" class="member-bible-strongs-word" data-strongs="${escapeAttr(num)}" title="${escapeAttr(tip)}">${m}<sup class="strongs-num">${escapeHtml(num)}</sup></button>`;
       });
     });
-    const leftover = strongsList.filter((s) => s.strongs_number && !used.has(s.strongs_number));
-    if (leftover.length) {
-      result += '<span class="strongs-chips">';
-      leftover.forEach((s) => {
-        const tip = [s.strongs_number, s.transliteration, s.lemma].filter(Boolean).join(' · ');
-        result += `<button type="button" class="strongs-chip" data-strongs="${escapeAttr(s.strongs_number)}" title="${escapeAttr(tip)}">${escapeHtml(s.surface_word || s.lemma || s.strongs_number)}</button>`;
-      });
-      result += '</span>';
+    if (opts.chips !== false) {
+      const leftover = strongsList.filter((s) => s.strongs_number && !used.has(s.strongs_number));
+      if (leftover.length) {
+        result += '<span class="strongs-chips">';
+        leftover.forEach((s) => {
+          const tip = [s.strongs_number, s.transliteration, s.lemma].filter(Boolean).join(' · ');
+          result += `<button type="button" class="strongs-chip" data-strongs="${escapeAttr(s.strongs_number)}" title="${escapeAttr(tip)}">${escapeHtml(s.surface_word || s.lemma || s.strongs_number)}</button>`;
+        });
+        result += '</span>';
+      }
     }
     return result;
   }
@@ -662,13 +813,7 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-        openXrefPopup({
-          book: btn.dataset.book,
-          chapter: parseInt(btn.dataset.chapter, 10),
-          verse: parseInt(btn.dataset.verse, 10) || 1,
-          reference: (btn.textContent || '').trim(),
-          label: btn.getAttribute('title') || '',
-        });
+        openXrefFromButton(btn);
       });
     });
     content.querySelectorAll('[data-heart-verse]').forEach((btn) => {
@@ -750,6 +895,7 @@
           l.classList.toggle('verse-selected', selectedVerses.has(parseInt(l.dataset.verse, 10)));
         });
         updateSelectionBar();
+        fillStudyFocus();
       });
     });
   }
@@ -1524,6 +1670,68 @@
 
   /* ---- Linked-verse popup (cross-refs) ---- */
   let xrefPopupState = null;
+  let xrefLoadId = 0;
+
+  function xrefItemFromBtn(btn) {
+    return {
+      book: btn.dataset.book || btn.dataset.xrefBook || '',
+      chapter: parseInt(btn.dataset.chapter || btn.dataset.xrefChapter, 10),
+      verse: parseInt(btn.dataset.verse || btn.dataset.xrefVerse, 10) || 1,
+      end_verse: parseInt(btn.dataset.endVerse || btn.dataset.xrefEnd, 10) || 0,
+      reference: (btn.textContent || '').trim(),
+      label: btn.getAttribute('title') || '',
+    };
+  }
+
+  function expandXrefQueue(items) {
+    const out = [];
+    (items || []).forEach((r) => {
+      const start = parseInt(r.verse, 10) || 1;
+      const end = Math.max(parseInt(r.end_verse, 10) || 0, start);
+      for (let v = start; v <= end; v += 1) {
+        out.push({
+          book: r.book,
+          chapter: r.chapter,
+          verse: v,
+          reference: `${r.book} ${r.chapter}:${v}`,
+          label: r.label || '',
+        });
+      }
+    });
+    return out;
+  }
+
+  function openXrefFromButton(btn) {
+    const row = btn.closest('.member-xrefs') || btn.closest('#member-study-focus-body') || btn.parentElement;
+    const btns = row ? Array.from(row.querySelectorAll('.member-xref-link')) : [btn];
+    const raw = (btns.length ? btns : [btn]).map(xrefItemFromBtn).filter((r) => r.book && r.chapter);
+    const queue = expandXrefQueue(raw.length ? raw : [xrefItemFromBtn(btn)]);
+    const clicked = xrefItemFromBtn(btn);
+    let idx = queue.findIndex((q) => (
+      q.book === clicked.book && Number(q.chapter) === Number(clicked.chapter) && Number(q.verse) === Number(clicked.verse)
+    ));
+    if (idx < 0) idx = 0;
+    openXrefPopup({ ...queue[idx], queue, index: idx });
+  }
+
+  function updateXrefNav(root) {
+    const nav = root.querySelector('[data-xref-nav]');
+    const queue = xrefPopupState?.queue || [];
+    const n = queue.length;
+    const show = n > 1;
+    if (nav) nav.hidden = !show;
+    root.querySelectorAll('.bible-xref-nav-side').forEach((btn) => { btn.hidden = !show; });
+    const count = root.querySelector('[data-xref-count]');
+    if (count && show) count.textContent = `${(xrefPopupState.index || 0) + 1} of ${n}`;
+  }
+
+  function stepXref(delta) {
+    const queue = xrefPopupState?.queue;
+    if (!queue || queue.length < 2) return;
+    const n = queue.length;
+    const next = (xrefPopupState.index + delta + n) % n;
+    openXrefPopup({ ...queue[next], queue, index: next });
+  }
 
   function ensureXrefPopup() {
     let root = el('member-xref-popup');
@@ -1533,6 +1741,7 @@
     root.className = 'bible-xref-popup';
     root.setAttribute('aria-hidden', 'true');
     root.innerHTML = `
+      <button type="button" class="bible-xref-nav-btn bible-xref-nav-side" data-xref-prev aria-label="Previous linked verse">‹</button>
       <div class="bible-xref-popup-card" role="dialog" aria-modal="true" aria-labelledby="member-xref-popup-title">
         <button type="button" class="bible-xref-popup-close" data-xref-close aria-label="Close">&times;</button>
         <div class="bible-xref-popup-meta">
@@ -1545,6 +1754,11 @@
             <span class="bible-xref-popup-dot">·</span>
             <span>Verse <strong data-xref-verse></strong></span>
           </div>
+          <div class="bible-xref-popup-nav" data-xref-nav hidden>
+            <button type="button" class="bible-xref-nav-btn" data-xref-prev aria-label="Previous linked verse">‹</button>
+            <span class="bible-xref-nav-count" data-xref-count></span>
+            <button type="button" class="bible-xref-nav-btn" data-xref-next aria-label="Next linked verse">›</button>
+          </div>
           <p class="bible-xref-popup-label small text-muted" data-xref-label style="display:none;"></p>
         </div>
         <blockquote class="bible-xref-popup-text" data-xref-text>Loading…</blockquote>
@@ -1553,10 +1767,23 @@
           <button type="button" class="btn btn-warning btn-sm" data-xref-highlight>Highlight</button>
           <button type="button" class="btn btn-primary btn-sm" data-xref-goto>Go to passage</button>
         </div>
-      </div>`;
+      </div>
+      <button type="button" class="bible-xref-nav-btn bible-xref-nav-side" data-xref-next aria-label="Next linked verse">›</button>`;
     document.body.appendChild(root);
     root.addEventListener('click', (e) => {
       if (e.target === root || e.target.closest('[data-xref-close]')) closeXrefPopup();
+    });
+    root.querySelectorAll('[data-xref-prev]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); stepXref(-1); });
+    });
+    root.querySelectorAll('[data-xref-next]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); stepXref(1); });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!root.classList.contains('is-open')) return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); stepXref(-1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); stepXref(1); }
+      else if (e.key === 'Escape') closeXrefPopup();
     });
     root.querySelector('[data-xref-copy]')?.addEventListener('click', () => {
       if (!xrefPopupState) return;
@@ -1621,8 +1848,14 @@
     const verse = parseInt(opts.verse, 10) || 1;
     if (!book || !chapter) return;
     const reference = opts.reference || `${book} ${chapter}:${verse}`;
-    xrefPopupState = { book, chapter, verse, reference, text: '', label: opts.label || '' };
+    const queue = (opts.queue && opts.queue.length) ? opts.queue : [{ book, chapter, verse, reference, label: opts.label || '' }];
+    let index = Number.isInteger(opts.index) ? opts.index : queue.findIndex((q) => (
+      q.book === book && Number(q.chapter) === chapter && Number(q.verse) === verse
+    ));
+    if (index < 0) index = 0;
+    xrefPopupState = { book, chapter, verse, reference, text: '', label: opts.label || '', queue, index };
     const root = ensureXrefPopup();
+    updateXrefNav(root);
     root.querySelector('#member-xref-popup-title').textContent = reference;
     root.querySelector('[data-xref-book]').textContent = book;
     root.querySelector('[data-xref-chapter]').textContent = String(chapter);
@@ -1639,6 +1872,7 @@
     textEl.textContent = 'Loading verse…';
     root.classList.add('is-open');
     root.setAttribute('aria-hidden', 'false');
+    const loadId = ++xrefLoadId;
 
     try {
       const tr = translation();
@@ -1647,6 +1881,7 @@
       const resp = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       if (!resp.ok) throw new Error('not found');
       const data = await resp.json();
+      if (loadId !== xrefLoadId) return;
       const text = (data.text || '').trim();
       xrefPopupState.text = text;
       xrefPopupState.reference = data.reference || reference;
@@ -1654,6 +1889,7 @@
       if (data.book) root.querySelector('[data-xref-book]').textContent = data.book;
       textEl.textContent = text || 'Verse text unavailable in this version.';
     } catch (err) {
+      if (loadId !== xrefLoadId) return;
       textEl.textContent = 'Could not load this verse in the current version. You can still go to the passage.';
     }
   }
@@ -1718,9 +1954,30 @@
     el('member-open-canon')?.addEventListener('click', () => openFlyout('canon'));
     el('member-open-tools')?.addEventListener('click', () => {
       openFlyout('tools');
-      loadNotesLibrary();
-      loadFavoritesLibrary();
+      if (isLoggedIn) {
+        loadNotesLibrary();
+        loadFavoritesLibrary();
+      }
+      fillStudyFocus();
     });
+    el('member-mode-read')?.addEventListener('click', () => applyStudyMode(false));
+    el('member-mode-study')?.addEventListener('click', () => applyStudyMode(true));
+    el('member-woj-toggle')?.addEventListener('change', () => {
+      const on = !!el('member-woj-toggle').checked;
+      el('member-bible-stage')?.classList.toggle('hide-woj', !on);
+      try { localStorage.setItem('member_bible_woj', on ? '1' : '0'); } catch (e) { /* ignore */ }
+    });
+    try {
+      if (localStorage.getItem('member_bible_woj') === '0' && el('member-woj-toggle')) {
+        el('member-woj-toggle').checked = false;
+        el('member-bible-stage')?.classList.add('hide-woj');
+      }
+    } catch (e) { /* ignore */ }
+    el('member-compare-translation')?.addEventListener('change', () => {
+      try { localStorage.setItem('member_bible_compare', el('member-compare-translation').value || ''); } catch (e) { /* ignore */ }
+      loadCompareChapter();
+    });
+    window.addEventListener('resize', () => applyStudyMode(studyModeWanted));
     el('member-bible-backdrop')?.addEventListener('click', closeFlyouts);
     document.querySelectorAll('.bible-flyout-close').forEach((b) => b.addEventListener('click', closeFlyouts));
     document.addEventListener('keydown', (e) => {
@@ -1837,29 +2094,33 @@
       window.location.href = (urls.notesDownload || `${base}/notes/download`) + '?' + params.toString();
     });
 
-    // Logged-in: personal preference + place. Guests: church default only (no localStorage sticky).
+    // Logged-in: server place wins, then local. Guests: this browser's last chapter.
     let want = cfg.selectedTranslation || cfg.userPreferred || null;
     let resumeBook = cfg.lastBook || null;
     let resumeChapter = cfg.lastChapter || null;
     let resumeVerse = cfg.lastVerse || null;
-    if (isLoggedIn) {
-      try {
-        want = want || localStorage.getItem('member_bible_translation');
-        const raw = localStorage.getItem('member_bible_place');
-        if (raw) {
-          const p = JSON.parse(raw);
-          if (!want && p.translation) want = p.translation;
-          if (!resumeBook && p.book) resumeBook = p.book;
-          if (!resumeChapter && p.chapter) resumeChapter = p.chapter;
-          if (!resumeVerse && p.verse) resumeVerse = p.verse;
+    try {
+      want = want || localStorage.getItem('member_bible_translation');
+      const raw = localStorage.getItem('member_bible_place');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (!want && p.translation) want = p.translation;
+        if (!isLoggedIn || !resumeBook) {
+          if (p.book) resumeBook = p.book;
+          if (p.chapter) resumeChapter = p.chapter;
+          if (p.verse) resumeVerse = p.verse;
         }
-      } catch (e) { /* ignore */ }
-    } else {
-      // Force church default / server-selected for visitors
-      want = cfg.selectedTranslation || cfg.churchDefault || want;
-      resumeBook = 'John';
-      resumeChapter = 1;
-      resumeVerse = 1;
+      }
+      const savedCompare = localStorage.getItem('member_bible_compare') || '';
+      if (savedCompare && el('member-compare-translation')) {
+        el('member-compare-translation').value = savedCompare;
+        compareTranslation = savedCompare;
+      }
+    } catch (e) { /* ignore */ }
+    if (!isLoggedIn && !resumeBook) {
+      resumeBook = cfg.lastBook || 'John';
+      resumeChapter = cfg.lastChapter || 1;
+      resumeVerse = cfg.lastVerse || 1;
     }
     if (want) {
       const candidates = [want, `online:${want}`, String(want).replace(/^online:/, '')];
@@ -1897,6 +2158,13 @@
         requireLogin('favorites');
       }, true);
     }
+
+    let wantStudy = true;
+    try {
+      const savedMode = localStorage.getItem('member_bible_mode');
+      if (savedMode === 'read') wantStudy = false;
+    } catch (e) { /* ignore */ }
+    applyStudyMode(wantStudy);
 
     // Resume last place (version already applied above)
     if (books.length) {

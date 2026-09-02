@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
 
   <!-- COMPLETE GUI OVERHAUL - new mobile-first CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260716nav2">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/enterprise.css') }}?v=20260814captcha">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260901serve">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/enterprise.css') }}?v=20260827voice">
   <!-- Large text / elderly-friendly: cards grow & wrap (Display page text size) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/dashboard_tiles.css') }}?v=20260716a11y">
@@ -96,6 +96,11 @@
 
     <div class="user-info">
       {% if session.get('user_id') %}
+        <form method="get" action="{{ url_for('church.people') }}" class="people-search-form" role="search">
+          <label class="visually-hidden" for="top-people-q">Find people</label>
+          <input id="top-people-q" type="search" name="q" placeholder="Find people…" value="">
+          <button type="submit" aria-label="Search people"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
+        </form>
         {% include 'partials/campus_switcher.html' %}
         {% include 'partials/display_prefs.html' %}
         <div class="user-chip">
@@ -149,9 +154,11 @@
     (c) {{ g.get('current_year', '2026') }} {{ s.get('church_name') or 'Church Portal' }}
   </footer>
 
+  {% include 'partials/compose_sheet.html' %}
+
   {% block scripts %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=20260716nav2"></script>
-    <script src="{{ url_for('static', filename='js/enterprise.js') }}?v=20260813ui"></script>
+    <script src="{{ url_for('static', filename='js/enterprise.js') }}?v=20260826sheet"></script>
     <script src="{{ url_for('static', filename='js/display_prefs.js') }}?v=20260715theme"></script>
     <script>
       function updateClock() {

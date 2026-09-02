@@ -1,0 +1,54 @@
+{% extends "base.html" if session.get('user_id') else "base_public.html" %}
+
+{% block title %}People{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=26">
+{% endblock %}
+
+{% block content %}
+<div class="church-page">
+  <header class="feed-page-head">
+    <div>
+      <p class="page-kicker">This church family</p>
+      <h1 class="page-title">People</h1>
+      <p class="page-description">{% if not session.get('user_id') %}Public pages only — sign in to see members-only pages.{% elif has_branches %}Everyone in this church — other branches included. Your branch shows first.{% else %}Look someone up by name. Pages that stay private stay private.{% endif %}</p>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('church.church_home') }}">Church home</a>
+  </header>
+
+  <form method="get" class="glass-panel styled-form" style="padding:0.9rem; margin-bottom:1rem;">
+    <label class="profile-field-label" for="people-q">Search</label>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <input id="people-q" name="q" class="form-input" type="search" value="{{ query or '' }}" placeholder="First name, last name, or username" style="flex:1 1 12rem;">
+      <button type="submit" class="btn btn-primary">Look up</button>
+    </div>
+  </form>
+
+  {% if people %}
+  <ul class="profile-people-grid">
+    {% for p in people %}
+    <li>
+      <a class="glass-panel profile-person-card" href="{{ p.page_url }}">
+        <span class="profile-person-pic" aria-hidden="true">
+          {% if p.pic_url %}<img src="{{ p.pic_url }}" alt="">{% else %}{{ (p.display_name or '?')[0]|upper }}{% endif %}
+        </span>
+        <span class="profile-person-copy">
+          <strong>{{ p.display_name }}</strong>
+          <span>@{{ p.username }}</span>
+          {% if p.branch_name %}<span>{% if p.same_branch %}Your branch · {% endif %}{{ p.branch_name }}</span>{% endif %}
+          {% if p.occupation %}<span>{{ p.occupation }}</span>{% endif %}
+          {% if not p.has_page %}<span>No page yet</span>{% endif %}
+        </span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="glass-panel profile-wall-empty">
+    <p>{% if query %}Nobody here matches that name.{% else %}When members create a page, they will show up here.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

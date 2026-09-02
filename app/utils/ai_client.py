@@ -555,6 +555,20 @@ def _friendly_http_error(provider: str, status: int, body: str, model: str | Non
     return _sanitize_error(f'AI API error HTTP {status}.{hint}')
 
 
+def _is_size_error(status: int | None, body: str = '', err: str = '') -> bool:
+    """True when the provider rejected the prompt as too large (not a key/model issue)."""
+    if status == 413:
+        return True
+    blob = f'{body or ""} {err or ""}'.lower()
+    keys = (
+        'too large', 'too many tokens', 'token count', 'payload size',
+        'request entity too large', 'maximum context', 'context length',
+        'max input', 'prompt is too long', 'exceeds the limit',
+        'exceeds the maximum', 'input token', 'prompt_tokens',
+    )
+    return any(k in blob for k in keys)
+
+
 def extract_json_payload(text: str) -> Any:
     """Best-effort parse of model output that may be wrapped in markdown fences."""
     if not text:
@@ -684,10 +698,13 @@ def call_ai(
     system: str | None = None,
     timeout: int = 60,
     max_prompt_chars: int = 14000,
+    shrink_on_reject: bool = True,
+    meta_out: dict | None = None,
 ) -> tuple[Optional[str], Optional[str]]:
     """
     Call the configured provider with retries + Gemini model fallback on overload.
     Returns (text, error). Never includes API keys in error strings.
+    If the provider rejects a large prompt, retry with a shorter copy.
     """
     config = load_ai_config(preferred_provider)
     if not config:
@@ -695,14 +712,19 @@ def call_ai(
     if config['provider'] != 'ollama' and not config['api_key']:
         return None, f"Provider '{config['provider']}' is enabled but has no API key."
 
-    prompt = (prompt or '').strip()
-    if not prompt:
+    original = (prompt or '').strip()
+    if not original:
         return None, 'Empty prompt.'
-    if len(prompt) > max_prompt_chars:
-        prompt = prompt[:max_prompt_chars] + '\n\n[truncated for length]'
-
-    if contains_censored_word(prompt):
+    if contains_censored_word(original):
         return None, 'Prompt contains prohibited content.'
+
+    hard_cap = max(8000, int(max_prompt_chars or 14000))
+    first_cap = min(len(original), hard_cap)
+    caps = [first_cap]
+    if shrink_on_reject:
+        for cap in (220000, 120000, 64000, 32000, 16000, 8000):
+            if 4000 <= cap < first_cap:
+                caps.append(cap)
 
     provider = config['provider']
     primary_model = normalize_model_name(provider, model or config.get('model') or None)
@@ -716,9 +738,27 @@ def call_ai(
 
     last_http_error = None
     last_model_tried = primary_model
+    last_size_err = None
     saw_overload = False
 
+    def _record_meta(sent: int):
+        if meta_out is None:
+            return
+        meta_out['sent_chars'] = sent
+        meta_out['original_chars'] = len(original)
+        meta_out['shrunk'] = sent < len(original)
+
     try:
+      for cap in caps:
+        if cap >= len(original):
+            prompt = original
+        else:
+            prompt = original[:cap] + (
+                f"\n\n[Size note: the AI provider rejected a larger request. "
+                f"This is {cap} of {len(original)} characters. Use everything above; "
+                f"do not say you only received titles or that little data was sent.]"
+            )
+        size_reject = False
         for model_idx, model in enumerate(model_list):
             last_model_tried = model
             # Build request per provider
@@ -810,12 +850,14 @@ def call_ai(
                 last_http_error = _friendly_http_error(
                     provider, response.status_code, body, model
                 )
+                if _is_size_error(response.status_code, body, last_http_error):
+                    last_size_err = last_http_error
+                    size_reject = True
+                    break
                 if response.status_code in _RETRYABLE_STATUS:
                     saw_overload = True
-                    # Fall through to next model for Gemini
                     if provider == 'gemini' and model_idx < len(model_list) - 1:
                         continue
-                # Non-retryable (401/403/404) — stop immediately
                 return None, last_http_error
 
             try:
@@ -832,7 +874,11 @@ def call_ai(
             text = (text or '').strip()
             if contains_censored_word(text):
                 text = '[Redacted — generated content contained prohibited terms]'
+            _record_meta(min(cap, len(original)))
             return text, None
+
+        if size_reject:
+            continue
 
         # Exhausted models
         if last_http_error:
@@ -845,6 +891,17 @@ def call_ai(
                 )
             return None, last_http_error
         return None, 'AI provider failed after retries. Try again shortly.'
+
+      if last_size_err:
+          _record_meta(caps[-1] if caps else 0)
+          return None, (
+              'This sermon or library is too large for the current AI provider '
+              f'even after shrinking. {last_size_err} '
+              'Select fewer sermons/items, or switch to a model with a larger context window.'
+          )
+      if last_http_error:
+          return None, last_http_error
+      return None, 'AI provider failed after retries. Try again shortly.'
 
     except (KeyError, IndexError, TypeError, ValueError):
         return None, 'Could not parse AI provider response.'
@@ -915,13 +972,17 @@ def run_insight(
 
     # Insights: allow a bit more time; retries/fallback handle 503 overload
     # Sermon library packs may need a larger prompt window
+    size_meta: dict = {}
     text, error = call_ai(
         user_prompt,
         preferred_provider=preferred_provider,
         system=system,
         timeout=timeout,
         max_prompt_chars=max_prompt_chars,
+        shrink_on_reject=True,
+        meta_out=size_meta,
     )
+    meta.update(size_meta)
     if error:
         log_ai_usage(
             feature=feature,

@@ -155,12 +155,14 @@ def create_app():
             '/dashboard', '/settings', '/profile', '/members', '/donations',
             '/bills', '/accounting', '/inventory', '/attendance', '/child-checkin',
             '/volunteers', '/tickets', '/support-tickets', '/pastoral',
-            '/worship', '/security', '/ai-insights', '/communications', '/study',
+            '/worship', '/security', '/ai-insights', '/communications',
             '/modules', '/log', '/the_gathering', '/campus', '/help/manage',
             '/events', '/prayers', '/dreams', '/sermons', '/announcements',
             '/prophecies', '/help',
             # NOTE: /bible is NOT private — visitors may read freely.
             # Save actions (highlight/note/favorite) stay login-gated in bible routes.
+            # NOTE: /study is NOT private — public courses are guest-open (no saved record).
+            # Member/staff/admin courses still gate inside curriculum views.
         )
         # Guest-safe: dual-mode community list pages can stay readable without login
         # but POST mutations still require CSRF + should not create private content.
@@ -298,6 +300,13 @@ def create_app():
     # (old |nl2br|censor showed literal "<br>" on prayers/dreams/etc.)
     app.jinja_env.filters['nl2br'] = jinja_nl2br
     app.jinja_env.filters['censor'] = jinja_censor
+
+    def _safe_url_for(endpoint, **values):
+        try:
+            return url_for(endpoint, **values)
+        except Exception:
+            return ''
+    app.jinja_env.globals['safe_url_for'] = _safe_url_for
     @app.template_filter('relative_time')
     def relative_time_filter(value):
         if not value:
@@ -485,10 +494,65 @@ def create_app():
     def inject_endpoint_exists():
         def endpoint_exists(name: str) -> bool:
             try:
-                return name in app.view_functions
+                return any(rule.endpoint == name for rule in app.url_map.iter_rules())
             except Exception:
-                return False
+                return name in app.view_functions
         return dict(endpoint_exists=endpoint_exists)
+
+    @app.context_processor
+    def inject_compose_sheet():
+        from flask import session as flask_session
+        if not flask_session.get('user_id'):
+            return dict(sheet_compose_types=[], branch_people=[])
+        people = []
+        types = []
+        try:
+            from app.utils.compose import available_compose_types
+            types = available_compose_types()
+        except Exception:
+            types = []
+        try:
+            from app.models.campuses import user_home_campus_id, list_campus_members
+            cid = user_home_campus_id(flask_session.get('user_id'))
+            rows = list_campus_members(cid) if cid else []
+            if cid and not rows:
+                from app.models.db import get_db
+                import pymysql
+                cur = get_db().cursor(pymysql.cursors.DictCursor)
+                cur.execute(
+                    """
+                    SELECT username, first_name, last_name
+                    FROM users
+                    WHERE primary_campus_id = %s
+                      AND COALESCE(username, '') != ''
+                    ORDER BY first_name, last_name
+                    LIMIT 24
+                    """,
+                    (cid,),
+                )
+                rows = list(cur.fetchall() or [])
+            for row in rows:
+                un = (row.get('username') or '').strip()
+                if not un or un == flask_session.get('username'):
+                    continue
+                name = f"{(row.get('first_name') or '').strip()} {(row.get('last_name') or '').strip()}".strip()
+                people.append({'username': un, 'name': name or un})
+        except Exception:
+            people = []
+        voices = []
+        default_voice = 'member'
+        try:
+            from app.models import church_community as cc
+            voices = cc.compose_voices()
+            default_voice = cc.default_compose_voice()
+        except Exception:
+            voices = [{'key': 'member', 'label': 'You', 'hint': 'Goes on your personal page'}]
+        return dict(
+            sheet_compose_types=types,
+            branch_people=people,
+            compose_voices=voices,
+            default_compose_voice=default_voice,
+        )
 
     @app.context_processor
     def inject_gathering_place_access():
@@ -532,6 +596,36 @@ def create_app():
         raw = settings.get('church_name')
         name = str(raw).strip() if raw else ''
         return dict(church_display_name=name or None)
+
+    @app.context_processor
+    def inject_church_home_urls():
+        from flask import url_for
+        main = url_for('church.church_home')
+        home = main
+        branch_id = 0
+        branch_name = ''
+        has_branches = False
+        try:
+            from app.models import church_community as cc
+            has_branches = not cc.single_church_install()
+            uid = session.get('user_id')
+            if uid and has_branches:
+                from app.models import campuses as campus_model
+                cid = campus_model.user_home_campus_id(uid)
+                if cid:
+                    home = url_for('church.church_home', campus_id=int(cid))
+                    campus = campus_model.get_campus(int(cid)) or {}
+                    branch_id = int(cid)
+                    branch_name = (campus.get('short_name') or campus.get('name') or '').strip()
+        except Exception:
+            pass
+        return dict(
+            home_url=home,
+            main_church_url=main,
+            viewer_branch_id=branch_id,
+            viewer_branch_name=branch_name,
+            has_branches=has_branches,
+        )
 
     @app.context_processor
     def inject_guest_captcha():
@@ -583,6 +677,29 @@ def create_app():
             session.get('user_role'),
             session.get('username'),
         ))
+
+    @app.context_processor
+    def inject_inbox_unread():
+        uid = session.get('user_id')
+        if not uid:
+            return dict(inbox_unread=0)
+        try:
+            from app.models.social import inbox_unread_count
+            return dict(inbox_unread=inbox_unread_count(uid))
+        except Exception:
+            return dict(inbox_unread=0)
+
+    @app.context_processor
+    def inject_serving_counts():
+        uid = session.get('user_id')
+        if not uid:
+            return dict(serving_pending_count=0, serving_accepted_count=0)
+        try:
+            from app.models.serving import serving_counts
+            pending, accepted = serving_counts(uid)
+            return dict(serving_pending_count=pending, serving_accepted_count=accepted)
+        except Exception:
+            return dict(serving_pending_count=0, serving_accepted_count=0)
 
     @app.context_processor
     def inject_custom_modules():
@@ -672,6 +789,7 @@ def create_app():
         'volunteers',
         'accounting',
         'compose',
+        'church',
     ]
     for name in private_blueprints:
         try:
@@ -718,12 +836,10 @@ def create_app():
     # 
     @app.route('/')
     def index():
-        if session.get('user_id'):
-            return redirect(url_for('dashboard.dashboard'))
         if not owner_exists():
             flash('Initial setup required - please register the first Owner.', 'info')
             return redirect(url_for('auth.register'))
-        return redirect(url_for('public.public_dashboard.public_dashboard'))
+        return redirect(url_for('church.church_home'))
 
     # PWA service worker at site root so it can scope to "/" and cache /static only
     @app.route('/sw.js')

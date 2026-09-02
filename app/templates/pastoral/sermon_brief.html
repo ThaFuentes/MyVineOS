@@ -1,0 +1,50 @@
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block title %}Brief: {{ sermon.title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .sermon-brief { max-width: 42rem; margin: 0 auto; }
+  .sermon-brief h1 { margin: 0 0 0.35rem; font-size: 1.55rem; color: var(--primary); }
+  .sermon-brief-meta { opacity: 0.8; margin: 0 0 1.1rem; }
+  .sermon-brief ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.85rem; }
+  .sermon-brief li { padding-left: 0.25rem; }
+  .sermon-brief li strong { display: block; margin-bottom: 0.15rem; }
+  .sermon-brief .passage { font-size: 0.88rem; color: var(--primary); }
+  .sermon-brief .summary { font-size: 0.92rem; opacity: 0.88; margin: 0.2rem 0 0; }
+  @media print {
+    .top-bar, .pastoral-top-bar, .flash-messages, .sermon-brief-actions { display: none !important; }
+    body { background: #fff !important; color: #111 !important; }
+    .sermon-brief h1 { color: #111; }
+  }
+</style>
+{% endblock %}
+
+{% block pastoral_content %}
+<div class="sermon-brief">
+  <div class="sermon-brief-actions" style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.85rem;">
+    <button type="button" class="btn btn-primary" onclick="window.print()">Print / PDF</button>
+    <a class="btn btn-secondary" href="{{ url_for('pastoral.sermons.edit', sermon_id=sermon.id) }}">Back to editor</a>
+  </div>
+  <p style="margin:0; font-size:0.75rem; letter-spacing:0.06em; text-transform:uppercase; opacity:0.65;">Sermon brief</p>
+  <h1>{{ sermon.title }}</h1>
+  <p class="sermon-brief-meta">
+    {% if sermon.primary_passage %}{{ sermon.primary_passage }}{% endif %}
+    {% if sermon.service_date %} · {{ sermon.service_date }}{% endif %}
+    {% if sermon.creator_name %} · {{ sermon.creator_name }}{% endif %}
+  </p>
+  {% if sections %}
+  <ol>
+    {% for s in sections %}
+    <li>
+      <strong>{{ s.title }}</strong>
+      {% if s.passage %}<div class="passage">{{ s.passage }}</div>{% endif %}
+      {% if s.summary %}<p class="summary">{{ s.summary }}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="summary">No sections yet — add points in the editor, then this brief fills in.</p>
+  {% endif %}
+</div>
+{% endblock %}

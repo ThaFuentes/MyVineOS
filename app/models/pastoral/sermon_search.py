@@ -191,15 +191,48 @@ def sermon_catalog(user_id: int, *, limit: int = 80) -> list[dict]:
     return out
 
 
+def _plain_html(text: str) -> str:
+    body = re.sub(r'<[^>]+>', ' ', text or '')
+    return re.sub(r'\s+', ' ', body).strip()
+
+
+def sermon_blob_for_ai(sermon: dict, sections: list[dict] | None = None) -> str:
+    """Full plain-text sermon for an AI prompt (title, passage, every section)."""
+    sid = sermon.get('id')
+    parts = [
+        f"=== Sermon #{sid}: {sermon.get('title') or 'Untitled'} ===",
+        f"Passage: {sermon.get('primary_passage') or '(none)'}",
+        f"Date: {str(sermon.get('service_date') or '')[:10] or '(none)'}",
+    ]
+    if sermon.get('series_tags'):
+        parts.append(f"Series/tags: {sermon.get('series_tags')}")
+    for sec in sections or []:
+        st = (sec.get('title') or sec.get('section_type') or 'Section').strip()
+        body = _plain_html(sec.get('content') or '')
+        notes = _plain_html(sec.get('notes') or '')
+        scripture = (sec.get('scripture_reference') or '').strip()
+        if not body and not st and not notes:
+            continue
+        line = f"[{st}]"
+        if scripture:
+            line += f" ({scripture})"
+        if body:
+            line += f" {body}"
+        parts.append(line)
+        if notes:
+            parts.append(f"  Notes: {notes}")
+    return '\n'.join(parts)
+
+
 def pack_sermons_for_ai(
     user_id: int,
     question: str,
     *,
     sermon_ids: list[int] | None = None,
     max_sermons: int = 10,
-    max_chars_each: int = 2200,
-    max_total_chars: int = 24000,
-) -> tuple[str, list[dict]]:
+    max_chars_each: int = 400000,
+    max_total_chars: int = 350000,
+) -> tuple[str, list[dict], dict]:
     """
     Build AI context from THIS user's sermons only.
     Never includes collaborator-only or pastoral-group sermons owned by others.
@@ -227,10 +260,9 @@ def pack_sermons_for_ai(
             ordered_ids.append(sid)
         # Use all selected; expand budget for larger libraries
         max_sermons = max(1, len(ordered_ids))
-        max_total_chars = max(max_total_chars, min(100_000, max_sermons * 2000 + 4000))
-        # Slightly smaller per-sermon cap when many are selected so more fit
-        if max_sermons > 12:
-            max_chars_each = min(max_chars_each, max(900, 28000 // max(1, max_sermons)))
+        # Prefer complete sermons over many stubs. ~350k chars ≈ a long manuscript.
+        max_total_chars = max(max_total_chars, min(400_000, 12_000 + max_sermons * 80_000))
+        max_chars_each = max(max_chars_each, 400_000)
     else:
         hits = search_sermons_library(user_id, q, limit=30) if len(q) >= 2 else []
         for h in hits:
@@ -247,6 +279,8 @@ def pack_sermons_for_ai(
 
     used: list[dict] = []
     chunks: list[str] = []
+    omitted: list[str] = []
+    truncated = False
     total = 0
     catalog = sermon_catalog(user_id, limit=120)
     # Catalog in header: if user selected, list only those; else full library index
@@ -273,46 +307,68 @@ def pack_sermons_for_ai(
     )
     total += len(header)
 
+    empty_meta = {
+        'chars': total,
+        'truncated': False,
+        'omitted': [],
+        'included_full': 0,
+    }
     if not ordered_ids:
-        return header + "\n(No sermons selected or available.)\n", used
+        return header + "\n(No sermons selected or available.)\n", used, empty_meta
 
     for sid in ordered_ids:
-        if len(used) >= max_sermons or total >= max_total_chars:
-            break
-        # Owner-only load — do not use get_sermon_by_id (Admin can open any sermon)
+        if len(used) >= max_sermons:
+            sermon = _get_own_sermon(sid, user_id)
+            omitted.append((sermon or {}).get('title') or f'Sermon #{sid}')
+            continue
         sermon = _get_own_sermon(sid, user_id)
         if not sermon:
             continue
-        sections = get_sermon_sections(sid) or []
-        parts = [
-            f"=== Sermon #{sid}: {sermon.get('title') or 'Untitled'} ===",
-            f"Passage: {sermon.get('primary_passage') or '(none)'}",
-            f"Date: {str(sermon.get('service_date') or '')[:10] or '(none)'}",
-        ]
-        if sermon.get('series_tags'):
-            parts.append(f"Series/tags: {sermon.get('series_tags')}")
-        for sec in sections:
-            st = (sec.get('title') or sec.get('section_type') or 'Section').strip()
-            body = re.sub(r'<[^>]+>', ' ', sec.get('content') or '')
-            body = re.sub(r'\s+', ' ', body).strip()
-            if not body and not st:
-                continue
-            parts.append(f"[{st}] {body}")
-        blob = '\n'.join(parts)
+        title = sermon.get('title') or 'Untitled'
+        blob = sermon_blob_for_ai(sermon, get_sermon_sections(sid) or [])
         if len(blob) > max_chars_each:
-            blob = blob[:max_chars_each] + '\n[…truncated]'
-        if total + len(blob) > max_total_chars:
-            remain = max_total_chars - total
-            if remain < 400:
-                break
-            blob = blob[:remain] + '\n[…truncated]'
-        chunks.append(blob)
-        total += len(blob) + 2
-        used.append({
-            'id': sid,
-            'title': sermon.get('title') or 'Untitled',
-            'passage': sermon.get('primary_passage') or '',
-        })
+            blob = blob[:max_chars_each] + (
+                '\n[…this sermon was longer than the per-item size ceiling.]'
+            )
+            truncated = True
+        if total + len(blob) + 2 <= max_total_chars:
+            chunks.append(blob)
+            total += len(blob) + 2
+            used.append({
+                'id': sid,
+                'title': title,
+                'passage': sermon.get('primary_passage') or '',
+            })
+            continue
+        remain = max_total_chars - total
+        if not used and remain >= 2500:
+            chunks.append(
+                blob[:remain] +
+                '\n[…this sermon was shortened to fit the AI provider size limit.]'
+            )
+            total = max_total_chars
+            truncated = True
+            used.append({
+                'id': sid,
+                'title': title,
+                'passage': sermon.get('primary_passage') or '',
+            })
+            continue
+        omitted.append(title)
+
+    if omitted:
+        header += (
+            f"\n({len(omitted)} additional sermon(s) not packed due to size: "
+            + ', '.join(omitted[:12])
+            + (', …' if len(omitted) > 12 else '')
+            + ")\n"
+        )
 
     context = header + '\n\n'.join(chunks)
-    return context, used
+    meta = {
+        'chars': len(context),
+        'truncated': truncated,
+        'omitted': omitted,
+        'included_full': max(0, len(used) - (1 if truncated else 0)),
+    }
+    return context, used, meta

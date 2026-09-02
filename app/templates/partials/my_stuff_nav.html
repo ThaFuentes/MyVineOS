@@ -14,7 +14,7 @@
     {% endif %}
     {% if mon('my_serving') %}
     <a href="{{ url_for('volunteers.my_schedule') }}"
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if ep in ('volunteers.my_schedule','volunteers.my_respond') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">My Serving</a>
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if ep in ('volunteers.my_schedule','volunteers.my_respond') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">My Serving {% include 'partials/serving_badges.html' %}</a>
     {% endif %}
     {% if mon('support_tickets') %}
     <a href="{{ url_for('support_tickets.dashboard') }}"

@@ -52,6 +52,15 @@ def resolve_ccli_report_range(period: str, start: str = '', end: str = '', on_da
     """
     today = date.today()
     period = (period or 'week').strip().lower()
+    if period == 'quarter':
+        d = _parse_ymd(on_date) or today
+        q = (d.month - 1) // 3
+        start_d = date(d.year, q * 3 + 1, 1)
+        if q == 3:
+            end_d = date(d.year, 12, 31)
+        else:
+            end_d = date(d.year, q * 3 + 4, 1) - timedelta(days=1)
+        return start_d, end_d, f'Q{q + 1} {d.year} ({start_d.isoformat()} → {end_d.isoformat()})'
     if period == 'day':
         d = _parse_ymd(on_date) or today
         return d, d, f'Day {d.isoformat()}'

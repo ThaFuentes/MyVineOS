@@ -199,6 +199,47 @@ body.pastoral-shell .bible-stage-toolbar {
   .bible-flyout-backdrop.open {
     background: rgba(0, 0, 0, 0.35);
   }
+
+  /* Study workspace: books | text | tools stay on screen. Read mode keeps flyouts. */
+  .bible-stage.is-study {
+    display: grid;
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(280px, 340px);
+    grid-template-areas:
+      "toolbar toolbar toolbar"
+      "canon sel tools"
+      "canon main tools"
+      "canon notes tools";
+    gap: 0.65rem;
+    align-items: start;
+  }
+  .bible-stage.is-study .bible-stage-toolbar { grid-area: toolbar; }
+  .bible-stage.is-study #member-selection-bar { grid-area: sel; }
+  .bible-stage.is-study .bible-stage-main {
+    grid-area: main;
+    max-height: calc(100vh - 8.5rem);
+  }
+  .bible-stage.is-study .member-notes-panel { grid-area: notes; }
+  .bible-stage.is-study #member-canon-flyout,
+  .bible-stage.is-study #member-tools-flyout {
+    position: sticky;
+    top: var(--bible-sticky-top, 4.25rem);
+    transform: none !important;
+    width: auto;
+    max-width: none;
+    height: calc(100vh - var(--bible-sticky-top, 4.25rem) - 0.75rem);
+    border-radius: 12px;
+    z-index: 5;
+    box-shadow: none;
+  }
+  .bible-stage.is-study #member-canon-flyout { grid-area: canon; }
+  .bible-stage.is-study #member-tools-flyout { grid-area: tools; }
+  .bible-stage.is-study .bible-flyout-close { display: none; }
+  .bible-stage.is-study .bible-flyout-backdrop { display: none !important; }
+  .bible-stage.is-study .bible-flyout-trigger { display: none; }
+}
+
+@media (max-width: 1099px) {
+  .bible-mode-toggle { display: none !important; }
 }
 /* Same number grid for chapters and verses */
 .bible-num-mode {

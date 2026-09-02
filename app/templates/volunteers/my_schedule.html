@@ -62,17 +62,18 @@
   <div class="glass-panel vol-card" style="border-left-color:{{ a.team_color or 'var(--primary)' }};">
     <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-start;">
       <div style="flex:1;">
-        <strong>{{ a.event_title }}</strong>
+        <strong>{{ a.title or a.event_title }}</strong>
         <div style="font-size:0.88rem; opacity:0.8; margin-top:0.2rem;">
-          {{ a.event_date }}{% if a.start_time %} · {{ a.start_time }}{% endif %}
+          {{ a.serve_date or a.event_date }}{% if a.serve_time or a.start_time %} · {{ a.serve_time or a.start_time }}{% endif %}
           · <strong>{{ a.role_name }}</strong>
-          {% if a.team_name %} · {{ a.team_name }}{% endif %}
-          {% if a.event_location %} · {{ a.event_location }}{% endif %}
+          {% if a.kind_label or a.team_name %} · {{ a.kind_label or a.team_name }}{% endif %}
+          {% if a.location or a.event_location %} · {{ a.location or a.event_location }}{% endif %}
         </div>
         <span class="vol-pill vol-pill--{{ a.status }}" style="margin-top:0.35rem;">{{ a.status }}</span>
       </div>
       {% if a.status == 'pending' %}
       <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+        {% if a.source|default('volunteer') == 'volunteer' %}
         <form method="post" action="{{ url_for('volunteers.my_respond', assignment_id=a.id) }}">
           {% include 'partials/csrf_field.html' %}
           <input type="hidden" name="decision" value="accept">
@@ -81,8 +82,24 @@
         <form method="post" action="{{ url_for('volunteers.my_respond', assignment_id=a.id) }}">
           {% include 'partials/csrf_field.html' %}
           <input type="hidden" name="decision" value="decline">
-          <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.4rem 0.85rem;">Decline</button>
+          <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.4rem 0.85rem;">Can’t</button>
         </form>
+        {% elif a.token %}
+        <form method="post" action="{{ url_for('church.serve_reply') }}">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="token" value="{{ a.token }}">
+          <input type="hidden" name="decision" value="accept">
+          <input type="hidden" name="next" value="{{ url_for('volunteers.my_schedule') }}">
+          <button type="submit" class="btn btn-primary" style="min-height:auto;padding:0.4rem 0.85rem;">Accept</button>
+        </form>
+        <form method="post" action="{{ url_for('church.serve_reply') }}">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="token" value="{{ a.token }}">
+          <input type="hidden" name="decision" value="decline">
+          <input type="hidden" name="next" value="{{ url_for('volunteers.my_schedule') }}">
+          <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.4rem 0.85rem;">Can’t</button>
+        </form>
+        {% endif %}
       </div>
       {% endif %}
     </div>
@@ -98,7 +115,7 @@
 <h2 style="font-size:1.05rem; margin:1.25rem 0 0.65rem;">Recent past</h2>
 {% for a in past %}
 <div class="glass-panel" style="padding:0.75rem 1rem; margin-bottom:0.4rem; font-size:0.9rem; opacity:0.85;">
-  {{ a.event_date }} · {{ a.event_title }} · {{ a.role_name }}
+  {{ a.serve_date or a.event_date }} · {{ a.title or a.event_title }} · {{ a.role_name }}
   <span class="vol-pill vol-pill--{{ a.status }}">{{ a.status }}</span>
 </div>
 {% endfor %}

@@ -21,6 +21,7 @@ EMAIL_PREFERENCE_FIELDS = [
     ('accepts_announcement_emails', 'Announcement emails'),
     ('accepts_prayer_emails', 'Prayer request updates'),
     ('accepts_group_emails', 'Group messages'),
+    ('accepts_note_emails', 'Notes — someone replied (never includes the note itself)'),
     ('accepts_newsletter_emails', 'Newsletter & church-wide updates'),
     ('accepts_volunteer_emails', 'Volunteer opportunities'),
     ('accepts_worship_emails', 'Worship Team setlists & personal notes'),

@@ -735,18 +735,24 @@ Use vault for confidential documents and care tools for pastoral care cases. Fol
 
 ## Taking a course
 
-1. Browse published courses (filter by audience if shown).
+1. Browse published courses you are allowed to take (filter by audience if shown).
 2. Open a course to see lessons and your progress.
 3. Open a **lesson**.
 4. Read text blocks, view images/video when present.
 5. Answer **multiple choice**, **true/false**, or **fill in the blank** blocks.
 6. Continue until the course marks progress complete.
 
+## Guests / public courses
+
+If the course is marked **Public**, anyone can read and do it without an account.
+**Nothing is saved** — no enrollment, no quiz history, no badge. Log in only if the course is also open to members/staff/admins and you want a record.
+
 ## Tips for learners
 
 - Use a stable device for longer lessons.
 - Wrong quiz answers usually allow review and retry depending on the block settings.
 - Only **published** courses and lessons appear here — drafts stay in Curriculum Studio.
+- Your catalog only lists courses your role may take (admins / staff / members / public).
 """,
             10,
         ),
@@ -784,9 +790,11 @@ Series (Course)
 3. Fill in:
    - **Title**: e.g. `Foundations of Faith — Sample Course`
    - **Subtitle / description**: who it is for
-   - **Audience**: everyone / youth / leaders (as offered)
-   - **Visibility**: `members` or `public` when ready for learners; keep `pastoral` while drafting
-   - **Status**: `draft` until content is ready
+   - **Age / group label**: everyone / youth / leaders (catalog filter only)
+   - **Who can take it**: tick any mix of **Admins**, **Staff**, **Members**, **Public**
+     - Quick picks: Church family · Staff only · Admins only · Church + public
+     - **Public** = guests can read and do the course with **no saved record**
+   - Keep it a **draft** until content is ready
 4. Save.
 
 ### 2) Add lessons
@@ -837,14 +845,14 @@ Series (Course)
 ### 8) Preview as a learner
 
 1. Use **Preview** on the lesson if available.
-2. Or publish a test lesson to **members** visibility and open `/study/` with a test account.
+2. Or publish and open `/study/` as the role you ticked (or as a guest if Public is on).
 
 ### 9) Publish
 
 1. Set each lesson **status = published**.
 2. Set series **status = published**.
-3. Set **visibility** to `members` or `public`.
-4. Confirm the course appears under **Study Courses** for a normal member login.
+3. Confirm **Who can take it** matches the intended group.
+4. Confirm the course appears under **Study Courses** for that group (guest catalog if Public).
 
 ## Sample outline you can copy
 
@@ -867,10 +875,11 @@ Series (Course)
 
 | Issue | Fix |
 |-------|-----|
-| Course missing on `/study/` | Publish series + lessons; visibility members/public |
+| Course missing on `/study/` | Publish series + lessons; tick the role that should see it |
+| Guest cannot open it | Tick **Public**. Guests never get a saved record. |
 | Media broken | Re-upload; check file permissions/path |
 | Quiz not scoring | Ensure correct answer set on the block |
-| Members see pastoral-only | Change visibility off pastoral-only |
+| Members see admin-only | Untick Members / tick only Admins (or Staff only) |
 """,
             20,
         ),
@@ -893,8 +902,10 @@ Use **Help** to teach staff *how to build courses*. Use **Curriculum Studio** fo
 
 ## Permissions
 
-- Building: pastoral/staff access to Curriculum Studio
-- Taking: any logged-in member when module is enabled and course is published
+- Building: pastoral access to Curriculum Studio
+- Taking: whatever boxes you tick on the course — **Admins**, **Staff**, **Members**, and/or **Public**
+- Public guests can complete the course; **no enrollment or progress row is stored**
+- Signed-in people get a saved record only when their role box is also ticked
 
 ## Multi-campus
 

@@ -40,6 +40,9 @@ def _selected_option_ids(event):
 
 
 def list_giving_options(enabled_only=True):
+    from werkzeug.utils import secure_filename
+    from app.utils.appearance import sanitize_public_href
+    from app.utils.html_sanitize import sanitize_donate_embed, sanitize_plain_text
     try:
         from app.routes.settings import load_online_options
         rows = load_online_options() or []
@@ -49,18 +52,25 @@ def list_giving_options(enabled_only=True):
     for opt in rows:
         if enabled_only and not opt.get('enabled'):
             continue
-        url = (opt.get('url') or '').strip()
-        embed = (opt.get('embed_code') or '').strip()
+        url = sanitize_public_href(opt.get('url') or '')
+        embed = sanitize_donate_embed(opt.get('embed_code') or '')
         if not url and not embed:
             continue
-        out.append(opt)
+        row = dict(opt)
+        row['url'] = url
+        row['embed_code'] = embed
+        row['name'] = sanitize_plain_text(opt.get('name') or 'Online payment')
+        if row.get('image_path'):
+            row['image_path'] = secure_filename(str(row['image_path']))
+        out.append(row)
     return out
 
 
 def list_event_pay_methods(event):
     """Stripe / PayPal / Tithe.ly / custom checkout cards for this event."""
     methods = []
-    custom = (event.get('payment_url') or '').strip()
+    from app.utils.appearance import sanitize_public_href
+    custom = sanitize_public_href(event.get('payment_url') or '')
     if custom:
         methods.append({
             'id': 'custom',

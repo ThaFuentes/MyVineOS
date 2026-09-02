@@ -141,6 +141,100 @@
         }, 100);
       }
     }
+
+    bindAccessPicker();
+    bindStudyAnswers();
+  }
+
+  function syncPublicNote(root) {
+    var box = (root || document).querySelector('input[name="access_level"][value="public"]');
+    var note = (root || document).querySelector('[data-public-note]');
+    if (!note) return;
+    var on = !!(box && box.checked);
+    note.hidden = !on;
+    if (on) note.removeAttribute('hidden');
+    else note.setAttribute('hidden', '');
+  }
+
+  function bindAccessPicker() {
+    qsa('[data-curr-access]').forEach(function (root) {
+      syncPublicNote(root);
+      root.addEventListener('change', function () {
+        syncPublicNote(root);
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-access-preset]');
+      if (!btn) return;
+      e.preventDefault();
+      var root = btn.closest('[data-curr-access]') || document;
+      var wanted = (btn.getAttribute('data-access-preset') || '')
+        .split(',')
+        .map(function (s) { return s.trim(); })
+        .filter(Boolean);
+      qsa('input[name="access_level"]', root).forEach(function (cb) {
+        cb.checked = wanted.indexOf(cb.value) !== -1;
+      });
+      syncPublicNote(root);
+    });
+  }
+
+  function bindStudyAnswers() {
+    document.addEventListener('submit', function (e) {
+      var form = e.target.closest && e.target.closest('form.study-answer-form');
+      if (!form) return;
+      if (form.getAttribute('data-preview') === '1') return;
+      if (!form.getAttribute('action') || form.getAttribute('action') === '#') return;
+      e.preventDefault();
+      var result = form.querySelector('.study-result:not(.is-done)') || form.querySelector('.study-result');
+      var btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = true;
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+        },
+      })
+        .then(function (r) {
+          if (r.status === 401) {
+            window.location.href = r.url || '/login';
+            return null;
+          }
+          return r.json();
+        })
+        .then(function (data) {
+          if (!data) return;
+          if (!result) return;
+          result.classList.remove('is-correct', 'is-wrong');
+          var expl = data.feedback || '';
+          if (data.correct) {
+            result.classList.add('is-correct', 'is-done');
+            result.innerHTML = '<strong>✓ Correct</strong> ' + expl;
+            qsa('input', form).forEach(function (el) {
+              el.disabled = true;
+            });
+            if (btn) btn.remove();
+          } else {
+            result.classList.add('is-wrong');
+            result.innerHTML = '<strong>Not quite.</strong> ' + (expl || 'Try again.');
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Try again';
+            }
+          }
+        })
+        .catch(function () {
+          if (btn) btn.disabled = false;
+          if (result) {
+            result.classList.add('is-wrong');
+            result.innerHTML = 'Could not check that answer. Try again.';
+          }
+        });
+    });
   }
 
   if (document.readyState === 'loading') {

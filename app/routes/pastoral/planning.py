@@ -278,8 +278,14 @@ def edit(date_str):
         # Save exactly what was posted — this week fully overrides the recurring plan
         create_or_update_service_plan(data, session['user_id'])
         log_change(session['user_id'], 'plan_save', None, data['title'], f'Saved override plan for {date_str}')
+        try:
+            from app.models import church_community as cc
+            cc.publish_service_plan_update(session['user_id'])
+        except Exception as exc:
+            print(f'planning.edit church wall: {exc}')
         flash(
-            "This week's plan saved. It fully overrides the recurring plan for this date only.",
+            "This week's plan saved. It fully overrides the recurring plan for this date only — "
+            "the church page and next-service card are updated.",
             'success',
         )
         return redirect(url_for('pastoral.planning.edit', date_str=date_str))
@@ -487,9 +493,14 @@ def template_edit(template_id=None):
                     session['user_id'], 'template_save', template_id or new_id,
                     title, 'Saved recurring service plan',
                 )
+                try:
+                    from app.models import church_community as cc
+                    cc.publish_service_plan_update(session['user_id'])
+                except Exception as exc:
+                    print(f'planning.template church wall: {exc}')
                 flash(
                     'Recurring plan saved — applies to every future week of that day '
-                    '(unless a single week is customized).',
+                    '(unless a single week is customized). The church page next-service card is updated.',
                     'success',
                 )
                 return redirect(url_for(

@@ -70,43 +70,82 @@ def block_guest_bot_posts():
         back = url_for('public.public_dashboard.public_dashboard')
     return redirect(back)
 
-# ----------------------------------------------------------------------
-# Donate (online giving public page)
-# Currently a minimal implementation so url_for('public.donate') and the nav tab work without 404/BuildError.
-# The tab is only shown when settings.online_donations_enabled is truthy.
-# TODO: Create templates/public/donate.html + proper query of online donation options (see settings/online_giving.py load_online_options).
-# ----------------------------------------------------------------------
+def _safe_giving_options(rows):
+    from werkzeug.utils import secure_filename
+    from app.utils.appearance import sanitize_public_href
+    from app.utils.html_sanitize import sanitize_plain_text, sanitize_donate_embed
+
+    out = []
+    for raw in rows or []:
+        if not raw.get('enabled'):
+            continue
+        url = sanitize_public_href(raw.get('url') or '')
+        embed = sanitize_donate_embed(raw.get('embed_code') or '')
+        if not url and not embed:
+            continue
+        image = secure_filename(raw.get('image_path') or '') if raw.get('image_path') else ''
+        out.append({
+            'id': raw.get('id'),
+            'name': sanitize_plain_text(raw.get('name') or 'Give'),
+            'option_type': sanitize_plain_text(raw.get('option_type') or ''),
+            'url': url,
+            'embed_code': embed,
+            'image_path': image or None,
+        })
+    return out
+
+
 @public_bp.route('/donate')
 def donate():
-    """Public-facing donate / online giving landing."""
-    from flask import render_template, request
+    """Public giving page. Card data never hits this server — outbound processor links only."""
+    from flask import abort, render_template, request, session
     from app.routes.settings import load_settings, load_online_options
     from app.models.db import get_db
+    from app.utils.html_sanitize import sanitize_plain_text, sanitize_rich_html
     import pymysql
 
-    settings = load_settings()
-    options = [o for o in (load_online_options() or []) if o.get('enabled')]
+    settings = load_settings() or {}
+    giving_on = str(settings.get('online_donations_enabled') or '').strip() not in ('', '0', 'false', 'False')
     event = None
     amount = None
     event_id = request.args.get('event_id', type=int)
     if event_id:
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
-        cur.execute("SELECT id, event_name, cost_fees FROM events WHERE id = %s", (event_id,))
-        event = cur.fetchone()
+        cur.execute(
+            """
+            SELECT id, event_name, cost_fees, visibility
+            FROM events WHERE id = %s
+            """,
+            (event_id,),
+        )
+        row = cur.fetchone()
+        vis = (row or {}).get('visibility') or 'private'
+        if row and (vis == 'public' or session.get('user_id')):
+            event = row
+            event['event_name'] = sanitize_plain_text(event.get('event_name') or '')
+        else:
+            event = None
+    if not giving_on and not event:
+        abort(404)
     try:
-        if request.args.get('amount'):
-            amount = float(request.args.get('amount'))
-        elif event and event.get('cost_fees'):
+        if event and event.get('cost_fees') not in (None, ''):
             amount = float(event['cost_fees'])
+        elif amount is None:
+            amount = None
     except (TypeError, ValueError):
         amount = None
+    extra = sanitize_rich_html(settings.get('donations_extra_text') or '')
     return render_template(
         'public/donate.html',
         settings=settings,
-        online_options=options,
+        online_options=_safe_giving_options(load_online_options()),
         event=event,
         amount=amount,
+        extra_html=extra,
+        welcome_text=sanitize_plain_text(settings.get('donations_welcome_text') or ''),
+        thank_you_text=sanitize_plain_text(settings.get('donations_thank_you_text') or ''),
+        page_title=sanitize_plain_text(settings.get('donations_page_title') or '') or 'Give',
     )
 
 

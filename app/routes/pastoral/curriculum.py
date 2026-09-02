@@ -70,13 +70,14 @@ def series_new():
         if not title:
             flash('Give your course a title so learners know what to expect.', 'error')
             return redirect(url_for('pastoral.curriculum_studio.series_new'))
+        levels = cur_model.access_levels_from_form(request.form)
         sid = cur_model.create_series(
             {
                 'title': title,
                 'subtitle': request.form.get('subtitle'),
                 'description': request.form.get('description'),
                 'audience': request.form.get('audience') or 'everyone',
-                'visibility': request.form.get('visibility') or 'members',
+                'access_levels': levels,
                 'tags': request.form.get('tags'),
                 'estimated_minutes': request.form.get('estimated_minutes') or None,
                 'status': 'draft',
@@ -92,6 +93,9 @@ def series_new():
         'pastoral/curriculum/series_form.html',
         series=None,
         audiences=cur_model.AUDIENCES,
+        access_levels=list(cur_model.DEFAULT_ACCESS_LEVELS),
+        access_presets=cur_model.ACCESS_PRESETS,
+        access_level_defs=cur_model.ACCESS_LEVELS,
     )
 
 
@@ -115,13 +119,14 @@ def series_edit(series_id):
             flash('Course duplicated as a draft.', 'success')
             return redirect(url_for('pastoral.curriculum_studio.series_edit', series_id=new_id))
         if action == 'publish':
+            levels = cur_model.access_levels_from_form(request.form)
             cur_model.update_series(series_id, {
                 'status': 'published',
                 'title': request.form.get('title') or series['title'],
                 'subtitle': request.form.get('subtitle'),
                 'description': request.form.get('description'),
                 'audience': request.form.get('audience'),
-                'visibility': request.form.get('visibility') or 'members',
+                'access_levels': levels,
                 'tags': request.form.get('tags'),
                 'estimated_minutes': request.form.get('estimated_minutes') or None,
             })
@@ -129,7 +134,10 @@ def series_edit(series_id):
             for les in cur_model.list_lessons(series_id):
                 if les.get('status') != 'published':
                     cur_model.update_lesson(les['id'], {'status': 'published'})
-            flash('Published! Members can study this course now.', 'success')
+            who = cur_model.access_summary(levels)
+            flash(f'Published for {who}.', 'success')
+            if 'public' in levels:
+                flash('Guests can read and do this course. Nothing is saved to an account.', 'info')
             log_change(_uid(), 'update', series_id, change_details='Published curriculum series')
             return redirect(url_for('pastoral.curriculum_studio.series_edit', series_id=series_id))
         if action == 'unpublish':
@@ -137,12 +145,13 @@ def series_edit(series_id):
             flash('Course moved back to draft.', 'info')
             return redirect(url_for('pastoral.curriculum_studio.series_edit', series_id=series_id))
 
+        levels = cur_model.access_levels_from_form(request.form)
         cur_model.update_series(series_id, {
             'title': request.form.get('title') or series['title'],
             'subtitle': request.form.get('subtitle'),
             'description': request.form.get('description'),
             'audience': request.form.get('audience'),
-            'visibility': request.form.get('visibility') or 'members',
+            'access_levels': levels,
             'tags': request.form.get('tags'),
             'estimated_minutes': request.form.get('estimated_minutes') or None,
         })
@@ -157,6 +166,9 @@ def series_edit(series_id):
         lessons=lessons,
         stats=stats,
         audiences=cur_model.AUDIENCES,
+        access_levels=series.get('access_levels_list') or list(cur_model.DEFAULT_ACCESS_LEVELS),
+        access_presets=cur_model.ACCESS_PRESETS,
+        access_level_defs=cur_model.ACCESS_LEVELS,
     )
 
 

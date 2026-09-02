@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ series.title }}{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260714a">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260901access">
 {% endblock %}
 
 {% block content %}
@@ -18,9 +18,20 @@
       <span class="curr-pill">{{ series.audience }}</span>
       {% if series.estimated_minutes %}<span class="curr-pill">~{{ series.estimated_minutes }} min</span>{% endif %}
       <span class="curr-pill">{{ lessons|length }} lessons</span>
+      {% if series.access_summary %}<span class="curr-pill">{{ series.access_summary }}</span>{% endif %}
     </div>
+    {% if not saves_progress %}
+    <p class="curr-guest-note" style="margin-top:0.85rem;">
+      {% if is_guest %}
+      Guest mode — you can read and answer everything. <strong>Nothing is saved</strong>.
+      <a href="{{ url_for('auth.login', next=request.path) }}">Log in</a> if you have an account and this course is open to your role.
+      {% else %}
+      This course is open to you without a saved record (public-only access). Answers stay on this page only.
+      {% endif %}
+    </p>
+    {% endif %}
     {% set en = progress.enrollment or {} %}
-    {% if en.progress_pct is defined and en.progress_pct is not none %}
+    {% if saves_progress and en.progress_pct is defined and en.progress_pct is not none %}
     <div class="study-progress-bar" style="margin-top:1rem;" title="Your progress">
       <span style="width:{{ en.progress_pct }}%;"></span>
     </div>

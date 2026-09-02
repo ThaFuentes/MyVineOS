@@ -93,6 +93,7 @@ def create_tables(cursor):
         'totp_secret':                 "TEXT",
         'totp_enabled':                "TINYINT(1) DEFAULT 0",
         'notify_new_registrations':    "TINYINT(1) DEFAULT 0",
+        'accepts_note_emails':         "TINYINT(1) DEFAULT 0",
         'accepts_bill_emails':         "INTEGER DEFAULT 1",
         'accepts_worship_emails':      "INTEGER DEFAULT 1",
         'is_shadow_banned':            "TINYINT(1) DEFAULT 0",

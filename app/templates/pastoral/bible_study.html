@@ -3,8 +3,8 @@
 {% block title %}Bible Study{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260819nav">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260819nav">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260901woj">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260901xrefnav">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -85,6 +85,10 @@
                     <option value="{{ c }}">{{ c|capitalize }}</option>
                     {% endfor %}
                 </select>
+            </label>
+            <label class="bible-woj-toggle small" title="Words Jesus spoke, in red">
+                <input type="checkbox" id="bible-woj-toggle" checked>
+                Jesus’ words
             </label>
             <button type="button" id="bible-fav-chapter" class="btn btn-sm btn-outline-secondary" title="Favorite this chapter">♡ Ch</button>
             <button type="button" id="bible-fav-book" class="btn btn-sm btn-outline-secondary" title="Favorite this book">♡ Book</button>
@@ -305,5 +309,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260819nav"></script>
+<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260901xrefnav"></script>
 {% endblock %}

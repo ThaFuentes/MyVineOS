@@ -19,11 +19,17 @@
 
 {% block title %}My Profile{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=14">
+{% endblock %}
+
 {% block content %}
 <div class="glass-panel" style="padding:1rem;">
         <h1 class="page-title">My Profile</h1>
 
         {% include 'partials/my_stuff_nav.html' %}
+
+        {% include 'church/_upcoming_service.html' %}
 
         <p class="page-description">
             Manage your personal information, privacy preferences, email opt-outs, kids &amp; check-in PINs, and family connections.

@@ -88,6 +88,7 @@ def build_all(verbose: bool = False) -> None:
     # Explicit safe order (critical dependencies first)
     ordered_names = [
         'users',           # Base table - all user FKs depend on this
+        'settings',        # Must exist before appearance/campuses ALTER settings
         'groups',          # Needed for user_groups and attendance.group_id
         'user_groups',     # Junction table
         'attendance',      # References users and groups
@@ -96,6 +97,7 @@ def build_all(verbose: bool = False) -> None:
         'user_widgets',
         'timezone_setting',  # <- ADDED: Runs last - safe ALTER on settings table
         'comment_moderation',  # After all comment tables exist
+        'church_community',  # After users (member_spaces FK)
     ]
 
     ordered_modules = []
@@ -118,22 +120,42 @@ def build_all(verbose: bool = False) -> None:
     # Final execution order
     execution_order = ordered_modules + remaining_modules
 
-    # Run in order
-    for module in execution_order:
-        module_name = module.__name__.split('.')[-1]
-        if hasattr(module, 'create_tables'):
+    # Fresh DBs hit ALTER-on-missing-table if a module runs before its parent.
+    # Commit per module and retry failed ones so a sandbox start can finish.
+    pending = list(execution_order)
+    last_error = None
+    for round_no in range(1, 4):
+        still = []
+        for module in pending:
+            module_name = module.__name__.split('.')[-1]
+            if not hasattr(module, 'create_tables'):
+                if verbose:
+                    print(f"  -> Skipping {module_name}.py (no create_tables function)")
+                continue
             if verbose:
-                print(f"  -> Running create_tables from {module_name}.py")
+                print(f"  -> Running create_tables from {module_name}.py (round {round_no})")
             try:
                 module.create_tables(cursor)
+                conn.commit()
             except Exception as e:
-#                 print(f"   Critical error in {module_name}.py: {e}")
-                raise
-        else:
-            if verbose:
-                print(f"  -> Skipping {module_name}.py (no create_tables function)")
+                last_error = e
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                print(f"  (defer {module_name}: {e})")
+                still.append(module)
+        pending = still
+        if not pending:
+            last_error = None
+            break
 
-    conn.commit()
+    if pending:
+        conn.close()
+        raise last_error or RuntimeError('builddb modules failed: ' + ', '.join(
+            m.__name__.split('.')[-1] for m in pending
+        ))
+
     conn.close()
 
     print("All build is good")

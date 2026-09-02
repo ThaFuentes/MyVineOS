@@ -1,0 +1,5 @@
+{# Red unanswered / on-color volunteered. Pass pending_n / accepted_n to override. #}
+{% set p = pending_n if pending_n is defined else serving_pending_count|default(0) %}
+{% set a = accepted_n if accepted_n is defined else serving_accepted_count|default(0) %}
+{% if p %}<span class="count-pill count-pill-alert" title="Unanswered">{{ p }}</span>{% endif %}
+{% if a %}<span class="count-pill count-pill-on" title="You’re on">{{ a }}</span>{% endif %}

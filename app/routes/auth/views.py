@@ -83,7 +83,7 @@ def _complete_login(user):
     except Exception:
         pass
     session.modified = True
-    return redirect(url_for('dashboard.dashboard'))
+    return redirect(url_for('church.church_home'))
 
 
 def _login_blocked_reason(user):

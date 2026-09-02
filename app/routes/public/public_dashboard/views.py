@@ -16,7 +16,7 @@ from app.utils.helpers import censor_text
 from app.utils.time_utils import format_church
 from app.utils.welcome_page import render_welcome_page
 from . import dashboard_bp
-from .queries import FEED_TYPES, WHEN_FILTERS, get_public_dashboard_feed, parse_feed_datetime
+from .queries import FEED_TYPES, WHEN_FILTERS, _matches_when, get_public_dashboard_feed, parse_feed_datetime
 from .utils import censor_public_content
 
 TYPE_LABELS = {
@@ -26,7 +26,14 @@ TYPE_LABELS = {
     'announcement': 'Update',
     'dream': 'Dream',
     'prophecy': 'Prophecy',
+    'post': 'Post',
+    'quote': 'Quote',
+    'verse': 'Verse',
+    'image': 'Photo',
+    'blog': 'Blog',
+    'book': 'Book',
 }
+WALL_FEED_TYPES = ('post', 'quote', 'verse', 'image', 'blog', 'book')
 
 DETAIL_ENDPOINTS = {
     'event': ('public.public_events.public_event_detail', 'event_id'),
@@ -67,14 +74,57 @@ def _date_group(dt, today):
 
 def _build_public_feed(type_filter=None, when_filter=None, limit=40, include_members=False):
     """Prepare the community feed cards for rendering."""
-    feed = get_public_dashboard_feed(
-        limit=limit,
-        type_filter=type_filter,
-        when_filter=when_filter,
-        include_members=include_members,
-    )
+    from app.models import social as social_model
+    from app.models import church_community as cc
+    from flask import url_for
+
+    want_modules = not type_filter or type_filter not in WALL_FEED_TYPES
+    want_posts = not type_filter or type_filter in WALL_FEED_TYPES or type_filter == 'post'
+    feed = []
+    if want_modules:
+        feed = get_public_dashboard_feed(
+            limit=limit,
+            type_filter=type_filter if type_filter not in WALL_FEED_TYPES else None,
+            when_filter=when_filter,
+            include_members=include_members,
+        ) or []
+    if want_posts:
+        viewer_id = session.get('user_id') if include_members else None
+        for row in social_model.list_recent_wall_posts(viewer_id=viewer_id, limit=limit):
+            kind = row.get('kind') or 'post'
+            if type_filter in WALL_FEED_TYPES and type_filter != 'post' and kind != type_filter:
+                continue
+            feed.append({
+                'id': row.get('id'),
+                'type': kind,
+                'title': row.get('title') or 'Post',
+                'body': row.get('body') or '',
+                'image_url': row.get('image_url') or '',
+                'url': row.get('url') or '',
+                'user_id': row.get('user_id'),
+                'author_id': row.get('user_id'),
+                'username': row.get('username') or '',
+                'creator_name': row.get('display_name') or row.get('username') or '',
+                'author_url': row.get('author_url') or '',
+                'campus_id': int(row.get('primary_campus_id') or 0),
+                'visibility': row.get('visibility') or 'public',
+                'shadowed': bool(row.get('shadowed')),
+                'datetime': row.get('created_at'),
+                'sort_dt': parse_feed_datetime(row.get('created_at')),
+                'comments': [],
+            })
     feed = censor_public_content(feed)
+    seen = set()
+    unique = []
+    for item in feed:
+        key = (item.get('type'), item.get('id'))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    feed = unique
     today = date.today()
+    feed = [item for item in feed if _matches_when(item, when_filter, today)]
 
     for item in feed:
         item['title'] = censor_text(item.get('title') or item.get('event_name') or '')
@@ -96,16 +146,30 @@ def _build_public_feed(type_filter=None, when_filter=None, limit=40, include_mem
             item['formatted_time'] = ''
             item['group'] = 'Earlier'
         item['detail_url'] = _detail_url(item, member_view=include_members)
+        if not item.get('author_url') and item.get('username'):
+            try:
+                item['author_url'] = url_for('church.member_page', username=item['username'])
+            except Exception:
+                item['author_url'] = ''
 
-    return feed
+    viewer_id = session.get('user_id') if include_members else None
+    feed = cc.visible_items(feed, viewer_id, surface='feed')
+    if viewer_id:
+        feed = cc.attach_feed_rank(feed, viewer_id=viewer_id)
+    try:
+        from app.models.moderation import flag_wall_moderation
+        feed = flag_wall_moderation(feed)
+    except Exception:
+        pass
+    return feed[:limit]
 
 
 @dashboard_bp.route('/')
 def public_dashboard():
-    """Guest home at /public/ - church overview, events, schedule, and sign-in."""
-    if not session.get('user_id') or request.args.get('preview') == '1':
+    """Home is the church profile. Keep welcome preview for settings (?preview=1)."""
+    if request.args.get('preview') == '1':
         return render_welcome_page()
-    return redirect(url_for('public.public_dashboard.public_community'))
+    return redirect(url_for('church.church_home'))
 
 
 @dashboard_bp.route('/community')
@@ -142,6 +206,7 @@ def public_community():
 
     type_filters = [
         {'value': '', 'label': 'All', 'href': feed_href('', when_filter), 'active': type_filter == ''},
+        {'value': 'post', 'label': 'Posts', 'href': feed_href('post', when_filter), 'active': type_filter == 'post'},
         {'value': 'event', 'label': 'Events', 'href': feed_href('event', when_filter), 'active': type_filter == 'event'},
         {'value': 'prayer', 'label': 'Prayers', 'href': feed_href('prayer', when_filter), 'active': type_filter == 'prayer'},
         {'value': 'sermon', 'label': 'Sermons', 'href': feed_href('sermon', when_filter), 'active': type_filter == 'sermon'},
@@ -158,6 +223,15 @@ def public_community():
             ('month', 'This month'),
         )
     ]
+    from app.models import church_community as cc
+    from app.models import social as social_model
+
+    viewer_id = session.get('user_id')
+    space = cc.get_member_space(viewer_id) if viewer_id else None
+    church_context = cc.church_context_for_user(viewer_id)
+    campus_id = int((church_context or {}).get('campus_id') or 0)
+    campus = cc.resolve_campus(campus_id=campus_id, user_id=viewer_id) if campus_id else None
+    is_org = cc.single_church_install() or not campus_id
     return render_template(
         'public/public_dashboard.html',
         feed=feed,
@@ -166,6 +240,18 @@ def public_community():
         feed_when=when_filter,
         feed_type_filters=type_filters,
         feed_when_filters=when_filters,
+        viewer_space=space,
+        church_context=church_context,
+        upcoming_service=(church_context or {}).get('upcoming_service') or cc.scheduler_upcoming(),
+        contact=cc.profile_contact(campus),
+        campus=campus or {},
+        is_org=is_org,
+        church_name=cc.church_name(),
+        branch_name=(church_context or {}).get('branch_name') or '',
+        branches=cc.branch_directory() if is_org else [],
+        worship=social_model.worship_lineup(campus_id or None),
+        following=social_model.following_preview(viewer_id, viewer_id=viewer_id, limit=8) if viewer_id else [],
+        rail_updates=cc.church_wall(include_members=bool(viewer_id), limit=8, campus_id=campus_id if not is_org else 0),
     )
 
 

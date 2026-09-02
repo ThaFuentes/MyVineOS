@@ -2,6 +2,16 @@
 
 {% block worship_title %}CCLI usage report{% endblock %}
 
+{% block extra_css %}
+{{ super() }}
+<style>
+  @media print {
+    .worship-nav, .form-actions, form.settings-card, .btn, button { display: none !important; }
+    .settings-card { break-inside: avoid; }
+  }
+</style>
+{% endblock %}
+
 {% block worship_content %}
 <h1 style="margin:0 0 0.35rem; font-size:1.35rem; color:var(--primary);">CCLI songs used</h1>
 <p class="help-text" style="margin:0 0 1rem; max-width:42rem;">
@@ -20,6 +30,7 @@
         <option value="day" {% if period == 'day' %}selected{% endif %}>Day</option>
         <option value="week" {% if period == 'week' %}selected{% endif %}>Week (Mon–Sun)</option>
         <option value="month" {% if period == 'month' %}selected{% endif %}>Month</option>
+        <option value="quarter" {% if period == 'quarter' %}selected{% endif %}>Quarter (CCLI reporting)</option>
         <option value="year" {% if period == 'year' %}selected{% endif %}>Year</option>
         <option value="custom" {% if period == 'custom' %}selected{% endif %}>Custom range</option>
       </select>
@@ -73,6 +84,17 @@
       {% if include_planned %}<input type="hidden" name="include_planned" value="1">{% endif %}
       <input type="hidden" name="action" value="download">
       <button type="submit" class="btn-primary">Download CSV</button>
+      <button type="submit" class="btn-secondary" name="action" value="download_txt" form="ccli-txt-form">Download text</button>
+      <button type="button" class="btn-secondary" onclick="window.print()">Print</button>
+    </form>
+    <form id="ccli-txt-form" method="post" action="{{ url_for('worship.ccli_report') }}" hidden>
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="period" value="{{ period }}">
+      <input type="hidden" name="on_date" value="{{ on_date }}">
+      <input type="hidden" name="start" value="{{ start }}">
+      <input type="hidden" name="end" value="{{ end }}">
+      {% if include_planned %}<input type="hidden" name="include_planned" value="1">{% endif %}
+      <input type="hidden" name="action" value="download_txt">
     </form>
 
     <form method="post" action="{{ url_for('worship.ccli_report') }}" class="styled-form">

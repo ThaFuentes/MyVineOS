@@ -1,0 +1,73 @@
+{# Shared activity wall for church / branch / member profiles. #}
+<section class="profile-wall" aria-label="Wall">
+  <header class="profile-wall-head">
+    <h2>{{ wall_title|default('Wall') }}</h2>
+    {% if wall_hint %}
+    <p>{{ wall_hint }}</p>
+    {% endif %}
+    {% if wall_searchable %}
+    <form method="get" class="wall-search" role="search">
+      <label class="sr-only" for="wall-q">Search this page</label>
+      <input id="wall-q" name="q" type="search" value="{{ wall_q or '' }}"
+             placeholder="{% if is_owner %}Search your page, including personal notes{% else %}Search this page{% endif %}">
+      <button type="submit" class="btn btn-secondary">Search</button>
+    </form>
+    {% endif %}
+  </header>
+
+  {% if wall %}
+  <div class="profile-wall-stack">
+    {% for item in wall %}
+    <article class="glass-panel feed-card profile-wall-card{% if item.from_church %} is-church{% endif %}{% if item.from_follow %} is-follow{% endif %}">
+      <div class="feed-card-head">
+        <span class="feed-type-pill" data-type="{{ item.type }}">{{ item.type_label or (item.type|title) }}</span>
+        {% if item.from_follow %}
+        <span class="feed-type-pill" data-type="follow">Following</span>
+        {% elif item.posted_as_label %}
+        <span class="feed-type-pill" data-type="church">{{ item.posted_as_label }}</span>
+        {% endif %}
+        {% if (item.visibility or 'public') == 'personal' %}
+        <span class="feed-type-pill" data-type="personal">Personal</span>
+        {% elif (item.visibility or 'public') == 'private' %}
+        <span class="feed-type-pill" data-type="private">Members</span>
+        {% endif %}
+        <span class="feed-card-meta">
+          {% if item.formatted_date %}{{ item.formatted_date }}
+          {% elif item.when %}{{ item.when }}{% endif %}
+          {% if item.formatted_time %} · {{ item.formatted_time }}{% endif %}
+          {% if item.author_url and (item.creator_name or item.author) %}
+            · <a href="{{ item.author_url }}">{{ item.creator_name or item.author }}</a>
+          {% elif item.creator_name or item.author or item.posted_by %}
+            · {{ item.creator_name or item.author or item.posted_by }}
+          {% endif %}
+        </span>
+        {% if item.deletable and item.id and session.get('user_id') and item.author_id and item.author_id|int == session.get('user_id')|int %}
+        <form method="post" action="{{ url_for('church.delete_wall_post', post_id=item.id) }}" class="wall-delete" onsubmit="return confirm('Remove this post?');">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+          <button type="submit" class="profile-x" title="Remove this post" aria-label="Remove this post">×</button>
+        </form>
+        {% endif %}
+      </div>
+      {% if item.shadowed_badge %}<p class="wall-mod-flag">Shadowed — only the author sees this.</p>{% endif %}
+      {% include 'church/_wall_moderate.html' %}
+      <h3>{{ item.title | censor }}</h3>
+      {% if item.image_url %}
+      <p><img class="profile-wall-img" src="{{ item.image_url }}" alt=""></p>
+      {% endif %}
+      {% if item.body %}
+      <p>{{ item.body | censor | truncate(220) }}</p>
+      {% endif %}
+      {% if item.url %}
+      <p><a href="{{ item.url }}" rel="noopener noreferrer" target="_blank">{{ item.url }}</a></p>
+      {% endif %}
+      {% include 'partials/item_comments.html' %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="glass-panel profile-wall-empty">
+    <p>{% if wall_q %}Nothing on this page matches that search.{% else %}{{ empty_text|default('Nothing on this wall yet. Events, prayers, sermons, and updates will land here.') }}{% endif %}</p>
+  </div>
+  {% endif %}
+</section>

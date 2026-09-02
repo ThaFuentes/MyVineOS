@@ -280,17 +280,6 @@ def dashboard():
     # Template selection
     template = 'dashboard/dashboard.html' if is_logged_in else 'public/public_dashboard.html'
 
-    activity_feed = []
-    if is_logged_in:
-        try:
-            from app.utils.activity_feed import build_member_feed
-            activity_feed = build_member_feed(
-                prayers, dreams, prophecies, sermons, announcements, events
-            )
-        except Exception as e:
-            print(f"Activity feed build failed: {e}")
-            activity_feed = []
-
     return render_template(
         template,
         username=username if is_logged_in else None,
@@ -304,5 +293,4 @@ def dashboard():
         announcements=announcements,
         widgets=widgets,
         upcoming_services=upcoming_services,
-        activity_feed=activity_feed,
     )

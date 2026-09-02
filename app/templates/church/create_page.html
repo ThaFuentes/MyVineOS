@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{% if editing %}Edit your page{% else %}Your page{% endif %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=8">
+{% endblock %}
+
+{% block content %}
+<div class="church-page">
+  <header class="feed-page-head">
+    <div>
+      <h1 class="page-title">{% if editing %}Your page{% else %}Make a page{% endif %}</h1>
+    </div>
+    {% if editing %}
+    <a class="btn btn-secondary" href="{{ url_for('church.member_page', username=session.username) }}">View</a>
+    {% endif %}
+  </header>
+
+  {% if editing %}
+  {% set display_name = session.username %}
+  {% set identity_kicker = 'Your look' %}
+  {% set can_change_look = true %}
+  {% set manage_scope = 'member' %}
+  {% include 'church/_identity.html' %}
+  {% endif %}
+
+  <form method="post" class="styled-form glass-panel">
+    {% include 'partials/csrf_field.html' %}
+    <label class="profile-field-label" for="about">About me</label>
+    <textarea id="about" name="about" class="form-input profile-about-input" rows="5" placeholder="Who you are, what you love, how you serve…">{{ (space.about if space else '') or '' }}</textarea>
+    <input id="favorite_verse" name="favorite_verse" class="form-input" type="text" maxlength="255" placeholder="A quote under your name" value="{{ (space.favorite_verse if space else '') or '' }}">
+    <div class="profile-info-grid">
+      <div>
+        <label class="profile-field-label" for="occupation">What you do</label>
+        <input id="occupation" name="occupation" class="form-input" type="text" maxlength="160" value="{{ (space.occupation if space else '') or '' }}" placeholder="Work, school, ministry">
+      </div>
+      <div>
+        <label class="profile-field-label" for="hometown">Hometown</label>
+        <input id="hometown" name="hometown" class="form-input" type="text" maxlength="160" value="{{ (space.hometown if space else '') or '' }}">
+      </div>
+    </div>
+    <label class="profile-field-label" for="interests">Interests</label>
+    <input id="interests" name="interests" class="form-input" type="text" maxlength="500" value="{{ (space.interests if space else '') or '' }}" placeholder="Worship, cooking, hiking…">
+    <div class="profile-info-grid">
+      <div>
+        <label class="profile-field-label" for="birthday">Birthday</label>
+        <input id="birthday" name="birthday" class="form-input" type="date" value="{{ birthday_iso|default('') }}">
+      </div>
+      <div>
+        <label class="profile-field-label" for="accent_color">Favorite color</label>
+        <input id="accent_color" name="accent_color" class="form-input" type="text" maxlength="24" placeholder="navy, gold, #2a6f97" value="{{ (space.accent_color if space else '') or '' }}">
+      </div>
+    </div>
+    <label class="church-check"><input type="checkbox" name="show_birthday" value="1" {% if user and user.show_birthday %}checked{% endif %}> Show birthday on my page (month and day only)</label>
+    <p class="profile-field-label" style="margin-top:1rem;">Privacy</p>
+    <p class="help-text">Page: public (guests), members-only (signed in), or only you. Each post has its own setting too — public / private / personal.</p>
+    <div class="profile-toggles">
+      <label><input type="checkbox" name="page_private" value="1" {% if space and space.page_private %}checked{% endif %}> Only I can see this page</label>
+      <label><input type="checkbox" name="show_to_visitors" value="1" {% if space and space.show_to_visitors %}checked{% endif %}> Public page (guests can view)</label>
+      <label><input type="checkbox" name="show_in_directory" value="1" {% if not space or space.show_in_directory %}checked{% endif %}> Show me in People so others can find me</label>
+    </div>
+    <p class="profile-field-label" style="margin-top:1rem;">What shows on your wall</p>
+    <p class="help-text">Your wall is what you write, link, and follow. The church newspaper stays in Community — it does not dump onto your page.</p>
+    <div class="profile-toggles">
+      <label><input type="checkbox" name="show_follows" value="1" {% if not space or space.show_follows %}checked{% endif %}> Show people I follow on my wall</label>
+      <label><input type="checkbox" name="show_training" value="1" {% if space and space.show_training %}checked{% endif %}> Show study courses</label>
+      <label><input type="checkbox" name="show_replies" value="1" {% if space and space.show_replies %}checked{% endif %}> Show my replies</label>
+      <label><input type="checkbox" name="allow_messages" value="1" {% if space and space.allow_messages %}checked{% endif %}> Let people send me a note</label>
+      <label><input type="checkbox" name="show_stats" value="1" {% if space and space.show_stats %}checked{% endif %}> Show follows</label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% if editing %}Save{% else %}Create{% endif %}</button>
+      {% if not editing %}
+      <button type="submit" name="not_now" value="1" class="btn btn-secondary">Not now</button>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if editing %}
+  {% include 'church/_add_to_page.html' %}
+  {% endif %}
+</div>
+{% endblock %}

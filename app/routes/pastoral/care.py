@@ -35,12 +35,21 @@ def care_dashboard():
 
     care_requests = fetch_care_requests(status=status, urgency=urgency)
 
+    first_timers = []
+    try:
+        from datetime import date, timedelta
+        from app.routes.attendance.queries import get_first_time_in_range
+        first_timers = get_first_time_in_range(date.today() - timedelta(days=45), date.today(), limit=12) or []
+    except Exception as exc:
+        print(f'care first timers: {exc}')
+
     return render_template(
         'pastoral/care/care_dashboard.html',
         requests=care_requests,
         page_title="Pastoral Care Dashboard",
         active_status=status,
-        active_urgency=urgency
+        active_urgency=urgency,
+        first_timers=first_timers,
     )
 
 # ----------------------------------------------------------------------
@@ -65,6 +74,33 @@ def care_request_detail(request_id):
         pastoral_team=get_pastoral_team_members(),
         page_title=f"Care Request - {request_data['title'] or request_data['request_type']}"
     )
+
+@care_bp.route('/follow-up/start', methods=['POST'])
+@pastoral_required()
+def follow_up_start():
+    """Open a care card for a first-time guest (attendance)."""
+    member_id = request.form.get('member_id')
+    visit = (request.form.get('first_visit') or '').strip()
+    name = (request.form.get('name') or '').strip()
+    try:
+        request_id = create_care_request({
+            'member_id': member_id,
+            'request_type': 'follow_up',
+            'title': f'First-time follow-up — {name or "guest"}',
+            'description': (
+                f'First visit recorded {visit or "recently"}. '
+                'Suggested: Sunday welcome, a note mid-week, invite back next Sunday.'
+            ),
+            'urgency': 'normal',
+            'status': 'open',
+        }, session['user_id'])
+        log_change(session['user_id'], 'care_follow_up', request_id, name, 'Started first-time guest follow-up')
+        flash('Follow-up opened. Three simple touches: welcome, mid-week note, invite back.', 'success')
+        return redirect(url_for('pastoral.care.care_request_detail', request_id=request_id))
+    except Exception as exc:
+        flash(str(exc) or 'Could not start follow-up.', 'error')
+        return redirect(url_for('pastoral.care.care_dashboard'))
+
 
 # ----------------------------------------------------------------------
 # Create new care request

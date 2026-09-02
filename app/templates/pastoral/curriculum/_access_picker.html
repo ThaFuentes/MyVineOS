@@ -1,0 +1,42 @@
+{# Easy who-can-take picker. Expects access_levels (list), access_presets, access_level_defs. #}
+{% set selected = access_levels or ['admin', 'staff', 'member'] %}
+<div class="curr-access" data-curr-access>
+  <p class="help-text" style="margin:0 0 0.75rem;">
+    Tick who may take this course. Mix any combination. Public lets guests read and do it —
+    <strong>nothing is saved to an account</strong>.
+  </p>
+
+  <div class="curr-access-presets" role="group" aria-label="Quick access picks">
+    <span class="curr-access-presets-label">Quick picks</span>
+    {% for key, label, levels in access_presets %}
+    <button type="button" class="btn-chip curr-access-preset" data-access-preset="{{ levels|join(',') }}">
+      {{ label }}
+    </button>
+    {% endfor %}
+  </div>
+
+  <div class="curr-access-grid">
+    {% for key, label in access_level_defs %}
+    <label class="curr-access-card {% if key == 'public' %}curr-access-card--public{% endif %}">
+      <input type="checkbox" name="access_level" value="{{ key }}"
+             {% if key in selected %}checked{% endif %}>
+      <span class="curr-access-card-body">
+        <strong>{{ label }}</strong>
+        {% if key == 'admin' %}
+        <span>Owner and church admins. Progress is saved.</span>
+        {% elif key == 'staff' %}
+        <span>Staff accounts. Progress is saved.</span>
+        {% elif key == 'member' %}
+        <span>Signed-in members. Progress is saved.</span>
+        {% else %}
+        <span>Anyone, including guests. They can finish the course — no saved record.</span>
+        {% endif %}
+      </span>
+    </label>
+    {% endfor %}
+  </div>
+  <p class="help-text curr-access-public-note" data-public-note hidden>
+    Public is on. Guests will see this in Study Courses and can answer quizzes.
+    Signed-in people still get a record only if their box above is also ticked.
+  </p>
+</div>

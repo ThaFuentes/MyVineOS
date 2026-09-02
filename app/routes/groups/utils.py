@@ -153,6 +153,9 @@ KNOWN_PERMISSIONS = {
     'manage_security': 'Ban / unlock / act in security',
 
     'view_audit_logs': 'View the audit log',
+
+    'moderate_site': 'Site moderator — hide, shadow, warn, remove community content (reversible)',
+    'review_moderation': 'Review and reverse what site moderators did',
 }
 
 
@@ -179,6 +182,7 @@ PERMISSION_CATEGORIES = [
         'keys': sorted(k for k in KNOWN_PERMISSIONS if any(
             x in k for x in (
                 'announcement', 'event', 'sermon', 'prayer', 'dream', 'prophec',
+                'moderate_site', 'review_moderation',
             )
         )),
     },

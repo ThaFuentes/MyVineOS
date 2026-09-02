@@ -848,7 +848,7 @@
       html += '<span class="bible-xref-label" title="Widely taught as fulfilled in Christ / NT">✝ Related to Jesus</span> ';
       messianic.slice(0, 4).forEach((r) => {
         const tip = r.label || r.reference;
-        html += `<button type="button" class="bible-xref-link messianic" data-xref-book="${escapeAttr(r.book)}" data-xref-chapter="${r.chapter}" data-xref-verse="${r.verse}" title="${escapeAttr(tip)}">${escapeHtml(r.reference)}</button> `;
+        html += `<button type="button" class="bible-xref-link messianic" data-xref-book="${escapeAttr(r.book)}" data-xref-chapter="${r.chapter}" data-xref-verse="${r.verse}" data-xref-end="${r.end_verse || ''}" title="${escapeAttr(tip)}">${escapeHtml(r.reference)}</button> `;
       });
       html += '</div>';
     }
@@ -856,7 +856,7 @@
       html += '<div class="bible-xref-row">';
       html += '<span class="bible-xref-label">See also</span> ';
       related.forEach((r) => {
-        html += `<button type="button" class="bible-xref-link" data-xref-book="${escapeAttr(r.book)}" data-xref-chapter="${r.chapter}" data-xref-verse="${r.verse}" title="Cross-reference (score ${r.score || ''})">${escapeHtml(r.reference)}</button> `;
+        html += `<button type="button" class="bible-xref-link" data-xref-book="${escapeAttr(r.book)}" data-xref-chapter="${r.chapter}" data-xref-verse="${r.verse}" data-xref-end="${r.end_verse || ''}" title="Cross-reference (score ${r.score || ''})">${escapeHtml(r.reference)}</button> `;
       });
       html += '</div>';
     }
@@ -903,7 +903,7 @@
       if (hasNote) {
         html += `<button type="button" class="bible-note-marker" data-open-note-verse="${v.verse}" title="Open your note on this verse" aria-label="Open note">📝</button>`;
       }
-      html += `<span class="bible-verse-text">${linkStrongsInVerse(v.text, strongs)}</span>`;
+      html += `<span class="bible-verse-text">${renderVerseText(v.text, strongs, v.woj)}</span>`;
       html += xrefHtmlForVerse(v.verse, crossRefs);
       html += actionButtonsHtml({
         reference: ref,
@@ -1346,17 +1346,7 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-        const book = btn.dataset.xrefBook;
-        const ch = parseInt(btn.dataset.xrefChapter, 10);
-        const v = parseInt(btn.dataset.xrefVerse, 10);
-        if (!book || !ch) return;
-        openXrefPopup({
-          book,
-          chapter: ch,
-          verse: v || 1,
-          reference: (btn.textContent || '').trim(),
-          label: btn.getAttribute('title') || '',
-        });
+        openXrefFromButton(btn);
       });
     });
     reader?.querySelectorAll('.bible-verse-line').forEach((line) => {
@@ -1730,17 +1720,48 @@
     }
   }
 
-  function linkStrongsInVerse(text, strongsList) {
+  function segmentsFromWoj(text, spans) {
+    const raw = String(text || '');
+    const list = (spans || [])
+      .map((s) => ({ start: Number(s.start) || 0, end: Number(s.end) || 0 }))
+      .filter((s) => s.end > s.start && s.start < raw.length)
+      .sort((a, b) => a.start - b.start);
+    if (!list.length) return [{ text: raw, woj: false }];
+    const out = [];
+    let i = 0;
+    list.forEach((s) => {
+      const a = Math.max(0, Math.min(raw.length, s.start));
+      const b = Math.max(a, Math.min(raw.length, s.end));
+      if (a > i) out.push({ text: raw.slice(i, a), woj: false });
+      if (b > a) out.push({ text: raw.slice(a, b), woj: true });
+      i = Math.max(i, b);
+    });
+    if (i < raw.length) out.push({ text: raw.slice(i), woj: false });
+    return out.filter((s) => s.text);
+  }
+
+  function renderVerseText(text, strongsList, woj) {
+    const segs = segmentsFromWoj(text, woj);
+    const used = new Set();
+    return segs.map((seg, idx) => {
+      const inner = linkStrongsInVerse(seg.text, strongsList, { used, chips: idx === segs.length - 1 });
+      return seg.woj ? `<span class="words-of-jesus">${inner}</span>` : inner;
+    }).join('');
+  }
+
+  function linkStrongsInVerse(text, strongsList, opts) {
+    opts = opts || {};
+    if (!text) return '';
     if (!strongsList || !strongsList.length) return escapeHtml(text);
     let result = escapeHtml(text);
-    const used = new Set();
+    const used = opts.used || new Set();
     const sorted = [...strongsList].sort((a, b) =>
       String(b.surface_word || '').length - String(a.surface_word || '').length
     );
     sorted.forEach((s) => {
       const word = (s.surface_word || '').trim();
       const num = (s.strongs_number || '').trim();
-      if (!word || !num) return;
+      if (!word || !num || used.has(num)) return;
       const re = new RegExp(`(?<![\\w-])(${escapeRegex(word)})(?![\\w-])`, 'i');
       let replaced = false;
       result = result.replace(re, (m) => {
@@ -1751,20 +1772,84 @@
         return `<button type="button" class="strongs-word" data-strongs="${escapeAttr(num)}" title="${escapeAttr(tip)}">${m}<sup class="strongs-num">${escapeHtml(num)}</sup></button>`;
       });
     });
-    const leftover = strongsList.filter((s) => s.strongs_number && !used.has(s.strongs_number));
-    if (leftover.length) {
-      result += '<span class="strongs-chips">';
-      leftover.forEach((s) => {
-        const tip = [s.strongs_number, s.transliteration, s.lemma].filter(Boolean).join(' · ');
-        result += `<button type="button" class="strongs-chip" data-strongs="${escapeAttr(s.strongs_number)}" title="${escapeAttr(tip)}">${escapeHtml(s.surface_word || s.lemma || s.strongs_number)}</button>`;
-      });
-      result += '</span>';
+    if (opts.chips !== false) {
+      const leftover = strongsList.filter((s) => s.strongs_number && !used.has(s.strongs_number));
+      if (leftover.length) {
+        result += '<span class="strongs-chips">';
+        leftover.forEach((s) => {
+          const tip = [s.strongs_number, s.transliteration, s.lemma].filter(Boolean).join(' · ');
+          result += `<button type="button" class="strongs-chip" data-strongs="${escapeAttr(s.strongs_number)}" title="${escapeAttr(tip)}">${escapeHtml(s.surface_word || s.lemma || s.strongs_number)}</button>`;
+        });
+        result += '</span>';
+      }
     }
     return result;
   }
 
   /* ---- Linked-verse popup (cross-refs) ---- */
   let xrefPopupState = null;
+  let xrefLoadId = 0;
+
+  function xrefItemFromBtn(btn) {
+    return {
+      book: btn.dataset.xrefBook || btn.dataset.book || '',
+      chapter: parseInt(btn.dataset.xrefChapter || btn.dataset.chapter, 10),
+      verse: parseInt(btn.dataset.xrefVerse || btn.dataset.verse, 10) || 1,
+      end_verse: parseInt(btn.dataset.xrefEnd || btn.dataset.endVerse, 10) || 0,
+      reference: (btn.textContent || '').trim(),
+      label: btn.getAttribute('title') || '',
+    };
+  }
+
+  function expandXrefQueue(items) {
+    const out = [];
+    (items || []).forEach((r) => {
+      const start = parseInt(r.verse, 10) || 1;
+      const end = Math.max(parseInt(r.end_verse, 10) || 0, start);
+      for (let v = start; v <= end; v += 1) {
+        out.push({
+          book: r.book,
+          chapter: r.chapter,
+          verse: v,
+          reference: `${r.book} ${r.chapter}:${v}`,
+          label: r.label || '',
+        });
+      }
+    });
+    return out;
+  }
+
+  function openXrefFromButton(btn) {
+    const row = btn.closest('.bible-xrefs') || btn.parentElement;
+    const btns = row ? Array.from(row.querySelectorAll('.bible-xref-link')) : [btn];
+    const raw = (btns.length ? btns : [btn]).map(xrefItemFromBtn).filter((r) => r.book && r.chapter);
+    const queue = expandXrefQueue(raw.length ? raw : [xrefItemFromBtn(btn)]);
+    const clicked = xrefItemFromBtn(btn);
+    let idx = queue.findIndex((q) => (
+      q.book === clicked.book && Number(q.chapter) === Number(clicked.chapter) && Number(q.verse) === Number(clicked.verse)
+    ));
+    if (idx < 0) idx = 0;
+    openXrefPopup({ ...queue[idx], queue, index: idx });
+  }
+
+  function updateXrefNav(root) {
+    const nav = root.querySelector('[data-xref-nav]');
+    const queue = xrefPopupState?.queue || [];
+    const n = queue.length;
+    const show = n > 1;
+    if (nav) nav.hidden = !show;
+    root.querySelectorAll('.bible-xref-nav-side').forEach((btn) => { btn.hidden = !show; });
+    const count = root.querySelector('[data-xref-count]');
+    if (count && show) count.textContent = `${(xrefPopupState.index || 0) + 1} of ${n}`;
+  }
+
+  function stepXref(delta) {
+    const queue = xrefPopupState?.queue;
+    if (!queue || queue.length < 2) return;
+    const n = queue.length;
+    const next = (xrefPopupState.index + delta + n) % n;
+    openXrefPopup({ ...queue[next], queue, index: next });
+  }
 
   function ensureXrefPopup() {
     let root = el('pastoral-xref-popup');
@@ -1774,6 +1859,7 @@
     root.className = 'bible-xref-popup';
     root.setAttribute('aria-hidden', 'true');
     root.innerHTML = `
+      <button type="button" class="bible-xref-nav-btn bible-xref-nav-side" data-xref-prev aria-label="Previous linked verse">‹</button>
       <div class="bible-xref-popup-card" role="dialog" aria-modal="true" aria-labelledby="pastoral-xref-popup-title">
         <button type="button" class="bible-xref-popup-close" data-xref-close aria-label="Close">&times;</button>
         <div class="bible-xref-popup-meta">
@@ -1786,6 +1872,11 @@
             <span class="bible-xref-popup-dot">·</span>
             <span>Verse <strong data-xref-verse></strong></span>
           </div>
+          <div class="bible-xref-popup-nav" data-xref-nav hidden>
+            <button type="button" class="bible-xref-nav-btn" data-xref-prev aria-label="Previous linked verse">‹</button>
+            <span class="bible-xref-nav-count" data-xref-count></span>
+            <button type="button" class="bible-xref-nav-btn" data-xref-next aria-label="Next linked verse">›</button>
+          </div>
           <p class="bible-xref-popup-label small text-muted" data-xref-label style="display:none;"></p>
         </div>
         <blockquote class="bible-xref-popup-text" data-xref-text>Loading…</blockquote>
@@ -1794,10 +1885,23 @@
           <button type="button" class="btn btn-warning btn-sm" data-xref-highlight>Highlight</button>
           <button type="button" class="btn btn-outline-cyan btn-sm" data-xref-goto>Go to passage</button>
         </div>
-      </div>`;
+      </div>
+      <button type="button" class="bible-xref-nav-btn bible-xref-nav-side" data-xref-next aria-label="Next linked verse">›</button>`;
     document.body.appendChild(root);
     root.addEventListener('click', (e) => {
       if (e.target === root || e.target.closest('[data-xref-close]')) closeXrefPopup();
+    });
+    root.querySelectorAll('[data-xref-prev]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); stepXref(-1); });
+    });
+    root.querySelectorAll('[data-xref-next]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); stepXref(1); });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!root.classList.contains('is-open')) return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); stepXref(-1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); stepXref(1); }
+      else if (e.key === 'Escape') closeXrefPopup();
     });
     root.querySelector('[data-xref-copy]')?.addEventListener('click', () => {
       if (!xrefPopupState) return;
@@ -1860,8 +1964,14 @@
     const verse = parseInt(opts.verse, 10) || 1;
     if (!book || !chapter) return;
     const reference = opts.reference || `${book} ${chapter}:${verse}`;
-    xrefPopupState = { book, chapter, verse, reference, text: '', label: opts.label || '' };
+    const queue = (opts.queue && opts.queue.length) ? opts.queue : [{ book, chapter, verse, reference, label: opts.label || '' }];
+    let index = Number.isInteger(opts.index) ? opts.index : queue.findIndex((q) => (
+      q.book === book && Number(q.chapter) === chapter && Number(q.verse) === verse
+    ));
+    if (index < 0) index = 0;
+    xrefPopupState = { book, chapter, verse, reference, text: '', label: opts.label || '', queue, index };
     const root = ensureXrefPopup();
+    updateXrefNav(root);
     root.querySelector('#pastoral-xref-popup-title').textContent = reference;
     root.querySelector('[data-xref-book]').textContent = book;
     root.querySelector('[data-xref-chapter]').textContent = String(chapter);
@@ -1878,6 +1988,7 @@
     textEl.textContent = 'Loading verse…';
     root.classList.add('is-open');
     root.setAttribute('aria-hidden', 'false');
+    const loadId = ++xrefLoadId;
 
     try {
       const tr = getTranslation();
@@ -1886,6 +1997,7 @@
       const resp = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       if (!resp.ok) throw new Error('not found');
       const data = await resp.json();
+      if (loadId !== xrefLoadId) return;
       const text = (data.text || '').trim();
       xrefPopupState.text = text;
       xrefPopupState.reference = data.reference || reference;
@@ -1896,6 +2008,7 @@
       root.querySelector('#pastoral-xref-popup-title').textContent = xrefPopupState.reference;
       textEl.textContent = text || 'Verse text unavailable in this version.';
     } catch (err) {
+      if (loadId !== xrefLoadId) return;
       textEl.textContent = 'Could not load this verse in the current version. You can still go to the passage.';
     }
   }
@@ -2077,6 +2190,17 @@
   function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
   document.addEventListener('DOMContentLoaded', () => {
+    el('bible-woj-toggle')?.addEventListener('change', () => {
+      const on = !!el('bible-woj-toggle').checked;
+      el('bible-study-stage')?.classList.toggle('hide-woj', !on);
+      try { localStorage.setItem('member_bible_woj', on ? '1' : '0'); } catch (e) { /* ignore */ }
+    });
+    try {
+      if (localStorage.getItem('member_bible_woj') === '0' && el('bible-woj-toggle')) {
+        el('bible-woj-toggle').checked = false;
+        el('bible-study-stage')?.classList.add('hide-woj');
+      }
+    } catch (e) { /* ignore */ }
     const saved = sessionStorage.getItem('bible_active_sermon');
     if (saved && el('bible-sermon-select') && !cfg.sermonId) {
       const opt = el('bible-sermon-select').querySelector(`option[value="${saved}"]`);

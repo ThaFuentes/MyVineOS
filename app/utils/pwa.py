@@ -43,9 +43,7 @@ def _icon_src() -> str:
 
 def _start_url() -> str:
     try:
-        if session.get("user_id"):
-            return url_for("dashboard.dashboard")
-        return url_for("public.public_dashboard.public_dashboard")
+        return url_for("church.church_home")
     except Exception:
         return "/public/"
 

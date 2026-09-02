@@ -20,6 +20,18 @@ ALLOWED_ATTRIBUTES = {
 
 ALLOWED_PROTOCOLS = ['http', 'https', 'mailto']
 
+DONATE_EMBED_TAGS = [
+    'iframe', 'p', 'br', 'strong', 'em', 'div', 'span', 'img', 'a',
+]
+DONATE_EMBED_ATTRS = {
+    'iframe': ['src', 'width', 'height', 'title', 'loading', 'referrerpolicy', 'allow'],
+    'img': ['src', 'alt', 'width', 'height'],
+    'a': ['href', 'title', 'rel', 'target'],
+    'div': ['class'],
+    'span': ['class'],
+    'p': ['class'],
+}
+
 SERMON_RICH_FIELDS = frozenset({
     'header_text', 'footer_text', 'conclusion_text', 'notes',
 })
@@ -41,6 +53,20 @@ def sanitize_rich_html(value: str | None) -> str:
         tags=ALLOWED_TAGS,
         attributes=ALLOWED_ATTRIBUTES,
         protocols=ALLOWED_PROTOCOLS,
+        strip=True,
+    )
+    return cleaned.strip()
+
+
+def sanitize_donate_embed(value: str | None) -> str:
+    """Giving widgets: iframe/img/link only. Never script."""
+    if not value:
+        return ''
+    cleaned = bleach.clean(
+        str(value),
+        tags=DONATE_EMBED_TAGS,
+        attributes=DONATE_EMBED_ATTRS,
+        protocols=['http', 'https'],
         strip=True,
     )
     return cleaned.strip()

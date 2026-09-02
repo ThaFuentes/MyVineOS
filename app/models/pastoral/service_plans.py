@@ -118,17 +118,45 @@ def _assignment_display_name(assignment: dict) -> str | None:
     return guest or None
 
 
+_PREACHER_ROLES = {
+    'preacher', 'pastor', 'speaker',
+    'guest speaker', 'guest preacher', 'guest pastor',
+}
+
+
+def _is_preacher_role(role: str) -> bool:
+    r = (role or '').lower().strip()
+    if r in _PREACHER_ROLES:
+        return True
+    return 'preach' in r
+
+
+def _extract_preacher_info(plan: dict) -> dict:
+    """Who is preaching on this plan: name plus member id/username when assigned."""
+    for a in plan.get('assignments', []) or []:
+        if not _is_preacher_role(a.get('role_name') or ''):
+            continue
+        name = _assignment_display_name(a)
+        if not name:
+            continue
+        uid = a.get('user_id')
+        try:
+            uid = int(uid) if uid not in (None, '', 0, '0') else None
+        except (TypeError, ValueError):
+            uid = None
+        return {
+            'name': name,
+            'user_id': uid,
+            'username': (a.get('username') or '').strip() if uid else '',
+        }
+    return {'name': None, 'user_id': None, 'username': ''}
+
+
 def _extract_preacher(plan: dict):
     """Return the assigned preacher/pastor/speaker name from a plan or template.
     Supports guest speakers via guest_name when no member user is selected.
     """
-    for a in plan.get('assignments', []) or []:
-        role = (a.get('role_name') or '').lower().strip()
-        if role in ('preacher', 'pastor', 'speaker', 'guest speaker', 'guest preacher'):
-            name = _assignment_display_name(a)
-            if name:
-                return name
-    return None
+    return _extract_preacher_info(plan).get('name')
 
 
 def _public_notes_html(plan: dict) -> str:
@@ -169,13 +197,16 @@ def _plan_to_public_service(plan: dict, *, is_recurring: bool = False) -> dict:
         role = (a.get('role_name') or '').strip()
         if name and role:
             public_roles.append({'role_name': role, 'name': name})
+    preacher = _extract_preacher_info(plan)
     return {
         'weekday': weekday,
         'title': _effective_service_title(plan),
         'weekday_name': WEEKDAY_NAMES[weekday] if weekday is not None else None,
         'start_time': _format_display_time(plan.get('start_time')),
         'worship_start_time': _format_display_time(plan.get('worship_start_time')),
-        'preacher': _extract_preacher(plan),
+        'preacher': preacher.get('name'),
+        'preacher_id': preacher.get('user_id'),
+        'preacher_username': preacher.get('username') or '',
         'notes': _public_notes_html(plan),
         'roles': public_roles,
         'is_recurring': is_recurring,
@@ -357,7 +388,8 @@ def get_template_assignments(template_id: int):
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
         SELECT sta.role_name, sta.user_id, sta.guest_name,
-               CONCAT(u.first_name, ' ', u.last_name) AS user_full_name
+               CONCAT(u.first_name, ' ', u.last_name) AS user_full_name,
+               u.username
         FROM service_template_assignments sta
         LEFT JOIN users u ON sta.user_id = u.id
         WHERE sta.template_id = %s
@@ -580,7 +612,8 @@ def get_service_plan_assignments(plan_id: int):
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
         SELECT spa.role_name, spa.user_id, spa.guest_name,
-               CONCAT(u.first_name, ' ', u.last_name) AS user_full_name
+               CONCAT(u.first_name, ' ', u.last_name) AS user_full_name,
+               u.username
         FROM service_plan_assignments spa
         LEFT JOIN users u ON spa.user_id = u.id
         WHERE spa.service_plan_id = %s
@@ -590,6 +623,9 @@ def get_service_plan_assignments(plan_id: int):
 
 
 def save_service_plan_assignments(plan_id: int, assignments: list):
+    from app.models.serving import ensure_serving_columns, _snapshot, serving_fields_for_insert, after_plan_saved
+    ensure_serving_columns()
+    prev = _snapshot('service_plan_assignments', 'service_plan_id = %s', (int(plan_id),))
     db = get_db()
     cur = db.cursor()
     cur.execute("DELETE FROM service_plan_assignments WHERE service_plan_id = %s", (plan_id,))
@@ -602,11 +638,24 @@ def save_service_plan_assignments(plan_id: int, assignments: list):
             # If a member is selected, clear guest name (member takes precedence)
             if uid:
                 guest = None
-            cur.execute("""
-                INSERT INTO service_plan_assignments (service_plan_id, role_name, user_id, guest_name)
-                VALUES (%s, %s, %s, %s)
-            """, (plan_id, a['role_name'], uid, guest))
+            key = (int(uid), a['role_name'].strip()) if uid else None
+            status, token, notified, responded = serving_fields_for_insert(prev.get(key) if key else None, uid)
+            try:
+                cur.execute("""
+                    INSERT INTO service_plan_assignments
+                        (service_plan_id, role_name, user_id, guest_name, status, response_token, notified_at, responded_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (plan_id, a['role_name'], uid, guest, status, token, notified, responded))
+            except Exception:
+                cur.execute("""
+                    INSERT INTO service_plan_assignments (service_plan_id, role_name, user_id, guest_name)
+                    VALUES (%s, %s, %s, %s)
+                """, (plan_id, a['role_name'], uid, guest))
     db.commit()
+    try:
+        after_plan_saved(plan_id)
+    except Exception as exc:
+        print(f'service plan serving: {exc}')
 
 
 # ----------------------------------------------------------------------
@@ -1076,6 +1125,7 @@ def build_full_service_assignments(existing=None, date_str: str | None = None, *
         uid = None
         guest = None
         full = None
+        username = ''
         source = 'empty'
 
         ex = existing_by.get(key)
@@ -1083,6 +1133,7 @@ def build_full_service_assignments(existing=None, date_str: str | None = None, *
             uid = _uid_ok(ex.get('user_id'))
             guest = (ex.get('guest_name') or '').strip() or None
             full = ex.get('user_full_name')
+            username = (ex.get('username') or '').strip()
             if uid or guest:
                 source = ex.get('source') or 'plan'
 
@@ -1122,6 +1173,7 @@ def build_full_service_assignments(existing=None, date_str: str | None = None, *
             'user_id': uid,
             'guest_name': guest if not uid else None,
             'user_full_name': full,
+            'username': username,
             'source': source,
             'kind': kind,
             'team_id': team_id,
@@ -1205,13 +1257,21 @@ def build_full_service_assignments(existing=None, date_str: str | None = None, *
             cur = db.cursor(pymysql.cursors.DictCursor)
             placeholders = ','.join(['%s'] * len(need_ids))
             cur.execute(
-                f"SELECT id, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE id IN ({placeholders})",
+                f"SELECT id, username, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE id IN ({placeholders})",
                 need_ids,
             )
-            names = {int(r['id']): r['full_name'] for r in (cur.fetchall() or [])}
+            names = {
+                int(r['id']): {'full_name': r['full_name'], 'username': r.get('username') or ''}
+                for r in (cur.fetchall() or [])
+            }
             for b in built:
-                if b.get('user_id') and not b.get('user_full_name'):
-                    b['user_full_name'] = names.get(int(b['user_id']))
+                info = names.get(int(b['user_id'])) if b.get('user_id') else None
+                if not info:
+                    continue
+                if not b.get('user_full_name'):
+                    b['user_full_name'] = info['full_name']
+                if not b.get('username'):
+                    b['username'] = info['username']
         except Exception as exc:
             print(f'build_full_service_assignments names: {exc}')
 

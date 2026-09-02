@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 import urllib.error
 import urllib.request
 
@@ -424,8 +425,28 @@ def ensure_annotation_tables():
     db.commit()
 
 
+_HELLOAO_JSON_CACHE: dict[str, tuple[float, dict]] = {}
+_HELLOAO_JSON_TTL = 3600
+_HELLOAO_JSON_MAX = 80
+
+# Books that carry spoken words of Jesus in red-letter editions.
+WOJ_BOOKS = {
+    "Matthew", "Mark", "Luke", "John", "Acts",
+    "1 Corinthians", "2 Corinthians", "Revelation",
+}
+# WEB marks wordsOfJesus in HelloAO; BSB and many locals do not.
+WOJ_REFERENCE_TRANSLATION = "ENGWEBP"
+_QUOTE_RE = re.compile(r'[“"«][^”"»]+[”"»]')
+_WJ_OPEN_RE = re.compile(r"\\wj\b|<(?:wj|red)>", re.I)
+_WJ_CLOSE_RE = re.compile(r"\\wj\*|</(?:wj|red)>", re.I)
+
+
 def helloao_fetch_json(path: str, timeout: int = HELLOAO_TIMEOUT_SEC):
     path = (path or "").lstrip("/")
+    now = time.time()
+    hit = _HELLOAO_JSON_CACHE.get(path)
+    if hit and hit[0] > now:
+        return hit[1]
     url = f"{HELLOAO_API_BASE}/{path}"
     req = urllib.request.Request(
         url,
@@ -440,24 +461,179 @@ def helloao_fetch_json(path: str, timeout: int = HELLOAO_TIMEOUT_SEC):
         raise RuntimeError(f"Bible API network error: {e.reason}") from e
     except TimeoutError as e:
         raise RuntimeError("Bible API timed out") from e
-    return json.loads(raw.decode("utf-8"))
+    data = json.loads(raw.decode("utf-8"))
+    _HELLOAO_JSON_CACHE[path] = (now + _HELLOAO_JSON_TTL, data)
+    if len(_HELLOAO_JSON_CACHE) > _HELLOAO_JSON_MAX:
+        oldest = min(_HELLOAO_JSON_CACHE, key=lambda k: _HELLOAO_JSON_CACHE[k][0])
+        _HELLOAO_JSON_CACHE.pop(oldest, None)
+    return data
+
+
+def _merge_woj_spans(spans: list[dict]) -> list[dict]:
+    clean = []
+    for span in spans or []:
+        try:
+            start = int(span.get("start") or 0)
+            end = int(span.get("end") or 0)
+        except (TypeError, ValueError):
+            continue
+        if end > start:
+            clean.append({"start": start, "end": end})
+    if not clean:
+        return []
+    clean.sort(key=lambda s: s["start"])
+    out = [clean[0]]
+    for span in clean[1:]:
+        prev = out[-1]
+        if span["start"] <= prev["end"] + 1:
+            prev["end"] = max(prev["end"], span["end"])
+        else:
+            out.append(dict(span))
+    return out
+
+
+def flatten_verse_content(content) -> tuple[str, list[dict]]:
+    """Plain verse text plus character spans that are words of Jesus."""
+    pieces: list[tuple[str, bool]] = []
+
+    def add(text, woj: bool = False) -> None:
+        t = re.sub(r"\s+", " ", str(text or "")).strip()
+        if t:
+            pieces.append((t, bool(woj)))
+
+    def walk(node, woj: bool = False) -> None:
+        if node is None:
+            return
+        if isinstance(node, str):
+            add(node, woj)
+            return
+        if isinstance(node, dict):
+            flag = woj or bool(node.get("wordsOfJesus"))
+            if node.get("noteId") is not None and "text" not in node and "heading" not in node:
+                return
+            if "text" in node:
+                add(node.get("text") or "", flag)
+                return
+            if "heading" in node:
+                add(node.get("heading") or "", False)
+                return
+            if "content" in node:
+                walk(node.get("content"), flag)
+            return
+        if isinstance(node, (list, tuple)):
+            for item in node:
+                walk(item, woj)
+
+    walk(content)
+    out: list[str] = []
+    spans: list[dict] = []
+    for text, woj in pieces:
+        if out:
+            out.append(" ")
+        start = sum(len(part) for part in out)
+        out.append(text)
+        if woj:
+            spans.append({"start": start, "end": start + len(text)})
+    return "".join(out), _merge_woj_spans(spans)
 
 
 def flatten_content(content) -> str:
-    if content is None:
-        return ""
-    if isinstance(content, str):
-        return content.strip()
-    parts = []
-    for item in content:
-        if isinstance(item, str):
-            parts.append(item)
-        elif isinstance(item, dict):
-            if item.get("text"):
-                parts.append(str(item["text"]))
-            elif item.get("heading"):
-                parts.append(str(item["heading"]))
-    return re.sub(r"\s+", " ", " ".join(parts)).strip()
+    text, _spans = flatten_verse_content(content)
+    return text
+
+
+def woj_spans_from_markers(text: str) -> tuple[str, list[dict]]:
+    """Pull \\wj / <wj> markers out of uploaded text and return clean text + spans."""
+    if not text or (r"\wj" not in text.lower() and "<wj" not in text.lower() and "<red" not in text.lower()):
+        return text or "", []
+    plain: list[str] = []
+    spans: list[dict] = []
+    i = 0
+    woj = False
+    woj_start = 0
+    raw = text
+    while i < len(raw):
+        open_m = _WJ_OPEN_RE.match(raw, i)
+        close_m = _WJ_CLOSE_RE.match(raw, i)
+        if open_m:
+            if woj:
+                spans.append({"start": woj_start, "end": len("".join(plain))})
+            woj = True
+            woj_start = len("".join(plain))
+            i = open_m.end()
+            continue
+        if close_m:
+            if woj:
+                spans.append({"start": woj_start, "end": len("".join(plain))})
+            woj = False
+            i = close_m.end()
+            continue
+        plain.append(raw[i])
+        i += 1
+    if woj:
+        spans.append({"start": woj_start, "end": len("".join(plain))})
+    cleaned = re.sub(r"\s+", " ", "".join(plain)).strip()
+    return cleaned, _merge_woj_spans(spans)
+
+
+def woj_spans_from_reference(text: str, ref_verse: dict | None) -> list[dict]:
+    """Map a reference translation's red-letter spans onto the current verse text."""
+    text = text or ""
+    n = len(text)
+    if n < 1 or not ref_verse:
+        return []
+    ref_woj = ref_verse.get("woj") or []
+    if not ref_woj:
+        return []
+    ref_text = ref_verse.get("text") or ""
+    woj_chars = sum(max(0, int(s.get("end") or 0) - int(s.get("start") or 0)) for s in ref_woj)
+    ratio = woj_chars / max(len(ref_text), 1)
+    quotes = [{"start": m.start(), "end": m.end()} for m in _QUOTE_RE.finditer(text)]
+    if ratio >= 0.82:
+        return [{"start": 0, "end": n}]
+    if quotes:
+        return quotes
+    if ratio >= 0.4:
+        return [{"start": 0, "end": n}]
+    if ref_text == text:
+        return _merge_woj_spans(ref_woj)
+    return []
+
+
+def attach_woj_to_verses(book: str, chapter: int, verses: list[dict], *, overlay: bool = True) -> list[dict]:
+    """Ensure each verse has a `woj` span list. Overlay WEB when the current text has none."""
+    book = normalize_book_name(book) or book
+    for row in verses or []:
+        text = row.get("text") or ""
+        if row.get("woj"):
+            continue
+        cleaned, marked = woj_spans_from_markers(text)
+        if marked:
+            row["text"] = cleaned
+            row["woj"] = marked
+    if not overlay or book not in WOJ_BOOKS:
+        for row in verses or []:
+            row.setdefault("woj", [])
+        return verses
+    if any(row.get("woj") for row in verses or []):
+        for row in verses or []:
+            row.setdefault("woj", [])
+        return verses
+    try:
+        ref = helloao_get_chapter(WOJ_REFERENCE_TRANSLATION, book, chapter, overlay=False)
+    except Exception as exc:
+        print(f"woj overlay: {exc}")
+        for row in verses or []:
+            row.setdefault("woj", [])
+        return verses
+    ref_map = {int(v.get("verse") or 0): v for v in (ref.get("verses") or [])}
+    for row in verses or []:
+        try:
+            num = int(row.get("verse") or 0)
+        except (TypeError, ValueError):
+            num = 0
+        row["woj"] = woj_spans_from_reference(row.get("text") or "", ref_map.get(num))
+    return verses
 
 
 def parse_translation_ref(ref: str | None) -> tuple[str, str | None]:
@@ -668,7 +844,7 @@ def get_chapter_cross_refs(book: str, chapter: int) -> dict[str, list[dict]]:
     return {str(k): v for k, v in sorted(merged.items())}
 
 
-def helloao_get_chapter(translation_id: str, book: str, chapter: int) -> dict:
+def helloao_get_chapter(translation_id: str, book: str, chapter: int, overlay: bool = True) -> dict:
     """Fetch one chapter from HelloAO and return unified chapter payload."""
     book = normalize_book_name(book) or book
     usfm = BOOK_TO_USFM.get(book)
@@ -684,9 +860,10 @@ def helloao_get_chapter(translation_id: str, book: str, chapter: int) -> dict:
         if not isinstance(block, dict) or block.get("type") != "verse":
             continue
         num = int(block.get("number") or 0)
-        text = flatten_content(block.get("content"))
+        text, woj = flatten_verse_content(block.get("content"))
         if num >= 1 and text:
-            verses.append({"verse": num, "text": text})
+            verses.append({"verse": num, "text": text, "woj": woj})
+    verses = attach_woj_to_verses(book, chapter, verses, overlay=overlay)
     max_ch = BOOK_CHAPTER_COUNTS.get(book) or int(
         (payload.get("book") or {}).get("numberOfChapters") or chapter
     )
@@ -726,6 +903,7 @@ def get_unified_chapter(
             strongs_map = {}
             for v in verses:
                 strongs_map[v["verse"]] = get_strongs_for_verse(book, chapter, v["verse"])
+            verses = attach_woj_to_verses(book, chapter, list(verses), overlay=True)
             result = {
                 "book": book,
                 "chapter": chapter,

@@ -1,0 +1,97 @@
+{# MySpace-style banner + profile pic + name. #}
+{% set banner_url = banner_url|default('') %}
+{% set avatar_url = avatar_url|default('') %}
+{% set can_change_look = can_change_look|default(false) %}
+<div class="myspace-head">
+  <div class="myspace-banner">
+    {% if banner_url %}
+    <img src="{{ banner_url }}" alt="" class="myspace-banner-img{% if can_change_look %} is-draggable{% endif %}"
+         style="object-position: {{ banner_x|default(50) }}% {{ banner_y|default(50) }}%;"
+         {% if can_change_look %}data-banner-drag data-x="{{ banner_x|default(50) }}" data-y="{{ banner_y|default(50) }}"{% endif %}>
+    {% endif %}
+    {% if can_change_look %}
+    <form method="post" action="{{ url_for('church.page_identity') }}" enctype="multipart/form-data" class="myspace-hit">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="scope" value="{{ manage_scope|default('member') }}">
+      <input type="hidden" name="slot" value="banner">
+      <input type="hidden" name="next" value="{{ request.path }}">
+      {% if (not is_org) and campus and campus.id %}<input type="hidden" name="campus_id" value="{{ campus.id }}">{% endif %}
+      <label>Banner<input type="file" name="photo" accept="image/*" onchange="this.form.submit()"></label>
+    </form>
+    <form method="post" action="{{ url_for('church.page_identity') }}" id="banner-focus-form" hidden>
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="scope" value="{{ manage_scope|default('member') }}">
+      <input type="hidden" name="next" value="{{ request.path }}">
+      {% if (not is_org) and campus and campus.id %}<input type="hidden" name="campus_id" value="{{ campus.id }}">{% endif %}
+      <input type="hidden" name="banner_x" value="{{ banner_x|default(50) }}">
+      <input type="hidden" name="banner_y" value="{{ banner_y|default(50) }}">
+    </form>
+    {% if banner_url %}<p class="myspace-drag-hint">Drag the banner to frame it</p>{% endif %}
+    {% endif %}
+  </div>
+  <div class="myspace-who">
+    <div class="myspace-avatar">
+      {% if avatar_url %}
+      <img src="{{ avatar_url }}" alt="">
+      {% else %}
+      <span>{{ (display_name or church_name or '?')[0]|upper }}</span>
+      {% endif %}
+      {% if can_change_look %}
+      <form method="post" action="{{ url_for('church.page_identity') }}" enctype="multipart/form-data" class="myspace-hit myspace-hit-pic">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="scope" value="{{ manage_scope|default('member') }}">
+        <input type="hidden" name="slot" value="avatar">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        {% if (not is_org) and campus and campus.id %}<input type="hidden" name="campus_id" value="{{ campus.id }}">{% endif %}
+        <label>Pic<input type="file" name="photo" accept="image/*" onchange="this.form.submit()"></label>
+      </form>
+      {% endif %}
+    </div>
+    <div class="myspace-id">
+      {% if identity_kicker %}<p class="profile-kicker">{{ identity_kicker }}</p>{% endif %}
+      <h1 class="profile-name">{{ display_name or church_name }}</h1>
+      {% if branch_name %}<p class="profile-branch">{{ branch_name }}</p>{% endif %}
+      {% if verse %}<blockquote class="profile-verse">{{ verse }}</blockquote>{% endif %}
+    </div>
+  </div>
+</div>
+{% if can_change_look and banner_url %}
+<script>
+(function () {
+  var img = document.querySelector('[data-banner-drag]');
+  var form = document.getElementById('banner-focus-form');
+  if (!img || !form) return;
+  var x = parseFloat(img.getAttribute('data-x') || '50');
+  var y = parseFloat(img.getAttribute('data-y') || '50');
+  var dragging = false, sx = 0, sy = 0, ox = x, oy = y;
+  function clamp(n) { return Math.max(0, Math.min(100, n)); }
+  function apply() { img.style.objectPosition = x + '% ' + y + '%'; }
+  function save() {
+    form.banner_x.value = Math.round(x);
+    form.banner_y.value = Math.round(y);
+    var body = new FormData(form);
+    fetch(form.action, { method: 'POST', body: body, credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } });
+  }
+  img.addEventListener('pointerdown', function (e) {
+    dragging = true;
+    img.setPointerCapture(e.pointerId);
+    sx = e.clientX; sy = e.clientY; ox = x; oy = y;
+    img.classList.add('is-dragging');
+    e.preventDefault();
+  });
+  img.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var box = img.getBoundingClientRect();
+    x = clamp(ox - ((e.clientX - sx) / box.width) * 100);
+    y = clamp(oy - ((e.clientY - sy) / box.height) * 100);
+    apply();
+  });
+  img.addEventListener('pointerup', function () {
+    if (!dragging) return;
+    dragging = false;
+    img.classList.remove('is-dragging');
+    save();
+  });
+})();
+</script>
+{% endif %}

@@ -35,6 +35,26 @@ AUDIENCES = (
 
 STATUSES = ('draft', 'published', 'archived')
 
+# Who can take a published course. Independent checkboxes — any mix.
+# public = guests (and anyone) may read/do it; progress is never written for that path.
+ACCESS_LEVELS = (
+    ('admin', 'Admins'),
+    ('staff', 'Staff'),
+    ('member', 'Members'),
+    ('public', 'Public'),
+)
+ACCESS_LEVEL_KEYS = tuple(k for k, _ in ACCESS_LEVELS)
+DEFAULT_ACCESS_LEVELS = ('admin', 'staff', 'member')
+ACCESS_PRESETS = (
+    ('church', 'Church family', ('admin', 'staff', 'member')),
+    ('staff', 'Staff only', ('admin', 'staff')),
+    ('admin', 'Admins only', ('admin',)),
+    ('public', 'Church + public', ('admin', 'staff', 'member', 'public')),
+    ('public_only', 'Public only (no records)', ('public',)),
+)
+
+_schema_ensured = False
+
 IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 VIDEO_EXTS = {'.mp4', '.webm', '.mov'}
 
@@ -76,6 +96,198 @@ def _dumps(val) -> Optional[str]:
     return json.dumps(val, ensure_ascii=False)
 
 
+def ensure_curriculum_schema() -> None:
+    """Add access_levels on existing installs; backfill from legacy visibility."""
+    global _schema_ensured
+    if _schema_ensured:
+        return
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'curriculum_series'
+              AND COLUMN_NAME = 'access_levels'
+            """
+        )
+        if not cur.fetchone():
+            cur.execute(
+                """
+                ALTER TABLE curriculum_series
+                ADD COLUMN access_levels VARCHAR(80) NOT NULL DEFAULT 'admin,staff,member'
+                """
+            )
+            db.commit()
+        cur.execute(
+            """
+            UPDATE curriculum_series
+               SET access_levels = CASE
+                   WHEN visibility = 'public' THEN 'admin,staff,member,public'
+                   WHEN visibility = 'pastoral' THEN 'admin'
+                   ELSE 'admin,staff,member'
+               END
+             WHERE access_levels IS NULL OR access_levels = ''
+            """
+        )
+        cur.execute(
+            """
+            UPDATE curriculum_series
+               SET access_levels = 'admin,staff,member,public'
+             WHERE visibility = 'public'
+               AND access_levels NOT LIKE '%public%'
+            """
+        )
+        cur.execute(
+            """
+            UPDATE curriculum_series
+               SET access_levels = 'admin'
+             WHERE visibility = 'pastoral'
+               AND access_levels = 'admin,staff,member'
+            """
+        )
+        db.commit()
+        _schema_ensured = True
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+def normalize_access_levels(raw) -> list[str]:
+    if isinstance(raw, (list, tuple, set)):
+        parts = [str(x).strip().lower() for x in raw]
+    else:
+        parts = [p.strip().lower() for p in str(raw or '').replace(';', ',').split(',') if p.strip()]
+    out = [k for k in ACCESS_LEVEL_KEYS if k in parts]
+    return out
+
+
+def parse_access_levels(series_or_raw) -> list[str]:
+    if isinstance(series_or_raw, dict):
+        raw = series_or_raw.get('access_levels')
+        levels = normalize_access_levels(raw)
+        if levels:
+            return levels
+        vis = (series_or_raw.get('visibility') or '').strip()
+        if vis == 'public':
+            return ['admin', 'staff', 'member', 'public']
+        if vis == 'pastoral':
+            return ['admin']
+        return list(DEFAULT_ACCESS_LEVELS)
+    levels = normalize_access_levels(series_or_raw)
+    return levels or list(DEFAULT_ACCESS_LEVELS)
+
+
+def access_levels_from_form(form) -> list[str]:
+    raw = form.getlist('access_level') if hasattr(form, 'getlist') else []
+    if not raw:
+        raw = form.get('access_levels') or form.get('access_level') or ''
+    levels = normalize_access_levels(raw)
+    return levels or list(DEFAULT_ACCESS_LEVELS)
+
+
+def visibility_for_levels(levels: list[str]) -> str:
+    if 'public' in levels:
+        return 'public'
+    if 'member' in levels or 'staff' in levels:
+        return 'members'
+    return 'pastoral'
+
+
+def access_label_list(levels: list[str]) -> list[str]:
+    lookup = dict(ACCESS_LEVELS)
+    return [lookup[k] for k in ACCESS_LEVEL_KEYS if k in levels]
+
+
+def access_summary(levels: list[str]) -> str:
+    labels = access_label_list(levels)
+    return ' · '.join(labels) if labels else 'Church family'
+
+
+def role_access_key(user_role: str | None) -> Optional[str]:
+    role = (user_role or '').strip()
+    if role in ('Owner', 'Admin'):
+        return 'admin'
+    if role == 'Staff':
+        return 'staff'
+    if role:
+        return 'member'
+    return None
+
+
+def hydrate_series(row: Optional[dict]) -> Optional[dict]:
+    if not row:
+        return None
+    levels = parse_access_levels(row)
+    row['access_levels'] = ','.join(levels)
+    row['access_levels_list'] = levels
+    row['access_labels'] = access_label_list(levels)
+    row['access_summary'] = access_summary(levels)
+    row['is_public'] = 'public' in levels
+    return row
+
+
+def viewer_from_session(sess=None) -> dict:
+    from flask import session as flask_session
+    s = sess if sess is not None else flask_session
+    uid = s.get('user_id')
+    return {
+        'user_id': uid,
+        'user_role': s.get('user_role') if uid else None,
+        'is_guest': not uid,
+    }
+
+
+def can_view_course(series: dict | None, viewer: dict | None = None, *, published_only: bool = True) -> bool:
+    """Learner-side gate. Studio still uses pastoral_required."""
+    if not series:
+        return False
+    if published_only and (series.get('status') or '') != 'published':
+        return False
+    viewer = viewer or {}
+    levels = parse_access_levels(series)
+    if viewer.get('is_guest') or not viewer.get('user_id'):
+        return 'public' in levels
+    key = role_access_key(viewer.get('user_role'))
+    if key and key in levels:
+        return True
+    # Public courses are open to anyone, signed-in or not
+    if 'public' in levels:
+        return True
+    # Operators can always open a published course (review), even if their box is off
+    if (viewer.get('user_role') or '') in ('Owner', 'Admin'):
+        return True
+    return False
+
+
+def can_record_progress(series: dict | None, viewer: dict | None = None) -> bool:
+    """Saved enrollment/progress only for signed-in roles that are checked.
+    Public / guests never write a record.
+    """
+    if not series:
+        return False
+    viewer = viewer or {}
+    if viewer.get('is_guest') or not viewer.get('user_id'):
+        return False
+    levels = parse_access_levels(series)
+    key = role_access_key(viewer.get('user_role'))
+    return bool(key and key in levels)
+
+
+def deny_reason(series: dict | None, viewer: dict | None = None) -> str:
+    if not series or (series.get('status') or '') != 'published':
+        return 'This course is not available.'
+    if can_view_course(series, viewer):
+        return ''
+    levels = parse_access_levels(series)
+    if 'public' not in levels and (not viewer or viewer.get('is_guest')):
+        return 'Log in to take this course.'
+    return 'This course is limited to a different group.'
+
+
 # ── Series ──────────────────────────────────────────────────────────────────
 
 def list_series(
@@ -84,8 +296,10 @@ def list_series(
     audience: str | None = None,
     search: str | None = None,
     for_learners: bool = False,
+    viewer: dict | None = None,
     limit: int = 200,
 ) -> list[dict]:
+    ensure_curriculum_schema()
     cur = _cursor()
     sql = """
         SELECT s.*,
@@ -98,7 +312,7 @@ def list_series(
     """
     params: list[Any] = []
     if for_learners:
-        sql += " AND s.status = 'published' AND s.visibility IN ('public','members')"
+        sql += " AND s.status = 'published'"
     elif status:
         sql += " AND s.status = %s"
         params.append(status)
@@ -113,30 +327,52 @@ def list_series(
     params.append(int(limit))
     cur.execute(sql, params)
     rows = list(cur.fetchall() or [])
+    out = []
     for r in rows:
         r['tags_list'] = [t.strip() for t in (r.get('tags') or '').split(',') if t.strip()]
-    return rows
+        hydrate_series(r)
+        if for_learners and not can_view_course(r, viewer):
+            continue
+        out.append(r)
+    return out
 
 
 def get_series(series_id: int) -> Optional[dict]:
+    ensure_curriculum_schema()
     cur = _cursor()
     cur.execute("SELECT * FROM curriculum_series WHERE id = %s", (series_id,))
     row = cur.fetchone()
     if not row:
         return None
     row['tags_list'] = [t.strip() for t in (row.get('tags') or '').split(',') if t.strip()]
-    return row
+    return hydrate_series(row)
+
+
+def _series_access_payload(data: dict) -> tuple[str, str]:
+    if 'access_levels' in data or 'access_level' in data:
+        levels = parse_access_levels(data.get('access_levels') or data.get('access_level'))
+    elif data.get('visibility') == 'public':
+        levels = ['admin', 'staff', 'member', 'public']
+    elif data.get('visibility') == 'pastoral':
+        levels = ['admin']
+    elif data.get('visibility'):
+        levels = list(DEFAULT_ACCESS_LEVELS)
+    else:
+        levels = list(DEFAULT_ACCESS_LEVELS)
+    return ','.join(levels), visibility_for_levels(levels)
 
 
 def create_series(data: dict, user_id: int | None) -> int:
+    ensure_curriculum_schema()
     db = get_db()
     cur = db.cursor()
+    access_str, visibility = _series_access_payload(data)
     cur.execute(
         """
         INSERT INTO curriculum_series
             (title, subtitle, description, cover_image, audience, status, visibility,
-             tags, estimated_minutes, sort_order, created_by)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+             access_levels, tags, estimated_minutes, sort_order, created_by)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """,
         (
             (data.get('title') or 'Untitled Course').strip()[:255],
@@ -145,7 +381,8 @@ def create_series(data: dict, user_id: int | None) -> int:
             data.get('cover_image') or None,
             data.get('audience') or 'everyone',
             data.get('status') or 'draft',
-            data.get('visibility') or 'members',
+            visibility,
+            access_str,
             (data.get('tags') or '').strip()[:500] or None,
             int(data['estimated_minutes']) if data.get('estimated_minutes') else None,
             int(data.get('sort_order') or 0),
@@ -157,6 +394,7 @@ def create_series(data: dict, user_id: int | None) -> int:
 
 
 def update_series(series_id: int, data: dict) -> None:
+    ensure_curriculum_schema()
     db = get_db()
     cur = db.cursor()
     fields = []
@@ -168,7 +406,6 @@ def update_series(series_id: int, data: dict) -> None:
         'cover_image': lambda v: v or None,
         'audience': lambda v: v or 'everyone',
         'status': lambda v: v if v in STATUSES else 'draft',
-        'visibility': lambda v: v or 'members',
         'tags': lambda v: (v or '').strip()[:500] or None,
         'estimated_minutes': lambda v: int(v) if v not in (None, '') else None,
         'sort_order': lambda v: int(v or 0),
@@ -177,6 +414,12 @@ def update_series(series_id: int, data: dict) -> None:
         if key in data:
             fields.append(f"{key} = %s")
             vals.append(transform(data[key]))
+    if 'access_levels' in data or 'access_level' in data or 'visibility' in data:
+        access_str, vis = _series_access_payload(data)
+        fields.append("access_levels = %s")
+        vals.append(access_str)
+        fields.append("visibility = %s")
+        vals.append(vis)
     if data.get('status') == 'published':
         fields.append("published_at = COALESCE(published_at, CURRENT_TIMESTAMP)")
     if not fields:
@@ -206,6 +449,7 @@ def duplicate_series(series_id: int, user_id: int | None) -> int:
             'audience': src.get('audience'),
             'status': 'draft',
             'visibility': src.get('visibility') or 'members',
+            'access_levels': src.get('access_levels_list') or parse_access_levels(src),
             'tags': src.get('tags'),
             'estimated_minutes': src.get('estimated_minutes'),
         },
@@ -628,7 +872,14 @@ def ensure_enrollment(user_id: int, series_id: int) -> None:
         """,
         (user_id, series_id),
     )
+    inserted = cur.rowcount == 1
     db.commit()
+    if inserted:
+        try:
+            from app.models.social import award_badge
+            award_badge(user_id, series_id, 'started')
+        except Exception:
+            pass
 
 
 def record_block_answer(
@@ -732,6 +983,12 @@ def _refresh_enrollment_progress(user_id: int, series_id: int) -> None:
         (pct, pct, pct, user_id, series_id),
     )
     db.commit()
+    if pct >= 100:
+        try:
+            from app.models.social import award_badge
+            award_badge(user_id, series_id, 'completed')
+        except Exception:
+            pass
 
 
 def get_user_progress(user_id: int, series_id: int) -> dict:
@@ -774,6 +1031,32 @@ def series_stats(series_id: int) -> dict:
 
 
 # ── Media upload ────────────────────────────────────────────────────────────
+
+def media_allowed_for_viewer(filename: str, viewer: dict | None = None) -> bool:
+    """Guests may fetch media only from published public courses. Signed-in: any curriculum file."""
+    name = os.path.basename(filename or '')
+    if not name:
+        return False
+    viewer = viewer or {}
+    if viewer.get('user_id') and not viewer.get('is_guest'):
+        return True
+    cur = _cursor()
+    cur.execute(
+        """
+        SELECT s.access_levels, s.visibility, s.status
+          FROM curriculum_blocks b
+          JOIN curriculum_lessons l ON l.id = b.lesson_id
+          JOIN curriculum_series s ON s.id = l.series_id
+         WHERE b.media_path = %s AND s.status = 'published'
+         LIMIT 8
+        """,
+        (name,),
+    )
+    for row in cur.fetchall() or []:
+        if 'public' in parse_access_levels(row):
+            return True
+    return False
+
 
 def curriculum_upload_dir(app) -> str:
     path = os.path.join(app.config['UPLOAD_FOLDER'], 'curriculum')

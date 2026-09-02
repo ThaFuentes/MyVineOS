@@ -168,7 +168,7 @@ def research():
                     flash('Select at least one of your sermons for the AI to use.', 'error')
                 else:
                     try:
-                        context, used_sermons = pack_sermons_for_ai(
+                        context, used_sermons, pack_meta = pack_sermons_for_ai(
                             user_id,
                             question,
                             sermon_ids=selected_ids,
@@ -177,30 +177,56 @@ def research():
                             PASTOR_VOICE_SYSTEM
                             + ' Answer only from the sermon library material provided. '
                             'That material is ONLY sermons this pastor created — never anyone else. '
+                            'DETAILED CONTENT is the actual sermon body (every section), not just titles. '
+                            'Never claim you received little data or only titles if DETAILED CONTENT is present. '
                             'Cite sermon titles (and id numbers when helpful). '
                             'If the library does not cover the question, say so plainly. '
                             'No markdown headings.'
                         )
                         user_prompt = (
-                            f"My question: {question[:800]}\n\n"
-                            f"Here is MY sermon library only (I wrote these):\n{context}\n\n"
+                            f"My question: {question[:2000]}\n\n"
+                            f"Here is MY sermon library only (I wrote these). "
+                            f"Read the full DETAILED CONTENT:\n{context}\n\n"
                             "Answer like a ministry teammate who has read my notes. "
                             "Point me to specific sermons of mine when you can. "
                             "Do not invent sermons that are not listed."
                         )
-                        # Larger window when many sermons selected
-                        max_prompt = min(90000, max(28000, 4000 + len(selected_ids) * 2200))
+                        max_prompt = min(400000, max(80000, 8000 + len(context) + 4000))
                         text, err, run_meta = run_insight(
                             'sermon_library_ask',
                             system,
                             user_prompt,
-                            timeout=120,
+                            timeout=180,
                             max_prompt_chars=max_prompt,
                         )
                         if err:
                             answer_error = err
                         else:
                             answer_html = format_ai_prose(text)
+                            notes = []
+                            if pack_meta.get('truncated'):
+                                notes.append(
+                                    'One sermon was longer than the packing limit, so the end of it was cut.'
+                                )
+                            if pack_meta.get('omitted'):
+                                notes.append(
+                                    f"{len(pack_meta['omitted'])} selected sermon(s) did not fit: "
+                                    + ', '.join(pack_meta['omitted'][:8])
+                                    + (', …' if len(pack_meta['omitted']) > 8 else '')
+                                )
+                            if run_meta.get('shrunk'):
+                                notes.append(
+                                    f"Gemini/provider rejected the full prompt; retried with "
+                                    f"{run_meta.get('sent_chars', 0):,} of "
+                                    f"{run_meta.get('original_chars', 0):,} characters."
+                                )
+                            if notes:
+                                answer_html = (
+                                    '<p class="help-text" style="opacity:0.85;">'
+                                    + ' '.join(notes)
+                                    + '</p>'
+                                    + answer_html
+                                )
                             log_change(
                                 user_id, 'ai', None, question[:80],
                                 f"Sermon library AI ({len(used_sermons)} sermons) via {run_meta.get('provider') or '?'}",
@@ -624,3 +650,35 @@ def delete(sermon_id: int):
     else:
         flash('Sermon not found.', 'error')
     return redirect(url_for('pastoral.sermons.list'))
+
+
+def _plain(html: str, limit: int = 220) -> str:
+    import re
+    text = re.sub(r'<[^>]+>', ' ', html or '')
+    text = re.sub(r'\s+', ' ', text).strip()
+    if len(text) > limit:
+        return text[:limit].rstrip() + '…'
+    return text
+
+
+@sermons_bp.route('/brief/<int:sermon_id>')
+@pastoral_required()
+def brief(sermon_id: int):
+    """One-page brief: what this sermon is about (outline + short notes). Printable."""
+    user_id = session['user_id']
+    sermon = get_sermon_by_id(sermon_id, user_id)
+    if not sermon:
+        flash('Sermon not found or access denied.', 'error')
+        return redirect(url_for('pastoral.sermons.list'))
+    sections = []
+    for sec in get_sermon_sections(sermon_id) or []:
+        sections.append({
+            'title': (sec.get('title') or '').strip() or (sec.get('section_type') or 'Section').replace('_', ' ').title(),
+            'passage': (sec.get('scripture_reference') or '').strip(),
+            'summary': _plain(sec.get('content') or sec.get('notes') or ''),
+        })
+    return render_template(
+        'pastoral/sermon_brief.html',
+        sermon=sermon,
+        sections=sections,
+    )
