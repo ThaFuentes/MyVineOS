@@ -599,6 +599,21 @@ def member_page(username):
             warnings = active_warnings_for(user['id'])
         except Exception:
             warnings = []
+    from app.models import family_links as fam
+    family = []
+    family_pending = []
+    family_link = None
+    can_parent_privacy = False
+    show_family = True if not space else bool(space.get('show_family', 1))
+    try:
+        family = fam.family_for_page(user['id'], viewer_id) if show_family or is_owner else []
+        if is_owner:
+            family_pending = fam.pending_incoming(user['id'])
+        elif viewer_id:
+            family_link = fam.link_between(viewer_id, user['id'])
+        can_parent_privacy = bool(viewer_id and fam.can_manage_child_privacy(viewer_id, user))
+    except Exception as exc:
+        print(f'member family: {exc}')
     return render_template(
         'church/member_page.html',
         owner=user,
@@ -637,6 +652,12 @@ def member_page(username):
         serving_pending=serving_pending,
         serving_accepted=serving_accepted,
         warnings=warnings,
+        family=family,
+        family_pending=family_pending,
+        family_link=family_link,
+        family_choices=fam.CHOICES,
+        can_parent_privacy=can_parent_privacy,
+        show_family=show_family,
     )
 
 
@@ -663,6 +684,7 @@ def create_page():
             'show_replies': request.form.get('show_replies') == '1',
             'show_follows': request.form.get('show_follows') == '1',
             'show_in_directory': request.form.get('show_in_directory') == '1',
+            'show_title': request.form.get('show_title') == '1',
             'page_private': request.form.get('page_private') == '1',
             'allow_messages': request.form.get('allow_messages') == '1',
             'show_stats': request.form.get('show_stats') == '1',
@@ -696,15 +718,14 @@ def edit_my_page():
         if contains_censored_word(f'{about} {verse}'):
             flash('That text contains a prohibited word.', 'error')
             return redirect(url_for('church.edit_my_page'))
-        cc.update_member_space(uid, {
+        from app.models import family_links as fam
+        locked = fam.privacy_is_locked(uid)
+        payload = {
             'about': about,
             'favorite_verse': verse,
-            'show_to_visitors': request.form.get('show_to_visitors') == '1',
             'show_training': request.form.get('show_training') == '1',
             'show_replies': request.form.get('show_replies') == '1',
             'show_follows': request.form.get('show_follows') == '1',
-            'show_in_directory': request.form.get('show_in_directory') == '1',
-            'page_private': request.form.get('page_private') == '1',
             'allow_messages': request.form.get('allow_messages') == '1',
             'show_stats': request.form.get('show_stats') == '1',
             'accent_color': social_model.hex_or_none(request.form.get('accent_color')),
@@ -713,7 +734,16 @@ def edit_my_page():
             'hometown': (request.form.get('hometown') or '').strip(),
             'occupation': (request.form.get('occupation') or '').strip(),
             'interests': (request.form.get('interests') or '').strip(),
-        })
+            'show_title': request.form.get('show_title') == '1',
+        }
+        if not locked:
+            payload.update({
+                'show_to_visitors': request.form.get('show_to_visitors') == '1',
+                'show_in_directory': request.form.get('show_in_directory') == '1',
+                'page_private': request.form.get('page_private') == '1',
+                'show_family': request.form.get('show_family') == '1',
+            })
+        cc.update_member_space(uid, payload)
         from app.models.users import update_user_profile
         bday = (request.form.get('birthday') or '').strip() or None
         update_user_profile(
@@ -724,6 +754,7 @@ def edit_my_page():
         )
         flash('Saved your page — About me, color, and the rest.', 'success')
         return redirect(url_for('church.member_page', username=user['username']))
+    from app.models import family_links as fam
     return render_template(
         'church/create_page.html',
         space=space,
@@ -738,4 +769,5 @@ def edit_my_page():
         banner_y=social_model.banner_focus(space)[1],
         user=user,
         birthday_iso=_birthday_iso(user),
+        privacy_locked=fam.privacy_is_locked(uid),
     )

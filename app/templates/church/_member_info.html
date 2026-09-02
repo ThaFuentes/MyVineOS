@@ -1,6 +1,25 @@
+{% set about_me = about or (space.about if space else '') or '' %}
 {% if not hide_upcoming|default(false) %}
 {% include 'church/_upcoming_service.html' %}
 {% endif %}
+
+<section class="glass-panel profile-about">
+  <h2>About me</h2>
+  {% if about_me %}
+  <p>{{ about_me | nl2br }}</p>
+  {% elif is_owner %}
+  <p class="profile-muted">Nothing here yet. <a href="{{ url_for('church.edit_my_page') }}">Add an About me</a> — it saves with your color and the rest of this page.</p>
+  {% else %}
+  <p class="profile-muted">They haven’t written an About me yet.</p>
+  {% endif %}
+  <dl class="profile-facts">
+    {% if space.occupation %}<div><dt>Does</dt><dd>{{ space.occupation }}</dd></div>{% endif %}
+    {% if space.hometown %}<div><dt>From</dt><dd>{{ space.hometown }}</dd></div>{% endif %}
+    {% if birthday_label %}<div><dt>Birthday</dt><dd>{{ birthday_label }}</dd></div>{% endif %}
+    {% if space.interests %}<div><dt>Into</dt><dd>{{ space.interests }}</dd></div>{% endif %}
+    {% if space.accent_color %}<div><dt>Color</dt><dd><span class="profile-swatch" style="background:{{ space.accent_color }}"></span></dd></div>{% endif %}
+  </dl>
+</section>
 
 <section class="glass-panel profile-card">
   <h2 class="profile-card-title">Contact</h2>
@@ -40,6 +59,8 @@
 </section>
 {% endif %}
 
+{% include 'church/_family.html' %}
+
 {% if session.get('user_id') and not is_owner %}
 <div class="profile-actions">
   <form method="post" action="{{ url_for('church.follow_user', username=owner.username) }}">
@@ -78,21 +99,3 @@
 {% set items = links %}
 {% set section_title = 'On their page' %}
 {% include 'church/_links.html' %}
-
-<section class="glass-panel profile-about">
-  <h2>About me</h2>
-  {% if about %}
-  <p>{{ about | nl2br }}</p>
-  {% elif is_owner %}
-  <p class="profile-muted">Nothing here yet. <a href="{{ url_for('church.edit_my_page') }}">Add an About me</a> — it saves with your color and the rest of this page.</p>
-  {% else %}
-  <p class="profile-muted">They haven’t written an About me yet.</p>
-  {% endif %}
-  <dl class="profile-facts">
-    {% if space.occupation %}<div><dt>Does</dt><dd>{{ space.occupation }}</dd></div>{% endif %}
-    {% if space.hometown %}<div><dt>From</dt><dd>{{ space.hometown }}</dd></div>{% endif %}
-    {% if birthday_label %}<div><dt>Birthday</dt><dd>{{ birthday_label }}</dd></div>{% endif %}
-    {% if space.interests %}<div><dt>Into</dt><dd>{{ space.interests }}</dd></div>{% endif %}
-    {% if space.accent_color %}<div><dt>Color</dt><dd><span class="profile-swatch" style="background:{{ space.accent_color }}"></span></dd></div>{% endif %}
-  </dl>
-</section>

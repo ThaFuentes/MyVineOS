@@ -310,7 +310,20 @@ img, video {
   line-height: 1;
 }
 .bottom-nav button.bottom-nav-item .label,
-.bottom-nav .bottom-nav-item .label { font-size: 0.68rem; }
+.bottom-nav .bottom-nav-item .label {
+  font-size: 0.68rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bottom-nav--six .bottom-nav-item {
+  padding-left: 0.08rem;
+  padding-right: 0.08rem;
+  min-width: 0;
+}
+.bottom-nav--six .bottom-nav-item .label { font-size: 0.58rem; }
+.bottom-nav--six .bottom-nav-item .icon { font-size: 1.08rem; }
 .bottom-nav button.bottom-nav-item.active,
 .bottom-nav button.bottom-nav-item.is-open,
 .bottom-nav .bottom-nav-item.active,

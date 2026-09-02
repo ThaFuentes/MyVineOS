@@ -190,6 +190,10 @@ html[data-theme="soft-light"] .words-of-jesus {
 .bible-verse-line {
   cursor: pointer;
   transition: background 0.15s ease;
+  scroll-margin-top: 4rem;
+  padding: 0.4rem 0.35rem;
+  border-radius: 8px;
+  margin-bottom: 0.45rem;
 }
 .bible-verse-line.verse-selected {
   outline: 1px solid rgba(0, 255, 255, 0.55);
@@ -210,16 +214,7 @@ html[data-theme="soft-light"] .words-of-jesus {
   box-shadow: inset 0 0 0 1px rgba(0, 255, 255, 0.35);
 }
 
-.bible-selection-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  margin-bottom: 0.5rem;
-  border-radius: 10px;
-}
+.bible-selection-bar { display: none !important; }
 .bible-selection-actions {
   display: flex;
   flex-wrap: wrap;
@@ -554,15 +549,7 @@ html[data-theme="soft-light"] .words-of-jesus {
   line-height: 1.25;
 }
 
-.bible-selection-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  padding: 0.65rem 0.85rem;
-  margin-bottom: 0.65rem;
-  overflow: visible !important;
-}
+.bible-notes-panel { margin-top: 0; }
 .bible-selection-actions {
   display: flex;
   flex-wrap: wrap;

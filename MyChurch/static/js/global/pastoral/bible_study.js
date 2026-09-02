@@ -22,6 +22,9 @@
   let lastSource = null;
   let pickerMode = 'chapter';
   let verseNums = [];
+  let compareTranslation = '';
+  let compareChapter = null;
+  let studyModeWanted = true;
 
   const el = (id) => document.getElementById(id);
   const main = () => el('bible-reader-content');
@@ -120,7 +123,33 @@
     if (back) back.style.display = view === 'chapter' ? 'none' : 'inline-block';
   }
 
+  function isDesktopStudy() {
+    return !!(el('bible-study-stage')?.classList.contains('is-study')
+      && window.matchMedia('(min-width: 960px)').matches);
+  }
+
+  function applyStudyMode(on) {
+    const stage = el('bible-study-stage');
+    if (!stage) return;
+    studyModeWanted = !!on;
+    const desktop = window.matchMedia('(min-width: 960px)').matches;
+    const useStudy = on && desktop;
+    stage.classList.toggle('is-study', useStudy);
+    el('bible-mode-study')?.classList.toggle('active', useStudy);
+    el('bible-mode-read')?.classList.toggle('active', !useStudy);
+    try { localStorage.setItem('pastoral_bible_mode', on ? 'study' : 'read'); } catch (e) { /* ignore */ }
+    if (useStudy) {
+      el('bible-canon-flyout')?.classList.add('open');
+      el('bible-tools-flyout')?.classList.add('open');
+      el('bible-canon-flyout')?.setAttribute('aria-hidden', 'false');
+      el('bible-tools-flyout')?.setAttribute('aria-hidden', 'false');
+      el('bible-flyout-backdrop')?.classList.remove('open');
+      fillStudyFocus();
+    }
+  }
+
   function openFlyout(which) {
+    if (isDesktopStudy()) return;
     const canon = el('bible-canon-flyout');
     const tools = el('bible-tools-flyout');
     const backdrop = el('bible-flyout-backdrop');
@@ -135,6 +164,7 @@
       tools?.classList.add('open');
       el('bible-open-tools')?.classList.add('active');
       loadNotesLibrary(el('bible-notes-lib-q')?.value || '');
+      fillStudyFocus();
     }
     backdrop?.classList.add('open');
   }
@@ -152,6 +182,10 @@
   }
 
   function closeFlyouts() {
+    if (isDesktopStudy()) {
+      el('bible-flyout-backdrop')?.classList.remove('open');
+      return;
+    }
     el('bible-canon-flyout')?.classList.remove('open');
     el('bible-tools-flyout')?.classList.remove('open');
     el('bible-flyout-backdrop')?.classList.remove('open');
@@ -562,12 +596,12 @@
       setPickerMode('verse');
       return;
     }
-    loadChapter(n).then(() => setPickerMode('verse'));
+    loadChapter(n, { scrollToVerse: 1 }).then(() => setPickerMode('verse'));
   }
 
   function pickVerse(n) {
     if (mainView !== 'chapter') restoreChapter();
-    scrollToVerse(n);
+    selectAndFocusVerse(n);
     closeFlyouts();
   }
 
@@ -615,16 +649,55 @@
     }
   }
 
-  function scrollToVerse(verseNum) {
-    el('bible-num-grid')?.querySelectorAll('button').forEach((b) => {
-      b.classList.toggle('active', pickerMode === 'verse' && parseInt(b.textContent, 10) === verseNum);
+  function resolveFocusVerse(requested) {
+    const nums = verseNums.length
+      ? verseNums
+      : Array.from(main()?.querySelectorAll('.bible-verse-line') || [])
+        .map((l) => parseInt(l.dataset.verse, 10))
+        .filter((n) => n > 0);
+    const want = parseInt(requested, 10) || 0;
+    if (want && nums.includes(want)) return want;
+    return nums[0] || 1;
+  }
+
+  function paintSelectedVerses() {
+    main()?.querySelectorAll('.bible-verse-line').forEach((l) => {
+      const n = parseInt(l.dataset.verse, 10);
+      l.classList.toggle('verse-selected', selectedVerses.has(n));
     });
-    main()?.querySelectorAll('.bible-verse-line').forEach((l) => l.classList.remove('verse-highlight'));
-    const line = main()?.querySelector(`.bible-verse-line[data-verse="${verseNum}"]`);
-    if (line) {
-      line.classList.add('verse-highlight');
-      line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function scrollChapterToVerse(n) {
+    const content = main();
+    const line = content?.querySelector(`.bible-verse-line[data-verse="${n}"]`);
+    if (!content) return;
+    const first = verseNums[0] || 1;
+    if (!line || n === first) {
+      content.scrollTop = 0;
+      return;
     }
+    const cRect = content.getBoundingClientRect();
+    const lRect = line.getBoundingClientRect();
+    const pad = parseInt(getComputedStyle(content).paddingTop, 10) || 0;
+    content.scrollTop = Math.max(0, content.scrollTop + (lRect.top - cRect.top) - pad);
+  }
+
+  function selectAndFocusVerse(n) {
+    const v = resolveFocusVerse(n);
+    selectedVerses = new Set([v]);
+    paintSelectedVerses();
+    el('bible-num-grid')?.querySelectorAll('button').forEach((b) => {
+      b.classList.toggle('active', pickerMode === 'verse' && parseInt(b.textContent, 10) === v);
+    });
+    main()?.querySelectorAll('.bible-verse-line').forEach((l) => {
+      l.classList.toggle('verse-highlight', parseInt(l.dataset.verse, 10) === v);
+    });
+    fillStudyFocus();
+    requestAnimationFrame(() => scrollChapterToVerse(v));
+  }
+
+  function scrollToVerse(verseNum) {
+    selectAndFocusVerse(verseNum);
   }
 
   function restoreChapter() {
@@ -767,7 +840,6 @@
     currentChapter = chapter;
     if (!opts.keepSelection) {
       selectedVerses = new Set();
-      updateSelectionBar();
     }
     const chSel = el('bible-chapter-select');
     if (chSel?.options.length) chSel.value = String(chapter);
@@ -807,18 +879,14 @@
       favChapter = !!favs.chapter;
       favBook = !!favs.book;
       updateFavButtons();
-      renderChapter(data);
+      await loadCompareChapter();
       if (notesPanelTab === 'all') loadAllNotesPanel();
       else renderNotesPanel(currentNotes, { mode: 'passage' });
       updateNavButtons();
-      if (opts.scrollToVerse) {
-        // Wait a tick for layout so scrollIntoView hits the right place
-        requestAnimationFrame(() => {
-          scrollToVerse(opts.scrollToVerse);
-        });
-      }
-      // Remember version + book + chapter so reopening Bible continues here
-      saveReadingPlace({ verse: opts.scrollToVerse || getVisibleVerseAnchor() || 1 });
+      const focusV = resolveFocusVerse(opts.scrollToVerse);
+      selectedVerses = new Set([focusV]);
+      selectAndFocusVerse(focusV);
+      saveReadingPlace({ verse: focusV });
     } catch (e) {
       main().innerHTML = '<p class="text-muted">Could not load this chapter. Try another version or book.</p>';
       if (title) title.textContent = `${currentBook} ${chapter}`;
@@ -868,6 +936,96 @@
     return html;
   }
 
+  function compareTextForVerse(verseNum) {
+    if (!compareChapter || !compareTranslation) return '';
+    const row = (compareChapter.verses || []).find((v) => Number(v.verse) === Number(verseNum));
+    if (!row || !row.text) return '';
+    const code = (compareChapter.translation || compareTranslation || '').replace(/^online:/, '');
+    return `<div class="bible-verse-compare"><span class="small text-muted">${escapeHtml(code)}</span> ${escapeHtml(row.text)}</div>`;
+  }
+
+  async function loadCompareChapter() {
+    compareChapter = null;
+    const other = (el('bible-compare-translation')?.value || '').trim();
+    compareTranslation = other;
+    if (!other || other === getTranslation()) {
+      if (chapterData) renderChapter(chapterData);
+      fillStudyFocus();
+      return;
+    }
+    try {
+      const resp = await fetch(
+        `${api}/chapter/${encodeURIComponent(currentBook)}/${currentChapter}?translation=${encodeURIComponent(other)}`,
+        { credentials: 'same-origin', headers: { Accept: 'application/json' } },
+      );
+      if (resp.ok) compareChapter = await resp.json();
+    } catch (e) {
+      compareChapter = null;
+    }
+    if (chapterData) renderChapter(chapterData);
+    fillStudyFocus();
+  }
+
+  function fillStudyFocus() {
+    const host = el('bible-study-focus-body');
+    if (!host) return;
+    const nums = Array.from(selectedVerses).sort((a, b) => a - b);
+    if (!nums.length) {
+      host.innerHTML = '<p class="small text-muted mb-0">The first verse of the chapter opens here. Tap another verse to move study tools to it.</p>';
+      return;
+    }
+    const v = nums[0];
+    const line = main()?.querySelector(`.bible-verse-line[data-verse="${v}"]`);
+    const text = line?.dataset.text || '';
+    const ref = `${currentBook} ${currentChapter}:${nums.length === 1 ? v : nums[0] + '–' + nums[nums.length - 1]}`;
+    const strongs = (chapterData?.strongs && (chapterData.strongs[v] || chapterData.strongs[String(v)])) || [];
+    const xrefs = (chapterData?.cross_refs && (chapterData.cross_refs[v] || chapterData.cross_refs[String(v)])) || [];
+    const wojRow = (chapterData?.verses || []).find((row) => Number(row.verse) === Number(v));
+    let html = `<div class="study-focus-ref">${escapeHtml(ref)}</div>`;
+    html += `<p class="study-focus-text">${renderVerseText(text, strongs, wojRow?.woj)}</p>`;
+    html += compareTextForVerse(v);
+    if (strongs.length) {
+      html += '<p class="small text-muted mb-1">Original words</p><div class="strongs-chips">';
+      strongs.forEach((s) => {
+        const num = s.strongs_number || '';
+        const tip = [num, s.transliteration, s.lemma].filter(Boolean).join(' · ');
+        html += `<button type="button" class="strongs-chip" data-strongs="${escapeAttr(num)}" title="${escapeAttr(tip)}">${escapeHtml(s.surface_word || s.lemma || num)}</button>`;
+      });
+      html += '</div>';
+    }
+    if (xrefs.length) {
+      html += '<p class="small text-muted mt-2 mb-1">Related</p>';
+      xrefs.slice(0, 8).forEach((r) => {
+        html += `<button type="button" class="bible-xref-link${r.kind === 'messianic' ? ' messianic' : ''}" data-xref-book="${escapeAttr(r.book)}" data-xref-chapter="${r.chapter}" data-xref-verse="${r.verse}" data-xref-end="${r.end_verse || ''}">${escapeHtml(r.reference)}</button> `;
+      });
+    }
+    html += `<div class="bible-study-focus-actions">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-focus-act="copy">Copy</button>
+      <button type="button" class="btn btn-sm btn-cyan" data-focus-act="sermon">+ Sermon</button>
+      <button type="button" class="btn btn-sm btn-outline-cyan" data-focus-act="library">+ Library</button>
+      <button type="button" class="btn btn-sm btn-outline-cyan" data-focus-act="note">Note</button>
+    </div>`;
+    host.innerHTML = html;
+    host.querySelectorAll('[data-strongs]').forEach((node) => {
+      node.addEventListener('click', (e) => {
+        e.preventDefault();
+        showStrongs(node.dataset.strongs);
+      });
+    });
+    host.querySelectorAll('.bible-xref-link').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openXrefFromButton(btn);
+      });
+    });
+    host.querySelector('[data-focus-act="copy"]')?.addEventListener('click', () => {
+      copyBundle(selectedScriptureBundle(), 'Selection copied');
+    });
+    host.querySelector('[data-focus-act="sermon"]')?.addEventListener('click', insertSelectionToSermon);
+    host.querySelector('[data-focus-act="library"]')?.addEventListener('click', selectionToIllustration);
+    host.querySelector('[data-focus-act="note"]')?.addEventListener('click', () => openNoteModal());
+  }
+
   function noteVerseSet(notes) {
     const set = new Set();
     (notes || []).forEach((n) => {
@@ -898,13 +1056,15 @@
       const hl = highlightClassForVerse(v.verse, highlights);
       const hasNote = noted.has(v.verse);
       const isFav = favoriteVerses.has(v.verse);
-      html += `<div class="bible-verse-line${hl}${hasNote ? ' has-note' : ''}${isFav ? ' is-favorite' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
+      const isSel = selectedVerses.has(Number(v.verse));
+      html += `<div class="bible-verse-line${hl}${hasNote ? ' has-note' : ''}${isFav ? ' is-favorite' : ''}${isSel ? ' verse-selected' : ''}" data-verse="${v.verse}" data-text="${escapeAttr(v.text)}">`;
       html += `<span class="bible-verse-num">${v.verse}</span>`;
       if (hasNote) {
         html += `<button type="button" class="bible-note-marker" data-open-note-verse="${v.verse}" title="Open your note on this verse" aria-label="Open note">📝</button>`;
       }
       html += `<span class="bible-verse-text">${renderVerseText(v.text, strongs, v.woj)}</span>`;
       html += xrefHtmlForVerse(v.verse, crossRefs);
+      html += compareTextForVerse(v.verse);
       html += actionButtonsHtml({
         reference: ref,
         text: v.text,
@@ -1314,23 +1474,8 @@
   }
 
   function updateSelectionBar() {
-    const bar = el('bible-selection-bar');
-    const label = el('bible-selection-label');
-    if (!bar) return;
-    if (!selectedVerses.size) {
-      bar.style.display = 'none';
-      return;
-    }
-    bar.style.display = '';
-    const nums = Array.from(selectedVerses).sort((a, b) => a - b);
-    if (label) {
-      const range = nums.length === 1
-        ? `${currentBook} ${currentChapter}:${nums[0]}`
-        : `${currentBook} ${currentChapter}:${nums[0]}–${nums[nums.length - 1]}`;
-      label.textContent = nums.length === 1
-        ? `${range} selected — use buttons to copy, note, or send to sermon`
-        : `${range} (${nums.length} verses) selected — multi-verse actions apply to all`;
-    }
+    paintSelectedVerses();
+    fillStudyFocus();
   }
 
   function bindChapterEvents() {
@@ -1368,16 +1513,11 @@
           if (selectedVerses.has(v)) selectedVerses.delete(v);
           else selectedVerses.add(v);
         } else {
-          if (selectedVerses.size === 1 && selectedVerses.has(v)) selectedVerses.clear();
-          else {
-            selectedVerses.clear();
-            selectedVerses.add(v);
-          }
+          selectedVerses = new Set([v]);
         }
-        reader.querySelectorAll('.bible-verse-line').forEach((l) => {
-          l.classList.toggle('verse-selected', selectedVerses.has(parseInt(l.dataset.verse, 10)));
-        });
-        updateSelectionBar();
+        if (!selectedVerses.size) selectedVerses = new Set([v]);
+        paintSelectedVerses();
+        fillStudyFocus();
       });
     });
     bindActionButtons(reader);
@@ -2228,6 +2368,13 @@
 
     el('bible-open-canon')?.addEventListener('click', () => openFlyout('canon'));
     el('bible-open-tools')?.addEventListener('click', () => openFlyout('tools'));
+    el('bible-mode-read')?.addEventListener('click', () => applyStudyMode(false));
+    el('bible-mode-study')?.addEventListener('click', () => applyStudyMode(true));
+    el('bible-compare-translation')?.addEventListener('change', () => {
+      try { localStorage.setItem('pastoral_bible_compare', el('bible-compare-translation').value || ''); } catch (e) { /* ignore */ }
+      loadCompareChapter();
+    });
+    window.addEventListener('resize', () => applyStudyMode(studyModeWanted));
     el('bible-flyout-backdrop')?.addEventListener('click', closeFlyouts);
     document.querySelectorAll('.bible-flyout-close').forEach((b) => b.addEventListener('click', closeFlyouts));
     document.addEventListener('keydown', (e) => {
@@ -2251,11 +2398,11 @@
     el('strongs-search-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchStrongs(); });
     el('bible-prev-chapter')?.addEventListener('click', () => {
       closeFlyouts();
-      loadChapter(currentChapter - 1);
+      loadChapter(currentChapter - 1, { scrollToVerse: 1 });
     });
     el('bible-next-chapter')?.addEventListener('click', () => {
       closeFlyouts();
-      loadChapter(currentChapter + 1);
+      loadChapter(currentChapter + 1, { scrollToVerse: 1 });
     });
     el('bible-back-chapter')?.addEventListener('click', restoreChapter);
     el('bible-translation')?.addEventListener('change', (e) => switchTranslationSeamless(e.target));
@@ -2351,6 +2498,14 @@
         if (!resumeVerse && p.verse) resumeVerse = p.verse;
       }
     } catch (e) { /* ignore */ }
+    try {
+      const savedCompare = localStorage.getItem('pastoral_bible_compare') || '';
+      if (savedCompare && el('bible-compare-translation')) {
+        el('bible-compare-translation').value = savedCompare;
+        compareTranslation = savedCompare;
+      }
+    } catch (e) { /* ignore */ }
+
     if (want) {
       const candidates = [want, `online:${want}`, String(want).replace(/^online:/, '')];
       const pick = candidates.find((c) =>
@@ -2373,6 +2528,13 @@
         toast((data && data.error) || 'Could not save — try again');
       }
     });
+
+    let wantStudy = true;
+    try {
+      const savedMode = localStorage.getItem('pastoral_bible_mode');
+      if (savedMode === 'read') wantStudy = false;
+    } catch (e) { /* ignore */ }
+    applyStudyMode(wantStudy);
 
     // Resume last place (version already applied above)
     const startBook = resumeBook || currentBook || 'John';

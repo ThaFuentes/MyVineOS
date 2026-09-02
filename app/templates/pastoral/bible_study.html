@@ -3,16 +3,16 @@
 {% block title %}Bible Study{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260901woj">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260901xrefnav">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260902pastor">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260902pastor">
 {% endblock %}
 
 {% block pastoral_content %}
-<div class="bible-study-header text-center mb-3">
+<div class="bible-study-header mb-3">
     <h2 class="mb-1"><i class="fas fa-book-bible me-2"></i>Bible Study</h2>
     <p class="text-muted mb-2">
-        Pick any version and read online — no download required.
-        Your last version, book, and chapter are saved so you can pick up studying anytime.
+        Read in the center. Open <strong>Study</strong> on a wide screen for books, Strong’s, related verses, and a second translation beside the text.
+        Notes sit above the chapter. Highlights, notes, and favorites stay with your account.
     </p>
     <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-1">
         <span id="bible-my-version-badge" class="badge bg-info text-dark" style="display:none;"></span>
@@ -60,11 +60,15 @@
     </p>
 </div>
 
-<div class="bible-stage" id="bible-study-stage">
+<div class="bible-stage is-study" id="bible-study-stage">
     <div class="bible-stage-toolbar glass-card" style="padding:0.5rem 0.65rem;">
         <button type="button" id="bible-open-canon" class="btn btn-sm btn-outline-cyan bible-flyout-trigger"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Books</button>
         <h4 id="bible-reader-title" class="bible-stage-title">Select a book</h4>
         <div class="bible-stage-toolbar-actions">
+            <div class="bible-mode-toggle" role="group" aria-label="Layout">
+                <button type="button" id="bible-mode-read" class="btn btn-sm btn-outline-secondary" title="Text first — books and study slide in">Read</button>
+                <button type="button" id="bible-mode-study" class="btn btn-sm btn-outline-cyan active" title="Wide screen: books, text, and study tools together">Study</button>
+            </div>
             <label class="visually-hidden" for="bible-translation-toolbar">Version</label>
             <select id="bible-translation-toolbar" class="form-select form-select-sm form-control-dark bible-toolbar-version" title="Switch version — keeps your place">
                 {% if version_options %}
@@ -78,7 +82,7 @@
                 {% endif %}
             </select>
             <span id="bible-source-badge" class="badge bg-secondary" style="display:none;"></span>
-            <label class="bible-hl-default-wrap small" title="Default highlight color">
+            <label class="bible-hl-default-wrap small" title="Default highlight color for the Highlight button on each verse">
                 <span class="bible-hl-default-label">Color</span>
                 <select id="bible-hl-color-toolbar" class="form-select form-select-sm form-control-dark" style="width:auto;display:inline-block;">
                     {% for c in highlight_colors %}
@@ -86,54 +90,36 @@
                     {% endfor %}
                 </select>
             </label>
+            <select id="bible-hl-color" class="visually-hidden" tabindex="-1" aria-hidden="true">
+                {% for c in highlight_colors %}
+                <option value="{{ c }}">{{ c|capitalize }}</option>
+                {% endfor %}
+            </select>
             <label class="bible-woj-toggle small" title="Words Jesus spoke, in red">
                 <input type="checkbox" id="bible-woj-toggle" checked>
                 Jesus’ words
             </label>
+            <div class="bible-font-controls" title="Bible text size">
+                <button type="button" id="bible-font-smaller" class="btn btn-sm btn-outline-secondary" aria-label="Smaller">A-</button>
+                <span id="bible-font-label" class="bible-font-label">MD</span>
+                <button type="button" id="bible-font-larger" class="btn btn-sm btn-outline-secondary" aria-label="Larger">A+</button>
+            </div>
             <button type="button" id="bible-fav-chapter" class="btn btn-sm btn-outline-secondary" title="Favorite this chapter">♡ Ch</button>
             <button type="button" id="bible-fav-book" class="btn btn-sm btn-outline-secondary" title="Favorite this book">♡ Book</button>
             <button type="button" id="bible-back-chapter" class="btn btn-sm btn-outline-secondary" style="display:none;"><- Chapter</button>
             <button type="button" id="bible-prev-chapter" class="btn btn-sm btn-outline-secondary" disabled>Prev</button>
             <button type="button" id="bible-next-chapter" class="btn btn-sm btn-outline-secondary" disabled>Next</button>
-            <button type="button" id="bible-open-tools" class="btn btn-sm btn-cyan bible-flyout-trigger"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Tools</button>
+            <button type="button" id="bible-open-tools" class="btn btn-sm btn-cyan bible-flyout-trigger"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Study</button>
         </div>
     </div>
 
-    <div id="bible-selection-bar" class="bible-selection-bar glass-card" style="display:none;">
-        <span id="bible-selection-label" class="small">Verse selected</span>
-        <div class="bible-selection-actions">
-            <label class="small me-1" for="bible-hl-color">Color</label>
-            <select id="bible-hl-color" class="form-select form-select-sm form-control-dark" style="width:auto;display:inline-block;">
-                {% for c in highlight_colors %}
-                <option value="{{ c }}">{{ c|capitalize }}</option>
-                {% endfor %}
-            </select>
-            <button type="button" id="bible-fav-verse" class="btn btn-sm btn-outline-secondary" title="Favorite selected verse">♡ Favorite</button>
-            <button type="button" id="bible-hl-btn" class="btn btn-sm btn-warning" title="Highlight selected verses">Highlight</button>
-            <button type="button" id="bible-hl-clear-btn" class="btn btn-sm btn-outline-secondary" title="Clear highlight on selection">Clear HL</button>
-            <button type="button" id="bible-copy-sel-btn" class="btn btn-sm btn-outline-secondary" title="Copy selected verses to clipboard">Copy selection</button>
-            <button type="button" id="bible-copy-chapter-btn" class="btn btn-sm btn-outline-secondary" title="Copy this whole chapter to clipboard">Copy chapter</button>
-            <button type="button" id="bible-note-btn" class="btn btn-sm btn-cyan" title="Open a study note with selected verses filled in">Add note</button>
-            <button type="button" id="bible-sel-sermon-btn" class="btn btn-sm btn-cyan" title="Insert selected verses into the active sermon">+ Sermon</button>
-            <button type="button" id="bible-to-illustration-btn" class="btn btn-sm btn-outline-cyan" title="Save selection to Illustration Library (reusable snippets — not a sermon)">
-                <i class="fas fa-bookmark me-1"></i>+ Library
-            </button>
-            <button type="button" id="bible-chapter-note-btn" class="btn btn-sm btn-outline-cyan" title="Start a note with the full chapter text">Note: whole chapter</button>
-        </div>
-        <p class="small text-muted mb-0 mt-1" style="width:100%;">
-            Tip: click verses to select (Shift = range, Ctrl/Cmd = multi). <strong>Note</strong> = personal study notes.
-            <strong>+ Sermon</strong> = insert into the sermon chosen above. <strong>+ Library</strong> = Illustration Library for reuse.
-        </p>
-    </div>
-
-    <div id="bible-reader-content" class="bible-stage-main glass-card">
-        <p class="text-muted">Open <strong>Books</strong>, pick a version (online or installed), then choose a book and chapter.</p>
-    </div>
-
-    <div id="bible-notes-panel" class="bible-notes-panel glass-card mt-2">
+    <div class="bible-stage-center">
+    <div id="bible-notes-panel" class="bible-notes-panel glass-card">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
             <h5 class="h6 mb-0"><i class="fas fa-sticky-note me-1"></i> Study notes</h5>
             <div class="d-flex flex-wrap gap-1">
+                <button type="button" id="bible-chapter-note-btn" class="btn btn-sm btn-outline-secondary" title="Start a note with the full chapter text">Note chapter</button>
+                <button type="button" id="bible-copy-chapter-btn" class="btn btn-sm btn-outline-secondary" title="Copy this whole chapter">Copy chapter</button>
                 <button type="button" id="bible-notes-library-btn" class="btn btn-sm btn-outline-cyan">Tools library</button>
                 <button type="button" id="bible-notes-dl-chapter" class="btn btn-sm btn-outline-secondary">Download chapter</button>
                 <button type="button" id="bible-notes-dl-all" class="btn btn-sm btn-outline-secondary">Download all</button>
@@ -145,11 +131,15 @@
             <button type="button" class="bible-notes-tab" data-notes-tab="all" role="tab" aria-selected="false">All my notes</button>
         </div>
         <p class="small text-muted mb-2" id="bible-notes-hint">
-            Notes for this chapter. Verses with notes show a <span class="bible-note-dot-demo" title="Note marker">📝</span> marker in the reader — click it (or <strong>Edit / add</strong>) to open.
+            Notes sit above the chapter. Verses with notes show a <span class="bible-note-dot-demo" title="Note marker">📝</span> in the reader — tap it to open.
         </p>
         <div id="bible-notes-list"><p class="small text-muted mb-0">Notes for this chapter will appear here.</p></div>
     </div>
-</div>
+
+    <div id="bible-reader-content" class="bible-stage-main glass-card">
+        <p class="text-muted">Open <strong>Books</strong>, pick a version, then a book and chapter. The first verse is selected so the page does not jump.</p>
+    </div>
+    </div>
 
 <div id="bible-canon-flyout" class="bible-flyout bible-flyout-left glass-card" aria-hidden="true">
     <div class="bible-flyout-head">
@@ -212,10 +202,29 @@
 
 <div id="bible-tools-flyout" class="bible-flyout bible-flyout-right glass-card" aria-hidden="true">
     <div class="bible-flyout-head">
-        <h3>Tools</h3>
+        <h3>Study tools</h3>
         <button type="button" class="bible-flyout-close" data-close-flyout aria-label="Close">&times;</button>
     </div>
     <div class="bible-flyout-body">
+        <div id="bible-study-focus" class="bible-study-focus">
+            <h5 class="text-cyan small">This verse</h5>
+            <div id="bible-study-focus-body" class="bible-study-focus-body">
+                <p class="small text-muted mb-0">The first verse of the chapter opens here. Tap another verse to move study tools to it.</p>
+            </div>
+        </div>
+
+        <h5 class="text-cyan small">Compare</h5>
+        <label class="form-label small" for="bible-compare-translation">Second translation</label>
+        <select id="bible-compare-translation" class="form-select form-control-dark mb-2">
+            <option value="">Off</option>
+            {% if version_options %}
+                {% for t in version_options %}
+                <option value="{{ t.value }}">{{ t.code }}{% if t.online %} · online{% endif %}</option>
+                {% endfor %}
+            {% endif %}
+        </select>
+        <p class="small text-muted mb-3">Shows under each verse in Study on a wide screen. Off keeps a single column.</p>
+
         <h5 class="text-cyan small">Scripture search</h5>
         <div class="input-group mb-2">
             <input type="text" id="bible-search-input" class="form-control form-control-dark" placeholder="love, John 3:16">
@@ -240,6 +249,7 @@
         </p>
     </div>
 </div>
+</div>
 
 <!-- Note modal — loads previous note when one exists so you can edit / add to it -->
 <div id="bible-note-modal" class="bible-note-modal" style="display:none;" aria-hidden="true">
@@ -262,7 +272,7 @@
             </label>
         </div>
         <p class="small text-muted mb-2">
-            Saving puts this in the <strong>Study notes</strong> panel under the reader (not the Illustration Library).
+            Saving puts this in the <strong>Study notes</strong> panel above the chapter (not the Illustration Library).
         </p>
         <div class="d-flex flex-wrap gap-2 justify-content-between">
             <button type="button" id="bible-note-new" class="btn btn-sm btn-outline-secondary" style="display:none;" title="Keep the previous note and write a separate one">Start new note</button>
@@ -309,5 +319,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260901xrefnav"></script>
+<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260902pastor"></script>
 {% endblock %}
