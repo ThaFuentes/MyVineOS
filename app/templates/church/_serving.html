@@ -1,0 +1,53 @@
+{# Viewer’s own asks only — the view leaves `serving` empty on someone else’s page. #}
+{% if serving %}
+<section class="glass-panel profile-card profile-serving">
+  <h2 class="profile-card-title">
+    This Sunday
+    {% include 'partials/serving_badges.html' %}
+  </h2>
+  <ul class="profile-serving-list">
+    {% for a in serving %}
+    <li class="profile-serving-row">
+      <div>
+        <strong>{{ a.role_name }}</strong>
+        <span>{{ a.kind_label }}{% if a.title %} · {{ a.title }}{% endif %}</span>
+        <span>{{ a.serve_date }}{% if a.serve_time %} · {{ a.serve_time }}{% endif %}</span>
+      </div>
+      <div class="profile-serving-actions">
+        <em class="vol-pill vol-pill--{{ a.status }}">{{ a.status }}</em>
+        {% if a.status == 'pending' and a.token %}
+          {% if a.source == 'volunteer' %}
+          <form method="post" action="{{ url_for('volunteers.my_respond', assignment_id=a.id) }}">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="decision" value="accept">
+            <button type="submit" class="btn btn-primary btn-sm">Yes</button>
+          </form>
+          <form method="post" action="{{ url_for('volunteers.my_respond', assignment_id=a.id) }}">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="decision" value="decline">
+            <button type="submit" class="btn btn-secondary btn-sm">Can’t</button>
+          </form>
+          {% else %}
+          <form method="post" action="{{ url_for('church.serve_reply') }}">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="token" value="{{ a.token }}">
+            <input type="hidden" name="decision" value="accept">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn btn-primary btn-sm">Yes</button>
+          </form>
+          <form method="post" action="{{ url_for('church.serve_reply') }}">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="token" value="{{ a.token }}">
+            <input type="hidden" name="decision" value="decline">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn btn-secondary btn-sm">Can’t</button>
+          </form>
+          {% endif %}
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <a class="profile-quiet-link" href="{{ url_for('volunteers.my_schedule') }}">Full serving list</a>
+</section>
+{% endif %}

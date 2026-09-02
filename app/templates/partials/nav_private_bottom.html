@@ -1,27 +1,28 @@
 {# Mobile only: bottom tabs open sheets (lists). Desktop uses top-nav dropdowns. #}
 {% set ep = request.endpoint or '' %}
 {% set s = g.settings|default({}) if g is defined else {} %}
-{% set community_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'bible.', 'curriculum.')) %}
-{% set office_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.', 'worship.', 'child_checkin.', 'custom_modules.', 'accounting.', 'volunteers.', 'communications.')) and ep not in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond') %}
+{% set community_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'bible.', 'curriculum.')) or ep.startswith('public.public_dashboard.') or ep == 'church.people' %}
+{% set office_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.', 'child_checkin.', 'custom_modules.', 'accounting.', 'volunteers.', 'communications.')) and ep not in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond') %}
 {% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond') %}
-{% set more_active = ep.startswith(('pastoral.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) %}
+{% set more_active = ep.startswith(('pastoral.', 'worship.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) or ep in ('church.moderation_desk', 'church.moderation_review') %}
 {% set show_security = can_access_security_console|default(false) %}
 {% set show_pastoral = user_has_permission('access_pastoral') %}
 {% set show_ticket_mgr = can_manage_tickets() if can_manage_tickets is defined else (session.get('user_role') in ['Admin', 'Owner']) %}
 
 <nav class="bottom-nav bottom-nav--sheets" aria-label="Primary mobile navigation" id="private-bottom-nav">
-  <a href="{{ url_for('dashboard.dashboard') }}"
-     class="bottom-nav-item {{ 'active' if ep == 'dashboard.dashboard' else '' }}"
+  <a href="{{ home_url|default(url_for('church.church_home')) }}"
+     class="bottom-nav-item {{ 'active' if ep.startswith('church.church_') else '' }}"
      data-nav-direct="1">
     <span class="icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
     <span class="label">Home</span>
   </a>
 
-  <button type="button" class="bottom-nav-item {{ 'active' if community_active else '' }}"
-          data-nav-sheet="community" aria-expanded="false" aria-controls="nav-sheet-community">
-    <span class="icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
-    <span class="label">Community</span>
-  </button>
+  <a href="{{ url_for('public.public_dashboard.public_community') }}"
+     class="bottom-nav-item {{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}"
+     data-nav-direct="1">
+    <span class="icon"><i class="fa-solid fa-rss" aria-hidden="true"></i></span>
+    <span class="label">Feed</span>
+  </a>
 
   <button type="button" class="bottom-nav-item {{ 'active' if office_active else '' }}"
           data-nav-sheet="office" aria-expanded="false" aria-controls="nav-sheet-office">
@@ -31,7 +32,10 @@
 
   <button type="button" class="bottom-nav-item {{ 'active' if account_active else '' }}"
           data-nav-sheet="mystuff" aria-expanded="false" aria-controls="nav-sheet-mystuff">
-    <span class="icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+    <span class="icon">
+      <i class="fa-solid fa-user" aria-hidden="true"></i>
+      {% if serving_pending_count %}<span class="count-pill count-pill-alert" title="Unanswered serving">{{ serving_pending_count }}</span>{% endif %}
+    </span>
     <span class="label">My Stuff</span>
   </button>
 
@@ -51,9 +55,30 @@
     <button type="button" class="nav-sheet-close" data-nav-sheet-close aria-label="Close">×</button>
   </header>
   <div class="nav-sheet-body">
-    <a href="{{ url_for('public.public_dashboard.public_community') }}" class="nav-sheet-link {{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">
-      <i class="fa-solid fa-rss" aria-hidden="true"></i> Community Feed
+    <a href="{{ main_church_url|default(url_for('church.church_home')) }}" class="nav-sheet-link {{ 'active' if ep.startswith('church.church_') else '' }}">
+      <i class="fa-solid fa-church" aria-hidden="true"></i> {% if has_branches %}Main church{% else %}Church page{% endif %}
     </a>
+    {% if has_branches and viewer_branch_id and home_url and home_url != main_church_url %}
+    <a href="{{ home_url }}" class="nav-sheet-link">
+      <i class="fa-solid fa-location-dot" aria-hidden="true"></i> Your branch{% if viewer_branch_name %} · {{ viewer_branch_name }}{% endif %}
+    </a>
+    {% endif %}
+    {% if session.get('username') %}
+    <a href="{{ url_for('church.member_page', username=session.username) }}" class="nav-sheet-link {{ 'active' if ep == 'church.member_page' else '' }}">
+      <i class="fa-solid fa-user" aria-hidden="true"></i> My page
+    </a>
+    {% endif %}
+    <a href="{{ url_for('public.public_dashboard.public_community') }}" class="nav-sheet-link {{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">
+      <i class="fa-solid fa-rss" aria-hidden="true"></i> Feed
+    </a>
+    <a href="{{ url_for('church.people') }}" class="nav-sheet-link {{ 'active' if ep == 'church.people' else '' }}">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Find people
+    </a>
+    {% if endpoint_exists('church.messages') %}
+    <a href="{{ url_for('church.messages') }}" class="nav-sheet-link {{ 'active' if ep.startswith('church.messages') else '' }}">
+      <i class="fa-solid fa-envelope" aria-hidden="true"></i> Notes{% if inbox_unread %} ({{ inbox_unread }}){% endif %}
+    </a>
+    {% endif %}
     <a href="{{ url_for('events.events') }}" class="nav-sheet-link {{ 'active' if ep.startswith('events.') else '' }}">
       <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Events
     </a>
@@ -154,11 +179,6 @@
       <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Communications
     </a>
     {% endif %}
-    {% if module_on('worship') and can_access_worship %}
-    <a href="{{ url_for('worship.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('worship.') else '' }}">
-      <i class="fa-solid fa-music" aria-hidden="true"></i> Worship Team
-    </a>
-    {% endif %}
     {% for cm in dashboard_custom_modules or [] %}
     <a href="{{ url_for('custom_modules.module_list', slug=cm.slug) }}" class="nav-sheet-link">
       <i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i> {{ cm.name }}
@@ -190,6 +210,7 @@
     {% if module_on('my_serving') and endpoint_exists('volunteers.my_schedule') %}
     <a href="{{ url_for('volunteers.my_schedule') }}" class="nav-sheet-link {{ 'active' if ep in ('volunteers.my_schedule','volunteers.my_respond') else '' }}">
       <i class="fa-solid fa-calendar-check" aria-hidden="true"></i> My Serving
+      {% include 'partials/serving_badges.html' %}
     </a>
     {% endif %}
     {% if module_on('support_tickets') %}
@@ -224,6 +245,21 @@
     {% if show_pastoral %}
     <a href="{{ url_for('pastoral.dashboard_pastoral') }}" class="nav-sheet-link {{ 'active' if ep.startswith('pastoral.') else '' }}">
       <i class="fa-solid fa-cross" aria-hidden="true"></i> Pastoral
+    </a>
+    {% endif %}
+    {% if module_on('worship') and can_access_worship %}
+    <a href="{{ url_for('worship.dashboard') }}" class="nav-sheet-link {{ 'active' if ep.startswith('worship.') else '' }}">
+      <i class="fa-solid fa-music" aria-hidden="true"></i> Worship Team
+    </a>
+    {% endif %}
+    {% if user_has_permission('moderate_site') %}
+    <a href="/church/moderation" class="nav-sheet-link {{ 'active' if ep == 'church.moderation_desk' else '' }}">
+      <i class="fa-solid fa-user-shield" aria-hidden="true"></i> Site moderation
+    </a>
+    {% endif %}
+    {% if user_has_permission('review_moderation') %}
+    <a href="/church/moderation/review" class="nav-sheet-link {{ 'active' if ep == 'church.moderation_review' else '' }}">
+      <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Moderation review
     </a>
     {% endif %}
     {% if module_on('gathering_manager') and can_access_gathering_place %}

@@ -104,7 +104,13 @@ def run_volunteer_reminders() -> int:
     """Email volunteer assignment reminders based on vol_reminder_days_before."""
     try:
         from app.models import volunteers as vol
-        return vol.send_pending_reminders()
+        n = vol.send_pending_reminders()
+        try:
+            from app.models.serving import send_pending_reminders as serve_remind
+            n += serve_remind()
+        except Exception as se:
+            print(f"Sunday serving reminders error: {se}")
+        return n
     except Exception as e:
         print(f"Volunteer reminders error: {e}")
         return 0

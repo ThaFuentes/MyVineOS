@@ -225,14 +225,32 @@ def export_page():
 # ----------------------------------------------------------------------
 # Export Individual Receipts (DOCX)
 # ----------------------------------------------------------------------
+def _receipt_export_dir():
+    path = os.path.abspath(os.path.join(current_app.root_path, '..', 'export'))
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def _export_year():
+    raw = (request.form.get('year') or '').strip()
+    if not raw.isdigit() or len(raw) != 4:
+        return None
+    year = int(raw)
+    this_year = now_church().year
+    if year < 1990 or year > this_year + 1:
+        return None
+    return year
+
+
 @donations_bp.route('/export/individual', methods=['POST'])
 @permission_required(DONATIONS_VIEW_PERMISSIONS)
 def export_individual():
-    year = request.form['year']
+    year = _export_year()
+    if not year:
+        flash('Pick a valid year.', 'error')
+        return redirect(url_for('donations.export_page'))
     member_ids = request.form.getlist('member_ids')
-    save_location = request.form.get('save_location', '').strip() or os.path.join(current_app.root_path, '..', 'export')
-
-    os.makedirs(save_location, exist_ok=True)
+    save_location = _receipt_export_dir()
     church_info = get_church_info()
 
     exported_count = 0
@@ -298,7 +316,7 @@ def export_individual():
         exported_count += 1
 
     log_change(session['user_id'], action='export', change_details=f'Exported {exported_count} individual receipts for {year}')
-    flash(f'{exported_count} individual contribution receipts exported to {save_location}', 'success')
+    flash(f'{exported_count} individual contribution receipts saved in the church export folder.', 'success')
     return redirect(url_for('donations.export_page'))
 
 
@@ -308,10 +326,11 @@ def export_individual():
 @donations_bp.route('/export/yearly', methods=['POST'])
 @permission_required(DONATIONS_VIEW_PERMISSIONS)
 def export_yearly():
-    year = request.form['year']
-    save_location = request.form.get('save_location', '').strip() or os.path.join(current_app.root_path, '..', 'export')
-
-    os.makedirs(save_location, exist_ok=True)
+    year = _export_year()
+    if not year:
+        flash('Pick a valid year.', 'error')
+        return redirect(url_for('donations.export_page'))
+    save_location = _receipt_export_dir()
     church_info = get_church_info()
 
     names = get_unique_donor_names(year)
@@ -328,7 +347,7 @@ def export_yearly():
     doc.add_heading(f"Yearly Contribution Summary - {year}", level=1)
 
     for name in names:
-        dons = get_donations_for_export(name, year, user_id=int(mid))
+        dons = get_donations_for_export(name, year)
         if not dons:
             continue
 
@@ -371,7 +390,7 @@ def export_yearly():
     doc.save(full_path)
 
     log_change(session['user_id'], action='export', change_details=f'Exported yearly contribution summary for {year}')
-    flash(f'Yearly contribution summary exported to {full_path}', 'success')
+    flash('Yearly contribution summary saved in the church export folder.', 'success')
     return redirect(url_for('donations.export_page'))
 
 

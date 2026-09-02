@@ -72,6 +72,9 @@ def get_assignments(setlist_id: int):
 
 def save_assignments(setlist_id: int, rows: list):
     ensure_assignment_guest_columns()
+    from app.models.serving import ensure_serving_columns, _snapshot, serving_fields_for_insert, after_setlist_saved
+    ensure_serving_columns()
+    prev = _snapshot('worship_setlist_assignments', 'setlist_id = %s', (int(setlist_id),))
     db = get_db()
     cur = db.cursor()
     cur.execute("DELETE FROM worship_setlist_assignments WHERE setlist_id = %s", (setlist_id,))
@@ -92,18 +95,30 @@ def save_assignments(setlist_id: int, rows: list):
             guest = None
         if not uid and not guest:
             continue
+        key = (int(uid), role) if uid else None
+        status, token, notified, responded = serving_fields_for_insert(prev.get(key) if key else None, uid)
         try:
             cur.execute("""
-                INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id, guest_name)
-                VALUES (%s, %s, %s, %s)
-            """, (setlist_id, role, uid, guest))
+                INSERT INTO worship_setlist_assignments
+                    (setlist_id, role_name, user_id, guest_name, status, response_token, notified_at, responded_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (setlist_id, role, uid, guest, status, token, notified, responded))
         except Exception:
             if uid:
                 cur.execute("""
                     INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id)
                     VALUES (%s, %s, %s)
                 """, (setlist_id, role, uid))
+            else:
+                cur.execute("""
+                    INSERT INTO worship_setlist_assignments (setlist_id, role_name, user_id, guest_name)
+                    VALUES (%s, %s, %s, %s)
+                """, (setlist_id, role, uid, guest))
     db.commit()
+    try:
+        after_setlist_saved(setlist_id)
+    except Exception as exc:
+        print(f'worship serving: {exc}')
 
 
 def get_setlist_songs(setlist_id: int, chart_key: str | None = None):

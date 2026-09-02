@@ -26,9 +26,25 @@ import pymysql
 # ----------------------------------------------------------------------
 # Helper: Call the configured AI provider (shared client)
 # ----------------------------------------------------------------------
-def call_ai(prompt, model=None):
+def call_ai(prompt, model=None, *, max_prompt_chars=400000):
     """Thin wrapper so pastoral sermon tools share Gemini model fixes."""
-    return _shared_call_ai(prompt, model=model, timeout=45)
+    return _shared_call_ai(
+        prompt,
+        model=model,
+        timeout=180,
+        max_prompt_chars=max_prompt_chars,
+        shrink_on_reject=True,
+    )
+
+
+def _sermon_body_for_ai(sermon_id, user_id) -> str:
+    """Full sermon text from the database — not just title/passage."""
+    from app.models.pastoral.sermons import get_sermon_by_id, get_sermon_sections
+    from app.models.pastoral.sermon_search import sermon_blob_for_ai
+    sermon = get_sermon_by_id(sermon_id, user_id)
+    if not sermon:
+        return ''
+    return sermon_blob_for_ai(sermon, get_sermon_sections(sermon_id) or [])
 
 # ----------------------------------------------------------------------
 # Generate Outline
@@ -40,17 +56,21 @@ def ai_generate_outline(sermon_id):
     data = request.get_json() or {}
     title = data.get('title', '').strip()
     passage = data.get('primary_passage', '').strip()
+    sermon_text = _sermon_body_for_ai(sermon_id, user_id)
 
-    if not title and not passage:
+    if not title and not passage and not sermon_text:
         return jsonify({'status': 'error', 'message': 'Title or primary passage required'}), 400
 
     prompt_text = f"Title: {title}\nPrimary Passage: {passage}"
+    if sermon_text:
+        prompt_text += f"\n\nFULL SERMON TEXT:\n{sermon_text}"
     if contains_censored_word(prompt_text):
         return jsonify({'status': 'error', 'message': 'Prohibited content in prompt'}), 400
 
     prompt = f"""
     You are a practical preaching teammate helping a modern pastor prepare.
     Use clear everyday English (not King James style). Keep content warm and usable.
+    You have the pastor's full sermon below (every section). Do not say you received little data.
     Generate a clear, structured sermon outline based on the following:
     {prompt_text}
 
@@ -92,17 +112,20 @@ def ai_suggest_questions(sermon_id):
     user_id = session['user_id']
     data = request.get_json() or {}
     context = data.get('context', '').strip()
+    sermon_text = _sermon_body_for_ai(sermon_id, user_id)
+    material = sermon_text or context
 
-    if not context:
+    if not material:
         return jsonify({'status': 'error', 'message': 'Context required'}), 400
 
-    if contains_censored_word(context):
+    if contains_censored_word(material):
         return jsonify({'status': 'error', 'message': 'Prohibited content in context'}), 400
 
     prompt = f"""
     You are a practical preaching teammate helping a modern pastor.
     Use clear everyday English (not formal or King James style).
-    Based on this sermon content: {context}
+    You have the pastor's full sermon below. Do not say you received little data.
+    Based on this sermon content:\n{material}
 
     Suggest 5-8 thoughtful small-group discussion/application questions.
     Return ONLY a numbered list. No markdown headings.
@@ -128,19 +151,23 @@ def ai_expand_point(sermon_id):
     user_id = session['user_id']
     data = request.get_json() or {}
     point = data.get('point', '').strip()
+    sermon_text = _sermon_body_for_ai(sermon_id, user_id)
 
     if not point:
         return jsonify({'status': 'error', 'message': 'Point text required'}), 400
 
-    if contains_censored_word(point):
+    if contains_censored_word(point) or contains_censored_word(sermon_text):
         return jsonify({'status': 'error', 'message': 'Prohibited content'}), 400
 
+    extra = f"\n\nFULL SERMON for context:\n{sermon_text}" if sermon_text else ''
     prompt = f"""
     You are a practical preaching teammate helping a modern pastor.
     Expand this sermon point into 3-5 short paragraphs a pastor could adapt:
     {point}
+    {extra}
 
     Everyday English, warm and clear — not King James, not academic. No markdown headings.
+    Use the full sermon if it is present. Do not say you received little data.
     """
 
     output, error = call_ai(prompt)

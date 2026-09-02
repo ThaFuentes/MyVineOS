@@ -1,7 +1,7 @@
 {% extends "pastoral/base_pastoral.html" %}
 {% block title %}{% if series %}Edit Course{% else %}New Course{% endif %}{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260716form">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260901access">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -66,31 +66,23 @@
 
     {# ---- Audience & access ---- #}
     <details open id="curr-section-access" class="collapsible-section glass curr-form-section">
-      <summary class="collapsible-summary section-subtitle">Audience &amp; who can study</summary>
+      <summary class="collapsible-summary section-subtitle">Who this is for</summary>
       <div class="collapsible-content">
 
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="curr-audience" class="control-label">Audience</label>
-            <select id="curr-audience" name="audience" class="form-input">
-              {% set sel_aud = (series.audience if series else request.form.get('audience', 'everyone')) %}
-              {% for key, label in audiences %}
-              <option value="{{ key }}" {% if sel_aud == key %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-            <p class="help-text">Helps members filter the catalog.</p>
-          </div>
+        <div class="form-group">
+          <label for="curr-audience" class="control-label">Age / group label</label>
+          <select id="curr-audience" name="audience" class="form-input">
+            {% set sel_aud = (series.audience if series else request.form.get('audience', 'everyone')) %}
+            {% for key, label in audiences %}
+            <option value="{{ key }}" {% if sel_aud == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <p class="help-text">Catalog filter only — not a permission. “Youth” still uses the boxes below for who can open it.</p>
+        </div>
 
-          <div class="form-group">
-            <label for="curr-visibility" class="control-label">Who can study it</label>
-            {% set sel_vis = (series.visibility if series else request.form.get('visibility', 'members')) %}
-            <select id="curr-visibility" name="visibility" class="form-input">
-              <option value="members" {% if sel_vis == 'members' %}selected{% endif %}>Logged-in members</option>
-              <option value="public" {% if sel_vis == 'public' %}selected{% endif %}>Anyone with the link (still needs login)</option>
-              <option value="pastoral" {% if sel_vis == 'pastoral' %}selected{% endif %}>Pastoral team only (hidden from catalog)</option>
-            </select>
-            <p class="help-text">Pastoral-only courses stay out of the member catalog.</p>
-          </div>
+        <div class="form-group">
+          <span class="control-label">Who can take it</span>
+          {% include 'pastoral/curriculum/_access_picker.html' %}
         </div>
 
       </div>
@@ -130,6 +122,7 @@
   </form>
 </section>
 
+<script src="{{ url_for('static', filename='js/global/pastoral/curriculum.js') }}?v=20260901access"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   ['basic', 'access', 'extra'].forEach(function (key) {

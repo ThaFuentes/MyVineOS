@@ -1,7 +1,7 @@
 {% extends "pastoral/base_pastoral.html" %}
 {% block title %}{{ series.title }} · Curriculum{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260716form">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260901access">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -51,23 +51,19 @@
             <textarea id="edit-description" name="description" class="form-input" rows="5">{{ series.description or '' }}</textarea>
           </div>
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="edit-audience" class="control-label">Audience</label>
-              <select id="edit-audience" name="audience" class="form-input">
-                {% for key, label in audiences %}
-                <option value="{{ key }}" {% if series.audience==key %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="edit-visibility" class="control-label">Who can study it</label>
-              <select id="edit-visibility" name="visibility" class="form-input">
-                <option value="members" {% if series.visibility=='members' %}selected{% endif %}>Logged-in members</option>
-                <option value="public" {% if series.visibility=='public' %}selected{% endif %}>Anyone with the link (login)</option>
-                <option value="pastoral" {% if series.visibility=='pastoral' %}selected{% endif %}>Pastoral only</option>
-              </select>
-            </div>
+          <div class="form-group">
+            <label for="edit-audience" class="control-label">Age / group label</label>
+            <select id="edit-audience" name="audience" class="form-input">
+              {% for key, label in audiences %}
+              <option value="{{ key }}" {% if series.audience==key %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <p class="help-text">Catalog filter only. Who can open the course is the boxes below.</p>
+          </div>
+
+          <div class="form-group">
+            <span class="control-label">Who can take it</span>
+            {% include 'pastoral/curriculum/_access_picker.html' %}
           </div>
 
           <div class="form-group">
@@ -137,4 +133,5 @@
     </aside>
   </div>
 </section>
+<script src="{{ url_for('static', filename='js/global/pastoral/curriculum.js') }}?v=20260901access"></script>
 {% endblock %}

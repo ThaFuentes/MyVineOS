@@ -92,6 +92,54 @@ img, video {
   }
 }
 
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.people-search-form {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-right: 0.35rem;
+}
+
+.people-search-form input {
+  min-height: 2rem;
+  width: 11rem;
+  max-width: 28vw;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--primary-border, rgba(0,255,255,0.25));
+  background: rgba(0,0,0,0.25);
+  color: inherit;
+  font-size: 0.85rem;
+}
+
+.people-search-form button {
+  min-height: 2rem;
+  min-width: 2rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--primary-border, rgba(0,255,255,0.25));
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .people-search-form {
+    display: none;
+  }
+}
+
 .top-bar .user-info {
   display: flex;
   align-items: center;
@@ -256,7 +304,11 @@ img, video {
   text-decoration: none;
 }
 .bottom-nav button.bottom-nav-item .icon,
-.bottom-nav .bottom-nav-item .icon { font-size: 1.15rem; line-height: 1; }
+.bottom-nav .bottom-nav-item .icon {
+  position: relative;
+  font-size: 1.15rem;
+  line-height: 1;
+}
 .bottom-nav button.bottom-nav-item .label,
 .bottom-nav .bottom-nav-item .label { font-size: 0.68rem; }
 .bottom-nav button.bottom-nav-item.active,
@@ -503,7 +555,9 @@ body.nav-sheet-open {
   }
 
   .nav-group-menu a {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     padding: 0.5rem 0.85rem;
     border-radius: 8px;
     font-size: 0.84rem;
@@ -784,12 +838,15 @@ body.standalone .top-bar {
    Full width, grid main+sidebar, pro inputs, smooth section flow
    ======================================== */
 
-/* Main editor — full width (no bottom/side vault panel) */
+/* Main editor + left section rail */
 .sermon-editor {
   max-width: none;
   width: 100%;
-  padding: 1.5rem 2rem;
-  display: block;
+  padding: 0.75rem 0.35rem 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(11.25rem, 14rem) minmax(0, 1fr);
+  gap: 0.85rem 1rem;
+  align-items: start;
 }
 
 /* Override page-content max-width for the full-width sermon editor */
@@ -799,9 +856,10 @@ body.standalone .top-bar {
   padding-right: 1rem;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 900px) {
   .sermon-editor {
     grid-template-columns: 1fr;
+    padding: 0.5rem 0;
   }
 }
 
@@ -867,6 +925,123 @@ body.standalone .top-bar {
   font-size: 0.95rem;
   margin: 0;
   flex: 1;
+}
+
+/* Sticky left section list — stays on screen while the sermon scrolls */
+.sermon-section-rail {
+  position: sticky;
+  top: 3.6rem;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 0.7rem 0.55rem 0.65rem;
+  margin: 0;
+  max-height: calc(100vh - 4.4rem);
+  border-radius: 14px;
+  background: rgba(12, 18, 22, 0.94);
+  border: 1px solid rgba(0, 255, 255, 0.22);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.sermon-rail-kicker {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  padding: 0 0.35rem 0.15rem;
+}
+.sermon-section-rail-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  padding: 0.05rem;
+}
+.sermon-rail-chip,
+.sermon-rail-add {
+  flex: 0 0 auto;
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  color: inherit;
+  border-radius: 10px;
+  padding: 0.42rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  max-width: none;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.sermon-rail-chip:hover,
+.sermon-rail-add:hover {
+  border-color: var(--primary, #4dffc8);
+  color: var(--primary, #4dffc8);
+}
+.sermon-rail-chip.is-active {
+  border-color: var(--primary, #4dffc8);
+  background: rgba(77, 255, 200, 0.16);
+  color: var(--primary, #4dffc8);
+}
+.sermon-rail-add {
+  height: 2.2rem;
+  padding: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-line-clamp: unset;
+}
+.section-card {
+  scroll-margin-top: 4.5rem;
+}
+@media (max-width: 900px) {
+  .sermon-section-rail {
+    top: 6.4rem;
+    flex-direction: row;
+    align-items: center;
+    max-height: none;
+    border-radius: 14px;
+    padding: 0.4rem 0.5rem;
+  }
+  .sermon-rail-kicker { display: none; }
+  .sermon-section-rail-chips {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .sermon-rail-chip {
+    width: auto;
+    max-width: 11rem;
+    white-space: nowrap;
+    display: inline-block;
+    -webkit-line-clamp: unset;
+    text-overflow: ellipsis;
+    border-radius: 999px;
+  }
+  .sermon-rail-add {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+  }
+}
+html[data-theme="soft-light"] .sermon-section-rail {
+  background: rgba(248, 250, 252, 0.94);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 /* Top-right quick menu (sections toolbar) */
@@ -1597,4 +1772,42 @@ body.standalone .top-bar {
   .page-content main {
     padding-bottom: 0.5rem;
   }
+}
+
+/* Serving / alert counts: red unanswered, on-color volunteered */
+.count-pill {
+  display: inline-flex;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.28rem;
+  margin-left: 0.18rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.count-pill-alert {
+  background: #e23d3d;
+  color: #fff;
+}
+.count-pill-on {
+  background: var(--profile-serve-on, #3d8bff);
+  color: #fff;
+}
+.nav-sheet-link .count-pill:first-of-type {
+  margin-left: auto;
+}
+.bottom-nav .icon .count-pill {
+  position: absolute;
+  top: -0.4rem;
+  right: -0.7rem;
+  margin: 0;
+  min-width: 1rem;
+  height: 1rem;
+  font-size: 0.58rem;
+  box-shadow: 0 0 0 2px var(--bg-header, #1a1a1a);
 }

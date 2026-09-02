@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Study &amp; Grow{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260714a">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/curriculum.css') }}?v=20260901access">
 {% endblock %}
 
 {% block content %}
@@ -11,6 +11,13 @@
     Courses built by your pastoral team — clear lessons, scripture, media, and check-your-understanding moments.
     Pick a path and take the next step.
   </p>
+  {% if is_guest %}
+  <p class="curr-guest-note">
+    You’re browsing as a guest. Public courses can be read and completed —
+    <strong>progress is not saved</strong>.
+    <a href="{{ url_for('auth.login', next=request.path) }}">Log in</a> to keep a record on member courses.
+  </p>
+  {% endif %}
   {% if user_has_permission('access_pastoral') %}
   <div class="curr-hero-actions">
     <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn btn-secondary">
@@ -51,10 +58,13 @@
       <div class="curr-meta">
         <span class="curr-pill">{{ s.lesson_count or 0 }} lessons</span>
         <span class="curr-pill">{{ s.audience }}</span>
+        {% if s.is_public %}<span class="curr-pill curr-pill--public">Open to guests</span>{% endif %}
         {% if en.progress_pct %}
         <span class="curr-pill curr-pill--live">{{ '%.0f'|format(en.progress_pct|float) }}% done</span>
         {% elif en.id %}
         <span class="curr-pill">In progress</span>
+        {% elif is_guest and s.is_public %}
+        <span class="curr-pill">Try it — not saved</span>
         {% else %}
         <span class="curr-pill">Start fresh</span>
         {% endif %}
@@ -66,8 +76,14 @@
 {% else %}
 <div class="glass-panel curr-empty">
   <div style="font-size:2.2rem; opacity:0.45;"><i class="fa-solid fa-compass" aria-hidden="true"></i></div>
-  <h2>Courses are on the way</h2>
-  <p>When your church publishes study paths, they’ll show up here. Check back soon — or ask a pastor about what’s coming.</p>
+  <h2>{% if is_guest %}No public courses yet{% else %}Courses are on the way{% endif %}</h2>
+  <p>
+    {% if is_guest %}
+    This church hasn’t published a public study path. Log in if you have a member account — more courses may be waiting there.
+    {% else %}
+    When your church publishes study paths you can take, they’ll show up here. Check back soon — or ask a pastor about what’s coming.
+    {% endif %}
+  </p>
   {% if user_has_permission('access_pastoral') %}
   <a href="{{ url_for('pastoral.curriculum_studio.library') }}" class="btn btn-primary">Build the first course</a>
   {% endif %}

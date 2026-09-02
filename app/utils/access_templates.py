@@ -243,6 +243,7 @@ def seed_starter_templates(cur) -> None:
     row = cur.fetchone()
     n = int(row['n'] if isinstance(row, dict) else row[0]) if row else 0
     if n > 0:
+        ensure_moderation_templates(cur)
         return
     from app.utils.permission_matrix import TEMPLATE_MEMBER_START_KEYS, TEMPLATE_STAFF_START_KEYS
 
@@ -263,6 +264,43 @@ def seed_starter_templates(cur) -> None:
         permissions=list(TEMPLATE_STAFF_START_KEYS),
     )
     print('Seeded starter access templates (New Member basics, New Staff basics)')
+    ensure_moderation_templates(cur)
+
+
+SITE_MOD_KEYS = ['moderate_site']
+MOD_REVIEW_KEYS = ['review_moderation', 'moderate_site', 'view_audit_logs']
+
+
+def ensure_moderation_templates(cur) -> None:
+    """Site-mod and reviewer packs — only those keys, not office tools."""
+    ensure_templates_table(cur)
+    wanted = (
+        (
+            'Site moderator',
+            'Only community moderation: hide, shadow, warn, remove. Reviewers can reverse it. No office, finance, or settings.',
+            'Staff',
+            SITE_MOD_KEYS,
+        ),
+        (
+            'Moderation review',
+            'For a trusted person above the mods (does not have to be Admin). See what they did and reverse it.',
+            'Staff',
+            MOD_REVIEW_KEYS,
+        ),
+    )
+    for name, description, for_role, keys in wanted:
+        cur.execute("SELECT id FROM access_templates WHERE name = %s LIMIT 1", (name,))
+        if cur.fetchone():
+            continue
+        create_template(
+            cur,
+            name=name,
+            description=description,
+            for_role=for_role,
+            is_default=False,
+            permissions=list(keys),
+        )
+        print(f'Seeded access template: {name}')
 
 
 # --- legacy helpers used by older call sites (promote/create) ---

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{{ photo.caption or 'Photo' }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=21">
+{% endblock %}
+
+{% block content %}
+<div class="church-page">
+  <header class="feed-page-head">
+    <div>
+      <p class="page-kicker">Photo</p>
+      <h1 class="page-title">{{ (photo.caption or 'Photo') | censor }}</h1>
+    </div>
+    <a class="btn btn-secondary" href="{{ album_url }}">All photos</a>
+  </header>
+
+  <figure class="glass-panel profile-photo-hero">
+    <img src="{{ photo.url }}" alt="{{ (photo.caption or 'Photo') | censor }}">
+  </figure>
+
+  {% set item = {
+    'id': photo.id,
+    'type': 'photo',
+    'comments': comments|default([]),
+  } %}
+  {% set wall_surface = photo_surface|default('church') %}
+  {% set guest_can_comment = photo_surface != 'member' %}
+  <section class="glass-panel profile-card">
+    <h2 class="profile-card-title">Comments</h2>
+    {% include 'partials/item_comments.html' %}
+  </section>
+</div>
+{% endblock %}

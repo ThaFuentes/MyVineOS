@@ -210,18 +210,34 @@ def approve_user(user_id: int, approved_by: int, role: str = 'Member') -> None:
                details=f"Approved as {role}")
 
 
-def ban_user(user_id: int, banned_by: int) -> None:
+def ban_user(user_id: int, banned_by: int, *, record: bool = True) -> None:
     """
     Ban a user (set role = 'banned').
     """
     db = get_db()
     cur = db.cursor()
+    cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+    row = cur.fetchone()
+    prev_role = None
+    if row:
+        prev_role = row['role'] if isinstance(row, dict) else row[0]
     cur.execute("UPDATE users SET role = 'banned' WHERE id = %s", (user_id,))
     db.commit()
     log_change(banned_by, 'ban_user', target_table='users', target_id=user_id)
+    if record:
+        from app.models.moderation import record_action
+        record_action(
+            actor_id=banned_by,
+            action_type='user_ban',
+            target_kind='user',
+            target_table='users',
+            target_id=int(user_id),
+            target_user_id=int(user_id),
+            snapshot={'previous_role': prev_role or 'Member'},
+        )
 
 
-def unban_user(user_id: int, unbanned_by: int, role: str = 'Member') -> None:
+def unban_user(user_id: int, unbanned_by: int, role: str = 'Member', *, record: bool = True) -> None:
     db = get_db()
     cur = db.cursor()
     cur.execute(
@@ -233,9 +249,20 @@ def unban_user(user_id: int, unbanned_by: int, role: str = 'Member') -> None:
     db.commit()
     log_change(unbanned_by, 'unban_user', target_table='users', target_id=user_id,
                details=f'Restored role {role}')
+    if record:
+        from app.models.moderation import record_action
+        record_action(
+            actor_id=unbanned_by,
+            action_type='user_unban',
+            target_kind='user',
+            target_table='users',
+            target_id=int(user_id),
+            target_user_id=int(user_id),
+            snapshot={'restored_role': role},
+        )
 
 
-def set_shadow_ban(user_id: int, shadow_banned: bool, actor_id: int) -> None:
+def set_shadow_ban(user_id: int, shadow_banned: bool, actor_id: int, *, record: bool = True) -> None:
     import pymysql
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
@@ -267,9 +294,20 @@ def set_shadow_ban(user_id: int, shadow_banned: bool, actor_id: int) -> None:
         details = 'Shadow ban removed.'
     db.commit()
     log_change(actor_id, action, target_table='users', target_id=user_id, details=details)
+    if record:
+        from app.models.moderation import record_action
+        record_action(
+            actor_id=actor_id,
+            action_type='user_shadow' if shadow_banned else 'user_unshadow',
+            target_kind='user',
+            target_table='users',
+            target_id=int(user_id),
+            target_user_id=int(user_id),
+            snapshot={'shadow_banned': bool(shadow_banned)},
+        )
 
 
-def set_account_login_lock(user_id: int, locked_until, actor_id: int) -> None:
+def set_account_login_lock(user_id: int, locked_until, actor_id: int, *, record: bool = True) -> None:
     db = get_db()
     cur = db.cursor()
     cur.execute(
@@ -283,9 +321,20 @@ def set_account_login_lock(user_id: int, locked_until, actor_id: int) -> None:
     db.commit()
     log_change(actor_id, 'account_login_lock', target_table='users', target_id=user_id,
                details=f'Login locked until {locked_until}')
+    if record:
+        from app.models.moderation import record_action
+        record_action(
+            actor_id=actor_id,
+            action_type='user_lock',
+            target_kind='user',
+            target_table='users',
+            target_id=int(user_id),
+            target_user_id=int(user_id),
+            snapshot={'locked_until': str(locked_until)},
+        )
 
 
-def clear_account_login_lock(user_id: int, actor_id: int) -> None:
+def clear_account_login_lock(user_id: int, actor_id: int, *, record: bool = True) -> None:
     db = get_db()
     cur = db.cursor()
     cur.execute(
@@ -298,6 +347,16 @@ def clear_account_login_lock(user_id: int, actor_id: int) -> None:
     db.commit()
     log_change(actor_id, 'account_login_unlock', target_table='users', target_id=user_id,
                details='Account login lock cleared.')
+    if record:
+        from app.models.moderation import record_action
+        record_action(
+            actor_id=actor_id,
+            action_type='user_unlock',
+            target_kind='user',
+            target_table='users',
+            target_id=int(user_id),
+            target_user_id=int(user_id),
+        )
 
 
 # ----------------------------------------------------------------------

@@ -12,6 +12,7 @@ def create_tables(cursor):
             audience VARCHAR(40) NOT NULL DEFAULT 'everyone',
             status VARCHAR(24) NOT NULL DEFAULT 'draft',
             visibility VARCHAR(24) NOT NULL DEFAULT 'pastoral',
+            access_levels VARCHAR(80) NOT NULL DEFAULT 'admin,staff,member',
             tags VARCHAR(500) NULL,
             estimated_minutes INT UNSIGNED NULL,
             sort_order INT NOT NULL DEFAULT 0,

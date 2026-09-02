@@ -154,6 +154,7 @@ def profile():
         print(f"Profile error: {e}\n{traceback.format_exc()}")
         return redirect(url_for('profile.profile'))
 
+    from app.models.church_community import profile_contact, scheduler_upcoming
     return render_template(
         'profile/profile.html',
         user=user,
@@ -162,6 +163,8 @@ def profile():
         suggested_users=suggested_users,
         search_results=search_results,
         email_preferences=EMAIL_PREFERENCE_FIELDS,
+        upcoming_service=scheduler_upcoming(),
+        contact=profile_contact(),
     )
 
 

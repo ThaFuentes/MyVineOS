@@ -1,0 +1,49 @@
+{# Same data as Pastoral Command Center — get_upcoming_service() / filled_roles. #}
+{% set us = upcoming_service|default(none) %}
+{% if not us and church_context is defined %}{% set us = church_context.upcoming_service %}{% endif %}
+{% set us = us or {} %}
+{% if us %}
+{% set us_date = us.get('service_date') %}
+{% set us_date_str = us.get('date_str') or (us_date.strftime('%Y-%m-%d') if us_date is not string and us_date else (us_date[:10] if us_date else '')) %}
+<section class="glass-panel profile-card profile-upcoming">
+  <h2 class="profile-card-title">Next upcoming service</h2>
+  <p class="profile-gathering">
+    <strong>
+      {% if us_date is not string and us_date %}
+        {{ us_date.strftime('%A, %B %d, %Y') }}
+      {% elif us_date %}
+        {{ us_date }}
+      {% else %}
+        —
+      {% endif %}
+    </strong>
+  </p>
+  {% if us.get('start_time') or us.get('worship_start_time') %}
+  <p class="profile-muted">
+    {% if us.get('start_time') %}
+      Service:
+      {% if us.start_time is not string and us.start_time.strftime is defined %}{{ us.start_time.strftime('%I:%M %p') }}{% else %}{{ us.start_time }}{% endif %}
+    {% endif %}
+    {% if us.get('start_time') and us.get('worship_start_time') %}<br>{% endif %}
+    {% if us.get('worship_start_time') %}
+      Worship:
+      {% if us.worship_start_time is not string and us.worship_start_time.strftime is defined %}{{ us.worship_start_time.strftime('%I:%M %p') }}{% else %}{{ us.worship_start_time }}{% endif %}
+    {% endif %}
+  </p>
+  {% endif %}
+  <p class="profile-gathering"><strong>{{ us.get('title') or 'Regular Sunday Service' }}</strong></p>
+  {% if us.get('filled_roles') %}
+  <ul class="profile-role-list">
+    {% for r in us.filled_roles %}
+    <li><strong>{{ r.role_name }}:</strong> {{ r.name }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% set loc = contact|default({}) %}
+  {% set ctx = church_context|default({}) %}
+  {% set addr = loc.line or loc.address or ctx.address or '' %}
+  {% if addr %}
+  <p class="profile-muted">{{ addr }}</p>
+  {% endif %}
+</section>
+{% endif %}

@@ -2,23 +2,36 @@
 {% set ep = request.endpoint or '' %}
 {% set s = g.settings|default({}) if g is defined else {} %}
 
-{% set community_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'bible.', 'curriculum.')) or ep.startswith('public.public_dashboard.') or ep == 'public.promotions_list' %}
-{% set church_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.', 'worship.', 'custom_modules.', 'child_checkin.', 'accounting.', 'volunteers.', 'communications.')) %}
+{% set community_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'bible.', 'curriculum.')) or ep.startswith('public.public_dashboard.') or ep == 'public.promotions_list' or ep == 'church.people' %}
+{% set church_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.', 'custom_modules.', 'child_checkin.', 'accounting.', 'volunteers.', 'communications.')) %}
 {% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule') %}
-{% set ministry_active = ep.startswith(('pastoral.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) %}
+{% set ministry_active = ep.startswith(('pastoral.', 'worship.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) or ep in ('church.moderation_desk', 'church.moderation_review') %}
 {% set show_gathering = session.user_role in ['Staff', 'Admin', 'Owner'] or user_has_permission('settings.ticket_managers') %}
 {% set show_security = can_access_security_console|default(false) %}
 {% set is_staff = session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
 
+<a href="{{ home_url|default(url_for('church.church_home')) }}"
+   class="{{ 'active' if ep.startswith('church.church_') else '' }}">Home</a>
+<a href="{{ url_for('public.public_dashboard.public_community') }}"
+   class="{{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">Feed</a>
+{% if session.get('username') %}
+<a href="{{ url_for('church.member_page', username=session.username) }}"
+   class="{{ 'active' if ep == 'church.member_page' else '' }}">My page</a>
+{% endif %}
+{% if endpoint_exists('church.messages') %}
+<a href="{{ url_for('church.messages') }}"
+   class="{{ 'active' if ep.startswith('church.messages') else '' }}">Notes</a>
+{% endif %}
 <a href="{{ url_for('dashboard.dashboard') }}"
-   class="{{ 'active' if ep == 'dashboard.dashboard' else '' }}">Home</a>
+   class="{{ 'active' if ep == 'dashboard.dashboard' else '' }}">Apps</a>
 
 <div class="nav-group {{ 'active' if community_active else '' }}">
   <button type="button" class="nav-group-toggle" aria-expanded="false" aria-haspopup="true">
     Community <span class="nav-caret" aria-hidden="true">▾</span>
   </button>
   <div class="nav-group-menu" role="menu">
-    <a href="{{ url_for('public.public_dashboard.public_community') }}" role="menuitem" class="{{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">Community Feed</a>
+    <a href="{{ url_for('public.public_dashboard.public_community') }}" role="menuitem" class="{{ 'active' if ep == 'public.public_dashboard.public_community' else '' }}">Feed</a>
+    <a href="{{ url_for('church.people') }}" role="menuitem" class="{{ 'active' if ep == 'church.people' else '' }}">Find people</a>
     <a href="{{ url_for('events.events') }}" role="menuitem" class="{{ 'active' if ep.startswith('events.') else '' }}">Events</a>
     <a href="{{ url_for('prayers.prayers') }}" role="menuitem" class="{{ 'active' if ep.startswith('prayers.') else '' }}">Prayers</a>
     <a href="{{ url_for('sermons.sermons') }}" role="menuitem" class="{{ 'active' if ep.startswith('sermons.') else '' }}">Sermons</a>
@@ -73,9 +86,6 @@
     {% if module_on('communications') and endpoint_exists('communications.dashboard') and can_access_communications() %}
     <a href="{{ url_for('communications.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('communications.') else '' }}">Communications</a>
     {% endif %}
-    {% if module_on('worship') and can_access_worship is defined and can_access_worship %}
-    <a href="{{ url_for('worship.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('worship.') else '' }}">Worship Team</a>
-    {% endif %}
     {% for cm in dashboard_custom_modules or [] %}
     <a href="{{ url_for('custom_modules.module_list', slug=cm.slug) }}" role="menuitem">{{ cm.name }}</a>
     {% endfor %}
@@ -91,6 +101,15 @@
     <a href="{{ url_for('pastoral.dashboard_pastoral') }}" role="menuitem" class="{{ 'active' if ep.startswith('pastoral.') else '' }}">Pastoral</a>
     <a href="{{ url_for('pastoral.sermons.list') }}" role="menuitem" class="{{ 'active' if 'pastoral.sermons' in ep else '' }}">Sermon Library</a>
     <a href="{{ url_for('pastoral.bible.bible_study') }}" role="menuitem" class="{{ 'active' if 'pastoral.bible' in ep else '' }}">Bible Study (pastoral)</a>
+    {% endif %}
+    {% if module_on('worship') and can_access_worship is defined and can_access_worship %}
+    <a href="{{ url_for('worship.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('worship.') else '' }}">Worship Team</a>
+    {% endif %}
+    {% if user_has_permission('moderate_site') %}
+    <a href="/church/moderation" role="menuitem" class="{{ 'active' if ep == 'church.moderation_desk' else '' }}">Site moderation</a>
+    {% endif %}
+    {% if user_has_permission('review_moderation') %}
+    <a href="/church/moderation/review" role="menuitem" class="{{ 'active' if ep == 'church.moderation_review' else '' }}">Moderation review</a>
     {% endif %}
     {% if module_on('gathering_manager') and show_gathering %}
     <a href="{{ url_for('the_gathering.index') }}" role="menuitem" class="{{ 'active' if ep.startswith('the_gathering.') else '' }}">Gathering Manager</a>
@@ -112,7 +131,7 @@
 
 <div class="nav-group {{ 'active' if account_active else '' }}">
   <button type="button" class="nav-group-toggle" aria-expanded="false" aria-haspopup="true">
-    My Stuff <span class="nav-caret" aria-hidden="true">▾</span>
+    My Stuff{% if serving_pending_count %} <span class="count-pill count-pill-alert" title="Unanswered serving">{{ serving_pending_count }}</span>{% endif %} <span class="nav-caret" aria-hidden="true">▾</span>
   </button>
   <div class="nav-group-menu" role="menu">
     <a href="{{ url_for('profile.profile') }}" role="menuitem" class="{{ 'active' if ep.startswith('profile.') else '' }}">Profile</a>
@@ -123,7 +142,7 @@
     <a href="{{ url_for('child_checkin.my_kids') }}" role="menuitem" class="{{ 'active' if ep == 'child_checkin.my_kids' else '' }}">My Kids</a>
     {% endif %}
     {% if module_on('my_serving') and endpoint_exists('volunteers.my_schedule') %}
-    <a href="{{ url_for('volunteers.my_schedule') }}" role="menuitem" class="{{ 'active' if ep in ('volunteers.my_schedule','volunteers.my_respond') else '' }}">My Serving</a>
+    <a href="{{ url_for('volunteers.my_schedule') }}" role="menuitem" class="{{ 'active' if ep in ('volunteers.my_schedule','volunteers.my_respond') else '' }}">My Serving {% include 'partials/serving_badges.html' %}</a>
     {% endif %}
     {% if module_on('support_tickets') %}
     <a href="{{ url_for('support_tickets.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('support_tickets.') else '' }}">My Tickets</a>

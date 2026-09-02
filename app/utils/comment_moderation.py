@@ -74,6 +74,17 @@ COMMENT_TYPES = {
         'label': 'Announcement comment',
         'manager_section': 'announcements',
     },
+    'photo': {
+        'table': 'page_photo_comments',
+        'parent_col': 'photo_id',
+        'text_col': 'comment',
+        'name_col': 'contributor_name',
+        'ip_col': 'ip_address',
+        'user_col': 'user_id',
+        'date_col': 'date_added',
+        'label': 'Photo comment',
+        'manager_section': 'announcements',
+    },
 }
 
 PARENT_JOINS = {
@@ -83,6 +94,7 @@ PARENT_JOINS = {
     'dream': ('dreams d', 'd.id = c.dream_id', 'd.title'),
     'prophecy': ('prophecies pr', 'pr.id = c.prophecy_id', 'pr.title'),
     'announcement': ('announcements a', 'a.id = c.announcement_id', 'a.title'),
+    'photo': ('page_photos p', 'p.id = c.photo_id', "COALESCE(p.caption, 'Photo')"),
 }
 
 
@@ -101,8 +113,12 @@ def fetch_moderation_comments_queue(limit=300, status_filter='all', search=None)
         params = []
         if status_filter == 'shadowed':
             extra.append('COALESCE(c.shadowed, 0) = 1')
+            extra.append('COALESCE(c.removed, 0) = 0')
+        elif status_filter == 'removed':
+            extra.append('COALESCE(c.removed, 0) = 1')
         elif status_filter == 'visible':
             extra.append('COALESCE(c.shadowed, 0) = 0')
+            extra.append('COALESCE(c.removed, 0) = 0')
         elif status_filter == 'edited':
             extra.append('COALESCE(c.edited_by_moderator, 0) = 1')
         if search:
@@ -117,6 +133,7 @@ def fetch_moderation_comments_queue(limit=300, status_filter='all', search=None)
                        c.{cfg['text_col']} AS body,
                        c.{cfg['date_col']} AS posted_at,
                        COALESCE(c.shadowed, 0) AS shadowed,
+                       COALESCE(c.removed, 0) AS removed,
                        COALESCE(c.edited_by_moderator, 0) AS edited_by_moderator
                 FROM {cfg['table']} c
                 JOIN {parent_table} ON {join_on}
@@ -150,9 +167,12 @@ def public_comments_enabled():
 def _shadow_visibility_sql(alias=''):
     prefix = f"{alias}." if alias else ""
     return f"""(
-        COALESCE({prefix}shadowed, 0) = 0
-        OR ({prefix}shadow_ip IS NOT NULL AND {prefix}shadow_ip = %s)
-        OR ({prefix}shadow_user_id IS NOT NULL AND {prefix}shadow_user_id = %s)
+        COALESCE({prefix}removed, 0) = 0
+        AND (
+            COALESCE({prefix}shadowed, 0) = 0
+            OR ({prefix}shadow_ip IS NOT NULL AND {prefix}shadow_ip = %s)
+            OR ({prefix}shadow_user_id IS NOT NULL AND {prefix}shadow_user_id = %s)
+        )
     )"""
 
 
@@ -177,9 +197,13 @@ def get_comment_stats():
         'dream': 'dream_comments',
         'prophecy': 'prophecy_comments',
         'announcement': 'announcement_comments',
+        'photo': 'photo_comments',
     }
+    stats['photo_comments'] = {'total': 0, 'shadowed': 0}
     for ctype, cfg in COMMENT_TYPES.items():
-        key = key_map[ctype]
+        key = key_map.get(ctype)
+        if not key:
+            continue
         try:
             cur.execute(f"""
                 SELECT
@@ -293,7 +317,7 @@ def validate_comment_moderation_form(form_data):
         flash('Invalid moderation request.', 'error')
         return None
 
-    if action not in ('delete', 'edit', 'shadow', 'unshadow'):
+    if action not in ('delete', 'edit', 'shadow', 'unshadow', 'restore'):
         flash('Unknown moderation action.', 'error')
         return None
 
@@ -326,7 +350,8 @@ def apply_moderation_action(content_type, parent_id, moderator_id, moderator_use
     try:
         cur.execute(f"""
             SELECT id, {cfg['text_col']} AS body, {cfg['ip_col']} AS ip_val,
-                   {cfg['user_col']} AS uid, COALESCE(shadowed, 0) AS shadowed
+                   {cfg['user_col']} AS uid, COALESCE(shadowed, 0) AS shadowed,
+                   COALESCE(removed, 0) AS removed
             FROM {cfg['table']}
             WHERE id = %s AND {cfg['parent_col']} = %s
         """, (comment_id, parent_id))
@@ -346,15 +371,56 @@ def apply_moderation_action(content_type, parent_id, moderator_id, moderator_use
     detail_prefix = f"{label} #{comment_id} on {content_type} #{parent_id}"
 
     try:
+        from app.models.moderation import record_action, ensure_tables
+        ensure_tables()
         if action == 'delete':
-            cur.execute(f"DELETE FROM {cfg['table']} WHERE id = %s", (comment_id,))
+            cur.execute(
+                f"""
+                UPDATE {cfg['table']}
+                SET removed = 1, moderated_by = %s, moderated_at = NOW()
+                WHERE id = %s
+                """,
+                (moderator_id, comment_id),
+            )
             log_change(
                 moderator_id, 'moderate_comment_delete',
                 item_id=comment_id,
                 item_title=f"{content_type}:{parent_id}",
-                details=f"{detail_prefix} deleted by {moderator_username}. Original: {(comment['body'] or '')[:200]}",
+                details=f"{detail_prefix} removed by {moderator_username}. Original: {(comment['body'] or '')[:200]}",
             )
-            flash('Comment deleted.', 'success')
+            record_action(
+                actor_id=moderator_id,
+                action_type='comment_remove',
+                target_kind='comment',
+                target_table=cfg['table'],
+                target_id=comment_id,
+                target_user_id=comment.get('uid'),
+                snapshot={
+                    'body': comment.get('body'),
+                    'table': cfg['table'],
+                    'id': comment_id,
+                    'content_type': content_type,
+                    'parent_id': parent_id,
+                },
+            )
+            flash('Comment removed. A reviewer can put it back.', 'success')
+
+        elif action == 'restore':
+            cur.execute(
+                f"""
+                UPDATE {cfg['table']}
+                SET removed = 0, moderated_by = %s, moderated_at = NOW()
+                WHERE id = %s
+                """,
+                (moderator_id, comment_id),
+            )
+            log_change(
+                moderator_id, 'moderate_comment_restore',
+                item_id=comment_id,
+                item_title=f"{content_type}:{parent_id}",
+                details=f"{detail_prefix} restored by {moderator_username}.",
+            )
+            flash('Comment is back.', 'success')
 
         elif action == 'edit':
             cur.execute(f"""
@@ -372,7 +438,23 @@ def apply_moderation_action(content_type, parent_id, moderator_id, moderator_use
                 item_title=f"{content_type}:{parent_id}",
                 details=f"{detail_prefix} edited by {moderator_username}. Was: {(comment['body'] or '')[:120]}",
             )
-            flash('Comment updated.', 'success')
+            record_action(
+                actor_id=moderator_id,
+                action_type='comment_edit',
+                target_kind='comment',
+                target_table=cfg['table'],
+                target_id=comment_id,
+                target_user_id=comment.get('uid'),
+                snapshot={
+                    'old_body': comment.get('body'),
+                    'new_body': clean['new_text'],
+                    'table': cfg['table'],
+                    'id': comment_id,
+                    'content_type': content_type,
+                    'parent_id': parent_id,
+                },
+            )
+            flash('Comment updated. The previous text is kept for review.', 'success')
 
         elif action == 'shadow':
             cur.execute(f"""
@@ -390,7 +472,22 @@ def apply_moderation_action(content_type, parent_id, moderator_id, moderator_use
                 item_title=f"{content_type}:{parent_id}",
                 details=f"{detail_prefix} shadowed by {moderator_username} (visible only to poster).",
             )
-            flash('Comment shadowed - only the original poster can see it.', 'success')
+            record_action(
+                actor_id=moderator_id,
+                action_type='comment_shadow',
+                target_kind='comment',
+                target_table=cfg['table'],
+                target_id=comment_id,
+                target_user_id=comment.get('uid'),
+                snapshot={
+                    'body': comment.get('body'),
+                    'table': cfg['table'],
+                    'id': comment_id,
+                    'content_type': content_type,
+                    'parent_id': parent_id,
+                },
+            )
+            flash('Comment shadowed - only the original poster can see it. Reversible.', 'success')
 
         elif action == 'unshadow':
             cur.execute(f"""
@@ -452,8 +549,11 @@ def map_comments_legacy(comments):
 def insert_public_comment(content_type, parent_id, name, text, parent_comment_id=None,
                           ip=None, user_id=None):
     """Insert a new public comment with IP/user for shadow moderation support."""
+    from app.utils.helpers import contains_censored_word
     cfg = COMMENT_TYPES.get(content_type)
     if not cfg:
+        return False
+    if contains_censored_word(f'{name or ""} {text or ""}'):
         return False
 
     db = get_db()

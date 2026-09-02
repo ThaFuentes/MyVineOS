@@ -25,6 +25,9 @@
     </h2>
     <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
       {% if sermon and sermon.id %}
+      <a href="{{ url_for('pastoral.sermons.brief', sermon_id=sermon.id) }}" class="btn btn-secondary" style="font-size:0.85rem;" title="One-page outline of what this sermon is about">
+        Brief
+      </a>
       <a href="{{ url_for('pastoral.sermons_export.single', sermon_id=sermon.id) }}" class="btn btn-secondary" style="font-size:0.85rem;" title="Download DOCX">
         <i class="fa-solid fa-download" aria-hidden="true"></i> Download
       </a>
@@ -36,7 +39,12 @@
 </div>
 
 <div class="sermon-editor">
-  <!-- Main Content Column (full desktop width) -->
+  <nav id="sermon-section-rail" class="sermon-section-rail" aria-label="Jump to a sermon section">
+    <span class="sermon-rail-kicker">Sections</span>
+    <button type="button" class="sermon-rail-chip" data-jump="meta" title="Sermon title and details">Title</button>
+    <div id="sermon-section-rail-chips" class="sermon-section-rail-chips"></div>
+    <button type="button" id="sermon-rail-add" class="sermon-rail-add add-section-btn" title="Add a section">+</button>
+  </nav>
   <div class="main-editor">
     <div class="glass-panel">
       <div class="card glass-card shadow">
@@ -707,12 +715,72 @@
                 const header = card.querySelector('.section-header-title');
                 if (header) header.textContent = `Section ${i + 1}: ${title}`;
             });
+            rebuildSectionRail();
         };
-        updateAllHeaders();
+
+        function rebuildSectionRail() {
+            const host = document.getElementById('sermon-section-rail-chips');
+            if (!host) return;
+            const cards = getSectionCards();
+            host.innerHTML = '';
+            cards.forEach((card, i) => {
+                const title = card.querySelector('.section-title')?.value.trim() || 'Untitled';
+                const type = (card.querySelector('.section-type')?.value || '').replace(/_/g, ' ');
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'sermon-rail-chip';
+                btn.dataset.jump = String(i);
+                btn.title = type ? `Section ${i + 1} · ${type}` : `Section ${i + 1}`;
+                btn.textContent = `${i + 1} ${title}`.trim();
+                host.appendChild(btn);
+            });
+            observeSectionRail();
+        }
+
+        let sectionRailObserver = null;
+        function observeSectionRail() {
+            if (sectionRailObserver) sectionRailObserver.disconnect();
+            const chips = document.getElementById('sermon-section-rail-chips');
+            if (!chips) return;
+            sectionRailObserver = new IntersectionObserver((entries) => {
+                const visible = entries
+                    .filter((e) => e.isIntersecting)
+                    .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+                if (!visible) return;
+                const idx = getSectionCards().indexOf(visible.target);
+                chips.querySelectorAll('.sermon-rail-chip').forEach((chip, i) => {
+                    const on = i === idx;
+                    chip.classList.toggle('is-active', on);
+                    if (on) chip.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                });
+            }, { rootMargin: '-30% 0px -55% 0px', threshold: [0.15, 0.4, 0.7] });
+            getSectionCards().forEach((card) => sectionRailObserver.observe(card));
+        }
+
+        document.getElementById('sermon-section-rail')?.addEventListener('click', (e) => {
+            const chip = e.target.closest('[data-jump]');
+            if (!chip) return;
+            if (chip.dataset.jump === 'meta') {
+                document.getElementById('sermon-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                document.getElementById('sermon-title')?.focus();
+                return;
+            }
+            const idx = parseInt(chip.dataset.jump, 10);
+            const card = getSectionCards()[idx];
+            scrollToSectionCard(card);
+        });
 
         function getSectionCards() {
             return [...document.querySelectorAll('#sections-container > .section-card')];
         }
+        updateAllHeaders();
+
+        container?.addEventListener('input', (e) => {
+            if (e.target.matches('.section-title, .section-type')) rebuildSectionRail();
+        });
+        container?.addEventListener('change', (e) => {
+            if (e.target.matches('.section-type')) rebuildSectionRail();
+        });
 
         function isSectionCardEmpty(card) {
             const root = card.querySelector('[data-section-root]') || card;

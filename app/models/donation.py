@@ -538,7 +538,6 @@ def get_donations_for_export(name, year, user_id=None):
                 SELECT date, amount, method, confirmation_number, notes, goods_services_provided
                 FROM donations
                 WHERE name = %s
-                  AND user_id IS NULL
                   AND YEAR(STR_TO_DATE(date, '{_DATE_FMT_BIND}')) = %s
                 ORDER BY STR_TO_DATE(date, '{_DATE_FMT_BIND}') DESC
             """, (name, int(year)))

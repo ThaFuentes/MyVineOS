@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ thread_title }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=27">
+{% endblock %}
+{% block content %}
+<div class="mail-shell mail-thread-shell">
+  <header class="mail-thread-head">
+    <a class="mail-back" href="{{ url_for('church.messages') }}">All notes</a>
+    <div class="mail-thread-who">
+      <span class="mail-avatar" aria-hidden="true">
+        {% if pic_url %}<img src="{{ pic_url }}" alt="">{% else %}{{ initials }}{% endif %}
+      </span>
+      <div>
+        {% if thread_kicker %}<p class="profile-kicker">{{ thread_kicker }}</p>{% endif %}
+        <h1 class="mail-thread-name">{{ thread_title }}</h1>
+        {% if church_thread %}
+        <p class="mail-thread-hint">Pastors and page editors can read this and reply for the church.</p>
+        {% elif room_thread %}
+        <p class="mail-thread-hint">{% if thread.thread_kind == 'open' %}Anyone signed in at this church can join.{% else %}Invited people have to accept before they see this.{% endif %}</p>
+        {% endif %}
+        {% if other_page_url %}
+        <p><a class="profile-quiet-link" href="{{ other_page_url }}">{% if church_thread and not other.username %}Church page{% else %}Their page{% endif %}</a></p>
+        {% endif %}
+      </div>
+    </div>
+    {% if room_thread %}
+    <div class="mail-room-meta">
+      <p class="profile-muted">
+        {% for mem in members if mem.status == 'member' %}
+          {{ mem.display_name }}{% if not loop.last %} · {% endif %}
+        {% endfor %}
+      </p>
+      <form method="post" action="{{ url_for('church.notes_notify', thread_id=thread.id) }}" class="mail-notify-form">
+        {% include 'partials/csrf_field.html' %}
+        <label><input type="checkbox" name="notify_push" value="1" {% if mine.notify_push %}checked{% endif %}> Phone alert</label>
+        <label><input type="checkbox" name="notify_email" value="1" {% if mine.notify_email %}checked{% endif %}> Email me (no note text)</label>
+        <button class="btn btn-secondary" type="submit">Save</button>
+      </form>
+      <form method="post" action="{{ url_for('church.notes_leave', thread_id=thread.id) }}" onsubmit="return confirm('Leave this note?');">
+        {% include 'partials/csrf_field.html' %}
+        <button class="profile-quiet-link" type="submit">Leave</button>
+      </form>
+    </div>
+    {% if people %}
+    <form method="post" action="{{ url_for('church.notes_invite', thread_id=thread.id) }}" class="mail-invite-form">
+      {% include 'partials/csrf_field.html' %}
+      <p class="profile-field-label">{% if thread.thread_kind == 'open' %}Add someone{% else %}Invite someone (they accept){% endif %}</p>
+      <div class="mail-people-pick">
+        {% for p in people %}
+        <label>
+          <input type="checkbox" name="user_ids" value="{{ p.id }}">
+          {{ p.display_name }}
+        </label>
+        {% endfor %}
+      </div>
+      <button class="btn btn-secondary" type="submit">Send invite</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </header>
+
+  <div class="mail-stream" id="mail-stream">
+    {% if messages %}
+      {% for m in messages %}
+      <article class="mail-bubble{% if m.is_mine %} is-mine{% else %} is-theirs{% endif %}">
+        {% if not m.is_mine %}
+        <span class="mail-avatar mail-avatar-sm" aria-hidden="true">
+          {% if m.pic_url %}<img src="{{ m.pic_url }}" alt="">{% else %}{{ m.initials }}{% endif %}
+        </span>
+        {% endif %}
+        <div class="mail-bubble-body">
+          {% if not m.is_mine %}
+          <span class="mail-bubble-name">{{ m.display_name }}</span>
+          {% endif %}
+          <p>{{ m.body }}</p>
+          <time>{{ m.when_label }}</time>
+        </div>
+      </article>
+      {% endfor %}
+    {% else %}
+      <div class="glass-panel mail-empty">
+        <p>You’re the first to speak. A short hello is enough.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <form method="post" class="mail-compose" id="mail-compose">
+    {% include 'partials/csrf_field.html' %}
+    <label class="sr-only" for="mail-body">Note</label>
+    <textarea id="mail-body" name="body" rows="2" required maxlength="4000"
+              placeholder="{{ compose_hint|default('Write a note…') }}"></textarea>
+    <button class="profile-me-btn" type="submit">Send note</button>
+  </form>
+</div>
+<script>
+(function () {
+  var stream = document.getElementById('mail-stream');
+  if (stream) stream.scrollTop = stream.scrollHeight;
+  var box = document.getElementById('mail-body');
+  if (!box) return;
+  box.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (box.value.trim()) box.form.submit();
+    }
+  });
+  box.focus();
+})();
+</script>
+<script src="{{ url_for('static', filename='js/notes-push.js') }}?v=1" data-vapid="{{ vapid_public or '' }}"></script>
+{% endblock %}

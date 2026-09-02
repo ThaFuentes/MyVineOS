@@ -1,0 +1,84 @@
+{# Permission-filtered office / ministry / my-stuff apps for the viewer. #}
+{% if session.get('user_id') %}
+<nav class="glass-panel profile-card profile-app-rail" aria-label="Apps">
+  <h2 class="profile-card-title">Apps</h2>
+  <div class="profile-app-list">
+    {% if can_view_members() %}
+    <a href="{{ url_for('members.members_directory') }}"><i class="fa-solid fa-address-book" aria-hidden="true"></i> Members</a>
+    {% endif %}
+    {% if module_on('donations') and can_view_donations() %}
+    <a href="{{ url_for('donations.donations_dashboard') }}"><i class="fa-solid fa-hand-holding-dollar" aria-hidden="true"></i> Donations</a>
+    {% endif %}
+    {% if module_on('bills') and can_access_bills() %}
+    <a href="{{ url_for('bills.bills') }}"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> Bills</a>
+    {% endif %}
+    {% if module_on('accounting') and endpoint_exists('accounting.dashboard') and can_access_accounting() %}
+    <a href="{{ url_for('accounting.dashboard') }}"><i class="fa-solid fa-calculator" aria-hidden="true"></i> Accounting</a>
+    {% endif %}
+    {% if module_on('inventory') and can_manage_inventory() %}
+    <a href="{{ url_for('inventory.inventory_dashboard') }}"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Inventory</a>
+    {% endif %}
+    {% if module_on('attendance') and can_manage_attendance() %}
+    <a href="{{ url_for('attendance.attendance_dashboard') }}"><i class="fa-solid fa-clipboard-user" aria-hidden="true"></i> Attendance</a>
+    {% endif %}
+    {% if module_on('child_checkin') and endpoint_exists('child_checkin.dashboard') and can_manage_attendance() %}
+    <a href="{{ url_for('child_checkin.dashboard') }}"><i class="fa-solid fa-children" aria-hidden="true"></i> Child Check-In</a>
+    {% endif %}
+    {% if module_on('volunteers') and endpoint_exists('volunteers.dashboard') and can_access_volunteers_admin() %}
+    <a href="{{ url_for('volunteers.dashboard') }}"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i> Volunteers</a>
+    {% endif %}
+    {% if module_on('communications') and endpoint_exists('communications.dashboard') and can_access_communications() %}
+    <a href="{{ url_for('communications.dashboard') }}"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Communications</a>
+    {% endif %}
+    {% if user_has_permission('access_pastoral') %}
+    <a href="{{ url_for('pastoral.dashboard_pastoral') }}"><i class="fa-solid fa-cross" aria-hidden="true"></i> Pastoral</a>
+    {% endif %}
+    {% if module_on('worship') and can_access_worship|default(false) %}
+    <a href="{{ url_for('worship.dashboard') }}"><i class="fa-solid fa-music" aria-hidden="true"></i> Worship</a>
+    {% endif %}
+    {% if module_on('gathering_manager') and can_access_gathering_place|default(false) %}
+    <a href="{{ url_for('the_gathering.index') }}"><i class="fa-solid fa-people-roof" aria-hidden="true"></i> Gathering</a>
+    {% endif %}
+    {% if module_on('ai_insights') and endpoint_exists('ai_insights.index') and user_has_permission('use_ai_insights') %}
+    <a href="{{ url_for('ai_insights.index') }}"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> AI Insights</a>
+    {% endif %}
+    {% for cm in dashboard_custom_modules or [] %}
+    <a href="{{ url_for('custom_modules.module_list', slug=cm.slug) }}"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i> {{ cm.name }}</a>
+    {% endfor %}
+  </div>
+</nav>
+
+<nav class="glass-panel profile-card profile-app-rail" aria-label="My stuff">
+  <h2 class="profile-card-title">My stuff</h2>
+  <div class="profile-app-list">
+    {% if module_on('self_checkin') %}
+    <a href="{{ url_for('attendance.self_checkin') }}"><i class="fa-solid fa-check-to-slot" aria-hidden="true"></i> Check In</a>
+    {% endif %}
+    {% if module_on('my_kids') and endpoint_exists('child_checkin.my_kids') %}
+    <a href="{{ url_for('child_checkin.my_kids') }}"><i class="fa-solid fa-children" aria-hidden="true"></i> My Kids</a>
+    {% endif %}
+    {% if module_on('my_serving') and endpoint_exists('volunteers.my_schedule') %}
+    <a href="{{ url_for('volunteers.my_schedule') }}"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> My Serving
+      {% include 'partials/serving_badges.html' %}
+    </a>
+    {% endif %}
+    {% if module_on('support_tickets') %}
+    <a href="{{ url_for('support_tickets.dashboard') }}"><i class="fa-solid fa-ticket" aria-hidden="true"></i> My Tickets</a>
+    {% endif %}
+    <a href="{{ url_for('profile.profile') }}"><i class="fa-solid fa-user" aria-hidden="true"></i> Profile</a>
+    <a href="{{ url_for('help.help_index') }}"><i class="fa-solid fa-circle-question" aria-hidden="true"></i> Help</a>
+    <a href="{{ url_for('settings.general') }}"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
+    {% if session.get('user_role') in ['Owner', 'Admin'] %}
+    <a href="{{ url_for('settings.modules') }}"><i class="fa-solid fa-toggle-on" aria-hidden="true"></i> Modules</a>
+    {% endif %}
+  </div>
+</nav>
+{% else %}
+<nav class="glass-panel profile-card profile-app-rail" aria-label="Join">
+  <h2 class="profile-card-title">Join</h2>
+  <div class="profile-app-list">
+    <a href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Sign up</a>
+    <a href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Log in</a>
+  </div>
+</nav>
+{% endif %}

@@ -1,0 +1,88 @@
+{% if not hide_sunday_bits|default(false) %}
+{% include 'church/_upcoming_service.html' %}
+{% include 'church/_recent_updates.html' %}
+{% endif %}
+
+{% if worship and not hide_sunday_bits|default(false) %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">Worship lineup</h2>
+  <p class="profile-gathering"><strong>{{ worship.title }}</strong></p>
+  {% if worship.service_date %}<p class="profile-muted">{{ worship.service_date }}</p>{% endif %}
+  {% if worship.songs %}
+  <ul class="profile-link-list">
+    {% for song in worship.songs %}
+    <li>{{ song }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if not is_org and has_branches %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">This church</h2>
+  <p><a href="{{ main_church_url|default(url_for('church.church_home')) }}">Main church page</a></p>
+  <p class="profile-muted">You’re on this branch. The main page is the whole church. Follow people from any branch.</p>
+</section>
+{% endif %}
+
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">Contact</h2>
+  {% if contact.line or contact.address %}
+  <p><span>Address</span> {{ contact.line or contact.address }}</p>
+  {% endif %}
+  {% if contact.phone %}<p><span>Phone</span> <a href="tel:{{ contact.phone }}">{{ contact.phone }}</a></p>{% endif %}
+  {% if contact.email %}<p><span>Email</span> <a href="mailto:{{ contact.email }}">{{ contact.email }}</a></p>{% endif %}
+  {% if not contact.phone and not contact.email and not contact.address and not contact.line %}
+  <p class="profile-muted">Church info will show here once it is saved in Settings.</p>
+  {% endif %}
+</section>
+
+{% if is_org and branches %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">Branches <em>{{ branches|length }}</em></h2>
+  <ul class="profile-branch-list">
+    {% for b in branches %}
+    <li>
+      <a href="{{ url_for('church.church_home', campus_id=b.id) }}">
+        <strong>{{ b.short_name or b.name }}</strong>
+        {% if b.pastor_name %}<span>{{ b.pastor_name }}</span>{% endif %}
+        {% if b.gathering and b.gathering.start_time %}
+        <span>{{ b.gathering.speaker or 'Service' }} · {{ b.gathering.start_time }}</span>
+        {% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if staff %}
+<section class="glass-panel profile-card">
+  <h2 class="profile-card-title">People</h2>
+  <ul class="profile-people">
+    {% for person in staff %}
+    <li>
+      {% if person.page_url %}
+      <a href="{{ person.page_url }}">{{ person.display_name }}</a>
+      {% else %}
+      <span>{{ person.display_name }}</span>
+      {% endif %}
+      <small>{{ person.role }}</small>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% include 'church/_gallery.html' %}
+{% set items = links %}
+{% set section_title = 'On this page' %}
+{% include 'church/_links.html' %}
+
+{% if about %}
+<section class="glass-panel profile-about">
+  <h2>About</h2>
+  <p>{{ about | nl2br }}</p>
+</section>
+{% endif %}

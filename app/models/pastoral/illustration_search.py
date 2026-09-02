@@ -314,9 +314,9 @@ def pack_illustrations_for_ai(
     *,
     item_keys: list[str] | None = None,
     max_items: int = 20,
-    max_chars_each: int = 1800,
-    max_total_chars: int = 28000,
-) -> tuple[str, list[dict]]:
+    max_chars_each: int = 200000,
+    max_total_chars: int = 300000,
+) -> tuple[str, list[dict], dict]:
     """
     Build AI context from library items the pastor can see.
     item_keys: list of 'i-12' / 's-34' from the research UI.
@@ -338,9 +338,8 @@ def pack_illustrations_for_ai(
             seen.add(key)
             ordered.append((kind, iid))
         max_items = max(1, len(ordered))
-        max_total_chars = max(max_total_chars, min(100_000, max_items * 1600 + 4000))
-        if max_items > 16:
-            max_chars_each = min(max_chars_each, max(700, 26000 // max(1, max_items)))
+        max_total_chars = max(max_total_chars, min(350_000, 8_000 + max_items * 40_000))
+        max_chars_each = max(max_chars_each, 200_000)
     else:
         q = (question or '').strip()
         hits = search_illustrations_library(user_id, q, limit=40) if len(q) >= 2 else []
@@ -392,14 +391,19 @@ def pack_illustrations_for_ai(
 
     used: list[dict] = []
     chunks: list[str] = []
+    omitted: list[str] = []
+    truncated = False
     total = len(header)
+    empty_meta = {'chars': total, 'truncated': False, 'omitted': [], 'included_full': 0}
 
     if not ordered:
-        return header + "\n(No library items selected or available.)\n", used
+        return header + "\n(No library items selected or available.)\n", used, empty_meta
 
     for kind, iid in ordered:
-        if len(used) >= max_items or total >= max_total_chars:
-            break
+        if len(used) >= max_items:
+            item = _load_visible_item(kind, iid, user_id)
+            omitted.append((item or {}).get('title') or _item_key(kind, iid))
+            continue
         item = _load_visible_item(kind, iid, user_id)
         if not item:
             continue
@@ -430,20 +434,47 @@ def pack_illustrations_for_ai(
             parts.append(f"Notes: {notes}")
         blob = '\n'.join(parts)
         if len(blob) > max_chars_each:
-            blob = blob[:max_chars_each] + '\n[…truncated]'
-        if total + len(blob) > max_total_chars:
-            remain = max_total_chars - total
-            if remain < 300:
-                break
-            blob = blob[:remain] + '\n[…truncated]'
-        chunks.append(blob)
-        total += len(blob) + 2
-        used.append({
-            'id': iid,
-            'kind': kind,
-            'key': _item_key(kind, iid),
-            'title': title,
-            'source': source,
-        })
+            blob = blob[:max_chars_each] + '\n[…this item was longer than the per-item size ceiling.]'
+            truncated = True
+        if total + len(blob) + 2 <= max_total_chars:
+            chunks.append(blob)
+            total += len(blob) + 2
+            used.append({
+                'id': iid,
+                'kind': kind,
+                'key': _item_key(kind, iid),
+                'title': title,
+                'source': source,
+            })
+            continue
+        remain = max_total_chars - total
+        if not used and remain >= 1500:
+            chunks.append(blob[:remain] + '\n[…shortened to fit the AI provider size limit.]')
+            total = max_total_chars
+            truncated = True
+            used.append({
+                'id': iid,
+                'kind': kind,
+                'key': _item_key(kind, iid),
+                'title': title,
+                'source': source,
+            })
+            continue
+        omitted.append(title)
 
-    return header + '\n\n'.join(chunks), used
+    if omitted:
+        header += (
+            f"\n({len(omitted)} additional item(s) not packed due to size: "
+            + ', '.join(omitted[:12])
+            + (', …' if len(omitted) > 12 else '')
+            + ")\n"
+        )
+
+    context = header + '\n\n'.join(chunks)
+    meta = {
+        'chars': len(context),
+        'truncated': truncated,
+        'omitted': omitted,
+        'included_full': max(0, len(used) - (1 if truncated else 0)),
+    }
+    return context, used, meta

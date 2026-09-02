@@ -37,6 +37,7 @@ pyotp==2.10.0
 
 # ─── HTTP client ─────────────────────────────────────────────────────────────
 requests==2.34.2
+pywebpush==2.0.3
 urllib3==2.7.0
 certifi==2026.5.20
 charset-normalizer==3.4.7

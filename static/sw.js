@@ -85,3 +85,39 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = {};
+  }
+  const title = data.title || 'Notes';
+  const body = data.body || 'Someone left a note.';
+  const url = data.url || '/church/messages';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: body,
+      data: { url: url },
+      tag: data.tag || 'note',
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/church/messages';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+      return undefined;
+    })
+  );
+});

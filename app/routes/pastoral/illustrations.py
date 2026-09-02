@@ -240,7 +240,7 @@ def research():
                     flash('Select at least one library item for the AI to use.', 'error')
                 else:
                     try:
-                        context, used_items = pack_illustrations_for_ai(
+                        context, used_items, pack_meta = pack_illustrations_for_ai(
                             user_id,
                             question,
                             item_keys=selected_keys,
@@ -250,29 +250,51 @@ def research():
                             + ' Answer only from the illustrations library material provided. '
                             'That material is stories, analogies, and saved sermon sections '
                             'from this pastor’s library — not general web knowledge about their church. '
+                            'DETAILED CONTENT is the full item text, not just titles. '
+                            'Never claim you received little data if DETAILED CONTENT is present. '
                             'Cite item titles (and keys like i-12 or s-5 when helpful). '
                             'If the library does not cover the question, say so plainly. '
                             'No markdown headings.'
                         )
                         user_prompt = (
-                            f"My question: {question[:800]}\n\n"
-                            f"Here is MY illustrations library only:\n{context}\n\n"
+                            f"My question: {question[:2000]}\n\n"
+                            f"Here is MY illustrations library only. Read the full DETAILED CONTENT:\n{context}\n\n"
                             "Answer like a ministry teammate who has read my illustration notes. "
                             "Point me to specific items when you can. "
                             "Do not invent illustrations that are not listed."
                         )
-                        max_prompt = min(90000, max(28000, 4000 + len(selected_keys) * 1800))
+                        max_prompt = min(400000, max(80000, 8000 + len(context) + 4000))
                         text, err, run_meta = run_insight(
                             'illustration_library_ask',
                             system,
                             user_prompt,
-                            timeout=120,
+                            timeout=180,
                             max_prompt_chars=max_prompt,
                         )
                         if err:
                             answer_error = err
                         else:
                             answer_html = format_ai_prose(text)
+                            notes = []
+                            if pack_meta.get('truncated'):
+                                notes.append('One library item was shortened to fit.')
+                            if pack_meta.get('omitted'):
+                                notes.append(
+                                    f"{len(pack_meta['omitted'])} selected item(s) did not fit."
+                                )
+                            if run_meta.get('shrunk'):
+                                notes.append(
+                                    f"Provider rejected the full prompt; retried with "
+                                    f"{run_meta.get('sent_chars', 0):,} of "
+                                    f"{run_meta.get('original_chars', 0):,} characters."
+                                )
+                            if notes:
+                                answer_html = (
+                                    '<p class="help-text" style="opacity:0.85;">'
+                                    + ' '.join(notes)
+                                    + '</p>'
+                                    + answer_html
+                                )
                             log_change(
                                 user_id, 'ai', None, question[:80],
                                 f"Illustration library AI ({len(used_items)} items) via {run_meta.get('provider') or '?'}",

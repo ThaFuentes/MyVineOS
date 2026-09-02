@@ -284,6 +284,16 @@ AREA_MATRIX = [
         ],
     },
     {
+        'id': 'site_moderation',
+        'label': 'Site moderation',
+        'description': 'Community comments, walls, warnings, shadow. Not office, finance, or settings.',
+        'icon': 'fa-user-shield',
+        'actions': [
+            {'id': 'moderate', 'label': 'Site moderator — hide, shadow, warn, remove (reversible)', 'keys': ['moderate_site']},
+            {'id': 'review', 'label': 'Review & reverse what moderators did', 'keys': ['review_moderation']},
+        ],
+    },
+    {
         'id': 'audit',
         'label': 'Audit / change log',
         'description': 'View change records.',

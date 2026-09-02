@@ -25,7 +25,7 @@
 
   <!-- Same theme stack as main site -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/theme.css') }}?v=20260715theme">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=202608">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/overhaul.css') }}?v=20260901rail2">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/accessible_text.css') }}?v=20260716a11y">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/base_pastoral.css') }}?v=20260716nav1">
@@ -65,7 +65,7 @@
       {% if session.get('user_role') in ['Admin', 'Owner'] %}
       <a href="{{ url_for('pastoral.bible.bible_upload') }}" class="btn btn-secondary pn-btn pn-upload" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Bible translations"><i class="fa-solid fa-download" aria-hidden="true"></i></a>
       {% endif %}
-      <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-secondary pn-btn pn-main" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Main dashboard"><i class="fa-solid fa-house" aria-hidden="true"></i></a>
+      <a href="{{ url_for('church.church_home') }}" class="btn btn-secondary pn-btn pn-main" style="padding:0.25rem 0.5rem; font-size:0.75rem; min-height:auto;" title="Church home"><i class="fa-solid fa-house" aria-hidden="true"></i></a>
     </div>
   </header>
 

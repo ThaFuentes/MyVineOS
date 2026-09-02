@@ -4,47 +4,42 @@
 {% block title %}Bible{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260819nav">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260819nav">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260901woj">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260901xrefnav">
 {% endblock %}
 
 {% block content %}
 <div class="member-bible-header">
-    <h1 class="page-title" style="margin-bottom:0.25rem;"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Bible Study</h1>
+    <h1 class="page-title" style="margin-bottom:0.25rem;"><i class="fa-solid fa-scroll" aria-hidden="true"></i> Bible</h1>
     {% if is_logged_in %}
     <p class="page-description" style="margin-bottom:0.5rem;">
-        Read any version online. Highlight, heart favorites, and leave notes.
-        Your last version, book, and chapter are saved so you can pick up studying anytime — even on another device after login.
+        Read in the center. Open <strong>Study</strong> on a wide screen for books, Strong’s, related verses, and a second translation beside the text.
+        Highlights, notes, and favorites stay with your account.
     </p>
     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
         <span id="member-my-version-badge" class="badge member-my-version-badge" style="display:none;"></span>
         <button type="button" id="member-save-my-bible" class="btn btn-sm btn-primary" title="Remember this version as yours">
             Save as my Bible
         </button>
-        <span class="small text-muted">Version saves when you change the dropdown or press the button. Place updates as you read.</span>
+        <span class="small text-muted">Place and version save as you read.</span>
     </div>
     {% else %}
     <p class="page-description" style="margin-bottom:0.5rem;">
-        Read Scripture online, browse versions, and use Strong’s and cross-references freely.
-        Highlights, notes, favorites, and a saved reading place need a free account.
+        Read, search, Strong’s, and related verses — no account needed.
+        This browser remembers your last chapter. Log in only if you want highlights and notes on every device.
     </p>
-    <div class="member-bible-guest-banner glass-panel mb-2" style="padding:0.65rem 0.85rem;">
-        <p class="mb-1 small" style="margin:0;">
-            <strong>Browsing as a visitor.</strong>
-            You’ll start on the church default Bible each visit. Try other versions while you’re here — nothing is saved until you log in.
-        </p>
-        <a href="{{ login_url }}" class="btn btn-sm btn-primary" id="member-bible-login-cta">
-            Log in to save highlights, notes &amp; favorites
-        </a>
-    </div>
     {% endif %}
 </div>
 
-<div class="bible-stage" id="member-bible-stage">
+<div class="bible-stage{% if not is_logged_in %} is-guest{% endif %}" id="member-bible-stage">
     <div class="bible-stage-toolbar glass-panel" style="padding:0.5rem 0.65rem;">
         <button type="button" id="member-open-canon" class="btn btn-secondary btn-sm bible-flyout-trigger"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Books</button>
         <h2 id="member-bible-title" class="bible-stage-title">Select a book</h2>
         <div class="bible-stage-toolbar-actions">
+            <div class="bible-mode-toggle" role="group" aria-label="Layout">
+                <button type="button" id="member-mode-read" class="btn btn-secondary btn-sm active" title="Text first — books and study slide in">Read</button>
+                <button type="button" id="member-mode-study" class="btn btn-secondary btn-sm" title="Wide screen: books, text, and study tools together">Study</button>
+            </div>
             <select id="member-translation-toolbar" class="form-control form-control-sm member-toolbar-version" title="Switch version — keeps your place">
                 {% if version_options %}
                     {% for t in version_options %}
@@ -56,6 +51,7 @@
                     {% endfor %}
                 {% endif %}
             </select>
+            {% if is_logged_in %}
             <label class="member-hl-default-wrap small" title="Default highlight color for the Highlight button on each verse">
                 <span class="member-hl-default-label">Color</span>
                 <select id="member-hl-color" class="form-control form-control-sm member-hl-default-color">
@@ -66,6 +62,11 @@
             </label>
             <button type="button" id="member-fav-chapter" class="btn btn-secondary btn-sm" title="Favorite this chapter">♡ Ch</button>
             <button type="button" id="member-fav-book" class="btn btn-secondary btn-sm" title="Favorite this book">♡ Book</button>
+            {% endif %}
+            <label class="bible-woj-toggle small" title="Words Jesus spoke, in red">
+                <input type="checkbox" id="member-woj-toggle" checked>
+                Jesus’ words
+            </label>
             <div class="bible-font-controls" title="Bible text size">
                 <button type="button" id="bible-font-smaller" class="btn btn-secondary btn-sm" aria-label="Smaller">A-</button>
                 <span id="bible-font-label" class="bible-font-label">MD</span>
@@ -75,23 +76,31 @@
             <button type="button" id="member-bible-prev" class="btn btn-secondary btn-sm" disabled>Prev</button>
             <button type="button" id="member-bible-next" class="btn btn-secondary btn-sm" disabled>Next</button>
             <button type="button" id="member-open-tools" class="btn btn-primary btn-sm bible-flyout-trigger"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Study</button>
+            {% if not is_logged_in %}
+            <a href="{{ login_url }}" class="btn btn-sm btn-primary" id="member-bible-login-cta">Log in to keep notes</a>
+            {% endif %}
         </div>
     </div>
 
     <div id="member-selection-bar" class="member-selection-bar glass-panel" style="display:none;">
         <span id="member-selection-label" class="small">Verse selected</span>
         <div class="member-selection-actions">
+            {% if is_logged_in %}
             <button type="button" id="member-hl-btn" class="btn btn-sm btn-warning">Highlight</button>
             <button type="button" id="member-hl-clear" class="btn btn-sm btn-secondary">Clear</button>
             <button type="button" id="member-fav-verse" class="btn btn-sm btn-secondary">♡ Favorite</button>
             <button type="button" id="member-note-btn" class="btn btn-sm btn-primary">Add note</button>
+            {% else %}
+            <span class="small text-muted">Open Study for Strong’s and related verses.</span>
+            {% endif %}
         </div>
     </div>
 
     <div id="member-bible-content" class="bible-stage-main glass-panel">
-        <p class="text-muted">Tap <strong>Books</strong> to pick a chapter. Click a verse to highlight, heart, or note.</p>
+        <p class="text-muted">{% if is_logged_in %}Tap <strong>Books</strong> to pick a chapter. Click a verse to highlight or note.{% else %}Tap <strong>Books</strong> to pick a chapter. Gold words open Strong’s. Related verses sit under the text.{% endif %}</p>
     </div>
 
+    {% if is_logged_in %}
     <div id="member-notes-panel" class="member-notes-panel glass-panel mt-2">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
             <h3 class="h6 mb-0"><i class="fa-solid fa-sticky-note me-1"></i> Study notes</h3>
@@ -111,7 +120,7 @@
         </p>
         <div id="member-notes-list"><p class="small text-muted mb-0">Verse, chapter, and book notes appear here.</p></div>
     </div>
-</div>
+    {% endif %}
 
 <!-- Canon flyout -->
 <div id="member-canon-flyout" class="bible-flyout bible-flyout-left glass-panel" aria-hidden="true">
@@ -167,6 +176,25 @@
         <button type="button" class="bible-flyout-close" data-close-flyout="tools" aria-label="Close">&times;</button>
     </div>
     <div class="bible-flyout-body">
+        <div id="member-study-focus" class="member-study-focus">
+            <h4 class="small text-cyan">This verse</h4>
+            <div id="member-study-focus-body" class="member-study-focus-body">
+                <p class="small text-muted mb-0">Tap a verse in the chapter. Strong’s words, related verses, and a second translation show here.</p>
+            </div>
+        </div>
+
+        <h4 class="small text-cyan">Compare</h4>
+        <label class="form-label small" for="member-compare-translation">Second translation</label>
+        <select id="member-compare-translation" class="form-control mb-2">
+            <option value="">Off</option>
+            {% if version_options %}
+                {% for t in version_options %}
+                <option value="{{ t.value }}">{{ t.code }}{% if t.online %} · online{% endif %}</option>
+                {% endfor %}
+            {% endif %}
+        </select>
+        <p class="small text-muted mb-3">Shows under each verse in Study on a wide screen. Off keeps a single column.</p>
+
         <h4 class="small text-cyan">Strong's concordance</h4>
         <div class="member-bible-search-row">
             <input type="text" id="member-strongs-q" class="form-control" placeholder="G26, H2617, love">
@@ -181,6 +209,7 @@
         </div>
         <p class="small text-muted mb-3">Jump by reference on any version. Word search needs an installed translation.</p>
 
+        {% if is_logged_in %}
         <h4 class="small text-cyan">My notes</h4>
         <div class="member-bible-search-row">
             <input type="text" id="member-notes-q" class="form-control" placeholder="Title or tag…">
@@ -203,7 +232,9 @@
             <option value="book">Books</option>
         </select>
         <div id="member-favs-lib" class="member-lib-results"></div>
+        {% endif %}
     </div>
+</div>
 </div>
 
 <!-- Note modal — loads previous note when one exists so you can edit / add to it -->
@@ -283,5 +314,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260819nav"></script>
+<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260901xrefnav"></script>
 {% endblock %}

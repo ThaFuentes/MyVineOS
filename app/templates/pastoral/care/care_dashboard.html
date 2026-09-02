@@ -21,6 +21,28 @@
   </div>
 </div>
 
+{% if first_timers %}
+<div class="glass-panel" style="margin-bottom:0.9rem;">
+  <h3 style="margin:0 0 0.35rem; font-size:1.05rem;">First-time guests (last 45 days)</h3>
+  <p style="margin:0 0 0.65rem; font-size:0.88rem; opacity:0.75;">People whose first check-in was recently. Open a follow-up card — welcome, a mid-week note, invite back.</p>
+  {% for p in first_timers %}
+  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.4rem; padding:0.45rem 0; border-top:1px solid rgba(255,255,255,0.08);">
+    <div>
+      <strong>{{ p.first_name }} {{ p.last_name }}</strong>
+      <span style="opacity:0.7; font-size:0.85rem;"> · first visit {{ p.first_visit }}</span>
+    </div>
+    <form method="post" action="{{ url_for('pastoral.care.follow_up_start') }}">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="member_id" value="{{ p.id }}">
+      <input type="hidden" name="first_visit" value="{{ p.first_visit }}">
+      <input type="hidden" name="name" value="{{ p.first_name }} {{ p.last_name }}">
+      <button type="submit" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">Start follow-up</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <!-- Filters as clean card, flex wrap for phone -->
 <div class="glass-panel" style="margin-bottom:0.9rem;">
   <form method="GET" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">

@@ -23,6 +23,19 @@ from . import worship_bp, worship_required
 from .utils import DEFAULT_ROLES, chords_upload_dir, save_chord_upload
 
 
+def _push_worship_to_church_page(setlist_id=None, template_id=None):
+    """Schedule/setlist saves land on the church wall even if this person cannot edit the look."""
+    try:
+        from app.models import church_community as cc
+        uid = session.get('user_id')
+        if setlist_id:
+            cc.publish_worship_update(uid, setlist=setlist_model.get_setlist(int(setlist_id)))
+        elif template_id:
+            cc.publish_worship_update(uid, template=template_model.get_template(int(template_id)))
+    except Exception as exc:
+        print(f'worship church wall: {exc}')
+
+
 def _parse_sections_form():
     """Prefer structured section cards from the song editor; fall back to JSON/lyrics."""
     ids = request.form.getlist('sec_id[]')
@@ -194,6 +207,9 @@ def dashboard():
         can_manage=can_manage_worship(),
         leaders=get_worship_leaders(),
         play_stats=plays_model.get_song_play_counts()[:5],
+        ccli_quarter=plays_model.get_ccli_usage_report(
+            *plays_model.resolve_ccli_report_range('quarter')[:2]
+        ),
         public_token=public_token,
     )
 
@@ -756,11 +772,13 @@ def template_edit(weekday):
             song_id = request.form.get('song_id')
             if song_id:
                 template_model.add_song_to_template(template_id, int(song_id))
+                _push_worship_to_church_page(template_id=template_id)
                 flash('Song added to weekly template.', 'success')
         elif action == 'remove_song':
             item_id = request.form.get('item_id')
             if item_id:
                 template_model.remove_template_song(int(item_id), template_id)
+                _push_worship_to_church_page(template_id=template_id)
                 flash('Song removed.', 'success')
         elif action == 'save':
             data = _setlist_form_data()
@@ -770,7 +788,8 @@ def template_edit(weekday):
                 template_model.update_template(template_id, data, session['user_id'])
                 template_model.save_template_assignments(template_id, _assignment_rows_from_form())
                 _save_member_notes_from_form(template_id=template_id)
-                flash('Weekly template saved.', 'success')
+                _push_worship_to_church_page(template_id=template_id)
+                flash('Weekly template saved — the church page is updated.', 'success')
         return redirect(url_for('worship.template_edit', weekday=weekday))
 
     member_notes = {n['user_id']: n for n in notes_model.get_notes_for_setlist(template_id=template_id)}
@@ -803,7 +822,8 @@ def plan_for_date(date_str):
             return redirect(url_for('worship.plan_for_date', date_str=date_str))
         setlist_id = template_model.create_override_from_template(date_str, session['user_id'])
         if setlist_id:
-            flash('Created a custom plan for this date.', 'success')
+            _push_worship_to_church_page(setlist_id=setlist_id)
+            flash('Created a custom plan for this date — the church page is updated.', 'success')
             return redirect(url_for('worship.setlist_edit', setlist_id=setlist_id))
         flash('No weekly template exists for this weekday yet.', 'warning')
         return redirect(url_for('worship.templates_list'))
@@ -861,7 +881,8 @@ def setlist_new():
             rows = _assignment_rows_from_form()
             if rows:
                 setlist_model.save_assignments(setlist_id, rows)
-            flash('Setlist created.', 'success')
+            _push_worship_to_church_page(setlist_id=setlist_id)
+            flash('Setlist created — the church page is updated.', 'success')
             return redirect(url_for('worship.setlist_edit', setlist_id=setlist_id))
 
     members = get_worship_team_members()
@@ -897,11 +918,13 @@ def setlist_edit(setlist_id):
             song_id = request.form.get('song_id')
             if song_id:
                 setlist_model.add_song_to_setlist(setlist_id, int(song_id))
+                _push_worship_to_church_page(setlist_id=setlist_id)
                 flash('Song added to setlist.', 'success')
         elif action == 'remove_song':
             item_id = request.form.get('item_id')
             if item_id:
                 setlist_model.remove_setlist_song(int(item_id), setlist_id)
+                _push_worship_to_church_page(setlist_id=setlist_id)
                 flash('Song removed.', 'success')
         elif action == 'confirm_service':
             if setlist.get('service_date'):
@@ -922,7 +945,8 @@ def setlist_edit(setlist_id):
                 setlist_model.save_assignments(setlist_id, _assignment_rows_from_form())
                 _save_member_notes_from_form(setlist_id=setlist_id)
                 setlist_model.ensure_public_token(setlist_id)
-                flash('Setlist saved.', 'success')
+                _push_worship_to_church_page(setlist_id=setlist_id)
+                flash('Setlist saved — the church page is updated.', 'success')
         return redirect(url_for('worship.setlist_edit', setlist_id=setlist_id))
 
     members = get_worship_team_members()
@@ -1056,6 +1080,15 @@ def ccli_report():
             return Response(
                 csv_data,
                 mimetype='text/csv; charset=utf-8',
+                headers={
+                    'Content-Disposition': f'attachment; filename="{fname}"',
+                },
+            )
+        if action == 'download_txt':
+            fname = f"ccli-usage-{start_d.isoformat()}-to-{end_d.isoformat()}.txt"
+            return Response(
+                text_body,
+                mimetype='text/plain; charset=utf-8',
                 headers={
                     'Content-Disposition': f'attachment; filename="{fname}"',
                 },

@@ -13,6 +13,8 @@ from app.models.log import log_change
 from werkzeug.utils import secure_filename
 from . import settings_bp, allowed_file, DONATIONS_FOLDER, has_section_permission, load_settings, load_online_options
 from app.utils.helpers import contains_censored_word
+from app.utils.appearance import sanitize_public_href
+from app.utils.html_sanitize import sanitize_donate_embed, sanitize_rich_html, sanitize_plain_text
 import os
 import pymysql
 
@@ -36,10 +38,10 @@ def online_giving():
         if action == 'update_online_global':
             updates = {
                 'online_donations_enabled': 1 if 'online_donations_enabled' in request.form else 0,
-                'donations_page_title': request.form.get('donations_page_title', '').strip() or None,
-                'donations_welcome_text': request.form.get('donations_welcome_text', '').strip() or None,
-                'donations_thank_you_text': request.form.get('donations_thank_you_text', '').strip() or None,
-                'donations_extra_text': request.form.get('donations_extra_text', '').strip() or None,
+                'donations_page_title': sanitize_plain_text(request.form.get('donations_page_title', '')) or None,
+                'donations_welcome_text': sanitize_plain_text(request.form.get('donations_welcome_text', '')) or None,
+                'donations_thank_you_text': sanitize_plain_text(request.form.get('donations_thank_you_text', '')) or None,
+                'donations_extra_text': sanitize_rich_html(request.form.get('donations_extra_text', '')) or None,
             }
             set_clause = ", ".join(f"{k} = %s" for k in updates)
             values = list(updates.values())
@@ -49,7 +51,7 @@ def online_giving():
             flash('Online giving page settings saved.', 'success')
 
         elif action == 'add_option':
-            name = request.form.get('option_name', '').strip()
+            name = sanitize_plain_text(request.form.get('option_name', ''))
             if not name:
                 flash('Option name is required.', 'error')
             else:
@@ -70,9 +72,9 @@ def online_giving():
                          COALESCE((SELECT MAX(sort_order) FROM online_donation_options), 0) + 1)
                     """, (
                         name,
-                        request.form.get('option_type', '').strip() or None,
-                        request.form.get('option_url') or None,
-                        request.form.get('option_embed') or None,
+                        sanitize_plain_text(request.form.get('option_type', '')) or None,
+                        sanitize_public_href(request.form.get('option_url') or '') or None,
+                        sanitize_donate_embed(request.form.get('option_embed') or '') or None,
                         image_path,
                         1 if 'option_enabled' in request.form else 0
                     ))
@@ -101,7 +103,7 @@ def online_giving():
 
         elif action == 'update_option':
             option_id = request.form.get('option_id')
-            name = request.form.get('option_name', '').strip()
+            name = sanitize_plain_text(request.form.get('option_name', ''))
             if not option_id or not name:
                 flash('Invalid data.', 'error')
             else:
@@ -110,9 +112,9 @@ def online_giving():
                 else:
                     updates = {
                         'name': name,
-                        'option_type': request.form.get('option_type', '').strip() or None,
-                        'url': request.form.get('option_url') or None,
-                        'embed_code': request.form.get('option_embed') or None,
+                        'option_type': sanitize_plain_text(request.form.get('option_type', '')) or None,
+                        'url': sanitize_public_href(request.form.get('option_url') or '') or None,
+                        'embed_code': sanitize_donate_embed(request.form.get('option_embed') or '') or None,
                         'enabled': 1 if 'option_enabled' in request.form else 0
                     }
                     file = request.files.get('option_image')

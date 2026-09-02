@@ -11,6 +11,7 @@ MODERATION_COLUMNS = {
     'moderated_at': 'TIMESTAMP NULL',
     'edited_by_moderator': 'TINYINT(1) DEFAULT 0',
     'moderator_edited_at': 'TIMESTAMP NULL',
+    'removed': 'TINYINT(1) NOT NULL DEFAULT 0',
 }
 
 COMMENT_TABLES = (
@@ -20,6 +21,7 @@ COMMENT_TABLES = (
     'prophecy_comments',
     'announcement_comments',
     'prayers_added',
+    'page_photo_comments',
 )
 
 

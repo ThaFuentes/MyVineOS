@@ -134,10 +134,58 @@
     });
   }
 
+  function initComposeSheet() {
+    const sheet = document.getElementById('compose-sheet');
+    if (!sheet || !sheet.showModal) return;
+
+    function openSheet(kind) {
+      sheet.showModal();
+      if (kind) {
+        const btn = qs('[data-compose-type="' + kind + '"]', sheet);
+        if (btn) btn.click();
+      }
+      const text = qs('[data-compose-panel].is-open [data-compose-text], [data-compose-panel].is-open textarea', sheet);
+      if (text && typeof text.focus === 'function') text.focus();
+    }
+
+    qsa('[data-open-compose]').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        openSheet(el.getAttribute('data-open-compose') || '');
+      });
+    });
+
+    sheet.addEventListener('click', function (e) {
+      if (e.target === sheet) sheet.close();
+    });
+
+    qsa('[data-mention]').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        const tag = chip.getAttribute('data-mention');
+        if (!tag) return;
+        const box = qs('[data-compose-panel].is-open [data-compose-text], [data-compose-panel].is-open textarea', sheet)
+          || qs('[data-compose-text]:not([disabled])')
+          || qs('textarea:not([disabled])', sheet);
+        if (!box) return;
+        const start = box.selectionStart || box.value.length;
+        const end = box.selectionEnd || box.value.length;
+        const before = box.value.slice(0, start);
+        const after = box.value.slice(end);
+        const pad = before && !/\s$/.test(before) ? ' ' : '';
+        box.value = before + pad + tag + ' ' + after;
+        box.focus();
+        const pos = (before + pad + tag + ' ').length;
+        if (box.setSelectionRange) box.setSelectionRange(pos, pos);
+        chip.classList.add('is-on');
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     qsa('[data-list-root]').forEach(initListFilters);
     qsa('[data-compose]').forEach(initCompose);
     qsa('[data-hero]').forEach(initHero);
     initAppsToggle();
+    initComposeSheet();
   });
 })();
