@@ -4,8 +4,8 @@
 {% block title %}Bible{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260902desk">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260902desk">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260902verse">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260902verse">
 {% endblock %}
 
 {% block content %}
@@ -78,20 +78,6 @@
             <button type="button" id="member-open-tools" class="btn btn-primary btn-sm bible-flyout-trigger"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Study</button>
             {% if not is_logged_in %}
             <a href="{{ login_url }}" class="btn btn-sm btn-primary" id="member-bible-login-cta">Log in to keep notes</a>
-            {% endif %}
-        </div>
-    </div>
-
-    <div id="member-selection-bar" class="member-selection-bar glass-panel" style="display:none;">
-        <span id="member-selection-label" class="small">Verse selected</span>
-        <div class="member-selection-actions">
-            {% if is_logged_in %}
-            <button type="button" id="member-hl-btn" class="btn btn-sm btn-warning">Highlight</button>
-            <button type="button" id="member-hl-clear" class="btn btn-sm btn-secondary">Clear</button>
-            <button type="button" id="member-fav-verse" class="btn btn-sm btn-secondary">♡ Favorite</button>
-            <button type="button" id="member-note-btn" class="btn btn-sm btn-primary">Add note</button>
-            {% else %}
-            <span class="small text-muted">Open Study for Strong’s and related verses.</span>
             {% endif %}
         </div>
     </div>
@@ -179,7 +165,7 @@
         <div id="member-study-focus" class="member-study-focus">
             <h4 class="small text-cyan">This verse</h4>
             <div id="member-study-focus-body" class="member-study-focus-body">
-                <p class="small text-muted mb-0">Tap a verse in the chapter. Strong’s words, related verses, and a second translation show here.</p>
+                <p class="small text-muted mb-0">The first verse of the chapter opens here. Tap another verse to move study tools to it.</p>
             </div>
         </div>
 
@@ -314,5 +300,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260902desk"></script>
+<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260902verse"></script>
 {% endblock %}
