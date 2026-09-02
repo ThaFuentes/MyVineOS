@@ -30,7 +30,13 @@ def _c(slug, name, description, sort_order):
 
 
 CATEGORIES = [
-    _c("getting-started", "Getting Started", "First login, navigation, themes, and Help packs.", 5),
+    _c("getting-started", "Getting Started", "First login, the map of the site, and how Help works.", 5),
+    _c(
+        "home-and-life",
+        "Your church life",
+        "Church page, Feed, your page, Notes, serving, Bible, study courses, and the app.",
+        8,
+    ),
     _c("community", "Community", "Events, prayers, sermons, announcements, dreams, prophecies, Bible.", 15),
     _c("church-office", "Church Office", "Members, donations, inventory, groups, office tools.", 25),
     _c("attendance-kids", "Attendance & Kids", "Attendance sessions, reports, self check-in, child check-in.", 35),
@@ -56,7 +62,7 @@ def _articles():
             """
 ## What this Help Center is
 
-This is your church's **instruction library** for MyVineChurch / MyVineOS. Guides are written for real operators: greeters, treasurers, pastors, worship leaders, and admins.
+This is your church's **instruction library** for MyVineChurch / MyVineOS. Guides are written for real operators: greeters, treasurers, ministers, worship leaders, and admins.
 
 ## How to find answers
 
@@ -86,6 +92,242 @@ Help packs use format **`myvine_help_v1`** and are **slug-based** (not hard-code
 > Tip: After major product updates, re-import the official enterprise pack so every church gets the new guides without rebuilding them by hand.
 """,
             1,
+        ),
+        _a(
+            "your-first-week",
+            "Your first week here",
+            "A simple map: Home, Feed, your page, Notes, Sunday serving, Bible, and Help.",
+            "getting-started",
+            """
+## The four places
+
+| Place | What it is |
+|-------|------------|
+| **Home** (`/church/`) | The **church page** — official wall, This Sunday, people, photos. Not the newspaper. |
+| **Feed** | The newspaper. People you follow first, then your branch, then the rest of the church. |
+| **Your page** | *Your* wall — what you made, linked, and follow. Not everyone else’s posts. |
+| **Notes** | Private messages. 1:1, invited groups, or open rooms. Not a public comment thread. |
+
+## First five minutes
+
+1. Sign in (or register, then wait if your church approves new people).
+2. Open **Home**. That’s the church speaking.
+3. Open **Feed** (top of the church page, or the Feed tab on your phone).
+4. Open **You → Your page** (or **Create your page** if you don’t have one yet).
+5. Pin this guide: **Pin to my list**.
+
+## This Sunday
+
+Left side (or **Sunday** on a phone) shows the next gathering: time, **Minister**, greeters, and other serving roles. If someone asks you to serve, **You** / **My Serving** is where you say yes or can’t.
+
+## Bible and courses
+
+- **Bible** is open to guests and members. Members can highlight and note.
+- **Study Courses** are lessons your church published. Public courses can be taken without an account — **nothing is saved** for guests.
+
+## Install the app
+
+**You → Install app** (desktop) or **My Stuff → Install app** (phone). Chrome/Edge can install directly. Safari: Share → Add to Home Screen.
+
+## If you lead
+
+Ministers and staff: **Ministry → Pastoral** for sermons and Sunday planning, **Worship Team** for setlists (song lists stay there — they are not posted on the church wall).
+""",
+            2,
+        ),
+        _a(
+            "church-page-feed-member",
+            "Church page, Feed, and your page",
+            "Home is the church. Feed is the newspaper. Your page is yours.",
+            "home-and-life",
+            """
+## Church page (Home)
+
+This is the official church (or branch) page.
+
+- **Wall** = church voice: updates, events, prayers the church wants on this page.
+- **This Sunday** = time and who is serving. It does **not** list the songs.
+- **You** (left) = your page, Feed, Find people, Notes, Install app.
+- Editors can change the banner and pic, and can **remove** wall posts (the ×) even if someone else posted them.
+
+If your church has branches, your Home may be **your branch**. You can still open the main church page.
+
+## Feed
+
+The newspaper for the whole church:
+
+1. People you **follow**
+2. Your **branch** (if you have one)
+3. The rest of the church
+
+Public posts are visible to guests. Member-only posts need a login. Personal posts never leave someone’s own page.
+
+**Share with the church** from the Feed. **Post as the church** is only for people allowed to speak as the church.
+
+## Your page
+
+MySpace-style: banner, pic, about, verse, photos, links, and **your** wall.
+
+- What you created, linked, and follow lives here.
+- Other people’s posts live on the **Feed**, not on your wall.
+- You can follow people from **Find people**.
+
+## Removing a post
+
+- Your own post: × on the card.
+- Church wall, if you edit the church page (or you are Owner/Admin): × removes it from the church wall, including worship-team auto posts.
+""",
+            10,
+        ),
+        _a(
+            "notes-how-to",
+            "Notes (messages)",
+            "1:1, invite a group, or join an open room — church-only, not a public DM network.",
+            "home-and-life",
+            """
+## Open Notes
+
+**You → Notes** or the envelope on the church page.
+
+## Start a conversation
+
+1. **New note**.
+2. Pick one person, or invite several.
+3. Write and send.
+
+You can also open someone’s page and **Send a note**.
+
+## Groups and rooms
+
+- Invite-only groups: only people you add.
+- Open rooms: people in the church can join.
+
+Ministers and church-page editors can read notes sent **to the church** and reply for the church.
+
+## Alerts
+
+If you **Install app** on a phone (HTTPS), Notes can use phone alerts when your church has push set up.
+""",
+            20,
+        ),
+        _a(
+            "this-sunday-serving",
+            "This Sunday and serving",
+            "See who’s on, answer a serving ask, and find My Serving.",
+            "home-and-life",
+            """
+## This Sunday
+
+On the church page (and in the Sunday sheet on a phone) you’ll see:
+
+- Date and service time
+- **Minister** (the person bringing the word)
+- Other roles (greeter, reader, worship leader, teams)
+
+Song names stay in **Worship Team**. They are not listed on the church page.
+
+## If you’re asked to serve
+
+1. Open **My Stuff → My Serving** (or the Serve tab on your page).
+2. A **red** number means unanswered asks. A **blue** (or your page color) number is how many things you’re already on.
+3. Tap **Yes** or **Can’t**.
+
+## Leaders
+
+Worship and pastoral saves still show the **schedule** on the church page (who is on), not the setlist.
+""",
+            30,
+        ),
+        _a(
+            "install-the-app",
+            "Install the church app on your phone or computer",
+            "Add this site to your home screen so it opens like an app.",
+            "home-and-life",
+            """
+## Why install
+
+It opens in its own window (no browser tabs), and Notes alerts work better on a phone.
+
+## Always available
+
+- Desktop church page: **You → Install app**
+- Phone: **My Stuff → Install app**
+
+You can still install if you dismissed the popup earlier.
+
+## Chrome or Edge (Android / Windows / Mac)
+
+1. Tap **Install app**, then **Install**.
+2. Or use the install icon in the address bar.
+
+## Safari (iPhone / iPad / Mac)
+
+1. Tap **Install app** for the short reminder.
+2. **Share** (the square with the arrow) → **Add to Home Screen** (iPhone) or **File → Add to Dock** (Mac).
+
+## HTTPS
+
+Install and phone alerts need a secure site (`https://`). Local http:// is for testing only.
+""",
+            40,
+        ),
+        _a(
+            "bible-and-study-courses",
+            "Bible and Study Courses",
+            "Read the Word, take a course, and what gets saved.",
+            "home-and-life",
+            """
+## Bible
+
+Open **Bible** from the church page apps or the top nav.
+
+- Guests may read.
+- Signed-in members can highlight, favorite, and write notes.
+- **Jesus’ words** can show in red.
+- **See also** on a verse opens related verses; use the arrows to step through them.
+
+## Study Courses
+
+**Study Courses** (or `/study/`).
+
+1. Pick a published course you are allowed to take.
+2. Open a lesson. Read, watch, answer questions.
+3. **Members / staff / admins** (if those boxes are ticked on the course) get a saved record and badges.
+4. **Public** courses: anyone can read and do them. **Guests get no saved record.**
+
+## Building a course (leaders)
+
+**Pastoral → Curriculum Studio**. Tick who can take it: Admins, Staff, Members, and/or Public. Public means no saved guest progress.
+""",
+            50,
+        ),
+        _a(
+            "for-ministers-and-editors",
+            "For ministers and church-page editors",
+            "Sunday planning, church wall, and what the congregation sees.",
+            "home-and-life",
+            """
+## Sunday
+
+**Ministry → Pastoral → Service planning** assigns the **Minister** and other roles. That schedule shows on the church page.
+
+**Worship Team** still owns songs and setlists. Those songs do **not** appear as a lineup on Home or Feed.
+
+## Church wall
+
+- **Post as the church** if you can speak as the church.
+- Worship/pastoral saves can add a **schedule** note to the wall (times and who is on — not the song list).
+- You can **remove** a church-wall post with the × even if you didn’t write it.
+
+## Look of the page
+
+Editors: banner, pic, about, verse. New churches start with a default sanctuary banner and stained-glass pic until you upload your own.
+
+## Stay signed in
+
+Use **Install app** on the device you preach from. Sessions last weeks and refresh while you use the site. If you still get bounced, sign in once after an update so the new cookie is set.
+""",
+            60,
         ),
         _a(
             "help-packs-download-upload-git",

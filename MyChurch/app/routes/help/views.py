@@ -74,6 +74,20 @@ def help_index():
         articles = list_published_articles(cur)
         browse_groups = group_articles_by_category(cur, articles)
 
+    start_here = []
+    try:
+        from app.models.help_pack import START_HERE
+        for slug, title, blurb in START_HERE:
+            art = get_article_by_slug(cur, slug)
+            start_here.append({
+                'slug': slug,
+                'title': (art or {}).get('title') or title,
+                'summary': (art or {}).get('summary') or blurb,
+                'exists': bool(art),
+            })
+    except Exception:
+        start_here = []
+
     return render_template(
         'help/index.html',
         tab=tab,
@@ -83,6 +97,7 @@ def help_index():
         pinned_articles=pinned_articles,
         pinned_ids=pinned_ids,
         can_manage=can_manage_help(),
+        start_here=start_here,
     )
 
 

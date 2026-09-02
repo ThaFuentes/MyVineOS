@@ -57,7 +57,18 @@
 {% endif %}
 
 {% else %}
-<p class="help-text" style="margin-bottom:1rem;">Browse guides by category. Church leaders can add and edit content under <strong>Manage Help Content</strong>.</p>
+<p class="help-text" style="margin-bottom:1rem;">Start with the cards, then browse by category. Search if you already know the word.</p>
+{% if start_here %}
+<div class="help-start-grid">
+  {% for card in start_here %}
+  <a class="glass-panel help-start-card" href="{% if card.exists %}{{ url_for('help.help_article', slug=card.slug) }}{% else %}{{ url_for('help.help_index', tab='search', q=card.title) }}{% endif %}">
+    <strong>{{ card.title }}</strong>
+    <span>{{ card.summary }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+<p class="help-text" style="margin:1.25rem 0 0.75rem;">All guides by category</p>
 {% if browse_groups %}
     {% for group in browse_groups %}
     <details class="collapsible-section glass" style="margin-bottom:0.65rem;" {% if loop.first %}open{% endif %}>
