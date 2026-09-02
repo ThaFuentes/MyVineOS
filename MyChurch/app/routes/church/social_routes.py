@@ -45,6 +45,51 @@ def moderate_wall_post(post_id):
     return redirect(url_for('church.church_home'))
 
 
+@church_bp.route('/notices/seen', methods=['POST'])
+@login_required
+def notices_seen():
+    from app.models.notices import mark_notices_seen
+    mark_notices_seen(session['user_id'])
+    nxt = (request.form.get('next') or '').strip()
+    if nxt.startswith('/') and not nxt.startswith('//'):
+        return redirect(nxt)
+    return redirect(url_for('public.public_dashboard.public_community'))
+
+
+@church_bp.route('/pin', methods=['POST'])
+@login_required
+def pin_wall_item():
+    owner_type = (request.form.get('owner_type') or '').strip()
+    item_type = (request.form.get('item_type') or '').strip()
+    try:
+        owner_id = int(request.form.get('owner_id') or 0)
+        item_id = int(request.form.get('item_id') or 0)
+    except (TypeError, ValueError):
+        owner_id, item_id = 0, 0
+    pinned = request.form.get('pinned') != '0'
+    uid = session['user_id']
+    allowed = False
+    if owner_type == 'member' and owner_id == int(uid):
+        allowed = True
+    elif owner_type in ('church', 'campus') and cc.can_edit_church_page(owner_id if owner_type == 'campus' else 0):
+        allowed = True
+    if not allowed:
+        flash('You can only pin posts on your own page.', 'error')
+    else:
+        ok, msg = cc.set_pin(owner_type, owner_id, item_type, item_id, pinned, uid)
+        flash(msg, 'success' if ok else 'error')
+    nxt = (request.form.get('next') or '').strip()
+    if nxt.startswith('/') and not nxt.startswith('//'):
+        return redirect(nxt)
+    if owner_type == 'member':
+        user = cc.get_user_public(uid) or {}
+        if user.get('username'):
+            return redirect(url_for('church.member_page', username=user['username']))
+    if owner_type == 'campus' and owner_id:
+        return redirect(url_for('church.church_home', campus_id=owner_id))
+    return redirect(url_for('church.church_home'))
+
+
 @church_bp.route('/post/<int:post_id>/delete', methods=['POST'])
 @login_required
 def delete_wall_post(post_id):

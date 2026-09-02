@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=33">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=35">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/volunteers.css') }}?v=20260714a">
 {% endblock %}
 
@@ -31,6 +31,21 @@
     {% set can_change_look = is_owner %}
     {% set manage_scope = 'member' %}
     {% include 'church/_identity.html' %}
+    {% if about %}
+    <section class="glass-panel profile-about profile-about-main">
+      <h2>About me</h2>
+      <p>{{ about | nl2br }}</p>
+    </section>
+    {% elif is_owner %}
+    <section class="glass-panel profile-about profile-about-main">
+      <h2>About me</h2>
+      <p class="profile-muted">Nothing here yet. <a href="{{ url_for('church.edit_my_page') }}">Write an About me</a>.</p>
+    </section>
+    {% endif %}
+
+    {% if is_owner %}
+      {% include 'church/_notices.html' %}
+    {% endif %}
 
     {% if is_owner and warnings %}
     <div class="profile-serve-ping" role="status" style="display:block; margin:0.6rem 0;">

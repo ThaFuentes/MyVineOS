@@ -276,3 +276,24 @@ def create_tables(cursor):
             INDEX idx_page_editors_user (user_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS page_pins (
+            id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+            owner_type VARCHAR(16) NOT NULL,
+            owner_id INT UNSIGNED NOT NULL DEFAULT 0,
+            item_type VARCHAR(24) NOT NULL,
+            item_id INT UNSIGNED NOT NULL,
+            pinned_by INT UNSIGNED NULL,
+            pinned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_page_pin (owner_type, owner_id, item_type, item_id),
+            INDEX idx_page_pins_owner (owner_type, owner_id, pinned_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_notice_state (
+            user_id INT UNSIGNED PRIMARY KEY,
+            seen_at DATETIME NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
