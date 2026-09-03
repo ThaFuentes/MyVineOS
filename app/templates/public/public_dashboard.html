@@ -93,7 +93,14 @@
                 {% endif %}
               </span>
               {% set own_post = session.get('user_id') and item.author_id and item.author_id|int == session.get('user_id')|int %}
-              {% if item.id and item.deletable and (own_post or item.can_manage_wall or item.moderatable) %}
+              {% if item.moderatable and item.id %}
+              <form method="post" action="{{ url_for('church.moderate_content', kind=item.type, item_id=item.id) }}" class="wall-delete" onsubmit="return confirm('Remove this from the site? A reviewer can put it back.');">
+                {% include 'partials/csrf_field.html' %}
+                <input type="hidden" name="action" value="hide">
+                <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+                <button type="submit" class="profile-x" title="Remove from this wall" aria-label="Remove from this wall">×</button>
+              </form>
+              {% elif item.id and item.deletable and (own_post or item.can_manage_wall) %}
               <form method="post" action="{{ url_for('church.delete_wall_post', post_id=item.id) }}" class="wall-delete" onsubmit="return confirm('Remove this from the wall?');">
                 {% include 'partials/csrf_field.html' %}
                 <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">

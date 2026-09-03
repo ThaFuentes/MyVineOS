@@ -97,6 +97,7 @@ def _feed_prayers(include_members=False):
         LEFT JOIN users u ON COALESCE(p.user_id, p.created_by) = u.id
         WHERE p.visibility {_vis_sql(True)}
           AND COALESCE(p.status, 'approved') NOT IN ('rejected', 'deleted', 'removed', 'spam', 'hidden')
+          AND COALESCE(p.moderation_hidden, 0) = 0
         ORDER BY p.date_posted DESC
     """)
     return rows or _safe_rows(get_public_prayers)
@@ -112,6 +113,7 @@ def _feed_announcements(include_members=False):
         LEFT JOIN users u ON COALESCE(a.created_by, a.user_id) = u.id
         WHERE a.visibility {_vis_sql(True)}
           AND COALESCE(a.is_active, 1) = 1
+          AND COALESCE(a.moderation_hidden, 0) = 0
         ORDER BY a.created_at DESC
     """) or _safe_rows(get_public_announcements)
 
@@ -124,6 +126,7 @@ def _feed_events(include_members=False):
         FROM events e
         LEFT JOIN users u ON e.created_by = u.id
         WHERE e.visibility {_vis_sql(True)}
+          AND COALESCE(e.moderation_hidden, 0) = 0
         ORDER BY e.event_date DESC, e.event_time DESC
     """) or _safe_rows(get_public_events)
 
@@ -137,6 +140,7 @@ def _feed_sermons(include_members=False):
         FROM sermons s
         LEFT JOIN users u ON COALESCE(s.uploaded_by, s.created_by) = u.id
         WHERE s.visibility {_vis_sql(True)}
+          AND COALESCE(s.moderation_hidden, 0) = 0
         ORDER BY s.uploaded_at DESC
     """) or _safe_rows(get_public_sermons)
 
@@ -149,6 +153,7 @@ def _feed_dreams(include_members=False):
         FROM dreams d
         LEFT JOIN users u ON COALESCE(d.user_id, d.created_by) = u.id
         WHERE d.visibility {_vis_sql(True)}
+          AND COALESCE(d.moderation_hidden, 0) = 0
         ORDER BY d.date_posted DESC
     """) or _safe_rows(get_public_dreams)
 
@@ -161,6 +166,7 @@ def _feed_prophecies(include_members=False):
         FROM prophecies p
         LEFT JOIN users u ON COALESCE(p.user_id, p.created_by) = u.id
         WHERE p.visibility {_vis_sql(True)}
+          AND COALESCE(p.moderation_hidden, 0) = 0
         ORDER BY p.created_at DESC
     """) or _safe_rows(get_public_prophecies)
 

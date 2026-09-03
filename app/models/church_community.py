@@ -1357,6 +1357,7 @@ def church_wall(include_members: bool = False, limit: int = 24, campus_id: int =
             item['posted_as_label'] = official
             item['author'] = official
             item['creator_name'] = official
+            item['can_manage_wall'] = can_edit_church_page(wall_campus)
             spec = detail.get(kind)
             item['detail_url'] = (
                 safe_url_for(spec[0], '', **{spec[1]: item['id']})

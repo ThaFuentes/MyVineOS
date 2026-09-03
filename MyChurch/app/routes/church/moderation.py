@@ -40,6 +40,12 @@ def moderation_desk():
                 reason = (request.form.get('reason') or '').strip()
                 ok, msg = mod.hide_post(post_id, actor, reason)
                 flash(msg, 'success' if ok else 'error')
+            elif action == 'hide_content':
+                kind = (request.form.get('kind') or '').strip()
+                item_id = int(request.form.get('item_id') or 0)
+                reason = (request.form.get('reason') or '').strip()
+                ok, msg = mod.hide_content(kind, item_id, actor, reason)
+                flash(msg, 'success' if ok else 'error')
             elif action == 'warn':
                 username = (request.form.get('username') or '').strip().lstrip('@')
                 message = (request.form.get('message') or '').strip()
@@ -73,11 +79,33 @@ def moderation_desk():
     comments = fetch_moderation_comments_queue(limit=80, status_filter='all')
     from app.models.social import list_recent_wall_posts
     posts = list_recent_wall_posts(session.get('user_id'), limit=24)
+    prayers = []
+    try:
+        from app.models.db import get_db
+        import pymysql
+        cur = get_db().cursor(pymysql.cursors.DictCursor)
+        cur.execute(
+            """
+            SELECT p.id, p.title, p.description AS body, p.date_posted,
+                   COALESCE(u.username, p.contributor_name, '') AS username
+            FROM prayers p
+            LEFT JOIN users u ON COALESCE(p.user_id, p.created_by) = u.id
+            WHERE COALESCE(p.status, 'approved') NOT IN
+                  ('rejected', 'deleted', 'removed', 'spam', 'hidden')
+              AND COALESCE(p.moderation_hidden, 0) = 0
+            ORDER BY p.date_posted DESC
+            LIMIT 16
+            """
+        )
+        prayers = list(cur.fetchall() or [])
+    except Exception:
+        prayers = []
     my_actions = mod.list_actions(status='active', actor_id=session['user_id'], limit=20)
     return render_template(
         'church/moderation_desk.html',
         comments=comments,
         posts=posts,
+        prayers=prayers,
         my_actions=my_actions,
         can_review=mod.can_review_moderation(),
     )

@@ -105,7 +105,8 @@ def create_tables(cursor):
         'ip_address':       "VARCHAR(45)",
         'created_by':       "INT UNSIGNED",
         'updated_by':       "INT UNSIGNED",
-        'approved_by':      "INT UNSIGNED"
+        'approved_by':        "INT UNSIGNED",
+        'moderation_hidden':  "TINYINT(1) NOT NULL DEFAULT 0",
     }
 
     for col_name, col_def in columns_to_add.items():

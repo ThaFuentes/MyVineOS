@@ -90,7 +90,8 @@ def create_tables(cursor):
         'user_id':          "INT UNSIGNED",
         'created_by':       "INT UNSIGNED",
         'updated_by':       "INT UNSIGNED",
-        'is_approved':      "TINYINT(1) NOT NULL DEFAULT 1",
+        'is_approved':        "TINYINT(1) NOT NULL DEFAULT 1",
+        'moderation_hidden':  "TINYINT(1) NOT NULL DEFAULT 0",
     }
 
     for col_name, col_def in columns_to_add.items():

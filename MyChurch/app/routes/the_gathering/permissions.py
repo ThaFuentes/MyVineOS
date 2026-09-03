@@ -25,8 +25,9 @@ def gathering_place_required(f):
             return f(*args, **kwargs)
 
         flash(
-            'The Gathering Place Manager requires membership in the '
-            '"Gathering Place Managers" group. Contact the church Owner.',
+            'Site moderation is granted under Members → People tools '
+            '(Site moderation, or Prayers / Sermons / Events moderate). '
+            'The old Gathering Place Managers group still works too.',
             'error',
         )
         return redirect(url_for('dashboard.dashboard'))

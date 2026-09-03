@@ -31,6 +31,7 @@ def get_public_announcements(limit=None):
         LEFT JOIN users u ON COALESCE(a.created_by, a.user_id) = u.id
         WHERE a.visibility = 'public'
           AND a.is_active = 1
+          AND COALESCE(a.moderation_hidden, 0) = 0
         ORDER BY a.created_at DESC
     """
 
@@ -67,6 +68,7 @@ def get_public_announcement(ann_id):
         WHERE a.id = %s 
           AND a.visibility = 'public'
           AND a.is_active = 1
+          AND COALESCE(a.moderation_hidden, 0) = 0
     """, (ann_id,))
 
     announcement = cur.fetchone()

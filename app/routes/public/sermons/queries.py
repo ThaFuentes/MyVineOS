@@ -28,6 +28,7 @@ def get_public_sermons():
         FROM sermons s
         LEFT JOIN users u ON s.uploaded_by = u.id
         WHERE s.visibility = 'public'
+          AND COALESCE(s.moderation_hidden, 0) = 0
         ORDER BY s.uploaded_at DESC
     """)
     sermons = cur.fetchall()
@@ -51,6 +52,7 @@ def get_public_sermon(sermon_id):
         LEFT JOIN users u ON s.uploaded_by = u.id
         WHERE s.id = %s 
           AND s.visibility = 'public'
+          AND COALESCE(s.moderation_hidden, 0) = 0
     """, (sermon_id,))
 
     sermon = cur.fetchone()

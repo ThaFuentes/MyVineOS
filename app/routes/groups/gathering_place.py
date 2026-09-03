@@ -54,10 +54,16 @@ def is_gathering_place_member(user_id: int) -> bool:
 
 
 def can_access_gathering_place(user_id: int, user_role: str) -> bool:
-    """Route access: Owner always, otherwise must be in the Gathering Place group."""
-    if (user_role or '') == 'Owner':
+    """Owner/Admin, People-tools site/content mods, or the Gathering Place group."""
+    if (user_role or '') in ('Owner', 'Admin'):
         return True
-    return is_gathering_place_member(user_id)
+    if is_gathering_place_member(user_id):
+        return True
+    try:
+        from app.models.moderation import can_moderate_any
+        return can_moderate_any()
+    except Exception:
+        return False
 
 
 def can_manage_gathering_place_membership(user_id: int, user_role: str) -> bool:
