@@ -36,15 +36,22 @@
   {% elif 'youtube.com/embed/' in wall_url %}
     {% set wall_yid = wall_url.split('youtube.com/embed/')[1].split('?')[0].split('/')[0] %}
   {% endif %}
+  {% set wall_thumb = item.link_image or '' %}
+  {% if not wall_thumb and wall_yid %}
+    {% set wall_thumb = 'https://i.ytimg.com/vi/' ~ wall_yid ~ '/hqdefault.jpg' %}
+  {% endif %}
   <a class="wall-link-card" href="{{ wall_url }}" rel="noopener noreferrer" target="_blank">
-    {% if wall_yid %}
-    <span class="wall-link-thumb" style="background-image:url('https://i.ytimg.com/vi/{{ wall_yid }}/hqdefault.jpg')"></span>
+    {% if wall_thumb.startswith('https://') or wall_thumb.startswith('http://') %}
+    <span class="wall-link-thumb"><img src="{{ wall_thumb }}" alt=""></span>
     {% else %}
     <span class="wall-link-icon" aria-hidden="true"><i class="fa-solid fa-link"></i></span>
     {% endif %}
     <span class="wall-link-copy">
       <span class="wall-link-host">{{ wall_host }}</span>
-      <span class="wall-link-label">{% if wall_title %}{{ wall_title }}{% else %}Open link{% endif %}</span>
+      <span class="wall-link-label">{% if item.link_title %}{{ item.link_title|censor }}{% elif wall_title %}{{ wall_title }}{% else %}Open link{% endif %}</span>
+      {% if item.link_desc %}
+      <span class="wall-link-desc">{{ item.link_desc|censor }}</span>
+      {% endif %}
     </span>
   </a>
 {% endif %}

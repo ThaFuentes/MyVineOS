@@ -417,10 +417,27 @@ def delete_photo(photo_id: int, owner_type: str, owner_id: int) -> None:
             pass
 
 
-def create_post(user_id: int, kind: str, title: str, body: str, url: str, visibility: str, image_path: str | None = None, allow_comments: bool = True, allow_share: bool = True, share_of: int | None = None) -> int | None:
+def create_post(
+    user_id: int,
+    kind: str,
+    title: str,
+    body: str,
+    url: str,
+    visibility: str,
+    image_path: str | None = None,
+    allow_comments: bool = True,
+    allow_share: bool = True,
+    share_of: int | None = None,
+    link_title: str = '',
+    link_image: str = '',
+    link_desc: str = '',
+) -> int | None:
     title = sanitize_plain_text(title or '')[:255]
     body = sanitize_plain_text(body or '')[:8000]
     href = sanitize_public_href(url)
+    link_title = sanitize_plain_text(link_title or '')[:180]
+    link_image = sanitize_public_href(link_image or '')
+    link_desc = sanitize_plain_text(link_desc or '')[:280]
     if kind not in ('post', 'blog', 'book', 'quote', 'verse', 'image', 'share'):
         kind = 'post'
     if visibility not in ('public', 'private', 'personal', 'followers'):
@@ -445,13 +462,15 @@ def create_post(user_id: int, kind: str, title: str, body: str, url: str, visibi
     db = get_db()
     cur = db.cursor()
     args = (int(user_id), kind, title, body or None, href or None, visibility, image_path or None,
-            1 if allow_comments else 0, 1 if allow_share else 0, int(share_of) if share_of else None)
+            1 if allow_comments else 0, 1 if allow_share else 0, int(share_of) if share_of else None,
+            link_title or None, link_image or None, link_desc or None)
     try:
         cur.execute(
             """
             INSERT INTO community_posts
-                (user_id, kind, title, body, url, visibility, image_path, allow_comments, allow_share, share_of)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                (user_id, kind, title, body, url, visibility, image_path, allow_comments, allow_share, share_of,
+                 link_title, link_image, link_desc)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             args,
         )
@@ -640,6 +659,9 @@ def _decorate_post_row(row: dict) -> dict:
     row['shadowed'] = bool(row.get('shadowed'))
     row['allow_comments'] = row.get('allow_comments') not in (0, '0', False)
     row['allow_share'] = row.get('allow_share') not in (0, '0', False)
+    row['link_title'] = row.get('link_title') or ''
+    row['link_image'] = sanitize_public_href(row.get('link_image') or '')
+    row['link_desc'] = row.get('link_desc') or ''
     return row
 
 

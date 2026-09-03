@@ -92,6 +92,83 @@
     });
     const first = types[0];
     if (first) show(first.getAttribute('data-compose-type'));
+    initLinkPreview(root);
+  }
+
+  function looksLikeHttp(s) {
+    return /^https?:\/\//i.test((s || '').trim());
+  }
+  function firstHttpUrl(s) {
+    const m = String(s || '').match(/https?:\/\/[^\s<>"']+/i);
+    return m ? m[0] : '';
+  }
+  function escTxt(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+  function initLinkPreview(root) {
+    qsa('[data-compose-panel]', root).forEach(function (panel) {
+      const title = qs('input[name="title"]', panel);
+      const url = qs('input[name="url"], input[name="external_link"]', panel);
+      const body = qs('textarea[name="body"], textarea[name="details"], textarea[name="description"], [data-compose-text]', panel);
+      const box = qs('[data-link-preview]', panel);
+      if (!box) return;
+      let timer = 0;
+      let last = '';
+      function currentUrl() {
+        const u = ((url && url.value) || '').trim();
+        if (u) return firstHttpUrl(u) || (looksLikeHttp(u) ? u.split(/\s/)[0] : '');
+        return firstHttpUrl((title && title.value) || '') || firstHttpUrl((body && body.value) || '');
+      }
+      function render(data, href) {
+        if (!data || !data.ok) {
+          box.innerHTML = '<p class="compose-link-preview-miss">Will post as a link: ' + escTxt(href) + '</p>';
+          box.hidden = false;
+          return;
+        }
+        const img = data.image && /^https?:\/\//i.test(data.image)
+          ? '<img src="' + escTxt(data.image) + '" alt="">'
+          : '';
+        box.innerHTML =
+          '<div class="compose-link-preview-card">' +
+          img +
+          '<div class="compose-link-preview-copy">' +
+          '<div class="compose-link-preview-host">' + escTxt(data.host || '') + '</div>' +
+          '<div class="compose-link-preview-title">' + escTxt(data.title || 'Link') + '</div>' +
+          '</div></div>';
+        box.hidden = false;
+      }
+      function load() {
+        const href = currentUrl();
+        if (!href || !looksLikeHttp(href)) {
+          box.hidden = true;
+          box.innerHTML = '';
+          last = '';
+          return;
+        }
+        if (href === last) return;
+        last = href;
+        box.hidden = false;
+        box.innerHTML = '<p class="compose-link-preview-wait">Looking up that page…</p>';
+        fetch('/compose/link-preview?url=' + encodeURIComponent(href), {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) { if (currentUrl() === href) render(data, href); })
+          .catch(function () {
+            if (currentUrl() === href) render({ ok: false }, href);
+          });
+      }
+      function schedule() {
+        clearTimeout(timer);
+        timer = setTimeout(load, 400);
+      }
+      if (title) title.addEventListener('input', schedule);
+      if (url) url.addEventListener('input', schedule);
+      if (body) body.addEventListener('input', schedule);
+    });
   }
 
   function initHero(root) {

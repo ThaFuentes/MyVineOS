@@ -9,6 +9,7 @@
 
 from flask import flash
 from app.utils.helpers import contains_censored_word
+from app.utils.html_sanitize import sanitize_plain_text
 
 
 def validate_submit_dream_form(form_data):
@@ -16,10 +17,10 @@ def validate_submit_dream_form(form_data):
     Validate and clean the Submit Dream form.
     Returns clean dict on success, or None + flash on error.
     """
-    title = form_data.get('title', '').strip()
-    description = form_data.get('description', '').strip()
-    notes = form_data.get('notes', '').strip()
-    category = form_data.get('category', '').strip()
+    title = sanitize_plain_text(form_data.get('title', ''))[:255]
+    description = sanitize_plain_text(form_data.get('description') or form_data.get('body', ''))[:8000]
+    notes = sanitize_plain_text(form_data.get('notes', ''))[:4000]
+    category = sanitize_plain_text(form_data.get('category', ''))[:100]
     date_occurred = form_data.get('date_occurred') or None
     visibility = form_data.get('visibility', 'private')
 

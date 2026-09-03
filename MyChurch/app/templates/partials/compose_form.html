@@ -66,6 +66,7 @@
           <label for="compose-sermon-link">Link (YouTube, audio, notes)</label>
           <input id="compose-sermon-link" name="external_link" type="url" placeholder="https://">
         </div>
+        <div class="compose-link-preview" data-link-preview hidden></div>
         <div>
           <label for="compose-sermon-body">Text / notes</label>
           <textarea id="compose-sermon-body" name="details" rows="5" placeholder="Paste the message, outline, or notes." data-compose-text></textarea>
@@ -78,7 +79,7 @@
       {% elif t.key == 'book' %}
         <div>
           <label for="compose-book-title">Book title</label>
-          <input id="compose-book-title" name="title" type="text" placeholder="Recommended book">
+          <input id="compose-book-title" name="title" type="text" placeholder="Title, or paste https://…">
         </div>
         <div>
           <label for="compose-book-url">Link (optional)</label>
@@ -86,17 +87,19 @@
         </div>
         <div>
           <label for="compose-book-body">Why you recommend it</label>
-          <textarea id="compose-book-body" name="body" rows="3" data-compose-text></textarea>
+          <textarea id="compose-book-body" name="body" rows="3" placeholder="Why, or paste https://…" data-compose-text></textarea>
         </div>
+        <div class="compose-link-preview" data-link-preview hidden></div>
       {% elif t.key == 'post' %}
         <div>
           <label for="compose-post-title">Title (optional)</label>
-          <input id="compose-post-title" name="title" type="text" placeholder="What's on your heart?">
+          <input id="compose-post-title" name="title" type="text" placeholder="What's on your heart? Or paste https://…">
         </div>
         <div>
           <label for="compose-post-body">Post</label>
-          <textarea id="compose-post-body" name="body" rows="5" placeholder="A note, quote, or update — this goes on your page." data-compose-text></textarea>
+          <textarea id="compose-post-body" name="body" rows="5" placeholder="A note, quote, or paste https://…" data-compose-text></textarea>
         </div>
+        <div class="compose-link-preview" data-link-preview hidden></div>
         <div>
           <label for="compose-post-photo">Photo (optional)</label>
           <input id="compose-post-photo" name="photo" type="file" accept="image/*">

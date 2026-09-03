@@ -65,9 +65,14 @@ def sanitize_public_href(value):
     if raw.startswith('/') and not raw.startswith('//'):
         return raw[:500]
     parsed = urlparse(raw)
-    if parsed.scheme in ('http', 'https') and parsed.netloc:
-        return raw[:500]
-    return ''
+    if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+        return ''
+    if parsed.username or parsed.password:
+        return ''
+    host = (parsed.hostname or '').lower()
+    if not host or host in ('localhost', '127.0.0.1', '::1'):
+        return ''
+    return raw[:500]
 
 
 def _flag(settings, key, default=True):
