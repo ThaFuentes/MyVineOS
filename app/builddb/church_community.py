@@ -247,6 +247,9 @@ def create_tables(cursor):
     _col('community_posts', 'allow_comments', "TINYINT(1) NOT NULL DEFAULT 1")
     _col('community_posts', 'allow_share', "TINYINT(1) NOT NULL DEFAULT 1")
     _col('community_posts', 'share_of', "INT UNSIGNED NULL")
+    _col('community_posts', 'link_title', "VARCHAR(180) NULL")
+    _col('community_posts', 'link_image', "VARCHAR(500) NULL")
+    _col('community_posts', 'link_desc', "VARCHAR(280) NULL")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS community_post_comments (

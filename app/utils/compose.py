@@ -7,6 +7,9 @@ from flask import flash, session, url_for, request
 from app.models.log import log_change
 from app.utils.community_participation import can_create_community_content
 from app.utils.helpers import contains_censored_word
+from app.utils.html_sanitize import sanitize_plain_text
+from app.utils.appearance import sanitize_public_href
+from app.utils.link_preview import fetch_link_preview, first_url_in, looks_like_url
 from app.models.db import get_db
 
 
@@ -48,6 +51,27 @@ def _visibility(form, default='public'):
     if vis not in ('public', 'private', 'personal'):
         return default
     return vis
+
+
+def _txt(value, limit=8000) -> str:
+    return sanitize_plain_text(value or '')[: int(limit)]
+
+
+def _lift_link(title: str, body: str, explicit_url: str) -> tuple[str, str, str, dict]:
+    """If title/body starts with http(s), treat it as the link and fetch a preview."""
+    title = _txt(title, 255)
+    body = _txt(body, 8000)
+    href = sanitize_public_href(explicit_url)
+    if not href and looks_like_url(title):
+        token = title.split()[0]
+        href = sanitize_public_href(token)
+        title = title[len(token):].strip()
+    if not href:
+        href = sanitize_public_href(first_url_in(title) or first_url_in(body))
+    preview = fetch_link_preview(href) if href else {}
+    if not title:
+        title = _txt(preview.get('title') or preview.get('host') or '', 180)
+    return title, body, href, preview
 
 
 def _finish(kind, content_id, form, dest):
@@ -115,8 +139,8 @@ def create_from_compose(form, files=None):
     if kind == 'announcement':
         from app.routes.announcements.queries import create_announcement
 
-        title = (form.get('title') or '').strip()
-        content = (form.get('body') or form.get('description') or '').strip()
+        title = _txt(form.get('title'), 255)
+        content = _txt(form.get('body') or form.get('description'), 8000)
         if not title or not content:
             flash('Title and message are required.', 'error')
             return False, None
@@ -131,8 +155,8 @@ def create_from_compose(form, files=None):
         return _finish('announcement', ann_id, form, url_for('announcements.view_announcement', ann_id=ann_id))
 
     if kind == 'prophecy':
-        title = (form.get('title') or '').strip()
-        description = (form.get('body') or form.get('description') or '').strip()
+        title = _txt(form.get('title'), 255)
+        description = _txt(form.get('body') or form.get('description'), 8000)
         if not title or not description:
             flash('Title and description are required.', 'error')
             return False, None
@@ -167,8 +191,8 @@ def create_from_compose(form, files=None):
         return _finish('dream', dream_id, form, url_for('dreams.view_dream', dream_id=dream_id))
 
     if kind == 'event':
-        name = (form.get('event_name') or form.get('title') or '').strip()
-        date = (form.get('event_date') or '').strip()
+        name = _txt(form.get('event_name') or form.get('title'), 255)
+        date = _txt(form.get('event_date'), 16)
         if not name or not date:
             flash('Event name and date are required.', 'error')
             return False, None
@@ -182,14 +206,14 @@ def create_from_compose(form, files=None):
         values = (
             name,
             date,
-            (form.get('event_time') or None),
+            (_txt(form.get('event_time'), 16) or None),
             'public' if form.get('visibility') == 'public' else 'private',
-            (form.get('location') or None),
-            (form.get('description') or None),
+            (_txt(form.get('location'), 500) or None),
+            (_txt(form.get('description'), 8000) or None),
             fee,
             pay_required,
-            (form.get('payment_url') or None),
-            (form.get('payment_note') or None),
+            (sanitize_public_href(form.get('payment_url') or '') or None),
+            (_txt(form.get('payment_note'), 400) or None),
             session.get('user_id'),
             session.get('user_id'),
         )
@@ -222,11 +246,12 @@ def create_from_compose(form, files=None):
 
     if kind == 'sermon':
         from app.routes.sermons.queries import create_sermon
-        from app.utils.appearance import sanitize_public_href
 
-        title = (form.get('title') or '').strip()
-        details = (form.get('body') or form.get('description') or form.get('details') or '').strip()
-        link = sanitize_public_href(form.get('external_link') or form.get('url') or '')
+        title, details, link, _preview = _lift_link(
+            form.get('title') or '',
+            form.get('body') or form.get('description') or form.get('details') or '',
+            form.get('external_link') or form.get('url') or '',
+        )
         vis = _visibility(form, 'public')
         if not title:
             flash('Title is required.', 'error')
@@ -247,9 +272,11 @@ def create_from_compose(form, files=None):
     if kind in ('post', 'book', 'quote', 'verse'):
         from app.models import social as social_model
 
-        title = (form.get('title') or '').strip()
-        body = (form.get('body') or form.get('description') or '').strip()
-        url = form.get('url') or form.get('external_link') or ''
+        title, body, url, preview = _lift_link(
+            form.get('title') or '',
+            form.get('body') or form.get('description') or '',
+            form.get('url') or form.get('external_link') or '',
+        )
         vis = _visibility(form, 'public')
         image_path = None
         upload = None
@@ -263,6 +290,9 @@ def create_from_compose(form, files=None):
             session['user_id'], kind, title, body, url, vis, image_path=image_path,
             allow_comments=form.get('allow_comments') != '0',
             allow_share=form.get('allow_share') != '0',
+            link_title=preview.get('title') or '',
+            link_image=preview.get('image') or '',
+            link_desc=preview.get('description') or '',
         )
         if not post_id:
             flash('Write something, add a photo, or drop the banned words.', 'error')

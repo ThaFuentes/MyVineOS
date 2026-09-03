@@ -42,7 +42,9 @@ SECTION_RICH_FIELDS = frozenset({'content', 'notes'})
 def sanitize_plain_text(value: str | None) -> str:
     if not value:
         return ''
-    return bleach.clean(str(value), tags=[], attributes={}, strip=True).strip()
+    cleaned = bleach.clean(str(value), tags=[], attributes={}, strip=True)
+    cleaned = ''.join(ch for ch in cleaned if ch in '\n\t' or ord(ch) >= 32)
+    return cleaned.strip()
 
 
 def sanitize_rich_html(value: str | None) -> str:

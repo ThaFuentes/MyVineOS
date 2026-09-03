@@ -24,6 +24,20 @@ def compose_form():
     )
 
 
+@compose_bp.route('/link-preview')
+@login_required
+def compose_link_preview():
+    from flask import jsonify
+    from app.utils.link_preview import fetch_link_preview, first_url_in
+
+    raw = (request.args.get('url') or '').strip()
+    href = first_url_in(raw) or raw
+    data = fetch_link_preview(href)
+    if not data:
+        return jsonify({'ok': False})
+    return jsonify({'ok': True, **data})
+
+
 @compose_bp.route('/', methods=['POST'])
 @login_required
 def compose_create():

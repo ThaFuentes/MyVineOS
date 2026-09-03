@@ -9,6 +9,7 @@
 
 from flask import flash
 from app.utils.helpers import contains_censored_word, looks_like_bot_content, identity_spam_reason
+from app.utils.html_sanitize import sanitize_plain_text
 
 
 def validate_add_prayer_form(form_data, is_logged_in=False):
@@ -16,10 +17,10 @@ def validate_add_prayer_form(form_data, is_logged_in=False):
     Validate and clean the Add Prayer form.
     Returns clean dict on success, or None + flash on error.
     """
-    title = form_data.get('title', '').strip()
-    description = form_data.get('description', '').strip()
+    title = sanitize_plain_text(form_data.get('title', ''))[:255]
+    description = sanitize_plain_text(form_data.get('description', ''))[:8000]
     visibility = form_data.get('visibility', 'public') if is_logged_in else 'public'
-    contributor_name = form_data.get('contributor_name', '').strip() if not is_logged_in else None
+    contributor_name = sanitize_plain_text(form_data.get('contributor_name', ''))[:80] if not is_logged_in else None
 
     # Required fields
     if not title or not description:
@@ -53,8 +54,8 @@ def validate_edit_prayer_form(form_data):
     Validate and clean the Edit Prayer form.
     Returns clean dict on success, or None + flash on error.
     """
-    title = form_data.get('title', '').strip()
-    description = form_data.get('description', '').strip()
+    title = sanitize_plain_text(form_data.get('title', ''))[:255]
+    description = sanitize_plain_text(form_data.get('description', ''))[:8000]
     visibility = form_data.get('visibility')
 
     # Required fields
