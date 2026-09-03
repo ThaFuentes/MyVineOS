@@ -13,7 +13,7 @@
     <div>
       <p class="page-kicker">Community</p>
       <h1 class="page-title">Site moderation</h1>
-      <p class="page-description">Hide, shadow, or warn. You do not get office tools from this role. Everything you do here is reversible by a reviewer.</p>
+      <p class="page-description">One desk for the whole site — walls, prayers, sermons, comments. Who can do this is set under Members → People tools → Site moderation. Gathering Place uses the same people. Reviewers can reverse what you do.</p>
     </div>
     <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
       {% if can_review %}
@@ -39,6 +39,33 @@
         <button class="btn btn-secondary" type="submit" name="action" value="shadow_user" onclick="return confirm('Shadow this account? A reviewer can reverse it.');">Shadow account</button>
       </div>
     </form>
+  </section>
+
+  <section class="glass-panel profile-card" style="margin-bottom:1rem;">
+    <h2 class="profile-card-title">Recent prayers</h2>
+    {% if prayers %}
+    <ul class="profile-serving-list">
+      {% for p in prayers %}
+      <li class="profile-serving-row">
+        <div>
+          <strong>{{ p.title or 'Prayer' }}</strong>
+          <span>{% if p.username %}@{{ p.username }} · {% endif %}{{ p.date_posted or '' }}</span>
+          <span>{{ (p.body or '')[:180] }}</span>
+        </div>
+        <form method="post" class="profile-serving-actions">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action" value="hide_content">
+          <input type="hidden" name="kind" value="prayer">
+          <input type="hidden" name="item_id" value="{{ p.id }}">
+          <input class="form-input" name="reason" placeholder="Why?" style="max-width:10rem;">
+          <button class="btn btn-secondary btn-sm" type="submit">Remove</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="profile-muted">No recent prayers.</p>
+    {% endif %}
   </section>
 
   <section class="glass-panel profile-card" style="margin-bottom:1rem;">

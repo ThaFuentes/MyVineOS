@@ -31,6 +31,7 @@ def get_public_dreams(limit=None):
         LEFT JOIN users u ON COALESCE(d.created_by, d.user_id) = u.id
         WHERE d.visibility = 'public'
           AND COALESCE(d.is_approved, 1) = 1   -- legacy dreams without is_approved still show
+          AND COALESCE(d.moderation_hidden, 0) = 0
         ORDER BY d.date_posted DESC
     """
 
@@ -84,6 +85,7 @@ def get_public_dream(dream_id):
         WHERE d.id = %s 
           AND d.visibility = 'public'
           AND COALESCE(d.is_approved, 1) = 1
+          AND COALESCE(d.moderation_hidden, 0) = 0
     """, (dream_id,))
 
     dream = cur.fetchone()

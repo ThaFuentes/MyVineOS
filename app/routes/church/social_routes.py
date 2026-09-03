@@ -67,20 +67,30 @@ def reshare_post():
 @church_bp.route('/post/<int:post_id>/moderate', methods=['POST'])
 @login_required
 def moderate_wall_post(post_id):
+    return moderate_content('post', post_id)
+
+
+@church_bp.route('/content/<kind>/<int:item_id>/moderate', methods=['POST'])
+@login_required
+def moderate_content(kind, item_id):
     from app.models import moderation as mod
     from flask import abort
-    if not mod.can_moderate_walls():
+    kind = (kind or '').strip()
+    if not (mod.can_moderate_kind(kind) or mod.can_moderate_walls()):
         abort(403)
     action = (request.form.get('action') or '').strip()
     reason = (request.form.get('reason') or '').strip()
     actor = session['user_id']
     try:
         if action == 'shadow':
-            ok, msg = mod.shadow_post(post_id, actor, reason)
+            if kind in mod.POST_KINDS:
+                ok, msg = mod.shadow_post(item_id, actor, reason)
+            else:
+                ok, msg = False, 'Shadow is only for wall posts. Use Remove for prayers and other items.'
         elif action == 'unshadow':
-            ok, msg = mod.unshadow_post(post_id, actor)
-        elif action == 'hide':
-            ok, msg = mod.hide_post(post_id, actor, reason)
+            ok, msg = mod.unshadow_post(item_id, actor)
+        elif action in ('hide', 'remove'):
+            ok, msg = mod.hide_content(kind, item_id, actor, reason)
         else:
             ok, msg = False, 'Unknown moderation action.'
     except Exception as exc:

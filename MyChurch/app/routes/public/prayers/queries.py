@@ -4,7 +4,7 @@
 from app.models.db import get_db
 import pymysql.cursors
 
-_APPROVED_FILTER = "COALESCE(p.status, 'approved') = 'approved'"
+_APPROVED_FILTER = "COALESCE(p.status, 'approved') = 'approved' AND COALESCE(p.moderation_hidden, 0) = 0"
 
 
 def get_public_prayers():

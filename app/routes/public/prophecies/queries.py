@@ -44,6 +44,7 @@ def get_public_prophecies(limit=None):
         LEFT JOIN users u ON {join_on} = u.id
         WHERE p.visibility = 'public'
           {_approval_clause(cols)}
+          AND COALESCE(p.moderation_hidden, 0) = 0
         ORDER BY p.created_at DESC
     """
 
@@ -144,6 +145,7 @@ def get_public_prophecy(prophecy_id):
         WHERE p.id = %s
           AND p.visibility = 'public'
           {_approval_clause(cols)}
+          AND COALESCE(p.moderation_hidden, 0) = 0
     """, (prophecy_id,))
 
     prophecy = cur.fetchone()

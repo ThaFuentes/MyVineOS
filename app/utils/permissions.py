@@ -94,7 +94,15 @@ PERMISSION_SUPERSETS: dict[str, frozenset[str]] = {
     'manage_help': frozenset(['view_help', 'manage_help']),
     'manage_legal_notices': frozenset(['view_legal', 'manage_legal_notices']),
     'manage_security': frozenset(['view_security', 'manage_security']),
-    'moderate_site': frozenset(['moderate_site']),
+    'moderate_site': frozenset([
+        'moderate_site',
+        'moderate_prayers',
+        'moderate_sermons',
+        'moderate_events',
+        'moderate_announcements',
+        'moderate_dreams',
+        'moderate_prophecies',
+    ]),
     'review_moderation': frozenset(['review_moderation', 'moderate_site', 'view_audit_logs']),
 }
 

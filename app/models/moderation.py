@@ -19,6 +19,8 @@ ACTION_LABELS = {
     'post_hide': 'Hid a wall post',
     'post_shadow': 'Shadowed a wall post',
     'post_restore': 'Restored a wall post',
+    'content_hide': 'Hid community content',
+    'content_restore': 'Restored community content',
     'user_warn': 'Warned a member',
     'user_shadow': 'Shadowed an account',
     'user_unshadow': 'Removed a shadow ban',
@@ -30,8 +32,36 @@ ACTION_LABELS = {
 
 REVERSIBLE = frozenset({
     'comment_remove', 'comment_shadow', 'comment_edit',
-    'post_hide', 'post_shadow', 'user_warn', 'user_shadow', 'user_ban', 'user_lock',
+    'post_hide', 'post_shadow', 'content_hide',
+    'user_warn', 'user_shadow', 'user_ban', 'user_lock',
 })
+
+# Wall / feed kinds a site mod can hide. post kinds use community_posts.
+CONTENT_SPECS = {
+    'post': {'table': 'community_posts', 'perm': 'moderate_site', 'title': 'title', 'body': 'body', 'author': 'user_id'},
+    'quote': {'table': 'community_posts', 'perm': 'moderate_site', 'title': 'title', 'body': 'body', 'author': 'user_id'},
+    'verse': {'table': 'community_posts', 'perm': 'moderate_site', 'title': 'title', 'body': 'body', 'author': 'user_id'},
+    'image': {'table': 'community_posts', 'perm': 'moderate_site', 'title': 'title', 'body': 'body', 'author': 'user_id'},
+    'book': {'table': 'community_posts', 'perm': 'moderate_site', 'title': 'title', 'body': 'body', 'author': 'user_id'},
+    'blog': {'table': 'community_posts', 'perm': 'moderate_site', 'title': 'title', 'body': 'body', 'author': 'user_id'},
+    'share': {'table': 'community_posts', 'perm': 'moderate_site', 'title': 'title', 'body': 'body', 'author': 'user_id'},
+    'prayer': {'table': 'prayers', 'perm': 'moderate_prayers', 'title': 'title', 'body': 'description', 'author': 'user_id'},
+    'sermon': {'table': 'sermons', 'perm': 'moderate_sermons', 'title': 'title', 'body': 'notes', 'author': 'uploaded_by'},
+    'event': {'table': 'events', 'perm': 'moderate_events', 'title': 'event_name', 'body': 'description', 'author': 'created_by'},
+    'announcement': {'table': 'announcements', 'perm': 'moderate_announcements', 'title': 'title', 'body': 'content', 'author': 'user_id'},
+    'dream': {'table': 'dreams', 'perm': 'moderate_dreams', 'title': 'title', 'body': 'description', 'author': 'user_id'},
+    'prophecy': {'table': 'prophecies', 'perm': 'moderate_prophecies', 'title': 'title', 'body': 'description', 'author': 'user_id'},
+}
+POST_KINDS = frozenset({'post', 'quote', 'verse', 'image', 'book', 'blog', 'share'})
+SITE_MOD_PERMS = (
+    'moderate_site',
+    'moderate_prayers',
+    'moderate_sermons',
+    'moderate_events',
+    'moderate_announcements',
+    'moderate_dreams',
+    'moderate_prophecies',
+)
 
 
 def _cur():
@@ -70,6 +100,7 @@ def ensure_tables() -> None:
     db.commit()
     _ensure_comment_removed(cur)
     _ensure_post_removed(cur)
+    _ensure_content_hidden(cur)
     db.commit()
 
 
@@ -115,6 +146,26 @@ def _ensure_post_removed(cur) -> None:
             cur.execute("ALTER TABLE community_posts ADD COLUMN shadowed_by INT UNSIGNED NULL")
     except Exception:
         pass
+
+
+def _ensure_content_hidden(cur) -> None:
+    tables = {spec['table'] for spec in CONTENT_SPECS.values() if spec['table'] != 'community_posts'}
+    for table in tables:
+        try:
+            cur.execute(
+                """
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s
+                  AND COLUMN_NAME = 'moderation_hidden'
+                """,
+                (table,),
+            )
+            if not cur.fetchone():
+                cur.execute(
+                    f"ALTER TABLE {table} ADD COLUMN moderation_hidden TINYINT(1) NOT NULL DEFAULT 0"
+                )
+        except Exception:
+            pass
 
 
 def record_action(
@@ -335,6 +386,9 @@ def _apply_reverse(kind: str, row: dict, snap: dict, reviewer_id: int) -> None:
         )
         db.commit()
         return
+    if kind == 'content_hide' and table and tid:
+        _unhide_row(table, int(tid), snap)
+        return
     if kind == 'post_shadow' and tid:
         cur.execute(
             "UPDATE community_posts SET shadowed=0, shadowed_at=NULL, shadowed_by=NULL WHERE id=%s",
@@ -478,18 +532,47 @@ def warn_user(user_id: int, actor_id: int, message: str) -> None:
 
 
 def can_moderate_site() -> bool:
+    from flask import has_request_context
     from app.utils.permissions import user_has_permission
+    if not has_request_context():
+        return False
     return bool(user_has_permission('moderate_site'))
+
+
+def can_moderate_any() -> bool:
+    """People-tools site mod, any content-type moderate key, or Owner/Admin."""
+    from flask import has_request_context
+    from app.utils.permissions import user_has_permission
+    if can_moderate_site():
+        return True
+    if not has_request_context():
+        return False
+    return any(user_has_permission(k) for k in SITE_MOD_PERMS)
+
+
+def can_moderate_kind(kind: str) -> bool:
+    """People-tools: site mod pack or that content type's moderate checkbox."""
+    from flask import has_request_context
+    from app.utils.permissions import user_has_permission
+    spec = CONTENT_SPECS.get((kind or '').strip())
+    if not spec:
+        return False
+    if can_moderate_site():
+        return True
+    if not has_request_context():
+        return False
+    perm = spec.get('perm')
+    return bool(perm and user_has_permission(perm))
 
 
 def can_moderate_walls() -> bool:
     """Site mods, Owner/Admin, or church-page editors (not posters)."""
     from flask import has_request_context, session
     from app.utils.permissions import user_has_permission
-    if user_has_permission('moderate_site'):
-        return True
     if not has_request_context():
         return False
+    if user_has_permission('moderate_site'):
+        return True
     if (session.get('user_role') or '') in ('Owner', 'Admin'):
         return True
     uid = session.get('user_id')
@@ -514,15 +597,145 @@ def can_moderate_walls() -> bool:
 
 
 def flag_wall_moderation(items: list[dict] | None) -> list[dict]:
-    """Mark compose/wall posts that a church admin or site mod can act on."""
-    from app.models.social import WALL_POST_KINDS
-    can = can_moderate_walls()
-    kinds = set(WALL_POST_KINDS)
+    """Mark wall/feed items a site mod, type-mod, or church-page editor can act on."""
+    from flask import has_request_context
+    from app.utils.permissions import user_has_permission
+    site = can_moderate_site()
+    walls = can_moderate_walls()
+    in_req = has_request_context()
     for item in items or []:
         kind = (item.get('type') or item.get('kind') or '').strip()
-        item['moderatable'] = bool(can and item.get('id') and kind in kinds)
-        item['shadowed_badge'] = bool(can and item.get('shadowed'))
+        spec = CONTENT_SPECS.get(kind)
+        perm = (spec or {}).get('perm')
+        allowed = bool(
+            item.get('id')
+            and spec
+            and (
+                site
+                or walls
+                or item.get('can_manage_wall')
+                or (in_req and perm and user_has_permission(perm))
+            )
+        )
+        item['moderatable'] = allowed
+        item['mod_kind'] = kind if allowed else ''
+        item['can_shadow'] = bool(allowed and kind in POST_KINDS)
+        item['shadowed_badge'] = bool(allowed and item.get('shadowed'))
     return items or []
+
+
+def _fetch_content_row(spec: dict, item_id: int) -> dict | None:
+    table = spec['table']
+    cur = _cur()
+    cur.execute(f"SELECT * FROM {table} WHERE id=%s LIMIT 1", (int(item_id),))
+    return cur.fetchone()
+
+
+def _unhide_row(table: str, item_id: int, snap: dict | None = None) -> None:
+    db = get_db()
+    cur = db.cursor()
+    if table == 'community_posts':
+        cur.execute(
+            "UPDATE community_posts SET removed_at=NULL, removed_by=NULL WHERE id=%s",
+            (int(item_id),),
+        )
+    elif table == 'prayers':
+        prev = (snap or {}).get('status') or 'approved'
+        if prev in ('hidden', 'removed', 'rejected', 'deleted', 'spam'):
+            prev = 'approved'
+        cur.execute(
+            "UPDATE prayers SET status=%s, moderation_hidden=0 WHERE id=%s",
+            (prev, int(item_id)),
+        )
+    elif table == 'announcements':
+        cur.execute(
+            "UPDATE announcements SET is_active=1, is_archived=0, moderation_hidden=0 WHERE id=%s",
+            (int(item_id),),
+        )
+    else:
+        cur.execute(
+            f"UPDATE {table} SET moderation_hidden=0 WHERE id=%s",
+            (int(item_id),),
+        )
+    db.commit()
+
+
+def hide_content(kind: str, item_id: int, actor_id: int, reason: str = '') -> tuple[bool, str]:
+    """Hide a prayer, sermon, event, wall post, etc. Reviewers can put it back."""
+    kind = (kind or '').strip()
+    if kind in POST_KINDS:
+        return hide_post(item_id, actor_id, reason)
+    spec = CONTENT_SPECS.get(kind)
+    if not spec:
+        return False, 'That kind of post cannot be moderated here.'
+    ensure_tables()
+    row = _fetch_content_row(spec, item_id)
+    if not row:
+        return False, 'That item is gone.'
+    if row.get('moderation_hidden') or (kind == 'prayer' and (row.get('status') or '') in (
+        'hidden', 'removed', 'rejected', 'deleted', 'spam'
+    )):
+        return False, 'That item is already hidden.'
+    db = get_db()
+    cur = db.cursor()
+    table = spec['table']
+    if table == 'prayers':
+        cur.execute(
+            "UPDATE prayers SET status='hidden', moderation_hidden=1 WHERE id=%s",
+            (int(item_id),),
+        )
+    elif table == 'announcements':
+        cur.execute(
+            "UPDATE announcements SET is_active=0, is_archived=1, moderation_hidden=1 WHERE id=%s",
+            (int(item_id),),
+        )
+    else:
+        cur.execute(
+            f"UPDATE {table} SET moderation_hidden=1 WHERE id=%s",
+            (int(item_id),),
+        )
+    db.commit()
+    author = row.get(spec.get('author') or 'user_id') or row.get('created_by') or row.get('user_id')
+    title = row.get(spec.get('title') or 'title') or ''
+    body = row.get(spec.get('body') or 'body') or ''
+    record_action(
+        actor_id=actor_id,
+        action_type='content_hide',
+        target_kind=kind,
+        target_table=table,
+        target_id=int(item_id),
+        target_user_id=int(author) if author else None,
+        reason=reason,
+        snapshot={
+            'kind': kind,
+            'title': title,
+            'body': (body or '')[:400],
+            'status': row.get('status'),
+            'is_active': row.get('is_active'),
+        },
+    )
+    if reason and author:
+        try:
+            warn_user(int(author), actor_id, reason)
+        except Exception:
+            pass
+    return True, 'Removed from the site. A reviewer can put it back.'
+
+
+def restore_content(kind: str, item_id: int, actor_id: int) -> tuple[bool, str]:
+    spec = CONTENT_SPECS.get((kind or '').strip())
+    if not spec:
+        return False, 'Unknown item.'
+    ensure_tables()
+    _unhide_row(spec['table'], int(item_id))
+    record_action(
+        actor_id=actor_id,
+        action_type='content_restore',
+        target_kind=kind,
+        target_table=spec['table'],
+        target_id=int(item_id),
+    )
+    return True, 'That item is visible again.'
 
 
 def can_review_moderation() -> bool:

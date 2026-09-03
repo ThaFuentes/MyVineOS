@@ -25,6 +25,7 @@ def get_public_events():
         LEFT JOIN users u ON e.created_by = u.id
         WHERE e.visibility = 'public'
           AND e.event_date >= CURDATE()
+          AND COALESCE(e.moderation_hidden, 0) = 0
         ORDER BY e.event_date ASC, e.event_time ASC
     """)
     events = cur.fetchall()
@@ -48,6 +49,7 @@ def get_public_event(event_id):
         LEFT JOIN users u ON e.created_by = u.id
         WHERE e.id = %s 
           AND e.visibility = 'public'
+          AND COALESCE(e.moderation_hidden, 0) = 0
     """, (event_id,))
 
     event = cur.fetchone()

@@ -1,23 +1,25 @@
-{# Shadow / remove a wall post. Shown to site mods and church-page editors. #}
+{# Shadow / remove wall items — posts, prayers, sermons, events, etc. #}
 {% if item.moderatable and item.id %}
 <details class="wall-mod">
   <summary>Moderate</summary>
   {% if item.shadowed_badge %}
   <p class="wall-mod-note">Shadowed — only they still see it.</p>
-  <form method="post" action="/church/post/{{ item.id }}/moderate">
+  <form method="post" action="{{ url_for('church.moderate_content', kind=item.type, item_id=item.id) }}">
     {% include 'partials/csrf_field.html' %}
     <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
     <button class="btn btn-secondary btn-sm" name="action" value="unshadow" type="submit">Unshadow</button>
   </form>
   {% else %}
-  <form method="post" action="/church/post/{{ item.id }}/moderate" class="wall-mod-form">
+  <form method="post" action="{{ url_for('church.moderate_content', kind=item.type, item_id=item.id) }}" class="wall-mod-form">
     {% include 'partials/csrf_field.html' %}
     <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
-    <label class="sr-only" for="mod-reason-{{ item.id }}">Reason</label>
-    <input id="mod-reason-{{ item.id }}" class="form-input" name="reason" maxlength="400" placeholder="Reason (optional — they see it if you remove)">
+    <label class="sr-only" for="mod-reason-{{ item.type }}-{{ item.id }}">Reason</label>
+    <input id="mod-reason-{{ item.type }}-{{ item.id }}" class="form-input" name="reason" maxlength="400" placeholder="Reason (optional — they see it if you remove)">
     <div class="wall-mod-actions">
+      {% if item.can_shadow %}
       <button class="btn btn-secondary btn-sm" name="action" value="shadow" type="submit" title="They still see it; nobody else does">Shadow</button>
-      <button class="btn btn-secondary btn-sm" name="action" value="hide" type="submit" onclick="return confirm('Remove this post? A reviewer can put it back.');">Remove</button>
+      {% endif %}
+      <button class="btn btn-secondary btn-sm" name="action" value="hide" type="submit" onclick="return confirm('Remove this from the site? A reviewer can put it back.');">Remove</button>
     </div>
   </form>
   {% endif %}

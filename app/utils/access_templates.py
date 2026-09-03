@@ -267,7 +267,15 @@ def seed_starter_templates(cur) -> None:
     ensure_moderation_templates(cur)
 
 
-SITE_MOD_KEYS = ['moderate_site']
+SITE_MOD_KEYS = [
+    'moderate_site',
+    'moderate_prayers',
+    'moderate_sermons',
+    'moderate_events',
+    'moderate_announcements',
+    'moderate_dreams',
+    'moderate_prophecies',
+]
 MOD_REVIEW_KEYS = ['review_moderation', 'moderate_site', 'view_audit_logs']
 
 
@@ -277,7 +285,7 @@ def ensure_moderation_templates(cur) -> None:
     wanted = (
         (
             'Site moderator',
-            'Only community moderation: hide, shadow, warn, remove. Reviewers can reverse it. No office, finance, or settings.',
+            'One pack for the whole site: walls, prayers, sermons, events, dreams, prophecies, comments. Same work as Gathering Place. Reviewers can reverse it. No office, finance, or settings.',
             'Staff',
             SITE_MOD_KEYS,
         ),
@@ -289,8 +297,22 @@ def ensure_moderation_templates(cur) -> None:
         ),
     )
     for name, description, for_role, keys in wanted:
-        cur.execute("SELECT id FROM access_templates WHERE name = %s LIMIT 1", (name,))
-        if cur.fetchone():
+        cur.execute(
+            "SELECT id, permissions, description FROM access_templates WHERE name = %s LIMIT 1",
+            (name,),
+        )
+        row = cur.fetchone()
+        if row:
+            tid = row['id'] if isinstance(row, dict) else row[0]
+            raw = row['permissions'] if isinstance(row, dict) else row[1]
+            have = set(_parse_perms(raw))
+            want = set(keys)
+            if not want.issubset(have):
+                merged = list(have | want)
+                cur.execute(
+                    "UPDATE access_templates SET permissions=%s, description=%s WHERE id=%s",
+                    (json.dumps(merged), description, int(tid)),
+                )
             continue
         create_template(
             cur,

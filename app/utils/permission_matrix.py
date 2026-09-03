@@ -286,10 +286,10 @@ AREA_MATRIX = [
     {
         'id': 'site_moderation',
         'label': 'Site moderation',
-        'description': 'Community comments, walls, warnings, shadow. Not office, finance, or settings.',
+        'description': 'One switch for the whole community: walls, prayers, sermons, events, dreams, prophecies, comments. This is the same work as Gathering Place — pick this here, not a second group.',
         'icon': 'fa-user-shield',
         'actions': [
-            {'id': 'moderate', 'label': 'Site moderator — hide, shadow, warn, remove (reversible)', 'keys': ['moderate_site']},
+            {'id': 'moderate', 'label': 'Site moderator — hide, shadow, warn, remove prayers and posts (reversible)', 'keys': ['moderate_site']},
             {'id': 'review', 'label': 'Review & reverse what moderators did', 'keys': ['review_moderation']},
         ],
     },

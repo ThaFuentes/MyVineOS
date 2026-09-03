@@ -106,6 +106,7 @@ def create_tables(cursor):
         'registration_open':         "TINYINT(1) NOT NULL DEFAULT 1",
         'capacity':                  "INT UNSIGNED NULL",
         'payment_option_ids':        "VARCHAR(255) NULL",
+        'moderation_hidden':         "TINYINT(1) NOT NULL DEFAULT 0",
     }
 
     for col, defn in columns_to_add_events.items():
