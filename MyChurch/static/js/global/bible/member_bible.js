@@ -17,6 +17,7 @@
   let currentNotes = [];
   let allNotesCache = [];
   let notesPanelTab = 'passage'; // 'passage' | 'all'
+  let notesPanelOpen = false;
   let selectedVerses = new Set();
   let favoriteVerses = new Set();
   let favChapter = false;
@@ -141,6 +142,7 @@
   }
 
   function openFlyout(which) {
+    setNotesPanelOpen(false);
     if (isDesktopStudy()) return;
     const canon = el('member-canon-flyout');
     const tools = el('member-tools-flyout');
@@ -1314,6 +1316,7 @@
       if (!data.ok) throw new Error(data.error || 'Failed');
       toast(editId ? 'Note updated' : 'Note saved');
       closeNoteModal();
+      setNotesPanelOpen(true, { flash: true });
       loadChapter(currentChapter);
     } catch (e) {
       toast(e.message || 'Could not save note');
@@ -1345,7 +1348,8 @@
     };
     if (book === currentBook && Number(ch) === Number(currentChapter) && scope !== 'book') {
       if (scope === 'verse' && v) scrollToVerse(v);
-      focusNotesPanel();
+      if (opts.openEdit) focusNotesPanel();
+      else setNotesPanelOpen(false);
       after();
       return;
     }
@@ -1355,8 +1359,8 @@
       scrollToVerse: scope === 'verse' ? v : 1,
     }).then(() => {
       after();
+      if (!opts.openEdit) setNotesPanelOpen(false);
       if (notesPanelTab === 'all') {
-        // stay on all tab so user still sees library context
         setNotesPanelTab('all');
       } else {
         setNotesPanelTab('passage');
@@ -1366,9 +1370,45 @@
     });
   }
 
-  function focusNotesPanel() {
+  function truncateText(s, n) {
+    const t = String(s || '').trim();
+    if (t.length <= n) return t;
+    return `${t.slice(0, n - 1).trimEnd()}…`;
+  }
+
+  function updateNotesCount() {
+    const badge = el('member-notes-count');
+    if (!badge) return;
+    const n = (currentNotes || []).length;
+    if (n > 0) {
+      badge.hidden = false;
+      badge.textContent = String(n);
+    } else {
+      badge.hidden = true;
+      badge.textContent = '';
+    }
+  }
+
+  function setNotesPanelOpen(open, opts = {}) {
+    notesPanelOpen = !!open;
     const panel = el('member-notes-panel');
-    if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const body = el('member-notes-body');
+    const toggle = el('member-notes-toggle');
+    if (!panel) return;
+    panel.classList.toggle('is-collapsed', !notesPanelOpen);
+    if (body) body.hidden = !notesPanelOpen;
+    if (toggle) toggle.setAttribute('aria-expanded', notesPanelOpen ? 'true' : 'false');
+    if (notesPanelOpen) {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (opts.flash) {
+        panel.classList.add('member-notes-panel-flash');
+        setTimeout(() => panel.classList.remove('member-notes-panel-flash'), 1600);
+      }
+    }
+  }
+
+  function focusNotesPanel(flash) {
+    setNotesPanelOpen(true, { flash: !!flash });
   }
 
   function setNotesPanelTab(tab) {
@@ -1401,13 +1441,22 @@
       const hereBadge = here && mode === 'all'
         ? '<span class="member-note-here-badge">Here</span>'
         : '';
+      const title = n.display_title || n.title || n.reference || 'Note';
+      const metaBits = [];
+      if (n.reference && n.reference !== title) metaBits.push(n.reference);
+      if (n.translation) metaBits.push('noted in ' + String(n.translation).replace(/^online:/, ''));
+      if (n.tags) metaBits.push(n.tags);
+      const meta = metaBits.join(' · ');
+      const scripture = (mode === 'all' && n.scripture_text)
+        ? `<blockquote class="member-note-scripture">${escapeHtml(truncateText(n.scripture_text, 140))}</blockquote>`
+        : '';
       return `<article class="member-note-card is-clickable${elsewhere ? ' is-elsewhere' : ''}" data-note-id="${n.id}" data-goto-note-id="${n.id}">
         <header class="member-note-card-head">
-          <h4 class="member-note-card-title">${escapeHtml(n.display_title || n.title || n.reference)}</h4>
+          <h4 class="member-note-card-title">${escapeHtml(title)}</h4>
           ${scopeBadge}${hereBadge}
         </header>
-        <div class="member-note-card-meta">${escapeHtml(n.reference || '')}${n.translation ? ' · noted in ' + escapeHtml(String(n.translation).replace(/^online:/, '')) : ''}${n.tags ? ' · ' + escapeHtml(n.tags) : ''}</div>
-        ${n.scripture_text ? `<blockquote class="member-note-scripture">${escapeHtml(n.scripture_text)}</blockquote>` : ''}
+        ${meta ? `<div class="member-note-card-meta">${escapeHtml(meta)}</div>` : ''}
+        ${scripture}
         <div class="member-note-body">${escapeHtml(n.body || '')}</div>
         <footer class="member-note-card-actions">
           <button type="button" class="btn btn-sm btn-secondary" data-goto-note-id="${n.id}">Go to verse</button>
@@ -1480,6 +1529,7 @@
     if (opts.mode !== 'all') {
       currentNotes = notes || [];
     }
+    updateNotesCount();
     if (!isLoggedIn) {
       list.innerHTML = `<p class="member-notes-empty">Notes are for members.
         <a href="${escapeAttr(loginUrl)}">Log in</a> to save verse, chapter, and book notes.</p>`;
@@ -2007,6 +2057,14 @@
         el('member-strongs-popup')?.classList.remove('open');
         closeFlyouts();
         closeNoteModal();
+        setNotesPanelOpen(false);
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!notesPanelOpen) return;
+      const panel = el('member-notes-panel');
+      if (panel && !panel.contains(e.target) && !e.target.closest('.member-note-modal')) {
+        setNotesPanelOpen(false);
       }
     });
 
@@ -2091,16 +2149,25 @@
       if (savedColor && el('member-hl-color')) el('member-hl-color').value = savedColor;
     } catch (e) { /* ignore */ }
 
+    el('member-notes-toggle')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setNotesPanelOpen(!notesPanelOpen);
+    });
     el('member-open-notes-lib')?.addEventListener('click', () => {
+      setNotesPanelOpen(false);
       openFlyout('tools');
       loadNotesLibrary();
     });
     el('member-open-favs-lib')?.addEventListener('click', () => {
+      setNotesPanelOpen(false);
       openFlyout('tools');
       loadFavoritesLibrary();
     });
     document.querySelectorAll('[data-notes-tab]').forEach((btn) => {
-      btn.addEventListener('click', () => setNotesPanelTab(btn.dataset.notesTab));
+      btn.addEventListener('click', () => {
+        setNotesPanelOpen(true);
+        setNotesPanelTab(btn.dataset.notesTab);
+      });
     });
     el('member-notes-search-btn')?.addEventListener('click', loadNotesLibrary);
     el('member-notes-q')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadNotesLibrary(); });

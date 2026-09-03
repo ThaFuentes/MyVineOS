@@ -227,13 +227,17 @@ body.pastoral-shell .bible-stage-toolbar {
     gap: 0.65rem;
     min-height: 0;
     max-height: calc(100vh - 8rem);
+    position: relative;
+    overflow: visible;
   }
   .bible-stage.is-study .member-notes-panel,
   .bible-stage.is-study .bible-notes-panel {
-    flex: 0 1 auto;
-    max-height: 13.5rem;
-    overflow: auto;
+    flex: 0 0 auto;
+    max-height: none;
+    overflow: visible;
     margin: 0;
+    position: relative;
+    z-index: 8;
   }
   .bible-stage.is-study .bible-stage-main {
     flex: 1 1 auto;
@@ -281,6 +285,8 @@ body.pastoral-shell .bible-stage-toolbar {
   flex-direction: column;
   gap: 0.65rem;
   min-width: 0;
+  position: relative;
+  overflow: visible;
 }
 
 .bible-mode-toggle {

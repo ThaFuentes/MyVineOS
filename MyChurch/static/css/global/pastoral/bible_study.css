@@ -223,8 +223,82 @@ html[data-theme="soft-light"] .words-of-jesus {
 }
 
 .bible-notes-panel {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.85rem;
   border-radius: 12px;
+  position: relative;
+  z-index: 6;
+  overflow: visible;
+  background: rgba(10, 18, 26, 0.92);
+}
+.bible-notes-panel.is-collapsed {
+  padding: 0.4rem 0.75rem;
+}
+.bible-notes-head { margin-bottom: 0; }
+.bible-notes-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.2rem 0.15rem;
+  line-height: 1.2;
+}
+.bible-notes-toggle:hover,
+.bible-notes-toggle:focus {
+  color: #9ef0ff;
+  outline: none;
+}
+.bible-notes-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(255, 196, 80, 0.22);
+  color: #ffd27a;
+  border-radius: 999px;
+  padding: 0.08rem 0.45rem;
+}
+.bible-notes-chevron {
+  display: inline-block;
+  width: 0.85rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+.bible-notes-chevron::before { content: "▾"; }
+.bible-notes-panel.is-collapsed .bible-notes-chevron {
+  transform: rotate(-90deg);
+}
+.bible-notes-body {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.bible-notes-panel:not(.is-collapsed) .bible-notes-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  margin-top: 0;
+  padding: 0.75rem 0.9rem 0.9rem;
+  border-top: none;
+  border-radius: 12px;
+  background: rgba(8, 14, 20, 0.98);
+  border: 1px solid rgba(255, 196, 80, 0.28);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  max-height: min(52vh, 26rem);
+  overflow: auto;
+  z-index: 25;
+}
+html[data-theme="soft-light"] .bible-notes-panel {
+  background: rgba(255, 255, 255, 0.94);
+}
+html[data-theme="soft-light"] .bible-notes-panel:not(.is-collapsed) .bible-notes-body {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(180, 140, 40, 0.35);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
 }
 .bible-notes-tabs {
   display: flex;
