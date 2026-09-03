@@ -15,6 +15,7 @@
   let currentNotes = [];
   let allNotesCache = [];
   let notesPanelTab = 'passage'; // 'passage' | 'all'
+  let notesPanelOpen = false;
   let selectedVerses = new Set();
   let favoriteVerses = new Set();
   let favChapter = false;
@@ -149,6 +150,7 @@
   }
 
   function openFlyout(which) {
+    setNotesPanelOpen(false);
     if (isDesktopStudy()) return;
     const canon = el('bible-canon-flyout');
     const tools = el('bible-tools-flyout');
@@ -1106,7 +1108,8 @@
     };
     if (book === currentBook && Number(ch) === Number(currentChapter) && scope !== 'book') {
       if (scope === 'verse' && v) scrollToVerse(v);
-      focusNotesPanel(false);
+      if (opts.openEdit) focusNotesPanel(false);
+      else setNotesPanelOpen(false);
       after();
       return;
     }
@@ -1117,6 +1120,7 @@
     })
       .then(() => {
         after();
+        if (!opts.openEdit) setNotesPanelOpen(false);
         setNotesPanelTab(notesPanelTab === 'all' ? 'all' : 'passage');
       })
       .catch(() => toast('Could not open that passage'));
@@ -1143,6 +1147,7 @@
     const list = el('bible-notes-list');
     if (!list) return;
     if (opts.mode !== 'all') currentNotes = notes || [];
+    updateNotesCount();
     const mode = opts.mode || notesPanelTab || 'passage';
     if (!notes || !notes.length) {
       list.innerHTML = mode === 'all'
@@ -1162,11 +1167,14 @@
       const hereBadge = here && mode === 'all'
         ? '<span class="bible-note-here-badge">Here</span>'
         : '';
+      const scripture = (mode === 'all' && n.scripture_text)
+        ? `<blockquote class="bible-note-scripture small">${escapeHtml(truncateText(n.scripture_text, 140))}</blockquote>`
+        : '';
       return `<div class="bible-note-item is-clickable${elsewhere ? ' is-elsewhere' : ''}" data-id="${n.id}" data-goto-note-id="${n.id}">
         <div class="d-flex justify-content-between gap-2 flex-wrap">
-          <div class="small text-cyan mb-1"><strong>${escapeHtml(title)}</strong> · ${escapeHtml(range)}${hereBadge}</div>
+          <div class="small text-cyan mb-1"><strong>${escapeHtml(title)}</strong>${range && range !== title ? ' · ' + escapeHtml(range) : ''}${hereBadge}</div>
         </div>
-        ${n.scripture_text ? `<blockquote class="bible-note-scripture small">${escapeHtml(n.scripture_text)}</blockquote>` : ''}
+        ${scripture}
         <div class="bible-note-body">${escapeHtml(n.body || '')}</div>
         <div class="bible-note-actions mt-1 d-flex flex-wrap gap-1">
           <button type="button" class="btn btn-sm btn-outline-secondary" data-goto-note-id="${n.id}">Go to verse</button>
@@ -1714,14 +1722,45 @@
     requestAnimationFrame(() => focusNoteBodyAtEnd());
   }
 
-  function focusNotesPanel(flash) {
-    const panel = el('bible-notes-panel');
-    if (!panel) return;
-    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    if (flash) {
-      panel.classList.add('bible-notes-panel-flash');
-      setTimeout(() => panel.classList.remove('bible-notes-panel-flash'), 1800);
+  function truncateText(s, n) {
+    const t = String(s || '').trim();
+    if (t.length <= n) return t;
+    return `${t.slice(0, n - 1).trimEnd()}…`;
+  }
+
+  function updateNotesCount() {
+    const badge = el('bible-notes-count');
+    if (!badge) return;
+    const n = (currentNotes || []).length;
+    if (n > 0) {
+      badge.hidden = false;
+      badge.textContent = String(n);
+    } else {
+      badge.hidden = true;
+      badge.textContent = '';
     }
+  }
+
+  function setNotesPanelOpen(open, opts = {}) {
+    notesPanelOpen = !!open;
+    const panel = el('bible-notes-panel');
+    const body = el('bible-notes-body');
+    const toggle = el('bible-notes-toggle');
+    if (!panel) return;
+    panel.classList.toggle('is-collapsed', !notesPanelOpen);
+    if (body) body.hidden = !notesPanelOpen;
+    if (toggle) toggle.setAttribute('aria-expanded', notesPanelOpen ? 'true' : 'false');
+    if (notesPanelOpen) {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (opts.flash) {
+        panel.classList.add('bible-notes-panel-flash');
+        setTimeout(() => panel.classList.remove('bible-notes-panel-flash'), 1800);
+      }
+    }
+  }
+
+  function focusNotesPanel(flash) {
+    setNotesPanelOpen(true, { flash: !!flash });
   }
 
   function closeNoteModal() {
@@ -1797,7 +1836,7 @@
       toast(editId ? 'Note updated — also copying to Illustration Library…' : 'Note saved to Study notes — also copying to Illustration Library…');
       await sendNoteToIllustration(data.note.id);
     } else {
-      toast(editId ? 'Note updated in Study notes (below)' : 'Note saved in Study notes (below)');
+      toast(editId ? 'Note updated in Study notes' : 'Note saved in Study notes');
     }
   }
 
@@ -2383,6 +2422,7 @@
         el('bible-strongs-popup')?.classList.remove('open');
         closeFlyouts();
         closeNoteModal();
+        setNotesPanelOpen(false);
       }
     });
 
@@ -2465,7 +2505,19 @@
     el('bible-online-search')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') searchOnlineVersions();
     });
+    el('bible-notes-toggle')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setNotesPanelOpen(!notesPanelOpen);
+    });
+    document.addEventListener('click', (e) => {
+      if (!notesPanelOpen) return;
+      const panel = el('bible-notes-panel');
+      if (panel && !panel.contains(e.target) && !e.target.closest('.bible-note-modal')) {
+        setNotesPanelOpen(false);
+      }
+    });
     el('bible-notes-library-btn')?.addEventListener('click', () => {
+      setNotesPanelOpen(false);
       openFlyout('tools');
       loadNotesLibrary('');
     });
@@ -2476,7 +2528,10 @@
       if (e.key === 'Enter') loadNotesLibrary(el('bible-notes-lib-q')?.value || '');
     });
     document.querySelectorAll('[data-notes-tab]').forEach((btn) => {
-      btn.addEventListener('click', () => setNotesPanelTab(btn.dataset.notesTab));
+      btn.addEventListener('click', () => {
+        setNotesPanelOpen(true);
+        setNotesPanelTab(btn.dataset.notesTab);
+      });
     });
     el('bible-notes-dl-chapter')?.addEventListener('click', downloadChapterNotes);
     el('bible-notes-dl-all')?.addEventListener('click', downloadAllNotes);

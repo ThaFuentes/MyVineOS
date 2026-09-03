@@ -3,8 +3,8 @@
 {% block title %}Bible Study{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260902pastor">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260902pastor">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260902n2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/pastoral/bible_study.css') }}?v=20260902n2">
 {% endblock %}
 
 {% block pastoral_content %}
@@ -12,7 +12,7 @@
     <h2 class="mb-1"><i class="fas fa-book-bible me-2"></i>Bible Study</h2>
     <p class="text-muted mb-2">
         Read in the center. Open <strong>Study</strong> on a wide screen for books, Strong’s, related verses, and a second translation beside the text.
-        Notes sit above the chapter. Highlights, notes, and favorites stay with your account.
+        Highlights, notes, and favorites stay with your account. Open <strong>Study notes</strong> when you want the list.
     </p>
     <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-1">
         <span id="bible-my-version-badge" class="badge bg-info text-dark" style="display:none;"></span>
@@ -54,7 +54,7 @@
         Active sermon: <strong>{{ sermon.title }}</strong>. Use <strong>+ Sermon</strong> on a verse to append it into that sermon’s
         <em>Bible Study inserts</em> section. Use <strong>Open sermon</strong> (this tab) or <strong>New tab</strong> to review.
         {% else %}
-        Pick a sermon, then <strong>+ Sermon</strong> inserts verses into it. <strong>Note</strong> = personal Study notes below
+        Pick a sermon, then <strong>+ Sermon</strong> inserts verses into it. <strong>Note</strong> = personal Study notes
         (not illustrations). <strong>+ Library</strong> = Illustration Library only.
         {% endif %}
     </p>
@@ -114,10 +114,15 @@
     </div>
 
     <div class="bible-stage-center">
-    <div id="bible-notes-panel" class="bible-notes-panel glass-card">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-            <h5 class="h6 mb-0"><i class="fas fa-sticky-note me-1"></i> Study notes</h5>
-            <div class="d-flex flex-wrap gap-1">
+    <div id="bible-notes-panel" class="bible-notes-panel glass-card is-collapsed">
+        <div class="bible-notes-head d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <button type="button" id="bible-notes-toggle" class="bible-notes-toggle" aria-expanded="false" aria-controls="bible-notes-body">
+                <i class="fas fa-sticky-note" aria-hidden="true"></i>
+                <span>Study notes</span>
+                <span id="bible-notes-count" class="bible-notes-count" hidden></span>
+                <span class="bible-notes-chevron" aria-hidden="true"></span>
+            </button>
+            <div class="d-flex flex-wrap gap-1 bible-notes-head-actions">
                 <button type="button" id="bible-chapter-note-btn" class="btn btn-sm btn-outline-secondary" title="Start a note with the full chapter text">Note chapter</button>
                 <button type="button" id="bible-copy-chapter-btn" class="btn btn-sm btn-outline-secondary" title="Copy this whole chapter">Copy chapter</button>
                 <button type="button" id="bible-notes-library-btn" class="btn btn-sm btn-outline-cyan">Tools library</button>
@@ -126,14 +131,16 @@
                 <a href="{{ url_for('pastoral.illustrations.library') }}" class="btn btn-sm btn-outline-cyan" target="_blank" rel="noopener">Illustrations</a>
             </div>
         </div>
-        <div class="bible-notes-tabs" role="tablist" aria-label="Notes view">
-            <button type="button" class="bible-notes-tab active" data-notes-tab="passage" role="tab" aria-selected="true">This passage</button>
-            <button type="button" class="bible-notes-tab" data-notes-tab="all" role="tab" aria-selected="false">All my notes</button>
+        <div id="bible-notes-body" class="bible-notes-body" hidden>
+            <div class="bible-notes-tabs" role="tablist" aria-label="Notes view">
+                <button type="button" class="bible-notes-tab active" data-notes-tab="passage" role="tab" aria-selected="true">This passage</button>
+                <button type="button" class="bible-notes-tab" data-notes-tab="all" role="tab" aria-selected="false">All my notes</button>
+            </div>
+            <p class="small text-muted mb-2" id="bible-notes-hint">
+                Verses with notes show a <span class="bible-note-dot-demo" title="Note marker">📝</span> in the reader — tap it to open.
+            </p>
+            <div id="bible-notes-list"><p class="small text-muted mb-0">Notes for this chapter will appear here.</p></div>
         </div>
-        <p class="small text-muted mb-2" id="bible-notes-hint">
-            Notes sit above the chapter. Verses with notes show a <span class="bible-note-dot-demo" title="Note marker">📝</span> in the reader — tap it to open.
-        </p>
-        <div id="bible-notes-list"><p class="small text-muted mb-0">Notes for this chapter will appear here.</p></div>
     </div>
 
     <div id="bible-reader-content" class="bible-stage-main glass-card">
@@ -272,7 +279,7 @@
             </label>
         </div>
         <p class="small text-muted mb-2">
-            Saving puts this in the <strong>Study notes</strong> panel above the chapter (not the Illustration Library).
+            Saving puts this in <strong>Study notes</strong> (not the Illustration Library). Open that bar to see it.
         </p>
         <div class="d-flex flex-wrap gap-2 justify-content-between">
             <button type="button" id="bible-note-new" class="btn btn-sm btn-outline-secondary" style="display:none;" title="Keep the previous note and write a separate one">Start new note</button>
@@ -319,5 +326,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260902pastor"></script>
+<script src="{{ url_for('static', filename='js/global/pastoral/bible_study.js') }}?v=20260902n2"></script>
 {% endblock %}

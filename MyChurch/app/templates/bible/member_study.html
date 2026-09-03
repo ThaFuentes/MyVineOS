@@ -4,8 +4,8 @@
 {% block title %}Bible{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260902notes">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260902notes">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/bible_flyout.css') }}?v=20260902n2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/bible/member_bible.css') }}?v=20260902n2">
 {% endblock %}
 
 {% block content %}
@@ -84,24 +84,31 @@
 
     <div class="bible-stage-center">
     {% if is_logged_in %}
-    <div id="member-notes-panel" class="member-notes-panel glass-panel">
+    <div id="member-notes-panel" class="member-notes-panel glass-panel is-collapsed">
         <div class="member-notes-head">
-            <h3 class="h6 mb-0"><i class="fa-solid fa-sticky-note me-1"></i> Study notes</h3>
-            <div class="d-flex flex-wrap gap-1">
+            <button type="button" id="member-notes-toggle" class="member-notes-toggle" aria-expanded="false" aria-controls="member-notes-body">
+                <i class="fa-solid fa-sticky-note" aria-hidden="true"></i>
+                <span>Study notes</span>
+                <span id="member-notes-count" class="member-notes-count" hidden></span>
+                <span class="member-notes-chevron" aria-hidden="true"></span>
+            </button>
+            <div class="d-flex flex-wrap gap-1 member-notes-head-actions">
                 <button type="button" id="member-note-chapter" class="btn btn-sm btn-secondary">Note chapter</button>
                 <button type="button" id="member-note-book" class="btn btn-sm btn-secondary">Note book</button>
                 <button type="button" id="member-open-notes-lib" class="btn btn-sm btn-primary">Tools library</button>
                 <button type="button" id="member-open-favs-lib" class="btn btn-sm btn-secondary">Favorites</button>
             </div>
         </div>
-        <div class="member-notes-tabs" role="tablist" aria-label="Notes view">
-            <button type="button" class="member-notes-tab active" data-notes-tab="passage" role="tab" aria-selected="true">This passage</button>
-            <button type="button" class="member-notes-tab" data-notes-tab="all" role="tab" aria-selected="false">All my notes</button>
+        <div id="member-notes-body" class="member-notes-body" hidden>
+            <div class="member-notes-tabs" role="tablist" aria-label="Notes view">
+                <button type="button" class="member-notes-tab active" data-notes-tab="passage" role="tab" aria-selected="true">This passage</button>
+                <button type="button" class="member-notes-tab" data-notes-tab="all" role="tab" aria-selected="false">All my notes</button>
+            </div>
+            <p class="small text-muted mb-0" id="member-notes-hint">
+                Verses with notes show a <span class="member-note-dot-demo" title="Note marker">📝</span> in the reader — tap it to open.
+            </p>
+            <div id="member-notes-list"><p class="small text-muted mb-0">Verse, chapter, and book notes appear here.</p></div>
         </div>
-        <p class="small text-muted mb-0" id="member-notes-hint">
-            Verses with notes show a <span class="member-note-dot-demo" title="Note marker">📝</span> in the reader — tap it to open.
-        </p>
-        <div id="member-notes-list"><p class="small text-muted mb-0">Verse, chapter, and book notes appear here.</p></div>
     </div>
     {% endif %}
 
@@ -302,5 +309,5 @@
     }
   };
 </script>
-<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260902notes"></script>
+<script src="{{ url_for('static', filename='js/global/bible/member_bible.js') }}?v=20260902n2"></script>
 {% endblock %}
