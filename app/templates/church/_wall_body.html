@@ -42,7 +42,7 @@
   {% endif %}
   <a class="wall-link-card" href="{{ wall_url }}" rel="noopener noreferrer" target="_blank">
     {% if wall_thumb.startswith('https://') or wall_thumb.startswith('http://') %}
-    <span class="wall-link-thumb"><img src="{{ wall_thumb }}" alt=""></span>
+    <span class="wall-link-thumb"><img src="{{ url_for('compose.compose_link_preview_image', url=wall_thumb) }}" alt="" referrerpolicy="no-referrer" onerror="this.remove()"></span>
     {% else %}
     <span class="wall-link-icon" aria-hidden="true"><i class="fa-solid fa-link"></i></span>
     {% endif %}

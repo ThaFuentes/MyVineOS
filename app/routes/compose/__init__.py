@@ -35,7 +35,24 @@ def compose_link_preview():
     data = fetch_link_preview(href)
     if not data:
         return jsonify({'ok': False})
+    if data.get('image'):
+        data['image'] = url_for('compose.compose_link_preview_image', url=data['image'])
     return jsonify({'ok': True, **data})
+
+
+@compose_bp.route('/link-preview-img')
+def compose_link_preview_image():
+    """Same-origin thumbnail so hotlink-protected og:images actually paint."""
+    from flask import Response, abort
+    from app.utils.link_preview import fetch_link_image
+
+    raw, ctype = fetch_link_image(request.args.get('url') or '')
+    if not raw or not ctype:
+        abort(404)
+    resp = Response(raw, mimetype=ctype)
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    return resp
 
 
 @compose_bp.route('/', methods=['POST'])
