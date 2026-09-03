@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import html
 import ipaddress
 import re
 import socket
@@ -16,6 +17,7 @@ from app.utils.appearance import sanitize_public_href
 from app.utils.html_sanitize import sanitize_plain_text
 
 _MAX_BYTES = 262144
+_MAX_IMAGE = 400000
 _TIMEOUT = 4
 _UA = "MyVineChurchLinkPreview/1.0"
 _URL_IN_TEXT = re.compile(r"https?://[^\s<>\"']+", re.I)
@@ -99,7 +101,10 @@ class _OgParser(HTMLParser):
                 "og:description",
                 "twitter:description",
                 "og:image",
+                "og:image:url",
+                "og:image:secure_url",
                 "twitter:image",
+                "twitter:image:src",
                 "og:site_name",
             ):
                 if content and prop not in self.meta:
@@ -173,12 +178,19 @@ def fetch_link_preview(url: str) -> dict:
     desc = sanitize_plain_text(
         parser.meta.get("og:description") or parser.meta.get("twitter:description") or ""
     )[:280]
-    image_raw = parser.meta.get("og:image") or parser.meta.get("twitter:image") or ""
+    image_raw = (
+        parser.meta.get("og:image:secure_url")
+        or parser.meta.get("og:image")
+        or parser.meta.get("og:image:url")
+        or parser.meta.get("twitter:image")
+        or parser.meta.get("twitter:image:src")
+        or ""
+    )
     image = ""
     if image_raw:
-        abs_img = urljoin(final, image_raw)
+        abs_img = urljoin(final, html.unescape(image_raw).strip())
         if url_is_safe(abs_img):
-            image = abs_img[:500]
+            image = abs_img[:800]
     return {
         "url": href[:500],
         "title": title,
@@ -186,3 +198,51 @@ def fetch_link_preview(url: str) -> dict:
         "image": image,
         "host": host,
     }
+
+
+def _sniff_image(raw: bytes) -> str:
+    if raw.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if raw.startswith(b"GIF87a") or raw.startswith(b"GIF89a"):
+        return "image/gif"
+    if len(raw) > 12 and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "image/webp"
+    return ""
+
+
+def fetch_link_image(url: str) -> tuple[bytes | None, str | None]:
+    """Fetch a public og:image through us so the browser is not hotlink-blocked."""
+    href = sanitize_public_href(url)
+    if not url_is_safe(href):
+        return None, None
+    try:
+        req = urllib.request.Request(
+            href,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (compatible; MyVineChurchLinkPreview/1.0; "
+                    "+https://myvineos.poweredby.top/)"
+                ),
+                "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+            },
+            method="GET",
+        )
+        opener = urllib.request.build_opener(_SafeRedirect())
+        with opener.open(req, timeout=_TIMEOUT) as resp:
+            final = resp.geturl() or href
+            if not url_is_safe(final):
+                return None, None
+            ctype = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            raw = resp.read(_MAX_IMAGE + 1)
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError, ssl.SSLError):
+        return None, None
+    if not raw or len(raw) > _MAX_IMAGE:
+        return None, None
+    sniffed = _sniff_image(raw)
+    if sniffed:
+        return raw, sniffed
+    if ctype.startswith("image/") and ctype not in ("image/svg+xml", "image/svg"):
+        return raw, ctype
+    return None, None

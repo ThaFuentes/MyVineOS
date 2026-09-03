@@ -1,7 +1,7 @@
 {% set compose_types = compose_types|default([]) %}
 {% set preset = preset|default('') %}
 {% if compose_types %}
-<section class="glass-panel compose-card" data-compose>
+<section class="glass-panel compose-card" data-compose data-link-preview-url="{{ url_for('compose.compose_link_preview') }}">
   <div class="compose-types" role="tablist">
     {% for t in compose_types %}
     <button type="button" class="compose-type{% if (preset and t.key == preset) or (not preset and loop.first) %} is-active{% endif %}"

@@ -127,8 +127,10 @@
           box.hidden = false;
           return;
         }
-        const img = data.image && /^https?:\/\//i.test(data.image)
-          ? '<img src="' + escTxt(data.image) + '" alt="">'
+        const src = data.image || '';
+        const imgOk = src.indexOf('/compose/link-preview-img') !== -1 || /^https?:\/\//i.test(src);
+        const img = imgOk
+          ? '<img src="' + escTxt(src) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">'
           : '';
         box.innerHTML =
           '<div class="compose-link-preview-card">' +
@@ -151,7 +153,9 @@
         last = href;
         box.hidden = false;
         box.innerHTML = '<p class="compose-link-preview-wait">Looking up that page…</p>';
-        fetch('/compose/link-preview?url=' + encodeURIComponent(href), {
+        const api = (root.getAttribute('data-link-preview-url') || '/compose/link-preview');
+        const join = api.indexOf('?') >= 0 ? '&' : '?';
+        fetch(api + join + 'url=' + encodeURIComponent(href), {
           credentials: 'same-origin',
           headers: { Accept: 'application/json' },
         })
