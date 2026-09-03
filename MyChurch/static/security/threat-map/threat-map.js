@@ -348,6 +348,7 @@
         (s.unique_countries ?? 0) + " countries",
       ];
       if (s.unresolved_events) bits.push(s.unresolved_events + " unmapped (IPv6/carrier)");
+      if (s.junk_events) bits.push(s.junk_events + " host/loopback");
       if (s.private_events) bits.push(s.private_events + " true LAN");
       sub.textContent = bits.join("  ·  ");
     }
@@ -726,8 +727,11 @@
   }
 
   function fireEvent(ev, live) {
-    spawnAttack(ev.iso2, ev.family);
-    flashCountry(ev.iso2);
+    const iso = String(ev.iso2 || "").toUpperCase();
+    if (iso && iso !== "XX" && iso !== "ZZ" && iso !== "LO") {
+      spawnAttack(iso, ev.family);
+      flashCountry(iso);
+    }
     showBanner(ev, !!live);
     pushFeed(ev);
     const row = {
@@ -851,20 +855,33 @@
     loadRecent(win);
     try {
       const qWin = win === "live" ? "24h" : win;
+      const hud = document.getElementById("tm-hud");
       const countries = await fetchJSON("/security/threat-map/countries?window=" + encodeURIComponent(qWin));
       state.countries = {};
       (countries.countries || []).forEach((c) => {
-        state.countries[c.iso2] = c;
+        if (c && c.iso2 && c.iso2 !== "XX" && c.iso2 !== "ZZ" && c.iso2 !== "LO") {
+          state.countries[c.iso2] = c;
+        }
       });
       paintCountries();
       const summary = await fetchJSON("/security/threat-map/summary?window=" + encodeURIComponent(qWin));
       setStats(summary);
-      const hud = document.getElementById("tm-hud");
-      if (countries.unresolved_ips) {
-        hud.hidden = false;
-        hud.textContent = countries.unresolved_ips + " IPs not yet mapped";
-      } else {
-        hud.hidden = true;
+      const mappedN = Object.keys(state.countries).length;
+      const bits = [];
+      if (summary.database) bits.push("church DB " + summary.database);
+      bits.push((summary.total || 0) + " mappable events");
+      bits.push(mappedN + " countries on the map");
+      if (summary.junk_events) bits.push(summary.junk_events + " host/loopback (not internet)");
+      if (summary.unresolved_events) bits.push(summary.unresolved_events + " unmapped IPs");
+      if (summary.private_events) bits.push(summary.private_events + " true LAN");
+      if (countries.filled) bits.push("geo filled " + countries.filled);
+      hud.hidden = false;
+      hud.textContent = bits.join(" · ");
+      if (mappedN && !summary.junk_events && !summary.unresolved_events) {
+        const shown = hud.textContent;
+        setTimeout(() => {
+          if (hud.textContent === shown) hud.hidden = true;
+        }, 6000);
       }
     } catch (e) {
       document.getElementById("tm-hud").hidden = false;

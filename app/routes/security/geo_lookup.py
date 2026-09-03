@@ -123,6 +123,27 @@ def _is_true_lan(addr) -> bool:
     return False
 
 
+def normalize_ip(ip: str) -> str:
+    """Unwrap ::ffff:a.b.c.d and strip junk so IPv4 hits the country table."""
+    text = (ip or "").strip().strip("[]")
+    if not text:
+        return ""
+    if "%" in text:
+        text = text.split("%", 1)[0]
+    if text.lower().startswith("::ffff:"):
+        text = text[7:]
+        if text.startswith(":"):
+            text = text[1:]
+    try:
+        addr = ipaddress.ip_address(text)
+    except ValueError:
+        return text
+    mapped = getattr(addr, "ipv4_mapped", None)
+    if mapped is not None:
+        return str(mapped)
+    return str(addr)
+
+
 def is_map_junk_ip(ip: str) -> bool:
     """Loopback / unspecified — HostM, cron, missing XFF. Not an attacker."""
     raw = (ip or "").strip()
@@ -136,11 +157,11 @@ def is_map_junk_ip(ip: str) -> bool:
 
 
 def country_for_ip(ip: str) -> str:
-    raw = (ip or "").strip()
+    raw = normalize_ip(ip)
     if not raw:
         return "LO"
     try:
-        addr = ipaddress.ip_address(raw.split("%")[0].strip("[]"))
+        addr = ipaddress.ip_address(raw)
     except ValueError:
         return "XX"
     if _is_loopback_or_unspecified(addr):
@@ -149,7 +170,9 @@ def country_for_ip(ip: str) -> str:
         return "ZZ"
     if addr.version == 4:
         return _lookup_ipv4(int(addr))
-    # IPv6: country grain not in the packed v4 table (not LAN)
+    mapped = getattr(addr, "ipv4_mapped", None)
+    if mapped is not None:
+        return _lookup_ipv4(int(mapped))
     return "XX"
 
 
@@ -184,17 +207,22 @@ def fill_missing_ips(conn, ips: list[str], *, limit: int = 200) -> int:
     wrote = 0
     for ip in missing[: int(limit)]:
         cc = country_for_ip(ip)
-        cur.execute(
-            """
-            INSERT INTO pbt_ip_geo (ip, country_iso2, source, resolved_at)
-            VALUES (%s, %s, 'whois-asn', NOW())
-            ON DUPLICATE KEY UPDATE
-                country_iso2 = VALUES(country_iso2),
-                source = VALUES(source),
-                resolved_at = NOW()
-            """,
-            (ip, cc),
-        )
+        keys = [ip]
+        norm = normalize_ip(ip)
+        if norm and norm != ip:
+            keys.append(norm)
+        for key in keys:
+            cur.execute(
+                """
+                INSERT INTO pbt_ip_geo (ip, country_iso2, source, resolved_at)
+                VALUES (%s, %s, 'whois-asn', NOW())
+                ON DUPLICATE KEY UPDATE
+                    country_iso2 = VALUES(country_iso2),
+                    source = VALUES(source),
+                    resolved_at = NOW()
+                """,
+                (key, cc),
+            )
         wrote += 1
     if wrote:
         conn.commit()

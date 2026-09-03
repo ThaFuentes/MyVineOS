@@ -22,6 +22,7 @@ COMMENT_TABLES = (
     'announcement_comments',
     'prayers_added',
     'page_photo_comments',
+    'community_post_comments',
 )
 
 

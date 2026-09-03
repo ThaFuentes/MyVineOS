@@ -44,10 +44,11 @@ def _family(raw: str | None) -> str | None:
 
 
 # HostM / cron / missing XFF — not attackers. Keep RFC1918 as ZZ (true LAN).
+# %% so PyMySQL param interpolation does not eat the LIKE wildcard.
 _JUNK_IP_ONLY = (
     "e.ip NOT IN ('0.0.0.0', '::', '::1')"
-    " AND e.ip NOT LIKE '127.%'"
-    " AND e.ip NOT LIKE '::ffff:127.%'"
+    " AND e.ip NOT LIKE '127.%%'"
+    " AND e.ip NOT LIKE '::ffff:127.%%'"
 )
 _JUNK_IP_SQL = _JUNK_IP_ONLY + " AND COALESCE(g.country_iso2, '') != 'LO'"
 
@@ -123,7 +124,7 @@ def countries_for_window(window: str = "24h", *, fill: bool = True) -> dict[str,
         ensure_ip_geo_table(conn)
         if fill and (window or "") != "live":
             try:
-                refresh_wrong_lan(conn, limit=400)
+                refresh_wrong_lan(conn, limit=800)
                 cur.execute(
                     f"""
                     SELECT DISTINCT e.ip
@@ -133,13 +134,15 @@ def countries_for_window(window: str = "24h", *, fill: bool = True) -> dict[str,
                       AND e.ip IS NOT NULL AND e.ip != ''
                       AND {_JUNK_IP_SQL}
                       AND {skip_sql}
-                      AND (g.ip IS NULL OR g.resolved_at < NOW() - INTERVAL 90 DAY)
-                    LIMIT 200
+                      AND (g.ip IS NULL
+                           OR g.country_iso2 IN ('XX', 'LO')
+                           OR g.resolved_at < NOW() - INTERVAL 90 DAY)
+                    LIMIT 800
                     """,
                     skip_params,
                 )
                 missing = [(r.get("ip") if isinstance(r, dict) else r[0]) for r in (cur.fetchall() or [])]
-                filled = fill_missing_ips(conn, missing, limit=200)
+                filled = fill_missing_ips(conn, missing, limit=800)
             except Exception as exc:
                 print(f"[threat-map] fill missing: {exc}")
                 try:
@@ -203,6 +206,8 @@ def countries_for_window(window: str = "24h", *, fill: bool = True) -> dict[str,
                 b["top_family"] = max(b["families"], key=b["families"].get)
             if b["last_seen"] is not None:
                 b["last_seen"] = _fmt_ts(b["last_seen"])
+            if cc in ("XX", "ZZ", "LO"):
+                continue
             countries.append(b)
         countries.sort(key=lambda x: x["count"], reverse=True)
         empty.update(
@@ -212,6 +217,7 @@ def countries_for_window(window: str = "24h", *, fill: bool = True) -> dict[str,
                 "private_events": private,
                 "filled": filled,
                 "geo_ready": True,
+                "database": q.church_db_name(),
                 "q_ms": int((time.monotonic() - t0) * 1000),
             }
         )
@@ -234,33 +240,54 @@ def summary_for_window(window: str = "24h") -> dict[str, Any]:
         "total": 0,
         "unique_ips": 0,
         "unique_countries": 0,
+        "mapped_countries": 0,
+        "junk_events": 0,
         "families": [],
         "private_events": 0,
         "unresolved_events": 0,
         "q_ms": 0,
+        "database": "",
     }
     if conn is None:
         return out
     try:
         cur = conn.cursor()
+        out["database"] = q.church_db_name()
         cur.execute(
             f"""
-            SELECT COUNT(*) AS c,
-                   COUNT(DISTINCT e.ip) AS ips,
-                   COUNT(DISTINCT COALESCE(g.country_iso2, 'XX')) AS ccs
+            SELECT
+              COUNT(*) AS c,
+              SUM(CASE WHEN {_JUNK_IP_ONLY} THEN 1 ELSE 0 END) AS real_c,
+              COUNT(DISTINCT CASE WHEN {_JUNK_IP_ONLY} THEN e.ip END) AS ips,
+              SUM(CASE WHEN NOT ({_JUNK_IP_ONLY}) THEN 1 ELSE 0 END) AS junk
             FROM pbt_security_events e
-            LEFT JOIN pbt_ip_geo g ON g.ip = e.ip
             WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
               AND e.ip IS NOT NULL AND e.ip != ''
-              AND {_JUNK_IP_SQL}
               AND {skip_sql}
             """,
             skip_params,
         )
         row = cur.fetchone() or {}
-        out["total"] = int(row.get("c") or 0)
+        out["total"] = int(row.get("real_c") or 0)
         out["unique_ips"] = int(row.get("ips") or 0)
-        out["unique_countries"] = int(row.get("ccs") or 0)
+        out["junk_events"] = int(row.get("junk") or 0)
+        out["unique_countries"] = 0
+        cur.execute(
+            f"""
+            SELECT COUNT(DISTINCT g.country_iso2) AS ccs
+            FROM pbt_security_events e
+            JOIN pbt_ip_geo g ON g.ip = e.ip
+            WHERE COALESCE(e.created_at, e.timestamp) >= NOW() - INTERVAL {win}
+              AND e.ip IS NOT NULL AND e.ip != ''
+              AND {_JUNK_IP_SQL}
+              AND {skip_sql}
+              AND g.country_iso2 NOT IN ('XX', 'ZZ', 'LO')
+            """,
+            skip_params,
+        )
+        mapped = cur.fetchone() or {}
+        out["mapped_countries"] = int(mapped.get("ccs") or 0)
+        out["unique_countries"] = out["mapped_countries"]
         cur.execute(
             f"""
             SELECT e.event_type, COUNT(*) AS c
@@ -300,6 +327,7 @@ def summary_for_window(window: str = "24h") -> dict[str, Any]:
         row = cur.fetchone() or {}
         out["private_events"] = int(row.get("priv") or 0)
         out["unresolved_events"] = int(row.get("unk") or 0)
+        out["database"] = q.church_db_name()
         out["q_ms"] = int((time.monotonic() - t0) * 1000)
         return out
     except Exception as exc:
@@ -468,7 +496,7 @@ def replay_events(window: str = "24h", *, limit: int = 400) -> dict[str, Any]:
             if (r.get("cc") or "XX").upper() == "XX" and (r.get("ip") or "").strip():
                 need.append(r.get("ip"))
         if need:
-            fill_missing_ips(conn, need, limit=min(200, len(need)))
+            fill_missing_ips(conn, need, limit=min(800, len(need)))
             cur.execute(
                 f"""
                 SELECT e.id, e.event_type, e.ip, COALESCE(e.created_at, e.timestamp) AS created_at, e.user_id,
@@ -496,7 +524,7 @@ def replay_events(window: str = "24h", *, limit: int = 400) -> dict[str, Any]:
             if not fam:
                 continue
             cc = (r.get("cc") or "XX").upper()
-            if cc == "LO":
+            if cc in ("LO", "XX", "ZZ"):
                 continue
             events.append(
                 {

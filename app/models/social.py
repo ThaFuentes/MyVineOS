@@ -417,11 +417,11 @@ def delete_photo(photo_id: int, owner_type: str, owner_id: int) -> None:
             pass
 
 
-def create_post(user_id: int, kind: str, title: str, body: str, url: str, visibility: str, image_path: str | None = None) -> int | None:
+def create_post(user_id: int, kind: str, title: str, body: str, url: str, visibility: str, image_path: str | None = None, allow_comments: bool = True, allow_share: bool = True, share_of: int | None = None) -> int | None:
     title = sanitize_plain_text(title or '')[:255]
     body = sanitize_plain_text(body or '')[:8000]
     href = sanitize_public_href(url)
-    if kind not in ('post', 'blog', 'book', 'quote', 'verse', 'image'):
+    if kind not in ('post', 'blog', 'book', 'quote', 'verse', 'image', 'share'):
         kind = 'post'
     if visibility not in ('public', 'private', 'personal', 'followers'):
         visibility = 'public'
@@ -438,34 +438,45 @@ def create_post(user_id: int, kind: str, title: str, body: str, url: str, visibi
             title = 'Post'
     if contains_censored_word(f'{title} {body}'):
         return None
-    if not body and not href and not image_path and kind != 'post':
+    if not body and not href and not image_path and kind not in ('post', 'share'):
         return None
     if kind == 'post' and not body and not href and not image_path:
         return None
     db = get_db()
     cur = db.cursor()
-    args = (int(user_id), kind, title, body or None, href or None, visibility, image_path or None)
+    args = (int(user_id), kind, title, body or None, href or None, visibility, image_path or None,
+            1 if allow_comments else 0, 1 if allow_share else 0, int(share_of) if share_of else None)
     try:
         cur.execute(
             """
-            INSERT INTO community_posts (user_id, kind, title, body, url, visibility, image_path)
-            VALUES (%s,%s,%s,%s,%s,%s,%s)
+            INSERT INTO community_posts
+                (user_id, kind, title, body, url, visibility, image_path, allow_comments, allow_share, share_of)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             args,
         )
     except Exception:
-        cur.execute(
-            """
-            INSERT INTO community_posts (user_id, kind, title, body, url, visibility)
-            VALUES (%s,%s,%s,%s,%s,%s)
-            """,
-            args[:6],
-        )
+        try:
+            cur.execute(
+                """
+                INSERT INTO community_posts (user_id, kind, title, body, url, visibility, image_path)
+                VALUES (%s,%s,%s,%s,%s,%s,%s)
+                """,
+                args[:7],
+            )
+        except Exception:
+            cur.execute(
+                """
+                INSERT INTO community_posts (user_id, kind, title, body, url, visibility)
+                VALUES (%s,%s,%s,%s,%s,%s)
+                """,
+                args[:6],
+            )
     db.commit()
     return cur.lastrowid
 
 
-WALL_POST_KINDS = ('post', 'quote', 'verse', 'image', 'book', 'blog')
+WALL_POST_KINDS = ('post', 'quote', 'verse', 'image', 'book', 'blog', 'share')
 
 
 def _post_visibility_sql(alias: str = 'p', viewer_id: int | None = None, as_mod: bool = False) -> tuple[str, list]:
@@ -627,6 +638,8 @@ def _decorate_post_row(row: dict) -> dict:
     username = (row.get('username') or '').strip()
     row['author_url'] = url_for('church.member_page', username=username) if username else ''
     row['shadowed'] = bool(row.get('shadowed'))
+    row['allow_comments'] = row.get('allow_comments') not in (0, '0', False)
+    row['allow_share'] = row.get('allow_share') not in (0, '0', False)
     return row
 
 

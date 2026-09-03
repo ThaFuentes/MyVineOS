@@ -17,8 +17,34 @@
       <h2 style="margin:0;"><i class="fa-solid fa-heart" aria-hidden="true"></i> Pastoral Care</h2>
       <div style="opacity:0.7; font-size:0.85rem;">{{ requests|length }} requests • filters below</div>
     </div>
-    <a href="{{ url_for('pastoral.care.care_new') }}" class="btn btn-primary" style="min-height:44px;">+ New Care Request</a>
+    <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+      <a href="{{ url_for('pastoral.care.rites_list') }}" class="btn btn-secondary" style="min-height:44px;">Weddings &amp; funerals</a>
+      <a href="{{ url_for('pastoral.care.care_new') }}" class="btn btn-primary" style="min-height:44px;">+ New Care Request</a>
+    </div>
   </div>
+</div>
+
+<div class="glass-panel" style="margin-bottom:0.9rem;">
+  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.4rem; align-items:center;">
+    <div>
+      <h3 style="margin:0 0 0.2rem; font-size:1.05rem;">Weddings &amp; funerals proceeded over</h3>
+      <p style="margin:0; font-size:0.88rem; opacity:0.75;">A log of ceremonies, separate from care requests.</p>
+    </div>
+    <a href="{{ url_for('pastoral.care.rites_new') }}" class="btn btn-secondary" style="min-height:38px;">+ Record</a>
+  </div>
+  {% if rites %}
+    {% for r in rites[:5] %}
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.4rem; padding:0.45rem 0; border-top:1px solid rgba(255,255,255,0.08);">
+      <div>
+        <strong>{{ r.headline }}</strong>
+        <span style="opacity:0.7; font-size:0.85rem;"> · {{ r.kind_label }}{% if r.rite_date %} · {{ r.rite_date }}{% endif %}</span>
+      </div>
+      <a href="{{ url_for('pastoral.care.rites_edit', rite_id=r.id) }}" class="btn btn-secondary" style="min-height:auto;padding:0.35rem 0.7rem;">Open</a>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="margin:0.65rem 0 0; font-size:0.88rem; opacity:0.7;">None yet.</p>
+  {% endif %}
 </div>
 
 {% if first_timers %}

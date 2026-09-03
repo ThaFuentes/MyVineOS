@@ -1076,12 +1076,20 @@ def attach_feed_rank(items: list[dict], viewer_id: int | None = None) -> list[di
         item['author_id'] = author_id
         from_follow = bool(author_id and author_id in follows)
         item['from_follow'] = from_follow
+        posted_as = (item.get('posted_as') or meta.get('posted_as') or '').strip()
+        church_wide = posted_as == 'church' or campus_id == 0
         if from_follow:
             item['feed_rank'] = 0
             item['group'] = 'People you follow'
-        elif home and campus_id == home:
+        elif church_wide:
             item['feed_rank'] = 1
+            item['group'] = 'This church'
+        elif home and campus_id == home:
+            item['feed_rank'] = 2
             item['group'] = 'Your branch'
+        elif branched:
+            item['feed_rank'] = 3
+            item['group'] = 'Other branches'
         else:
             item['feed_rank'] = 2
             item['group'] = 'Church family' if viewer_id else item.get('group') or 'Church family'
@@ -1157,6 +1165,7 @@ TYPE_LABELS = {
     'quote': 'Quote',
     'verse': 'Verse',
     'image': 'Photo',
+    'share': 'Shared',
 }
 
 
@@ -1391,6 +1400,9 @@ def church_wall(include_members: bool = False, limit: int = 24, campus_id: int =
                     'can_manage_wall': can_edit_church_page(wall_campus),
                     'visibility': row.get('visibility') or 'public',
                     'shadowed': bool(row.get('shadowed')),
+                    'allow_comments': row.get('allow_comments', True),
+                    'allow_share': row.get('allow_share', True),
+                    'share_of': row.get('share_of'),
                     'detail_url': '',
                 }
                 if dt:
@@ -1426,6 +1438,11 @@ def church_wall(include_members: bool = False, limit: int = 24, campus_id: int =
             out = flag_wall_moderation(out)
         except Exception:
             pass
+        try:
+            from app.models.post_social import attach_social
+            out = attach_social(out, viewer_id)
+        except Exception as exc:
+            print(f'church_wall social: {exc}')
         return out
     except Exception:
         return []
@@ -1519,6 +1536,9 @@ def member_wall(user_id: int, username: str = '', space: dict | None = None) -> 
                 'author_id': row.get('user_id'),
                 'deletable': True,
                 'shadowed': bool(row.get('shadowed')),
+                'allow_comments': row.get('allow_comments', True),
+                'allow_share': row.get('allow_share', True),
+                'share_of': row.get('share_of'),
             })
         if space and space.get('show_training'):
             for row in social_model.list_badges(user_id):
@@ -1641,7 +1661,8 @@ def member_wall(user_id: int, username: str = '', space: dict | None = None) -> 
         for item in feed:
             kind = item.get('type')
             oid = item.get('id')
-            if oid and kind in ('prayer', 'announcement', 'event', 'sermon', 'dream', 'prophecy'):
+            if oid and kind in ('prayer', 'announcement', 'event', 'sermon', 'dream', 'prophecy',
+                                'post', 'quote', 'verse', 'image', 'book', 'blog', 'share'):
                 item['comments'] = get_recent_comments(kind, oid, limit=4)
     except Exception:
         pass
@@ -1657,6 +1678,11 @@ def member_wall(user_id: int, username: str = '', space: dict | None = None) -> 
         pass
     viewer_id = session.get('user_id') if has_request_context() else None
     feed = apply_pins(feed, 'member', uid, can_pin=bool(viewer_id and int(viewer_id) == uid))
+    try:
+        from app.models.post_social import attach_social
+        feed = attach_social(feed, viewer_id)
+    except Exception as exc:
+        print(f'member_wall social: {exc}')
     return feed[:40]
 
 

@@ -7,12 +7,26 @@ from datetime import datetime
 import pymysql
 
 from app.models.db import get_db
-from poweredbytop.models.connect_db import get_security_db
 from .utils import ensure_security_grants_table
 
 
 def _sec():
-    return get_security_db()
+    """Always this church's MariaDB — never a second product (Aegis/etc.) connection."""
+    try:
+        return get_db()
+    except Exception as exc:
+        print(f"[security] church db unavailable: {exc}")
+        return None
+
+
+def church_db_name() -> str:
+    try:
+        cur = get_db().cursor()
+        cur.execute("SELECT DATABASE() AS db")
+        row = cur.fetchone() or {}
+        return (row.get("db") if isinstance(row, dict) else None) or ""
+    except Exception:
+        return ""
 
 
 def _close(conn) -> None:

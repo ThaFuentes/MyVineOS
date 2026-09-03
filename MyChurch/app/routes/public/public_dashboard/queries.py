@@ -261,7 +261,16 @@ def get_recent_comments(content_type, content_id, limit=3):
             'date_col': 'date_added',
             'parent_col': 'photo_id',
         },
+        'post': {
+            'table': 'community_post_comments',
+            'name_col': 'contributor_name',
+            'comment_col': 'comment',
+            'date_col': 'date_added',
+            'parent_col': 'post_id',
+        },
     }
+    for extra in ('quote', 'verse', 'image', 'book', 'blog', 'share'):
+        column_maps[extra] = column_maps['post']
 
     mapping = column_maps.get(content_type)
     if not mapping:

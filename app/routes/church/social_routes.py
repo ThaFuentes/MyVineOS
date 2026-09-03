@@ -17,6 +17,53 @@ def _unknown():
     return redirect(url_for('church.church_home'))
 
 
+@church_bp.route('/react', methods=['POST'])
+@login_required
+def react_to_post():
+    from app.models import post_social as social_bar
+    kind = (request.form.get('content_type') or 'post').strip()
+    oid = request.form.get('content_id') or ''
+    react = (request.form.get('reaction') or '').strip()
+    nxt = (request.form.get('next') or '').strip()
+    if not oid.isdigit():
+        flash('Missing post.', 'error')
+        return redirect(nxt if nxt.startswith('/') else url_for('church.church_home'))
+    mine = ''
+    try:
+        from app.models.post_social import attach_social
+        # toggle off if they hit the same reaction again
+        cur_items = [{'type': kind, 'id': int(oid)}]
+        attach_social(cur_items, session['user_id'])
+        mine = (cur_items[0].get('my_reaction') or '')
+    except Exception:
+        mine = ''
+    if mine and mine == react:
+        react = ''
+    ok, msg = social_bar.set_reaction(kind, int(oid), session['user_id'], react)
+    if not ok:
+        flash(msg, 'error')
+    dest = nxt if nxt.startswith('/') and not nxt.startswith('//') else url_for('public.public_dashboard.public_community')
+    return redirect(dest)
+
+
+@church_bp.route('/reshare', methods=['POST'])
+@login_required
+def reshare_post():
+    from app.models import post_social as social_bar
+    kind = (request.form.get('content_type') or 'post').strip()
+    oid = request.form.get('content_id') or ''
+    nxt = (request.form.get('next') or '').strip()
+    if not oid.isdigit():
+        flash('Missing post.', 'error')
+        return redirect(nxt if nxt.startswith('/') else url_for('church.church_home'))
+    ok, msg = social_bar.reshare(kind, int(oid), session['user_id'])
+    flash(msg, 'success' if ok else 'error')
+    dest = nxt if nxt.startswith('/') and not nxt.startswith('//') else url_for('church.member_page', username=session.get('username') or '')
+    if ok and session.get('username'):
+        dest = url_for('church.member_page', username=session['username'])
+    return redirect(dest)
+
+
 @church_bp.route('/post/<int:post_id>/moderate', methods=['POST'])
 @login_required
 def moderate_wall_post(post_id):

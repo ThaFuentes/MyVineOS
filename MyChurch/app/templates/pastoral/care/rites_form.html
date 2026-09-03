@@ -1,0 +1,108 @@
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block pastoral_content %}
+{% set rite = rite or {} %}
+<div class="glass-panel">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+    <h2 style="margin:0;">{% if rite.id %}Edit record{% else %}New wedding / funeral{% endif %}</h2>
+    <a href="{{ url_for('pastoral.care.rites_list') }}" class="btn btn-secondary" style="font-size:0.85rem; min-height:38px;"><- Back</a>
+  </div>
+  <p style="opacity:0.75; font-size:0.9rem; margin:0 0 1rem;">
+    A record of a ceremony a minister proceeded over. Not a care request — those stay on the Care list.
+  </p>
+
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+    <div class="form-group">
+      <label style="display:block; font-weight:600; margin-bottom:0.4rem;">Kind *</label>
+      <div style="display:flex; flex-wrap:wrap; gap:0.75rem;">
+        <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+          <input type="radio" name="kind" value="wedding" {% if (rite.kind or 'wedding') == 'wedding' %}checked{% endif %}> Wedding
+        </label>
+        <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+          <input type="radio" name="kind" value="funeral" {% if rite.kind == 'funeral' %}checked{% endif %}> Funeral
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group" style="display:flex; flex-wrap:wrap; gap:0.75rem;">
+      <div style="flex:1; min-width:160px;">
+        <label for="rite_date" style="display:block; font-weight:600; margin-bottom:0.3rem;">Date</label>
+        <input type="date" name="rite_date" id="rite_date" value="{{ rite.rite_date or '' }}"
+               style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+      </div>
+      <div style="flex:2; min-width:180px;">
+        <label for="location" style="display:block; font-weight:600; margin-bottom:0.3rem;">Location</label>
+        <input type="text" name="location" id="location" value="{{ rite.location or '' }}" placeholder="Sanctuary, cemetery, venue…"
+               style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="party_a" style="display:block; font-weight:600; margin-bottom:0.3rem;">
+        {% if rite.kind == 'funeral' %}Person who died *{% else %}Person 1 *{% endif %}
+      </label>
+      <input type="text" name="party_a" id="party_a" required value="{{ rite.party_a or '' }}"
+             style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+    </div>
+    <div class="form-group">
+      <label for="party_b" style="display:block; font-weight:600; margin-bottom:0.3rem;">
+        {% if rite.kind == 'funeral' %}Family contact{% else %}Person 2{% endif %}
+      </label>
+      <input type="text" name="party_b" id="party_b" value="{{ rite.party_b or '' }}"
+             style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+    </div>
+
+    <div class="form-group">
+      <label for="officiant_id" style="display:block; font-weight:600; margin-bottom:0.3rem;">Minister who proceeded</label>
+      <select name="officiant_id" id="officiant_id" style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+        <option value="">Someone not on the team (type name below)</option>
+        {% for p in pastoral_team %}
+        <option value="{{ p.id }}" {% if rite.officiant_id and rite.officiant_id|string == p.id|string %}selected{% endif %}>
+          {{ p.first_name }} {{ p.last_name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="officiant_name" style="display:block; font-weight:600; margin-bottom:0.3rem;">Officiant name (if not listed)</label>
+      <input type="text" name="officiant_name" id="officiant_name" value="{{ rite.officiant_name or '' }}"
+             style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+    </div>
+
+    <div class="form-group">
+      <label for="member_id" style="display:block; font-weight:600; margin-bottom:0.3rem;">Linked member (optional)</label>
+      <select name="member_id" id="member_id" style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+        <option value="">—</option>
+        {% for m in members %}
+        <option value="{{ m.id }}" {% if rite.member_id and rite.member_id|string == m.id|string %}selected{% endif %}>
+          {{ m.first_name }} {{ m.last_name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="witnesses" style="display:block; font-weight:600; margin-bottom:0.3rem;">Witnesses / family present</label>
+      <input type="text" name="witnesses" id="witnesses" value="{{ rite.witnesses or '' }}"
+             style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">
+    </div>
+    <div class="form-group">
+      <label for="notes" style="display:block; font-weight:600; margin-bottom:0.3rem;">Notes</label>
+      <textarea name="notes" id="notes" rows="5" style="width:100%; padding:0.6rem; border-radius:10px; background:#1f1f1f; color:#fff; border:1px solid rgba(0,255,255,0.2);">{{ rite.notes or '' }}</textarea>
+      <small style="opacity:0.6;">Confidential to the pastoral team.</small>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; margin-top:0.75rem;">
+      {% if rite.id %}
+      <button type="submit" formaction="{{ url_for('pastoral.care.rites_delete', rite_id=rite.id) }}" formmethod="post"
+              class="btn btn-secondary" onclick="return confirm('Remove this record?');">Delete</button>
+      {% else %}
+      <span></span>
+      {% endif %}
+      <button type="submit" class="btn btn-primary" style="min-height:46px; padding:0 1.4rem;">Save record</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

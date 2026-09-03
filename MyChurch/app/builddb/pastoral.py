@@ -368,6 +368,28 @@ def create_tables(cursor):
     """)
     safe_exec(cursor, "CREATE INDEX IF NOT EXISTS idx_care_requests_status ON pastoral_care_requests(status)")
     safe_exec(cursor, "CREATE INDEX IF NOT EXISTS idx_care_requests_member ON pastoral_care_requests(member_id)")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pastoral_rites (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            kind VARCHAR(20) NOT NULL,
+            rite_date DATE NULL,
+            location VARCHAR(255) NULL,
+            officiant_id INT UNSIGNED NULL,
+            officiant_name VARCHAR(160) NULL,
+            party_a VARCHAR(160) NOT NULL,
+            party_b VARCHAR(160) NULL,
+            member_id INT UNSIGNED NULL,
+            witnesses TEXT NULL,
+            notes TEXT NULL,
+            created_by INT UNSIGNED NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_rites_kind_date (kind, rite_date),
+            FOREIGN KEY (officiant_id) REFERENCES users(id) ON DELETE SET NULL,
+            FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE SET NULL,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """)
 
     # 7-11. Remaining tables (unchanged)
     cursor.execute("""

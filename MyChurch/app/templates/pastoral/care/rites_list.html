@@ -1,0 +1,54 @@
+{% extends "pastoral/base_pastoral.html" %}
+
+{% block pastoral_content %}
+<div class="glass-panel" style="margin-bottom:0.75rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+    <div>
+      <h2 style="margin:0;"><i class="fa-solid fa-book-bible" aria-hidden="true"></i> Weddings &amp; funerals</h2>
+      <div style="opacity:0.7; font-size:0.85rem;">Ceremonies ministers proceeded over. Confidential to the pastoral team.</div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+      <a href="{{ url_for('pastoral.care.rites_new', kind='wedding') }}" class="btn btn-primary" style="min-height:44px;">+ Wedding</a>
+      <a href="{{ url_for('pastoral.care.rites_new', kind='funeral') }}" class="btn btn-secondary" style="min-height:44px;">+ Funeral</a>
+      <a href="{{ url_for('pastoral.care.care_dashboard') }}" class="btn btn-secondary" style="min-height:44px;">Care</a>
+    </div>
+  </div>
+</div>
+
+<div class="glass-panel" style="margin-bottom:0.9rem;">
+  <form method="get" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
+    <div style="flex:1; min-width:160px;">
+      <label style="display:block; font-size:0.75rem; opacity:0.7; margin-bottom:0.2rem;">Kind</label>
+      <select name="kind" style="width:100%; padding:0.5rem; border-radius:8px; background:#222; color:#fff; border:1px solid #444;">
+        <option value="">All</option>
+        <option value="wedding" {% if active_kind == 'wedding' %}selected{% endif %}>Weddings</option>
+        <option value="funeral" {% if active_kind == 'funeral' %}selected{% endif %}>Funerals</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-secondary">Filter</button>
+  </form>
+</div>
+
+{% if rites %}
+  {% for r in rites %}
+  <div class="glass-panel" style="margin-bottom:0.55rem;">
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.5rem; align-items:flex-start;">
+      <div>
+        <span style="font-size:0.72rem; padding:0.1rem 0.45rem; border-radius:999px; background:rgba(0,255,255,0.12);">{{ r.kind_label }}</span>
+        <strong style="display:block; margin-top:0.3rem;">{{ r.headline }}</strong>
+        <div style="opacity:0.75; font-size:0.85rem;">
+          {% if r.rite_date %}{{ r.rite_date }}{% else %}Date not set{% endif %}
+          {% if r.location %} · {{ r.location }}{% endif %}
+          · Officiant {{ r.officiant_display }}
+        </div>
+      </div>
+      <a href="{{ url_for('pastoral.care.rites_edit', rite_id=r.id) }}" class="btn btn-secondary" style="min-height:38px;">Open</a>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="glass-panel">
+  <p style="margin:0; opacity:0.75;">No records yet. Add a wedding or funeral the team proceeded over.</p>
+</div>
+{% endif %}
+{% endblock %}
