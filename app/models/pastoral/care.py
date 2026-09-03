@@ -343,3 +343,148 @@ def add_care_note(request_id, user_id, note, is_private=1):
     """, (request_id, user_id, note, is_private))
 
     db.commit()
+
+
+RITE_KINDS = ('wedding', 'funeral')
+
+
+def ensure_rites_table():
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS pastoral_rites (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                kind VARCHAR(20) NOT NULL,
+                rite_date DATE NULL,
+                location VARCHAR(255) NULL,
+                officiant_id INT UNSIGNED NULL,
+                officiant_name VARCHAR(160) NULL,
+                party_a VARCHAR(160) NOT NULL,
+                party_b VARCHAR(160) NULL,
+                member_id INT UNSIGNED NULL,
+                witnesses TEXT NULL,
+                notes TEXT NULL,
+                created_by INT UNSIGNED NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_rites_kind_date (kind, rite_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+        db.commit()
+    except Exception as exc:
+        print(f'ensure pastoral_rites: {exc}')
+
+
+def list_rites(kind=None, limit=200):
+    ensure_rites_table()
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    sql = """
+        SELECT r.*,
+               CONCAT(IFNULL(ou.first_name,''), ' ', IFNULL(ou.last_name,'')) AS officiant_user_name,
+               CONCAT(IFNULL(mu.first_name,''), ' ', IFNULL(mu.last_name,'')) AS member_name
+        FROM pastoral_rites r
+        LEFT JOIN users ou ON ou.id = r.officiant_id
+        LEFT JOIN users mu ON mu.id = r.member_id
+    """
+    params = []
+    if kind in RITE_KINDS:
+        sql += " WHERE r.kind = %s"
+        params.append(kind)
+    sql += " ORDER BY COALESCE(r.rite_date, r.created_at) DESC, r.id DESC LIMIT %s"
+    params.append(int(limit))
+    cur.execute(sql, params)
+    rows = list(cur.fetchall() or [])
+    for row in rows:
+        off = (row.get('officiant_user_name') or '').strip() or (row.get('officiant_name') or '').strip()
+        row['officiant_display'] = off or '—'
+        row['kind_label'] = 'Wedding' if row.get('kind') == 'wedding' else 'Funeral'
+        if row.get('kind') == 'wedding':
+            a = (row.get('party_a') or '').strip()
+            b = (row.get('party_b') or '').strip()
+            row['headline'] = f"{a} & {b}" if a and b else (a or b or 'Wedding')
+        else:
+            row['headline'] = (row.get('party_a') or '').strip() or 'Funeral'
+    return rows
+
+
+def get_rite(rite_id):
+    ensure_rites_table()
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
+    cur.execute("SELECT * FROM pastoral_rites WHERE id = %s", (int(rite_id),))
+    return cur.fetchone()
+
+
+def save_rite(data, user_id, rite_id=None):
+    ensure_rites_table()
+    kind = (data.get('kind') or '').strip().lower()
+    if kind not in RITE_KINDS:
+        raise ValueError('Choose wedding or funeral.')
+    party_a = (data.get('party_a') or '').strip()
+    if not party_a:
+        raise ValueError('Name is required.')
+    officiant_id = data.get('officiant_id')
+    if officiant_id in ('', 'None', None, 0, '0'):
+        officiant_id = None
+    else:
+        try:
+            officiant_id = int(officiant_id)
+        except (TypeError, ValueError):
+            officiant_id = None
+    member_id = data.get('member_id')
+    if member_id in ('', 'None', None, 0, '0'):
+        member_id = None
+    else:
+        try:
+            member_id = int(member_id)
+        except (TypeError, ValueError):
+            member_id = None
+    rite_date = (data.get('rite_date') or '').strip() or None
+    args = (
+        kind,
+        rite_date,
+        (data.get('location') or '').strip() or None,
+        officiant_id,
+        (data.get('officiant_name') or '').strip() or None,
+        party_a[:160],
+        (data.get('party_b') or '').strip()[:160] or None,
+        member_id,
+        (data.get('witnesses') or '').strip() or None,
+        (data.get('notes') or '').strip() or None,
+        int(user_id) if user_id else None,
+    )
+    db = get_db()
+    cur = db.cursor()
+    if rite_id:
+        cur.execute(
+            """
+            UPDATE pastoral_rites
+            SET kind=%s, rite_date=%s, location=%s, officiant_id=%s, officiant_name=%s,
+                party_a=%s, party_b=%s, member_id=%s, witnesses=%s, notes=%s
+            WHERE id=%s
+            """,
+            args[:-1] + (int(rite_id),),
+        )
+        db.commit()
+        return int(rite_id)
+    cur.execute(
+        """
+        INSERT INTO pastoral_rites
+            (kind, rite_date, location, officiant_id, officiant_name,
+             party_a, party_b, member_id, witnesses, notes, created_by)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """,
+        args,
+    )
+    db.commit()
+    return cur.lastrowid
+
+
+def delete_rite(rite_id):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM pastoral_rites WHERE id = %s", (int(rite_id),))
+    db.commit()
+    return cur.rowcount > 0

@@ -1,0 +1,49 @@
+{# Reactions, comment, reshare — feed + walls. #}
+{% if item.id and item.type not in ('badge', 'comment') %}
+{% set react_map = item.reactions or {} %}
+<div class="post-social">
+  {% if session.get('user_id') %}
+  <div class="post-reacts" role="group" aria-label="React">
+    {% for key, label, icon in [('like','Like','fa-thumbs-up'),('love','Love','fa-heart'),('pray','Praying','fa-hands-praying'),('amen','Amen','fa-hands'),('disagree','Disagree','fa-thumbs-down'),('sad','Sad','fa-face-sad-tear'),('mad','Mad','fa-face-angry')] %}
+    <form method="post" action="{{ url_for('church.react_to_post') }}" class="post-react-form">
+      {% include 'partials/csrf_field.html' %}
+      <input type="hidden" name="content_type" value="{{ item.type }}">
+      <input type="hidden" name="content_id" value="{{ item.id }}">
+      <input type="hidden" name="reaction" value="{{ key }}">
+      <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+      <button type="submit" class="post-react-btn{% if item.my_reaction == key %} is-on{% endif %}" title="{{ label }}">
+        <i class="fa-solid {{ icon }}" aria-hidden="true"></i>
+        {% if react_map.get(key) %}<span>{{ react_map.get(key) }}</span>{% endif %}
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+  {% elif item.reaction_total %}
+  <p class="post-react-count">{{ item.reaction_total }} reaction{{ 's' if item.reaction_total != 1 else '' }}</p>
+  {% endif %}
+
+  {% if item.allow_share|default(true) and session.get('user_id') and not (item.author_id and item.author_id|int == session.get('user_id')|int) %}
+  <form method="post" action="{{ url_for('church.reshare_post') }}" class="post-share-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="content_type" value="{{ item.type }}">
+    <input type="hidden" name="content_id" value="{{ item.id }}">
+    <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+    <button type="submit" class="post-share-btn" title="Share to your page">
+      <i class="fa-solid fa-share" aria-hidden="true"></i> Share{% if item.share_count %} · {{ item.share_count }}{% endif %}
+    </button>
+  </form>
+  {% elif item.share_count %}
+  <span class="post-share-count">{{ item.share_count }} share{{ 's' if item.share_count != 1 else '' }}</span>
+  {% endif %}
+</div>
+{% if item.shared_from %}
+<aside class="post-shared-orig">
+  <p class="post-shared-label">Originally from
+    {% if item.shared_from.author_url %}<a href="{{ item.shared_from.author_url }}">{{ item.shared_from.display_name }}</a>
+    {% else %}{{ item.shared_from.display_name or 'a member' }}{% endif %}
+  </p>
+  {% if item.shared_from.title %}<strong>{{ item.shared_from.title }}</strong>{% endif %}
+  {% if item.shared_from.body %}<p>{{ item.shared_from.body[:280] }}</p>{% endif %}
+</aside>
+{% endif %}
+{% endif %}

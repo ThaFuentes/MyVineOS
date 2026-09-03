@@ -31,71 +31,23 @@ def _get_db_config():
 
 # ====================== PER-REQUEST SAFE GETTER (used by ALL modules) ======================
 def get_security_db():
-    """
-    Returns a healthy DictCursor connection.
-    - Only works inside Flask request context
-    - Stores in g.pbt_db for the lifetime of the request
-    - Full health ping + reconnect logic
-    - Zero connection leaks
-    - Graceful total failure fallback
-    """
-    if not has_request_context():
-        logger.warning("[DB] Called outside request context -> skipping (safe)")
-        return None
-
-    # Reuse existing connection if healthy
-    if hasattr(g, 'pbt_db') and g.pbt_db is not None:
-        try:
-            g.pbt_db.ping(reconnect=True)  # Keep-alive + detect dead connections
-            logger.debug(f"[DB] Reusing healthy connection | IP={request.remote_addr}")
-            return g.pbt_db
-        except Exception as e:
-            logger.warning(f"[DB] Stale connection detected, creating new: {e}")
-            g.pbt_db = None
-
-    # Create fresh connection
+    """Same MariaDB as the church site. Never Aegis or a second product."""
     try:
-        config = _get_db_config()
-        db = pymysql.connect(**config)
-        db.autocommit(False)  # We control commits manually for safety (critical for reputation)
+        from flask import has_app_context
+        from app.models.db import get_db
 
-        # Store in Flask g for automatic cleanup
-        g.pbt_db = db
-
-        ip = request.remote_addr or "unknown"
-        logger.info(f"[DB] NEW CONNECTION ACQUIRED | IP={ip} | Database={config['database']}")
-
-        # Track for N1 / bulkhead (best effort; increments on security DB use)
-        if has_request_context():
-            g.query_count = getattr(g, 'query_count', 0) + 1
-
-        return db
-
+        if not has_app_context():
+            return None
+        return get_db()
     except Exception as e:
-        logger.error(f"[DB] CRITICAL CONNECTION FAILURE: {str(e)}")
-        logger.error(f"[DB] Config used -> Host={config.get('host')} | DB={config.get('database')}")
+        logger.error(f"[DB] Church DB unavailable for security logging: {e}")
         return None
 
 
 # ====================== CLEANUP HANDLER (register this in your app) ======================
 def close_security_db(e=None):
-    """Flask teardown_request / teardown_appcontext handler - prevents leaks.
-    Always safe to call; handles missing request context.
-    """
-    db = g.pop('pbt_db', None)
-    if db is not None:
-        try:
-            db.commit()          # Final safety net commit (our autocommit=False)
-            db.close()
-            ip = "unknown"
-            try:
-                if has_request_context():
-                    ip = getattr(request, 'remote_addr', 'unknown')
-            except Exception:
-                pass
-            logger.debug(f"[DB] Connection closed cleanly | IP={ip}")
-        except Exception as close_err:
-            logger.warning(f"[DB] Cleanup warning (non-fatal): {close_err}")
+    """Church get_db() lives on flask.g and is closed by app.models.db.close_db."""
+    return
 
 
 # ====================== TABLE ENSURE HELPER (used by reputation etc.) ======================

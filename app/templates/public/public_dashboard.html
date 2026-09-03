@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=35">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=41">
 {% endblock %}
 
 {% block content %}
@@ -32,7 +32,7 @@
         <div>
           <p class="page-kicker">Newspaper</p>
           <h1 class="page-title">Feed</h1>
-          <p class="page-description">{% if session.get('user_id') %}People you follow first, then {% if has_branches %}your branch, then {% endif %}the rest of the church. Public posts are open to guests. Private stays with signed-in members. Personal never leaves someone’s own page.{% else %}Public posts from this church family. Sign in to see private member posts and people you follow first.{% endif %}</p>
+          <p class="page-description">{% if session.get('user_id') %}People you follow first, then this church{% if has_branches %}, then your branch, then other branches{% endif %}. React, comment, or share to your page when they allow it.{% else %}Public posts from this church family. Sign in to follow people, react, and keep a page of your own.{% endif %}</p>
         </div>
         <div class="feed-page-actions">
           <a href="{{ home_url|default(url_for('church.church_home')) }}" class="btn btn-secondary">{% if has_branches and viewer_branch_name %}{{ viewer_branch_name }}{% else %}Church page{% endif %}</a>
@@ -104,6 +104,7 @@
             {% if item.shadowed_badge %}<p class="wall-mod-flag">Shadowed — only the author sees this.</p>{% endif %}
             {% include 'church/_wall_moderate.html' %}
             {% include 'church/_wall_body.html' %}
+            {% include 'church/_post_social.html' %}
             {% include 'partials/item_comments.html' %}
             {% if item.detail_url %}
             <div class="feed-card-foot">

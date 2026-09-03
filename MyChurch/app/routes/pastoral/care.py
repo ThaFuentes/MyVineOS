@@ -17,6 +17,7 @@ from app.models.pastoral.care import (
     get_care_request_by_id, create_care_request, update_care_request, delete_care_request,
     get_care_assignments, add_care_assignment, remove_care_assignment,
     get_care_notes, add_care_note,
+    list_rites, get_rite, save_rite, delete_rite,
 )
 from app.models.pastoral.shared import get_pastoral_team_members, get_active_members_for_care
 from app.models.log import log_change
@@ -43,6 +44,12 @@ def care_dashboard():
     except Exception as exc:
         print(f'care first timers: {exc}')
 
+    rites = []
+    try:
+        rites = list_rites(limit=8)
+    except Exception as exc:
+        print(f'care rites preview: {exc}')
+
     return render_template(
         'pastoral/care/care_dashboard.html',
         requests=care_requests,
@@ -50,7 +57,99 @@ def care_dashboard():
         active_status=status,
         active_urgency=urgency,
         first_timers=first_timers,
+        rites=rites,
     )
+
+@care_bp.route('/rites')
+@pastoral_required()
+def rites_list():
+    kind = (request.args.get('kind') or '').strip().lower() or None
+    if kind not in ('wedding', 'funeral'):
+        kind = None
+    return render_template(
+        'pastoral/care/rites_list.html',
+        rites=list_rites(kind=kind),
+        active_kind=kind or '',
+        page_title='Weddings & funerals',
+    )
+
+
+@care_bp.route('/rites/new', methods=['GET', 'POST'])
+@pastoral_required()
+def rites_new():
+    return _rite_form()
+
+
+@care_bp.route('/rites/<int:rite_id>', methods=['GET', 'POST'])
+@pastoral_required()
+def rites_edit(rite_id):
+    row = get_rite(rite_id)
+    if not row:
+        flash('That record is gone.', 'error')
+        return redirect(url_for('pastoral.care.rites_list'))
+    return _rite_form(row)
+
+
+def _rite_form(existing=None):
+    if request.method == 'POST':
+        data = {
+            'kind': request.form.get('kind'),
+            'rite_date': request.form.get('rite_date'),
+            'location': request.form.get('location'),
+            'officiant_id': request.form.get('officiant_id'),
+            'officiant_name': request.form.get('officiant_name'),
+            'party_a': request.form.get('party_a'),
+            'party_b': request.form.get('party_b'),
+            'member_id': request.form.get('member_id'),
+            'witnesses': request.form.get('witnesses'),
+            'notes': request.form.get('notes'),
+        }
+        check = ' '.join(filter(None, [
+            data.get('party_a'), data.get('party_b'), data.get('location'),
+            data.get('witnesses'), data.get('notes'), data.get('officiant_name'),
+        ]))
+        if contains_censored_word(check):
+            flash('Prohibited content detected.', 'error')
+            return render_template(
+                'pastoral/care/rites_form.html',
+                rite=data,
+                members=get_active_members_for_care(),
+                pastoral_team=get_pastoral_team_members(),
+                page_title='Wedding / funeral record',
+            )
+        try:
+            rid = save_rite(data, session['user_id'], rite_id=(existing or {}).get('id'))
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return render_template(
+                'pastoral/care/rites_form.html',
+                rite=data,
+                members=get_active_members_for_care(),
+                pastoral_team=get_pastoral_team_members(),
+                page_title='Wedding / funeral record',
+            )
+        log_change(session['user_id'], 'save_rite', rid, data.get('party_a'), data.get('kind'))
+        flash('Record saved.', 'success')
+        return redirect(url_for('pastoral.care.rites_list'))
+    return render_template(
+        'pastoral/care/rites_form.html',
+        rite=existing or {'kind': request.args.get('kind') or 'wedding', 'officiant_id': session.get('user_id')},
+        members=get_active_members_for_care(),
+        pastoral_team=get_pastoral_team_members(),
+        page_title='Wedding / funeral record',
+    )
+
+
+@care_bp.route('/rites/<int:rite_id>/delete', methods=['POST'])
+@pastoral_required()
+def rites_delete(rite_id):
+    if delete_rite(rite_id):
+        log_change(session['user_id'], 'delete_rite', rite_id, '', 'Deleted wedding/funeral record')
+        flash('Record removed.', 'success')
+    else:
+        flash('Could not remove that record.', 'error')
+    return redirect(url_for('pastoral.care.rites_list'))
+
 
 # ----------------------------------------------------------------------
 # View single care request detail (with assignments & notes)

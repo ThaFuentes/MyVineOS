@@ -244,6 +244,44 @@ def create_tables(cursor):
     _col('community_posts', 'shadowed', "TINYINT(1) NOT NULL DEFAULT 0")
     _col('community_posts', 'shadowed_at', "DATETIME NULL")
     _col('community_posts', 'shadowed_by', "INT UNSIGNED NULL")
+    _col('community_posts', 'allow_comments', "TINYINT(1) NOT NULL DEFAULT 1")
+    _col('community_posts', 'allow_share', "TINYINT(1) NOT NULL DEFAULT 1")
+    _col('community_posts', 'share_of', "INT UNSIGNED NULL")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS community_post_comments (
+            id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+            post_id INT UNSIGNED NOT NULL,
+            comment TEXT NOT NULL,
+            contributor_name VARCHAR(120) NULL,
+            ip_address VARCHAR(45) NULL,
+            user_id INT UNSIGNED NULL,
+            date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_post_comments_post (post_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS content_reactions (
+            content_type VARCHAR(32) NOT NULL,
+            content_id INT UNSIGNED NOT NULL,
+            user_id INT UNSIGNED NOT NULL,
+            reaction VARCHAR(16) NOT NULL DEFAULT 'like',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (content_type, content_id, user_id),
+            INDEX idx_react_item (content_type, content_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS content_shares (
+            id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+            content_type VARCHAR(32) NOT NULL,
+            content_id INT UNSIGNED NOT NULL,
+            user_id INT UNSIGNED NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_content_share (content_type, content_id, user_id),
+            INDEX idx_share_item (content_type, content_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS member_badges (

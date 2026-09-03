@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=38">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=41">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/global/volunteers.css') }}?v=20260714a">
 {% endblock %}
 
@@ -37,17 +37,6 @@
     {% include 'church/_identity.html' %}
     {% if session.get('user_id') %}
       {% include 'church/_notices.html' %}
-    {% endif %}
-    {% if about %}
-    <section class="glass-panel profile-about profile-about-main">
-      <h2>About</h2>
-      <p>{{ about | nl2br }}</p>
-    </section>
-    {% elif can_edit %}
-    <section class="glass-panel profile-about profile-about-main">
-      <h2>About</h2>
-      <p class="profile-muted">Nothing here yet. <a href="{{ url_for('church.church_edit') }}">Add an About</a>.</p>
-    </section>
     {% endif %}
 
     <div class="profile-me-bar" role="region" aria-label="Post, feed, or message">

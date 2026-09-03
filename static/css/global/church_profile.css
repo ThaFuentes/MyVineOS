@@ -738,6 +738,77 @@ a.profile-me-btn-quiet {
   margin-top: 0.75rem;
 }
 
+.post-social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.post-reacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+.post-react-form,
+.post-share-form { margin: 0; }
+.post-react-btn,
+.post-share-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  min-height: 1.85rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  opacity: 0.8;
+}
+.post-react-btn:hover,
+.post-share-btn:hover { opacity: 1; background: rgba(255,255,255,0.06); }
+.post-react-btn.is-on {
+  opacity: 1;
+  color: var(--primary, #4dffc8);
+  border-color: color-mix(in srgb, var(--primary, #4dffc8) 45%, transparent);
+  background: rgba(var(--primary-rgb, 0, 255, 255), 0.1);
+}
+.post-react-btn[title="Disagree"].is-on,
+.post-react-btn[title="Mad"].is-on {
+  color: #f59b8d;
+  border-color: rgba(245, 155, 141, 0.45);
+  background: rgba(245, 80, 60, 0.12);
+}
+.post-react-btn[title="Sad"].is-on {
+  color: #8ec5ff;
+  border-color: rgba(142, 197, 255, 0.45);
+  background: rgba(80, 140, 255, 0.12);
+}
+.post-react-count,
+.post-share-count { font-size: 0.78rem; opacity: 0.7; margin: 0; }
+.post-shared-orig {
+  margin-top: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border-left: 3px solid var(--primary, #4dffc8);
+  background: rgba(0,0,0,0.18);
+  border-radius: 0 0.6rem 0.6rem 0;
+}
+.post-shared-label { font-size: 0.78rem; opacity: 0.75; margin: 0 0 0.25rem; }
+.compose-social-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.1rem;
+  margin: 0.65rem 0 0;
+  font-size: 0.88rem;
+}
+
 .profile-join p {
   margin-bottom: 0.75rem;
 }

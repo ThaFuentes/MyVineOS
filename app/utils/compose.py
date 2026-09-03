@@ -261,6 +261,8 @@ def create_from_compose(form, files=None):
                 kind = 'image'
         post_id = social_model.create_post(
             session['user_id'], kind, title, body, url, vis, image_path=image_path,
+            allow_comments=form.get('allow_comments') != '0',
+            allow_share=form.get('allow_share') != '0',
         )
         if not post_id:
             flash('Write something, add a photo, or drop the banned words.', 'error')

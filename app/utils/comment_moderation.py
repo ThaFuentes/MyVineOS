@@ -87,6 +87,20 @@ COMMENT_TYPES = {
     },
 }
 
+_POST_COMMENT = {
+    'table': 'community_post_comments',
+    'parent_col': 'post_id',
+    'text_col': 'comment',
+    'name_col': 'contributor_name',
+    'ip_col': 'ip_address',
+    'user_col': 'user_id',
+    'date_col': 'date_added',
+    'label': 'Post comment',
+    'manager_section': 'announcements',
+}
+for _k in ('post', 'quote', 'verse', 'image', 'book', 'blog', 'share'):
+    COMMENT_TYPES[_k] = dict(_POST_COMMENT)
+
 PARENT_JOINS = {
     'event': ('events e', 'e.id = c.event_id', 'e.event_name'),
     'prayer': ('prayers p', 'p.id = c.prayer_request_id', 'p.title'),
@@ -95,6 +109,7 @@ PARENT_JOINS = {
     'prophecy': ('prophecies pr', 'pr.id = c.prophecy_id', 'pr.title'),
     'announcement': ('announcements a', 'a.id = c.announcement_id', 'a.title'),
     'photo': ('page_photos p', 'p.id = c.photo_id', "COALESCE(p.caption, 'Photo')"),
+    'post': ('community_posts p', 'p.id = c.post_id', "COALESCE(p.title, 'Post')"),
 }
 
 

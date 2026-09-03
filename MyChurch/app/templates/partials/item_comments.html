@@ -6,7 +6,7 @@
   {% endfor %}
 </ul>
 {% endif %}
-{% if item.id and item.type in ('prayer','announcement','event','sermon','dream','prophecy','photo') %}
+{% if item.id and item.allow_comments|default(true) and item.type in ('prayer','announcement','event','sermon','dream','prophecy','photo','post','quote','verse','image','book','blog','share') %}
   {% if guest_can_comment or session.get('user_id') %}
   <form method="post" action="{{ url_for('compose.compose_reply') }}" class="wall-reply">
     {% include 'partials/csrf_field.html' %}

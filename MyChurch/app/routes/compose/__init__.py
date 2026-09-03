@@ -74,6 +74,9 @@ def compose_reply():
             'prayer': 'prayers', 'announcement': 'announcements', 'event': 'events',
             'sermon': 'sermons', 'dream': 'dreams', 'prophecy': 'prophecies',
             'photo': 'announcements',
+            'post': 'announcements', 'quote': 'announcements', 'verse': 'announcements',
+            'image': 'announcements', 'book': 'announcements', 'blog': 'announcements',
+            'share': 'announcements',
         }.get(kind, '')
         if surface == 'member' or not visitor_can_comment(area):
             flash('Sign in to reply, or use Community.', 'info')

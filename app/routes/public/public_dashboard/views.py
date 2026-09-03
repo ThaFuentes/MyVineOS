@@ -109,6 +109,9 @@ def _build_public_feed(type_filter=None, when_filter=None, limit=40, include_mem
                 'campus_id': int(row.get('primary_campus_id') or 0),
                 'visibility': row.get('visibility') or 'public',
                 'shadowed': bool(row.get('shadowed')),
+                'allow_comments': row.get('allow_comments', True),
+                'allow_share': row.get('allow_share', True),
+                'share_of': row.get('share_of'),
                 'datetime': row.get('created_at'),
                 'sort_dt': parse_feed_datetime(row.get('created_at')),
                 'comments': [],
@@ -156,6 +159,11 @@ def _build_public_feed(type_filter=None, when_filter=None, limit=40, include_mem
     feed = cc.visible_items(feed, viewer_id, surface='feed')
     if viewer_id:
         feed = cc.attach_feed_rank(feed, viewer_id=viewer_id)
+    try:
+        from app.models.post_social import attach_social
+        feed = attach_social(feed, viewer_id)
+    except Exception as exc:
+        print(f'feed social: {exc}')
     try:
         from app.models.moderation import flag_wall_moderation
         feed = flag_wall_moderation(feed)

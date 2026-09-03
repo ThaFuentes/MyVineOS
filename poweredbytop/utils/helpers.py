@@ -25,6 +25,12 @@ def _parse_ip(raw):
         return None
 
 
+def _ip_to_store(addr) -> str:
+    """Unwrap ::ffff:a.b.c.d so geo and the map see IPv4."""
+    mapped = getattr(addr, "ipv4_mapped", None)
+    return str(mapped if mapped is not None else addr)
+
+
 def _ip_is_public_enough(addr) -> bool:
     """True for internet / CGNAT. False for loopback and true RFC1918 / ULA."""
     if addr is None:
@@ -78,10 +84,11 @@ def get_real_ip(req=None):
             addr = _parse_ip(raw)
             if addr is None:
                 continue
+            stored = _ip_to_store(addr)
             if first_valid is None:
-                first_valid = str(addr)
+                first_valid = stored
             if _ip_is_public_enough(addr):
-                return str(addr)
+                return stored
         return first_valid or "0.0.0.0"
     except Exception:
         return "0.0.0.0"
