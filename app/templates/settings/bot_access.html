@@ -1,0 +1,121 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+<section class="content-section">
+    <h2 class="section-title">Bot Access</h2>
+    <p class="help-text">
+        Issue a key, then turn on only what this bot may do. It can post as the church
+        or as people you attach, read the areas you allow, and hide a post it made.
+        Hiding keeps the words so you or the bot can put them back.
+    </p>
+
+    {% if issued_key %}
+    <div class="settings-card">
+        <h3 class="section-subtitle">Copy this key now</h3>
+        <p class="help-text">It is shown this once. Switches are off until you save them below.</p>
+        <input class="form-input" readonly value="{{ issued_key }}" onclick="this.select()" aria-label="New bot key">
+    </div>
+    {% endif %}
+
+    <form method="POST" class="styled-form">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="action" value="issue">
+        <div class="settings-card">
+            <h3 class="section-subtitle">New bot</h3>
+            <label for="bot-name">Name</label>
+            <input id="bot-name" class="form-input" name="name" maxlength="120" required placeholder="Church helper">
+            <p class="help-text">Use a name you will recognize in the log. The key itself is not a person.</p>
+            <button class="btn btn-primary" type="submit">Issue key</button>
+        </div>
+    </form>
+
+    {% if not keys %}
+    <p class="help-text">No bot keys yet.</p>
+    {% endif %}
+
+    {% for key in keys %}
+    <details class="settings-card" {% if loop.first %}open{% endif %} style="padding:1rem; margin-top:1rem;">
+        <summary><strong>{{ key.name }}</strong> · {{ key.key_prefix }}… · {% if key.active %}On{% else %}Off{% endif %}</summary>
+        <form method="POST" class="styled-form" style="margin-top:0.75rem;">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="save">
+            <input type="hidden" name="key_id" value="{{ key.id }}">
+
+            <label>
+                <input type="checkbox" name="active" value="1" {% if key.active %}checked{% endif %}>
+                Key is on
+            </label>
+
+            {% for group in groups %}
+            <h3 class="section-subtitle">{{ group.name }}</h3>
+            {% for sw in group.switches %}
+            <label style="display:block; margin:0.35rem 0;">
+                <input type="checkbox" name="switch_{{ sw.id }}" value="1" {% if key.controls.get(sw.id) %}checked{% endif %}>
+                {{ sw.label }}
+                <span class="help-text" style="display:block; margin:0 0 0 1.4rem;">{{ sw.detail }}</span>
+            </label>
+            {% endfor %}
+            {% endfor %}
+
+            <h3 class="section-subtitle">Who it may post as</h3>
+            <label style="display:block; margin:0.35rem 0;">
+                <input type="checkbox" name="voice_church" value="1" {% if key.church_user_id %}checked{% endif %}>
+                The church wall
+            </label>
+            <label for="church-author-{{ key.id }}">Author for church posts</label>
+            <select id="church-author-{{ key.id }}" name="church_author" class="form-input">
+                <option value="">Choose a member</option>
+                {% for member in members %}
+                <option value="{{ member.id }}" {% if key.church_user_id == member.id %}selected{% endif %}>{{ member.label }}</option>
+                {% endfor %}
+            </select>
+            <p class="help-text">Church posts show on the church wall. The author is the member stored on the post.</p>
+
+            <label for="voice-users-{{ key.id }}">Also post as these people</label>
+            <select id="voice-users-{{ key.id }}" name="voice_user" class="form-input" multiple size="6">
+                {% for member in members %}
+                <option value="{{ member.id }}" {% if member.id in key.user_voice_ids %}selected{% endif %}>{{ member.label }}</option>
+                {% endfor %}
+            </select>
+            <p class="help-text">Hold Ctrl or Command to pick more than one. The bot sends as=user:ID for a person, or as=church.</p>
+
+            <button class="btn btn-primary" type="submit">Save this bot</button>
+        </form>
+
+        <h3 class="section-subtitle">What this key did</h3>
+        {% if not key.logs %}
+        <p class="help-text">Nothing yet.</p>
+        {% else %}
+        <ul style="padding-left:1.1rem;">
+            {% for entry in key.logs %}
+            <li style="margin:0.4rem 0;">
+                {{ entry.created_at }} · {{ entry.action }}
+                {% if entry.ok %}ok{% else %}blocked{% endif %}
+                {% if entry.detail %}— {{ entry.detail }}{% endif %}
+                {% if entry.reversed %}· hidden, can be put back{% endif %}
+                {% if entry.can_reverse %}
+                <form method="POST" style="display:inline;">
+                    {% include 'partials/csrf_field.html' %}
+                    <input type="hidden" name="action" value="reverse">
+                    <input type="hidden" name="log_id" value="{{ entry.id }}">
+                    <button class="btn" type="submit">{% if entry.reversed %}Put back{% else %}Hide{% endif %}</button>
+                </form>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </details>
+    {% endfor %}
+
+    <div class="settings-card" style="margin-top:1rem;">
+        <h3 class="section-subtitle">Not on this key</h3>
+        <ul>
+            {% for line in closed %}
+            <li>{{ line }}</li>
+            {% endfor %}
+        </ul>
+        <p class="help-text">The bot calls GET /api/bot/help with Authorization: Bearer and the key.</p>
+    </div>
+</section>
+{% endblock %}

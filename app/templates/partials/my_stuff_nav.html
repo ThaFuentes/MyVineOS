@@ -24,4 +24,8 @@
        style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if ep.startswith('help.') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Help</a>
     <a href="{{ url_for('settings.general') }}"
        style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if ep.startswith('settings.') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Settings</a>
+    {% if session.get('user_role') == 'Owner' and endpoint_exists('bot_access.page') %}
+    <a href="{{ url_for('bot_access.page') }}"
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if ep == 'bot_access.page' %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Bot Access</a>
+    {% endif %}
 </nav>

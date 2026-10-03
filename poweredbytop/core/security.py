@@ -411,6 +411,15 @@ def run_full_security_pipeline():
         return True
 
     path = request.path or ""
+    # Church bot key. The route checks the bearer token. A tool user-agent
+    # or a missing CSRF field must not jail or block /api/bot.
+    if path == "/api/bot" or path.startswith("/api/bot/"):
+        try:
+            if not is_vetted():
+                mark_as_vetted()
+        except Exception:
+            pass
+        return True
     action = (request.form.get("action") or "").lower()
     is_public_guest_mutation = path.startswith("/public/") and action in (
         "comment", "reply", "potluck", "submit_request"

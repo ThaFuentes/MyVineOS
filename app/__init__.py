@@ -132,6 +132,9 @@ def create_app():
         path = request.path or ''
         if path.startswith('/static/'):
             return
+        # Bearer key is checked on the bot routes. Do not send this to the login page.
+        if path == '/api/bot' or path.startswith('/api/bot/'):
+            return
         if session.get('user_id'):
             return
 
@@ -806,6 +809,7 @@ def create_app():
         'custom_modules',
         'help',
         'security',
+        'bot_access',
         'ai_insights',
         'curriculum',
         'child_checkin',

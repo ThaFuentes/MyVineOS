@@ -151,6 +151,9 @@
     {% endif %}
     <a href="{{ url_for('help.help_index') }}" role="menuitem" class="{{ 'active' if ep.startswith('help.') else '' }}">Help</a>
     <a href="{{ url_for('settings.general') }}" role="menuitem" class="{{ 'active' if ep.startswith('settings.') and ep != 'settings.modules' else '' }}">Settings</a>
+    {% if session.get('user_role') == 'Owner' and endpoint_exists('bot_access.page') %}
+    <a href="{{ url_for('bot_access.page') }}" role="menuitem" class="{{ 'active' if ep == 'bot_access.page' else '' }}">Bot Access</a>
+    {% endif %}
     {% if session.get('user_role') in ['Owner', 'Admin'] %}
     <a href="{{ url_for('settings.modules') }}" role="menuitem" class="{{ 'active' if ep == 'settings.modules' else '' }}">Modules &amp; Apps</a>
     <a href="{{ url_for('settings.custom_modules_list') }}" role="menuitem" class="{{ 'active' if 'custom_modules' in ep else '' }}">Church Apps</a>

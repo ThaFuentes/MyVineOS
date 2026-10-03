@@ -104,6 +104,11 @@
     <a href="{{ url_for('settings.general') }}" class="nav-sheet-link {{ 'active' if ep.startswith('settings.') else '' }}">
       <i class="fa-solid fa-gear" aria-hidden="true"></i> Settings
     </a>
+    {% if session.get('user_role') == 'Owner' and endpoint_exists('bot_access.page') %}
+    <a href="{{ url_for('bot_access.page') }}" class="nav-sheet-link {{ 'active' if ep == 'bot_access.page' else '' }}">
+      <i class="fa-solid fa-robot" aria-hidden="true"></i> Bot Access
+    </a>
+    {% endif %}
     {% if session.get('user_role') in ['Owner', 'Admin'] and endpoint_exists('settings.modules') %}
     <a href="{{ url_for('settings.modules') }}" class="nav-sheet-link {{ 'active' if ep == 'settings.modules' else '' }}">
       <i class="fa-solid fa-toggle-on" aria-hidden="true"></i> Modules &amp; Apps

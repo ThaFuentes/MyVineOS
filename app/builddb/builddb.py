@@ -88,6 +88,7 @@ def build_all(verbose: bool = False) -> None:
     # Explicit safe order (critical dependencies first)
     ordered_names = [
         'users',           # Base table - all user FKs depend on this
+        'bot_access',      # Keys reference users
         'settings',        # Must exist before appearance/campuses ALTER settings
         'groups',          # Needed for user_groups and attendance.group_id
         'user_groups',     # Junction table
