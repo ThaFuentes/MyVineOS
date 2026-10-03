@@ -1,7 +1,7 @@
 # Church page (official branch profile), Feed stays at /public/community,
 # optional member pages at /church/u/<username>.
 
-from flask import flash, redirect, render_template, request, send_from_directory, session, url_for
+from flask import abort, flash, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.utils import secure_filename
 
 from app.models import church_community as cc
@@ -209,8 +209,11 @@ def church_home(campus_id=None):
 def serve_identity(filename):
     from flask import current_app
     import os
+    name = secure_filename((filename or '').split('/')[-1])
+    if not name or cc.identity_file_denied(name, session.get('user_id')):
+        abort(404)
     folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'identity')
-    return send_from_directory(folder, secure_filename(filename.split('/')[-1]))
+    return send_from_directory(folder, name)
 
 
 def _safe_next(default: str) -> str:

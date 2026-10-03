@@ -177,22 +177,21 @@ def create_member_space(user_id: int, about: str = '', favorite_verse: str = '')
     db.commit()
 
 
+def _space_flag(value) -> int:
+    return 0 if value in (0, False, '0', None, '') else 1
+
+
 def update_member_space(user_id: int, data: dict) -> None:
-    """Persist bio first so a later optional-column mismatch cannot drop About me."""
+    """Write only keys present in data. Missing keys stay as they are."""
     db = get_db()
     cur = db.cursor()
     uid = int(user_id)
-    about = (data.get('about') if 'about' in data else None)
     if 'about' in data:
-        about = (about or '').strip() or None
-        cur.execute(
-            "UPDATE member_spaces SET about = %s WHERE user_id = %s",
-            (about, uid),
-        )
+        about = (data.get('about') or '').strip() or None
+        cur.execute("UPDATE member_spaces SET about = %s WHERE user_id = %s", (about, uid))
         db.commit()
-    verse = data.get('favorite_verse') if 'favorite_verse' in data else None
     if 'favorite_verse' in data:
-        verse = (verse or '')[:255].strip() or None
+        verse = (data.get('favorite_verse') or '')[:255].strip() or None
         cur.execute(
             "UPDATE member_spaces SET favorite_verse = %s WHERE user_id = %s",
             (verse, uid),
@@ -200,15 +199,11 @@ def update_member_space(user_id: int, data: dict) -> None:
         db.commit()
     bio_bits = []
     bio_args = []
-    for col, raw, n in (
-        ('hometown', data.get('hometown') if 'hometown' in data else None, 160),
-        ('occupation', data.get('occupation') if 'occupation' in data else None, 160),
-        ('interests', data.get('interests') if 'interests' in data else None, 500),
-    ):
+    for col, n in (('hometown', 160), ('occupation', 160), ('interests', 500)):
         if col not in data:
             continue
         bio_bits.append(f"{col} = %s")
-        bio_args.append((raw or '')[:n].strip() or None)
+        bio_args.append((data.get(col) or '')[:n].strip() or None)
     if bio_bits:
         bio_args.append(uid)
         cur.execute(
@@ -216,100 +211,50 @@ def update_member_space(user_id: int, data: dict) -> None:
             bio_args,
         )
         db.commit()
-    args_full = (
-        1 if data.get('show_to_visitors') else 0,
-        1 if data.get('show_training') else 0,
-        1 if data.get('allow_messages') else 0,
-        1 if data.get('show_stats') else 0,
-        1 if data.get('allow_guest_comments') else 0,
-        data.get('accent_color') or None,
-        data.get('bg_color') or None,
-        data.get('text_color') or None,
-        data.get('banner_pos') if data.get('banner_pos') in ('top', 'center', 'bottom') else None,
-        1 if data.get('show_replies') else 0,
-        0 if data.get('show_church_feed') in (0, False, '0') else 1,
-        0 if data.get('show_follows') in (0, False, '0') else 1,
-        0 if data.get('show_in_directory') in (0, False, '0') else 1,
-        1 if data.get('page_private') else 0,
-        uid,
-    )
+
+    sets = []
+    args = []
+    for col in (
+        'show_to_visitors', 'show_training', 'allow_messages', 'show_stats',
+        'allow_guest_comments', 'show_replies', 'show_church_feed', 'show_follows',
+        'show_in_directory', 'page_private', 'show_family', 'show_title',
+    ):
+        if col in data:
+            sets.append(f"{col} = %s")
+            args.append(_space_flag(data.get(col)))
+    for col in ('accent_color', 'bg_color', 'text_color'):
+        if col in data:
+            sets.append(f"{col} = %s")
+            args.append(data.get(col) or None)
+    if 'banner_pos' in data:
+        pos = data.get('banner_pos')
+        sets.append("banner_pos = %s")
+        args.append(pos if pos in ('top', 'center', 'bottom') else None)
+    if not sets:
+        return
+    args.append(uid)
     try:
         cur.execute(
-            """
-            UPDATE member_spaces
-            SET show_to_visitors = %s,
-                show_training = %s,
-                allow_messages = %s,
-                show_stats = %s,
-                allow_guest_comments = %s,
-                accent_color = %s,
-                bg_color = %s,
-                text_color = %s,
-                banner_pos = %s,
-                show_replies = %s,
-                show_church_feed = %s,
-                show_follows = %s,
-                show_in_directory = %s,
-                page_private = %s
-            WHERE user_id = %s
-            """,
-            args_full,
+            f"UPDATE member_spaces SET {', '.join(sets)} WHERE user_id = %s",
+            args,
         )
         db.commit()
         return
     except Exception as exc:
         db.rollback()
         print(f'update_member_space extras: {exc}')
+    for col, val in zip((s.split(' = ', 1)[0] for s in sets), args[:-1]):
         try:
             cur.execute(
-                """
-                UPDATE member_spaces
-                SET show_to_visitors = %s, show_training = %s,
-                    allow_messages = %s, show_stats = %s, allow_guest_comments = %s,
-                    accent_color = %s, bg_color = %s, text_color = %s, banner_pos = %s,
-                    show_replies = %s, show_in_directory = %s, page_private = %s
-                WHERE user_id = %s
-                """,
-                (
-                    1 if data.get('show_to_visitors') else 0,
-                    1 if data.get('show_training') else 0,
-                    1 if data.get('allow_messages') else 0,
-                    1 if data.get('show_stats') else 0,
-                    1 if data.get('allow_guest_comments') else 0,
-                    data.get('accent_color') or None,
-                    data.get('bg_color') or None,
-                    data.get('text_color') or None,
-                    data.get('banner_pos') if data.get('banner_pos') in ('top', 'center', 'bottom') else None,
-                    1 if data.get('show_replies') else 0,
-                    0 if data.get('show_in_directory') in (0, False, '0') else 1,
-                    1 if data.get('page_private') else 0,
-                    uid,
-                ),
-            )
-            db.commit()
-        except Exception as exc2:
-            db.rollback()
-            print(f'update_member_space extras fallback: {exc2}')
-    if 'show_family' in data:
-        try:
-            cur.execute(
-                "UPDATE member_spaces SET show_family = %s WHERE user_id = %s",
-                (1 if data.get('show_family') else 0, uid),
+                f"UPDATE member_spaces SET {col} = %s WHERE user_id = %s",
+                (val, uid),
             )
             db.commit()
         except Exception as exc:
             db.rollback()
-            print(f'update_member_space show_family: {exc}')
-    if 'show_title' in data:
-        try:
-            cur.execute(
-                "UPDATE member_spaces SET show_title = %s WHERE user_id = %s",
-                (1 if data.get('show_title') else 0, uid),
-            )
-            db.commit()
-        except Exception as exc:
-            db.rollback()
-            print(f'update_member_space show_title: {exc}')
+            print(f'update_member_space {col}: {exc}')
+            if col != 'show_title':
+                continue
             try:
                 cur.execute(
                     "ALTER TABLE member_spaces ADD COLUMN show_title TINYINT(1) NOT NULL DEFAULT 0"
@@ -317,7 +262,7 @@ def update_member_space(user_id: int, data: dict) -> None:
                 db.commit()
                 cur.execute(
                     "UPDATE member_spaces SET show_title = %s WHERE user_id = %s",
-                    (1 if data.get('show_title') else 0, uid),
+                    (val, uid),
                 )
                 db.commit()
             except Exception as exc2:
@@ -1716,6 +1661,46 @@ def media_access(owner_type: str, owner_id: int, viewer_id: int | None = None) -
                 return 'missing'
         except Exception:
             pass
+    return ''
+
+
+def _stored_filename(value) -> str:
+    return ((value or '').replace('\\', '/').split('/')[-1]).strip()
+
+
+def identity_file_denied(filename: str, viewer_id: int | None = None) -> str:
+    """Block a member photo the viewer cannot see. Church pictures stay public.
+
+    An unknown file, or a lookup error, is allowed. Hiding every unmatched
+    file blanks the church banner.
+    """
+    from werkzeug.utils import secure_filename
+    name = secure_filename((filename or '').split('/')[-1])
+    if not name:
+        return 'missing'
+    try:
+        cur = _cur()
+        cur.execute(
+            """
+            SELECT user_id, photo_path, banner_path
+            FROM member_spaces
+            WHERE photo_path IS NOT NULL OR banner_path IS NOT NULL
+            """
+        )
+        for row in cur.fetchall() or []:
+            if name in (_stored_filename(row.get('photo_path')), _stored_filename(row.get('banner_path'))):
+                return media_access('member', int(row['user_id']), viewer_id)
+        cur.execute(
+            """
+            SELECT hero_path, portrait_path FROM church_pages
+            WHERE hero_path IS NOT NULL OR portrait_path IS NOT NULL
+            """
+        )
+        for row in cur.fetchall() or []:
+            if name in (_stored_filename(row.get('hero_path')), _stored_filename(row.get('portrait_path'))):
+                return ''
+    except Exception as exc:
+        print(f'identity_file_denied: {exc}')
     return ''
 
 

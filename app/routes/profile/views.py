@@ -133,8 +133,10 @@ def profile():
                 )
                 return redirect(url_for('profile.profile'))
 
-        # Load current user (including new fields)
         user = get_user_profile(user_id)
+        if user:
+            user.pop('password', None)
+            user.pop('checkin_pin', None)
 
         # Pending incoming requests
         pending_requests = get_pending_incoming_requests(user_id)

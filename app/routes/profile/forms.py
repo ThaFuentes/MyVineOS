@@ -60,6 +60,9 @@ def validate_profile_form(form_data, current_role=None):
     if new_password and not old_password:
         flash('Old password required to set a new one.', 'error')
         return None
+    if new_password and len(new_password) < 8:
+        flash('New password must be at least 8 characters.', 'error')
+        return None
 
     return {
         'first_name': first_name,
