@@ -262,7 +262,87 @@ def hash_key(raw: str) -> str:
 
 def new_key_material() -> tuple[str, str, str]:
     raw = "mvos_" + secrets.token_urlsafe(32)
+    while raw.startswith("mvos_s_") or raw.startswith("mvos_2"):
+        raw = "mvos_" + secrets.token_urlsafe(32)
     return raw, hash_key(raw), raw[:14]
+
+
+def new_twofa_material() -> tuple[str, str, str]:
+    raw = "mvos_2fa_" + secrets.token_urlsafe(32)
+    return raw, hash_key(raw), raw[:18]
+
+
+def new_session_material() -> tuple[str, str, str]:
+    raw = "mvos_s_" + secrets.token_urlsafe(32)
+    return raw, hash_key(raw), raw[:16]
+
+
+TWOFA_TTL_SECONDS = 3600
+SESSION_TTL_SECONDS = 3600
+
+
+def normalize_email(value: str) -> str:
+    return (value or "").strip().lower()
+
+
+def email_ok(value: str) -> bool:
+    text = normalize_email(value)
+    if len(text) < 6 or len(text) > 160 or " " in text or text.count("@") != 1:
+        return False
+    local, domain = text.split("@")
+    return bool(local) and "." in domain and "/" not in text
+
+
+def inbox_problem(key_email: str, twofa_email: str) -> str | None:
+    """The API key and the 2FA key have to use two different inboxes."""
+    key_email = normalize_email(key_email)
+    twofa_email = normalize_email(twofa_email)
+    if not email_ok(key_email):
+        return "Enter the inbox that should receive the API key."
+    if not email_ok(twofa_email):
+        return "Enter the inbox that should receive the 2FA key."
+    if key_email == twofa_email:
+        return "The API key and the 2FA key need two different inboxes."
+    return None
+
+
+def api_key_mail(name: str, raw_key: str, base_url: str) -> tuple[str, str]:
+    """Permanent key only. The 2FA inbox is not named here."""
+    base = (base_url or "").rstrip("/")
+    subject = "Your My Vine Church bot API key"
+    body = "\n".join([
+        "Hello. A My Vine Church bot API key is ready.",
+        "",
+        f"name: {name}",
+        f"api_key: {raw_key}",
+        "expires: never",
+        "authorization: Bearer " + raw_key,
+        f"sign_in: POST {base}/api/bot/login",
+        "twofa: A separate 2FA key is emailed to the other inbox when you sign in. It expires in 1 hour. It is not in this message.",
+        f"exchange: POST {base}/api/bot/login/exchange",
+        "twofa_header: X-Bot-2FA",
+        f"help: GET {base}/api/bot/help",
+    ])
+    return subject, body
+
+
+def twofa_key_mail(name: str, raw_key: str, base_url: str) -> tuple[str, str]:
+    """One-hour 2FA key only. The permanent API key is not included."""
+    base = (base_url or "").rstrip("/")
+    subject = "Your My Vine Church bot 2FA key"
+    body = "\n".join([
+        "Hello. Your My Vine Church bot 2FA key is ready.",
+        "",
+        f"name: {name}",
+        f"twofa_key: {raw_key}",
+        "expires: 1 hour",
+        f"expires_in: {TWOFA_TTL_SECONDS}",
+        "header: X-Bot-2FA",
+        f"exchange: POST {base}/api/bot/login/exchange",
+        "authorization: Bearer and the API key from the other inbox",
+        f"help: GET {base}/api/bot/help",
+    ])
+    return subject, body
 
 
 def person_label(row: dict | None) -> str:
@@ -378,9 +458,15 @@ def call_map(controls) -> list[dict]:
     on = normalize_controls(controls)
     calls = [
         {"method": "GET", "path": "/api/bot/help", "switch": None,
-         "about": "This map of calls, switches, and what stays closed."},
+         "about": "This map of calls, switches, and what stays closed. Send the session from exchange, not the permanent API key."},
+        {"method": "POST", "path": "/api/bot/login", "switch": None,
+         "about": "Send the permanent API key as Authorization: Bearer. Emails a 2FA key to the other inbox. That key expires in 1 hour. This does not open a session."},
+        {"method": "POST", "path": "/api/bot/login/exchange", "switch": None,
+         "about": "Send the permanent API key as Authorization: Bearer and the emailed 2FA key as X-Bot-2FA. Returns a session token that expires in 1 hour."},
+        {"method": "POST", "path": "/api/bot/password-reset", "switch": None,
+         "about": "While the session is open, email a new API key to the API-key inbox only. The old key and this session stop working."},
         {"method": "GET", "path": "/api/bot/whoami", "switch": None,
-         "about": "Which switches and voices are on. GET /api/bot/me is the same."},
+         "about": "Which switches and voices are on. Requires the session. GET /api/bot/me is the same."},
         {"method": "GET", "path": "/api/bot/log", "switch": None,
          "about": "What this key did, and the undo label for each change."},
         {"method": "POST", "path": "/api/bot/reverse", "switch": None,
@@ -457,4 +543,11 @@ def help_payload(controls, voices: list[dict] | None = None) -> dict:
         "voices": voice_rows,
         "closed": list(CLOSED),
         "undo": "POST /api/bot/reverse with {\"log_id\": N} hides a post, sermon draft, illustration, or section, or puts the previous text back. The row is kept.",
+        "sign_in": {
+            "api_key": "Does not expire. Emailed only to the API-key inbox. Never shown on the dashboard.",
+            "twofa_key": "Expires in 1 hour. Emailed only to the other inbox by POST /api/bot/login.",
+            "session": "POST /api/bot/login/exchange returns session. Send it as Authorization: Bearer on every other call. It expires in 1 hour.",
+            "twofa_header": "X-Bot-2FA",
+            "expires_in": TWOFA_TTL_SECONDS,
+        },
     }

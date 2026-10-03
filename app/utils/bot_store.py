@@ -36,7 +36,8 @@ def _clean(row: dict | None) -> dict:
 
 def _key_view(row: dict) -> dict:
     out = _clean(row)
-    out.pop("key_hash", None)
+    for secret in ("key_hash", "twofa_hash", "session_hash"):
+        out.pop(secret, None)
     out["active"] = bool(row.get("active"))
     out["controls"] = policy.normalize_controls(row.get("controls_json"))
     return out
@@ -61,6 +62,252 @@ def list_members() -> list[dict]:
         return rows
     except Exception as exc:
         print(f"bot list_members: {exc}")
+        return []
+
+
+def ensure_login_columns() -> None:
+    """Add the two-inbox columns on a database created before this sign-in."""
+    columns = (
+        ("email", "VARCHAR(160) NULL"),
+        ("twofa_email", "VARCHAR(160) NULL"),
+        ("twofa_hash", "CHAR(64) NULL"),
+        ("twofa_expires", "DATETIME NULL"),
+        ("twofa_attempts", "INT NOT NULL DEFAULT 0"),
+        ("session_hash", "CHAR(64) NULL"),
+        ("session_expires", "DATETIME NULL"),
+    )
+    try:
+        cur = _cur()
+        for column, definition in columns:
+            cur.execute(
+                """
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bot_access_keys' AND COLUMN_NAME = %s
+                """,
+                (column,),
+            )
+            if cur.fetchone():
+                continue
+            cur.execute(f"ALTER TABLE bot_access_keys ADD COLUMN {column} {definition}")
+    except Exception as exc:
+        print(f"bot login columns: {exc}")
+
+
+def set_inboxes(key_id: int, key_email: str, twofa_email: str) -> tuple[bool, str]:
+    problem = policy.inbox_problem(key_email, twofa_email)
+    if problem:
+        return False, problem
+    try:
+        ensure_login_columns()
+        cur = _cur()
+        cur.execute(
+            "UPDATE bot_access_keys SET email=%s, twofa_email=%s WHERE id=%s",
+            (policy.normalize_email(key_email), policy.normalize_email(twofa_email), int(key_id)),
+        )
+        return True, ""
+    except Exception as exc:
+        print(f"bot set_inboxes: {exc}")
+        return False, "Those inboxes could not be saved."
+
+
+def insert_bot(name: str, key_email: str, twofa_email: str, created_by: int | None,
+               raw: str, digest: str, prefix: str) -> tuple[bool, str]:
+    try:
+        ensure_login_columns()
+        cur = _cur()
+        cur.execute(
+            """
+            INSERT INTO bot_access_keys
+                (name, key_hash, key_prefix, active, controls_json, created_by, email, twofa_email)
+            VALUES (%s, %s, %s, 1, %s, %s, %s, %s)
+            """,
+            (
+                name,
+                digest,
+                prefix,
+                json.dumps(policy.default_controls()),
+                created_by,
+                policy.normalize_email(key_email),
+                policy.normalize_email(twofa_email),
+            ),
+        )
+        return True, ""
+    except Exception as exc:
+        print(f"bot insert_bot: {exc}")
+        return False, "That bot could not be saved."
+
+
+def replace_api_key(key_id: int, digest: str, prefix: str) -> tuple[bool, str]:
+    """New permanent key. Clears the open session and any unused 2FA key."""
+    try:
+        ensure_login_columns()
+        cur = _cur()
+        cur.execute(
+            """
+            UPDATE bot_access_keys
+            SET key_hash=%s, key_prefix=%s,
+                twofa_hash=NULL, twofa_expires=NULL, twofa_attempts=0,
+                session_hash=NULL, session_expires=NULL
+            WHERE id=%s
+            """,
+            (digest, prefix, int(key_id)),
+        )
+        if not cur.rowcount:
+            return False, "That bot was not found."
+        return True, ""
+    except Exception as exc:
+        print(f"bot replace_api_key: {exc}")
+        return False, "That API key could not be saved."
+
+
+def store_twofa(key_id: int, digest: str) -> bool:
+    try:
+        ensure_login_columns()
+        cur = _cur()
+        cur.execute(
+            """
+            UPDATE bot_access_keys
+            SET twofa_hash=%s, twofa_expires=DATE_ADD(NOW(), INTERVAL %s SECOND),
+                twofa_attempts=0, session_hash=NULL, session_expires=NULL
+            WHERE id=%s
+            """,
+            (digest, int(policy.TWOFA_TTL_SECONDS), int(key_id)),
+        )
+        return True
+    except Exception as exc:
+        print(f"bot store_twofa: {exc}")
+        return False
+
+
+def open_session(key_id: int, digest: str) -> bool:
+    try:
+        cur = _cur()
+        cur.execute(
+            """
+            UPDATE bot_access_keys
+            SET session_hash=%s, session_expires=DATE_ADD(NOW(), INTERVAL %s SECOND),
+                twofa_hash=NULL, twofa_expires=NULL, twofa_attempts=0
+            WHERE id=%s
+            """,
+            (digest, int(policy.SESSION_TTL_SECONDS), int(key_id)),
+        )
+        return True
+    except Exception as exc:
+        print(f"bot open_session: {exc}")
+        return False
+
+
+def note_bad_twofa(key_id: int) -> None:
+    try:
+        cur = _cur()
+        cur.execute(
+            """
+            UPDATE bot_access_keys
+            SET twofa_attempts=twofa_attempts+1,
+                twofa_hash=IF(twofa_attempts+1 >= 8, NULL, twofa_hash),
+                twofa_expires=IF(twofa_attempts+1 >= 8, NULL, twofa_expires)
+            WHERE id=%s
+            """,
+            (int(key_id),),
+        )
+    except Exception as exc:
+        print(f"bot note_bad_twofa: {exc}")
+
+
+def clear_twofa(key_id: int) -> None:
+    """Drop a 2FA key that was stored but never emailed."""
+    try:
+        cur = _cur()
+        cur.execute(
+            """
+            UPDATE bot_access_keys
+            SET twofa_hash=NULL, twofa_expires=NULL, twofa_attempts=0
+            WHERE id=%s
+            """,
+            (int(key_id),),
+        )
+    except Exception as exc:
+        print(f"bot clear_twofa: {exc}")
+
+
+def find_session(raw: str) -> dict | None:
+    digest = policy.hash_key(raw or "")
+    if not raw or not digest or not str(raw).startswith("mvos_s_"):
+        return None
+    try:
+        ensure_login_columns()
+        cur = _cur()
+        cur.execute(
+            """
+            SELECT * FROM bot_access_keys
+            WHERE session_hash=%s AND session_expires > NOW()
+            LIMIT 1
+            """,
+            (digest,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        view = _key_view(row)
+        view["voices"] = voices_for(int(view["id"]))
+        return view
+    except Exception as exc:
+        print(f"bot find_session: {exc}")
+        return None
+
+
+def twofa_matches(row: dict, raw: str) -> str:
+    """ok, missing, expired, or bad. The hash stays in the database."""
+    digest = policy.hash_key(raw or "")
+    if not row or not row.get("id") or not digest or not str(raw or "").startswith("mvos_2fa_"):
+        return "missing" if not (raw or "").strip() else "bad"
+    try:
+        cur = _cur()
+        cur.execute(
+            """
+            SELECT twofa_hash, twofa_expires > NOW() AS live
+            FROM bot_access_keys WHERE id=%s
+            """,
+            (int(row["id"]),),
+        )
+        current = cur.fetchone() or {}
+    except Exception as exc:
+        print(f"bot twofa_matches: {exc}")
+        return "bad"
+    if not current.get("twofa_hash"):
+        return "missing"
+    if current.get("twofa_hash") != digest:
+        return "bad"
+    if not current.get("live"):
+        return "expired"
+    return "ok"
+
+
+def list_usage(limit: int = 80) -> list[dict]:
+    try:
+        cap = max(1, min(int(limit or 80), 200))
+        cur = _cur()
+        cur.execute(
+            """
+            SELECT l.id, l.key_id, k.name AS bot_name, k.key_prefix, l.action, l.target_type,
+                   l.target_id, l.ok, l.detail, l.snapshot_json, l.reversed_at, l.reversed_by,
+                   l.created_at
+            FROM bot_access_log l
+            JOIN bot_access_keys k ON k.id = l.key_id
+            ORDER BY l.id DESC
+            LIMIT %s
+            """,
+            (cap,),
+        )
+        rows = []
+        for row in cur.fetchall() or []:
+            item = _log_view(row)
+            item["bot_name"] = row.get("bot_name")
+            item["key_prefix"] = row.get("key_prefix")
+            rows.append(item)
+        return rows
+    except Exception as exc:
+        print(f"bot list_usage: {exc}")
         return []
 
 
@@ -207,7 +454,8 @@ def list_keys() -> list[dict]:
         cur = _cur()
         cur.execute(
             """
-            SELECT id, name, key_prefix, active, controls_json, created_by, created_at, updated_at
+            SELECT id, name, key_prefix, active, controls_json, created_by, email, twofa_email,
+                   created_at, updated_at
             FROM bot_access_keys
             ORDER BY id DESC
             """

@@ -1,0 +1,55 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+<section class="content-section">
+    <h2 class="section-title">Bot usage</h2>
+    <p class="help-text">
+        Each row is one bot call. Undo hides a new post, draft, illustration, section,
+        or research note, or puts the previous words back. The row stays saved.
+    </p>
+    <p><a href="{{ url_for('bot_access.page') }}">Bot Access</a> is where you create bots, set the two inboxes, and turn switches on.</p>
+
+    {% if not entries %}
+    <p class="help-text">No bot calls yet.</p>
+    {% else %}
+    <div class="settings-card" style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>When</th>
+                    <th>Bot</th>
+                    <th>Prefix</th>
+                    <th>Action</th>
+                    <th>Result</th>
+                    <th>Detail</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td>{{ entry.created_at }}</td>
+                    <td>{{ entry.bot_name }}</td>
+                    <td>{{ entry.key_prefix }}…</td>
+                    <td>{{ entry.action }}</td>
+                    <td>{% if entry.ok %}ok{% else %}blocked{% endif %}{% if entry.reversed %} · reversed{% endif %}</td>
+                    <td>{{ entry.detail }}</td>
+                    <td>
+                        {% if entry.can_reverse %}
+                        <form method="POST" action="{{ url_for('bot_access.page') }}">
+                            {% include 'partials/csrf_field.html' %}
+                            <input type="hidden" name="action" value="reverse">
+                            <input type="hidden" name="next" value="usage">
+                            <input type="hidden" name="log_id" value="{{ entry.id }}">
+                            <button class="btn" type="submit">{{ entry.undo_label or 'Undo' }}</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

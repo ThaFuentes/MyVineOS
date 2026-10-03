@@ -1,12 +1,14 @@
-"""Owner Bot Access page and the /api/bot key.
+"""Owner Bot Access dashboard and the /api/bot session.
 
-The owner turns each switch on or off and attaches voices. The key can post
-as those voices, read the areas that are on, and hide or restore its own posts.
+The owner names a bot, gives it two inboxes, and turns each switch on or off.
+The API key is emailed and does not expire. The 2FA key is emailed to the
+other inbox and expires. Work calls use the session from that exchange.
 """
 
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, session, url_for
 
 from app.models.users import get_user_by_id
+from app.utils import bot_login as login
 from app.utils import bot_policy as policy
 from app.utils import bot_sermons as sermons
 from app.utils import bot_store as store
@@ -42,15 +44,44 @@ def _owner_user():
 
 
 def _require_key():
+    """Work calls take the session from exchange, not the permanent API key."""
     raw = _bearer()
     if not raw:
-        return None, _json(False, error="Send the key as Authorization: Bearer mvos_…", status=401)
-    row = store.find_key(raw)
-    if not row:
-        return None, _json(False, error="That key is not recognized.", status=401)
-    if not row.get("active"):
-        return None, _json(False, error="The owner turned this key off.", status=403)
-    return row, None
+        return None, _json(
+            False,
+            error=(
+                "Send the session as Authorization: Bearer mvos_s_…. "
+                "POST /api/bot/login with the API key, then POST /api/bot/login/exchange with X-Bot-2FA."
+            ),
+            status=401,
+        )
+    row = store.find_session(raw)
+    if row:
+        if not row.get("active"):
+            return None, _json(False, error="The owner turned this key off.", status=403)
+        return row, None
+    permanent = store.find_key(raw)
+    if permanent:
+        if not permanent.get("active"):
+            return None, _json(False, error="The owner turned this key off.", status=403)
+        return None, _json(
+            False,
+            error=(
+                "That is the API key. It does not open the work calls. "
+                "POST /api/bot/login, then exchange the 2FA key."
+            ),
+            status=401,
+        )
+    if raw.startswith("mvos_2fa_"):
+        return None, _json(
+            False,
+            error=(
+                "That is the 2FA key. Send it as X-Bot-2FA to POST /api/bot/login/exchange, "
+                "with the API key as Authorization: Bearer."
+            ),
+            status=401,
+        )
+    return None, _json(False, error="That session is not open. Sign in again.", status=401)
 
 
 def _need(row: dict, switch_id: str):
@@ -180,13 +211,22 @@ def page():
         abort(403)
     if request.method == "POST":
         action = (request.form.get("action") or "").strip()
-        if action == "issue":
-            _saved, raw, err = store.issue_key(request.form.get("name") or "", owner.get("id"))
-            if err:
-                flash(err, "error")
-            elif raw:
-                session["bot_issued_key"] = raw
-                flash("Key issued. Copy it now. Every switch starts off.", "success")
+        dest = "bot_access.usage" if (request.form.get("next") or "") == "usage" else "bot_access.page"
+        if action == "create":
+            ok, message = login.create_bot(
+                request.form.get("name") or "",
+                request.form.get("email") or "",
+                request.form.get("twofa_email") or "",
+                owner.get("id"),
+            )
+            flash(message, "success" if ok else "error")
+        elif action == "reset":
+            try:
+                key_id = int(request.form.get("key_id") or 0)
+            except (TypeError, ValueError):
+                key_id = 0
+            ok, message = login.reset_bot(key_id)
+            flash(message, "success" if ok else "error")
         elif action == "save":
             members = {int(row["id"]) for row in store.list_members()}
             try:
@@ -197,6 +237,14 @@ def page():
                 row["id"]: request.form.get(f"switch_{row['id']}") == "1"
                 for row in policy.SWITCHES
             }
+            saved_inboxes, inbox_note = store.set_inboxes(
+                key_id,
+                request.form.get("email") or "",
+                request.form.get("twofa_email") or "",
+            )
+            if not saved_inboxes:
+                flash(inbox_note or "Those inboxes could not be saved.", "error")
+                return redirect(url_for("bot_access.page"))
             user_ids = []
             for value in request.form.getlist("voice_user"):
                 try:
@@ -235,16 +283,55 @@ def page():
             else:
                 ok, message = _apply_reverse(entry, f"owner:{owner.get('id')}")
                 flash(message, "success" if ok else "error")
-        return redirect(url_for("bot_access.page"))
-    issued = session.pop("bot_issued_key", None)
+        return redirect(url_for(dest))
+    store.ensure_login_columns()
     return render_template(
         "settings/bot_access.html",
         keys=store.list_keys(),
         members=store.list_members(),
         groups=policy.switch_groups(),
-        issued_key=issued,
         closed=policy.CLOSED,
     )
+
+
+@bot_access_bp.route("/settings/bot-access/usage", methods=["GET"])
+@login_required
+def usage():
+    owner = _owner_user()
+    if not owner:
+        abort(403)
+    store.ensure_login_columns()
+    return render_template("settings/bot_usage.html", entries=store.list_usage(120))
+
+
+@bot_access_bp.route("/api/bot/login", methods=["POST"])
+def api_login():
+    data, error, status = login.present(_bearer())
+    if error:
+        return _json(False, error=error, status=status)
+    return _json(True, data)
+
+
+@bot_access_bp.route("/api/bot/login/exchange", methods=["POST"])
+def api_exchange():
+    twofa = (request.headers.get("X-Bot-2FA") or "").strip()
+    if not twofa:
+        twofa = str(_payload().get("twofa_key") or "").strip()
+    data, error, status = login.exchange(_bearer(), twofa)
+    if error:
+        return _json(False, error=error, status=status)
+    return _json(True, data)
+
+
+@bot_access_bp.route("/api/bot/password-reset", methods=["POST"])
+def api_password_reset():
+    row, err = _require_key()
+    if err:
+        return err
+    ok, message = login.reset_bot(int(row["id"]))
+    if not ok:
+        return _json(False, error=message, status=502)
+    return _json(True, {"step": "reset", "sent": True, "message": message})
 
 
 @bot_access_bp.route("/api/bot/help", methods=["GET"])

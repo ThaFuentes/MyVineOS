@@ -109,6 +109,11 @@
       <i class="fa-solid fa-robot" aria-hidden="true"></i> Bot Access
     </a>
     {% endif %}
+    {% if session.get('user_role') == 'Owner' and endpoint_exists('bot_access.usage') %}
+    <a href="{{ url_for('bot_access.usage') }}" class="nav-sheet-link {{ 'active' if ep == 'bot_access.usage' else '' }}">
+      <i class="fa-solid fa-list" aria-hidden="true"></i> Bot usage
+    </a>
+    {% endif %}
     {% if session.get('user_role') in ['Owner', 'Admin'] and endpoint_exists('settings.modules') %}
     <a href="{{ url_for('settings.modules') }}" class="nav-sheet-link {{ 'active' if ep == 'settings.modules' else '' }}">
       <i class="fa-solid fa-toggle-on" aria-hidden="true"></i> Modules &amp; Apps

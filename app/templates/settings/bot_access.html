@@ -4,44 +4,59 @@
 <section class="content-section">
     <h2 class="section-title">Bot Access</h2>
     <p class="help-text">
-        Issue a key, then turn on only what this bot may do. It can post as the church
-        or as people you attach, and read the areas you allow. The sermon builder
-        switch covers illustrations, drafts, verses, research notes, and who is
-        speaking on which day. Undo hides a new post or draft, or puts the previous
-        words back. The words stay saved.
+        Create a bot with two different inboxes. The API key is emailed to the first
+        inbox and does not expire. The 2FA key is emailed to the other inbox when the
+        bot signs in, and that key expires in 1 hour. Neither secret is shown here.
+        Switches start off. The sermon builder switch covers illustrations, drafts,
+        verses, research notes, and who is speaking on which day.
     </p>
-
-    {% if issued_key %}
-    <div class="settings-card">
-        <h3 class="section-subtitle">Copy this key now</h3>
-        <p class="help-text">It is shown this once. Switches are off until you save them below.</p>
-        <input class="form-input" readonly value="{{ issued_key }}" onclick="this.select()" aria-label="New bot key">
-    </div>
-    {% endif %}
+    <p><a href="{{ url_for('bot_access.usage') }}">Bot usage</a> lists every call and the undo for each change.</p>
 
     <form method="POST" class="styled-form">
         {% include 'partials/csrf_field.html' %}
-        <input type="hidden" name="action" value="issue">
+        <input type="hidden" name="action" value="create">
         <div class="settings-card">
             <h3 class="section-subtitle">New bot</h3>
             <label for="bot-name">Name</label>
             <input id="bot-name" class="form-input" name="name" maxlength="120" required placeholder="Church helper">
-            <p class="help-text">Use a name you will recognize in the log. The key itself is not a person.</p>
-            <button class="btn btn-primary" type="submit">Issue key</button>
+            <label for="bot-email">API key inbox</label>
+            <input id="bot-email" class="form-input" type="email" name="email" maxlength="160" required placeholder="keys@example.com" autocomplete="off">
+            <p class="help-text">New API keys are emailed here only. This key does not expire.</p>
+            <label for="bot-twofa">2FA inbox</label>
+            <input id="bot-twofa" class="form-input" type="email" name="twofa_email" maxlength="160" required placeholder="signin@example.com" autocomplete="off">
+            <p class="help-text">This must be a different inbox. The 1-hour 2FA key is emailed here.</p>
+            <button class="btn btn-primary" type="submit">Create bot</button>
         </div>
     </form>
 
     {% if not keys %}
-    <p class="help-text">No bot keys yet.</p>
+    <p class="help-text">No bots yet.</p>
     {% endif %}
 
     {% for key in keys %}
     <details class="settings-card" {% if loop.first %}open{% endif %} style="padding:1rem; margin-top:1rem;">
-        <summary><strong>{{ key.name }}</strong> · {{ key.key_prefix }}… · {% if key.active %}On{% else %}Off{% endif %}</summary>
+        <summary>
+            <strong>{{ key.name }}</strong>
+            · {{ key.key_prefix }}…
+            · {% if key.active %}On{% else %}Off{% endif %}
+        </summary>
+        <p class="help-text">
+            API key inbox: {{ key.email or "not set" }}
+            · 2FA inbox: {{ key.twofa_email or "not set" }}
+        </p>
+        {% if not key.email or not key.twofa_email or key.email == key.twofa_email %}
+        <p class="help-text">Save two different inboxes, then email a new API key. This bot cannot sign in until both inboxes are saved.</p>
+        {% endif %}
+
         <form method="POST" class="styled-form" style="margin-top:0.75rem;">
             {% include 'partials/csrf_field.html' %}
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="key_id" value="{{ key.id }}">
+
+            <label for="email-{{ key.id }}">API key inbox</label>
+            <input id="email-{{ key.id }}" class="form-input" type="email" name="email" maxlength="160" value="{{ key.email or '' }}" required autocomplete="off">
+            <label for="twofa-{{ key.id }}">2FA inbox</label>
+            <input id="twofa-{{ key.id }}" class="form-input" type="email" name="twofa_email" maxlength="160" value="{{ key.twofa_email or '' }}" required autocomplete="off">
 
             <label>
                 <input type="checkbox" name="active" value="1" {% if key.active %}checked{% endif %}>
@@ -84,9 +99,17 @@
             <button class="btn btn-primary" type="submit">Save this bot</button>
         </form>
 
-        <h3 class="section-subtitle">What this key did</h3>
+        <form method="POST" style="margin-top:0.75rem;">
+            {% include 'partials/csrf_field.html' %}
+            <input type="hidden" name="action" value="reset">
+            <input type="hidden" name="key_id" value="{{ key.id }}">
+            <button class="btn" type="submit">Email a new API key</button>
+            <p class="help-text">Uses the inboxes you last saved. The new API key goes only to the API-key inbox. The old key stops working.</p>
+        </form>
+
+        <h3 class="section-subtitle">Recent calls</h3>
         {% if not key.logs %}
-        <p class="help-text">Nothing yet.</p>
+        <p class="help-text">Nothing yet. The full list is on <a href="{{ url_for('bot_access.usage') }}">Bot usage</a>.</p>
         {% else %}
         <ul style="padding-left:1.1rem;">
             {% for entry in key.logs %}
@@ -111,13 +134,18 @@
     {% endfor %}
 
     <div class="settings-card" style="margin-top:1rem;">
+        <h3 class="section-subtitle">How the bot signs in</h3>
+        <ol>
+            <li>POST /api/bot/login with Authorization: Bearer and the API key. That emails a 2FA key. It does not open a session.</li>
+            <li>POST /api/bot/login/exchange with the same API key and header X-Bot-2FA. That returns a session for 1 hour.</li>
+            <li>Send that session as Authorization: Bearer on every other call, including GET /api/bot/help.</li>
+        </ol>
         <h3 class="section-subtitle">Not on this key</h3>
         <ul>
             {% for line in closed %}
             <li>{{ line }}</li>
             {% endfor %}
         </ul>
-        <p class="help-text">The bot calls GET /api/bot/help with Authorization: Bearer and the key.</p>
     </div>
 </section>
 {% endblock %}

@@ -177,6 +177,86 @@ class BotPolicyTests(unittest.TestCase):
         self.assertEqual(added[-1]["guest_name"], "Pat")
         self.assertIsNone(added[-1]["user_id"])
 
+    def test_two_inboxes_and_mail_stay_apart(self):
+        from app.utils.bot_login import api_mail_problem, twofa_mail_problem
+        from app.utils.bot_policy import (
+            TWOFA_TTL_SECONDS,
+            api_key_mail,
+            inbox_problem,
+            new_session_material,
+            new_twofa_material,
+            twofa_key_mail,
+        )
+        self.assertIn("different", inbox_problem("a@b.co", "a@b.co"))
+        self.assertIn("API key", inbox_problem("nope", "two@example.com"))
+        self.assertIsNone(inbox_problem("keys@example.com", "codes@example.com"))
+        subject, body = api_key_mail("Helper", "mvos_testkey", "https://myvinechurch.online")
+        self.assertIn("API key", subject)
+        self.assertIn("api_key: mvos_testkey", body)
+        self.assertIn("expires: never", body)
+        self.assertNotIn("twofa_key:", body)
+        self.assertNotIn("codes@example.com", body)
+        self.assertIsNone(api_mail_problem(body, "codes@example.com"))
+        raw, digest, prefix = new_twofa_material()
+        self.assertTrue(raw.startswith("mvos_2fa_"))
+        self.assertEqual(prefix, raw[:18])
+        self.assertEqual(digest, hash_key(raw))
+        subject, twofa_body = twofa_key_mail("Helper", raw, "https://myvinechurch.online")
+        self.assertIn("2FA", subject)
+        self.assertIn(f"twofa_key: {raw}", twofa_body)
+        self.assertIn("expires_in: 3600", twofa_body)
+        self.assertNotIn("api_key:", twofa_body)
+        self.assertNotIn("keys@example.com", twofa_body)
+        self.assertNotIn("mvos_testkey", twofa_body)
+        self.assertIsNone(twofa_mail_problem(twofa_body, "keys@example.com"))
+        self.assertEqual(TWOFA_TTL_SECONDS, 3600)
+        session, _session_digest, session_prefix = new_session_material()
+        self.assertTrue(session.startswith("mvos_s_"))
+        self.assertEqual(session_prefix, session[:16])
+        lines = "\n".join(help_payload({})["lines"])
+        self.assertIn("POST /api/bot/login ", lines)
+        self.assertIn("POST /api/bot/login/exchange", lines)
+        self.assertIn("POST /api/bot/password-reset", lines)
+        self.assertIn("X-Bot-2FA", lines)
+        self.assertIn("1 hour", lines)
+        sign = help_payload({})["sign_in"]
+        self.assertIn("Does not expire", sign["api_key"])
+        self.assertEqual(sign["twofa_header"], "X-Bot-2FA")
+        self.assertEqual(sign["expires_in"], 3600)
+        present = {
+            "step": "twofa",
+            "sent": True,
+            "expires_in": 3600,
+            "message": "A 2FA key was emailed to the other inbox.",
+        }
+        self.assertNotIn(raw, str(present))
+
+    def test_owner_pages_mail_keys_and_keep_them_off_the_screen(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        routes = (root / "app/routes/bot_access.py").read_text()
+        page = (root / "app/templates/settings/bot_access.html").read_text()
+        usage = (root / "app/templates/settings/bot_usage.html").read_text()
+        nav = (root / "app/templates/settings/base_settings.html").read_text()
+        login = (root / "app/utils/bot_login.py").read_text()
+        self.assertNotIn("bot_issued_key", routes)
+        self.assertNotIn("issue_key", routes)
+        self.assertIn("find_session", routes)
+        self.assertIn('"/api/bot/login"', routes)
+        self.assertIn('"/api/bot/login/exchange"', routes)
+        self.assertIn('"/api/bot/password-reset"', routes)
+        self.assertIn('"/settings/bot-access/usage"', routes)
+        self.assertIn("That is the API key", routes)
+        self.assertNotIn("issued_key", page)
+        self.assertNotIn("Copy this key", page)
+        self.assertIn('name="twofa_email"', page)
+        self.assertIn("Bot usage", page)
+        self.assertIn("bot_name", usage)
+        self.assertIn('name="next" value="usage"', usage)
+        self.assertIn("bot_access.usage", nav)
+        self.assertIn("api_mail_problem", login)
+        self.assertNotIn("return raw", login)
+
     def test_sermon_desk_does_not_hard_delete(self):
         from pathlib import Path
         root = Path(__file__).resolve().parents[1]

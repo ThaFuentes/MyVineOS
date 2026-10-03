@@ -15,6 +15,13 @@ def create_tables(cursor):
             active        TINYINT(1) NOT NULL DEFAULT 1,
             controls_json TEXT NULL,
             created_by    INT UNSIGNED NULL,
+            email         VARCHAR(160) NULL,
+            twofa_email   VARCHAR(160) NULL,
+            twofa_hash    CHAR(64) NULL,
+            twofa_expires DATETIME NULL,
+            twofa_attempts INT NOT NULL DEFAULT 0,
+            session_hash  CHAR(64) NULL,
+            session_expires DATETIME NULL,
             created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uq_bot_access_hash (key_hash),
@@ -52,3 +59,25 @@ def create_tables(cursor):
             FOREIGN KEY (key_id) REFERENCES bot_access_keys(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    for column, definition in (
+        ("email", "VARCHAR(160) NULL"),
+        ("twofa_email", "VARCHAR(160) NULL"),
+        ("twofa_hash", "CHAR(64) NULL"),
+        ("twofa_expires", "DATETIME NULL"),
+        ("twofa_attempts", "INT NOT NULL DEFAULT 0"),
+        ("session_hash", "CHAR(64) NULL"),
+        ("session_expires", "DATETIME NULL"),
+    ):
+        cursor.execute(
+            """
+            SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bot_access_keys' AND COLUMN_NAME = %s
+            """,
+            (column,),
+        )
+        if cursor.fetchone():
+            continue
+        try:
+            cursor.execute(f"ALTER TABLE bot_access_keys ADD COLUMN {column} {definition}")
+        except Exception as exc:
+            print(f"bot access column {column}: {exc}")
