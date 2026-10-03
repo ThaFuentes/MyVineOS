@@ -8,6 +8,7 @@ from flask import Blueprint, abort, flash, jsonify, redirect, render_template, r
 
 from app.models.users import get_user_by_id
 from app.utils import bot_policy as policy
+from app.utils import bot_sermons as sermons
 from app.utils import bot_store as store
 from app.utils.decorators import login_required
 
@@ -105,14 +106,70 @@ def _apply_reverse(entry: dict, actor: str) -> tuple[bool, str]:
     plan = policy.undo_plan(entry.get("action") or "", bool(entry.get("reversed")))
     if plan is None or not entry.get("ok"):
         return False, "That entry cannot be reversed."
-    post_id = entry.get("target_id") or (entry.get("snapshot") or {}).get("post_id")
-    if not post_id:
-        return False, "That entry has no post to hide or restore."
-    ok, message = store.set_post_removed(int(post_id), plan == "hide")
+    action = entry.get("action") or ""
+    if action == "post.create":
+        post_id = entry.get("target_id") or (entry.get("snapshot") or {}).get("post_id")
+        if not post_id:
+            return False, "That entry has no post to hide or restore."
+        ok, message = store.set_post_removed(int(post_id), plan == "hide")
+    else:
+        ok, message = sermons.apply_undo(plan, entry)
     if not ok:
         return False, message
-    store.mark_reversed(int(entry["id"]), actor, clear=(plan == "show"))
+    store.mark_reversed(int(entry["id"]), actor, clear=plan in ("show", "reapply"))
     return True, message
+
+
+def _desk():
+    row, err = _require_key()
+    if err:
+        return None, err
+    denied = _need(row, "sermon_builder")
+    if denied:
+        return None, denied
+    return row, None
+
+
+def _actor_id(row: dict) -> int | None:
+    try:
+        uid = int(row.get("created_by") or 0)
+    except (TypeError, ValueError):
+        uid = 0
+    return uid or None
+
+
+def _finish(row: dict, result: dict):
+    if not result.get("ok"):
+        if result.get("status") == 500 and result.get("action"):
+            store.write_log(
+                int(row["id"]),
+                result.get("action") or "sermon",
+                ok=False,
+                detail=result.get("error") or "",
+            )
+        return _json(False, error=result.get("error") or "That did not work.", status=result.get("status") or 400)
+    data = dict(result.get("data") or {})
+    log = result.get("log")
+    if log:
+        log_id = store.write_log(
+            int(row["id"]),
+            log.get("action") or "sermon",
+            ok=True,
+            detail=log.get("detail") or "",
+            target_type=log.get("target_type"),
+            target_id=log.get("target_id"),
+            snapshot=log.get("snapshot"),
+        )
+        data["log_id"] = log_id
+        data["undo"] = "POST /api/bot/reverse with this log_id."
+    return _json(True, data)
+
+
+def _needs_owner(row: dict, what: str):
+    actor = _actor_id(row)
+    if actor:
+        return actor, None
+    return None, _json(False, error=f"This key has no owner on it, so it cannot {what}.", status=400)
 
 
 @bot_access_bp.route("/settings/bot-access", methods=["GET", "POST"])
@@ -237,11 +294,12 @@ def api_reverse():
     entry = store.get_log(log_id) if log_id else None
     if not entry or int(entry.get("key_id") or 0) != int(row["id"]):
         return _json(False, error="That log entry is not on this key.", status=404)
+    step = policy.undo_plan(entry.get("action") or "", bool(entry.get("reversed")))
     ok, message = _apply_reverse(entry, f"key:{row['id']}")
     if not ok:
         return _json(False, error=message, status=400)
-    plan = "restored" if "back" in message else "hidden"
-    return _json(True, {"log_id": log_id, "result": plan, "message": message})
+    words = {"hide": "hidden", "show": "restored", "restore": "restored", "reapply": "redone"}
+    return _json(True, {"log_id": log_id, "result": words.get(step, step), "message": message})
 
 
 @bot_access_bp.route("/api/bot/posts", methods=["GET", "POST"])
@@ -338,3 +396,108 @@ def api_read(area: str):
     if note:
         data["note"] = note
     return _json(True, data)
+
+
+@bot_access_bp.route("/api/bot/sermons", methods=["GET", "POST"])
+def api_sermons():
+    row, err = _desk()
+    if err:
+        return err
+    if request.method == "GET":
+        if request.args.get("id"):
+            try:
+                sermon_id = int(request.args.get("id"))
+            except (TypeError, ValueError):
+                return _json(False, error="Sermon id must be a number.", status=400)
+            return _finish(row, sermons.sermon_detail(sermon_id))
+        return _finish(row, sermons.list_builder_sermons(request.args.get("q") or "", request.args.get("limit")))
+    actor, missing = _needs_owner(row, "save a sermon")
+    if missing:
+        return missing
+    return _finish(row, sermons.create_builder_sermon(actor, _payload()))
+
+
+@bot_access_bp.route("/api/bot/sermons/<int:sermon_id>", methods=["GET", "POST"])
+def api_sermon(sermon_id: int):
+    row, err = _desk()
+    if err:
+        return err
+    if request.method == "GET":
+        return _finish(row, sermons.sermon_detail(sermon_id))
+    return _finish(row, sermons.update_builder_sermon(sermon_id, _payload()))
+
+
+@bot_access_bp.route("/api/bot/sermons/<int:sermon_id>/sections", methods=["POST"])
+def api_sermon_sections(sermon_id: int):
+    row, err = _desk()
+    if err:
+        return err
+    return _finish(row, sermons.save_section(sermon_id, _payload()))
+
+
+@bot_access_bp.route("/api/bot/illustrations", methods=["GET", "POST"])
+def api_illustrations():
+    row, err = _desk()
+    if err:
+        return err
+    if request.method == "GET":
+        return _finish(row, sermons.list_illustrations(
+            request.args.get("q") or "", request.args.get("limit"), request.args.get("id"),
+        ))
+    actor, missing = _needs_owner(row, "save an illustration")
+    if missing:
+        return missing
+    return _finish(row, sermons.create_illustration_item(actor, _payload()))
+
+
+@bot_access_bp.route("/api/bot/illustrations/<int:illus_id>", methods=["POST"])
+def api_illustration(illus_id: int):
+    row, err = _desk()
+    if err:
+        return err
+    return _finish(row, sermons.update_illustration_item(_actor_id(row), illus_id, _payload()))
+
+
+@bot_access_bp.route("/api/bot/vault", methods=["GET", "POST"])
+def api_vault():
+    row, err = _desk()
+    if err:
+        return err
+    if request.method == "GET":
+        return _finish(row, sermons.list_vault(
+            _actor_id(row), request.args.get("q") or "", request.args.get("limit"), request.args.get("id"),
+        ))
+    actor, missing = _needs_owner(row, "save a research note")
+    if missing:
+        return missing
+    return _finish(row, sermons.create_vault_item(actor, _payload()))
+
+
+@bot_access_bp.route("/api/bot/vault/<int:item_id>", methods=["POST"])
+def api_vault_item(item_id: int):
+    row, err = _desk()
+    if err:
+        return err
+    return _finish(row, sermons.update_vault_item(_actor_id(row), item_id, _payload()))
+
+
+@bot_access_bp.route("/api/bot/verses", methods=["GET"])
+def api_verses():
+    row, err = _desk()
+    if err:
+        return err
+    ref = request.args.get("ref") or request.args.get("reference") or ""
+    return _finish(row, sermons.lookup_reference(ref, request.args.get("translation")))
+
+
+@bot_access_bp.route("/api/bot/lineup", methods=["GET", "POST"])
+def api_lineup():
+    row, err = _desk()
+    if err:
+        return err
+    if request.method == "GET":
+        return _finish(row, sermons.lineup_for(request.args.get("days")))
+    actor, missing = _needs_owner(row, "set the lineup")
+    if missing:
+        return missing
+    return _finish(row, sermons.set_lineup(actor, _payload()))

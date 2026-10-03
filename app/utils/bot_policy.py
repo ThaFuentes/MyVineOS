@@ -70,8 +70,15 @@ SWITCHES = [
         "id": "sermons",
         "kind": "read",
         "group": "Church life",
-        "label": "Read sermons",
-        "detail": "Sermon titles and a short note.",
+        "label": "Read the public sermon library",
+        "detail": "Uploaded sermon titles and a short note. The sermon builder is its own switch.",
+    },
+    {
+        "id": "sermon_builder",
+        "kind": "sermon",
+        "group": "Sermon desk",
+        "label": "Sermon builder",
+        "detail": "Illustrations, sermon drafts, verses, the research vault, and who is speaking on which day. The bot can draft and edit. Undo hides a draft or puts the previous words back.",
     },
     {
         "id": "prayers",
@@ -205,6 +212,7 @@ READS = {
 CLOSED = [
     "Child check-in, bill logins, passwords, and sending email are not on this API.",
     "Deleting a post is not available. Reverse hides it and can put it back.",
+    "Sermon drafts, illustrations, sections, and research notes are hidden, not deleted. A lineup change can be undone for that one date.",
     "Giving and bills are read-only. This key cannot record, edit, or pay anything.",
 ]
 
@@ -329,11 +337,41 @@ def validate_post(kind: str, title: str, body: str, visibility: str) -> tuple[di
     return {"kind": kind, "title": title, "body": body, "visibility": visibility}, None
 
 
+# First step, then the step after it has already been reversed.
+UNDO_STEPS = {
+    "post.create": ("hide", "show"),
+    "sermon.create": ("hide", "show"),
+    "illustration.create": ("hide", "show"),
+    "section.add": ("hide", "show"),
+    "vault.create": ("hide", "show"),
+    "sermon.update": ("restore", "reapply"),
+    "section.update": ("restore", "reapply"),
+    "illustration.update": ("restore", "reapply"),
+    "vault.update": ("restore", "reapply"),
+    "lineup.set": ("restore", "reapply"),
+}
+
+UNDO_LABELS = {
+    "hide": "Hide",
+    "show": "Put back",
+    "restore": "Undo",
+    "reapply": "Redo",
+}
+
+
 def undo_plan(action: str, already_reversed: bool) -> str | None:
     """Soft undo. hide sets removed_at. show clears it. Never a hard delete."""
-    if (action or "") != "post.create":
+    steps = UNDO_STEPS.get(action or "")
+    if not steps:
         return None
-    return "show" if already_reversed else "hide"
+    return steps[1] if already_reversed else steps[0]
+
+
+def undo_label(action: str, already_reversed: bool) -> str | None:
+    plan = undo_plan(action, already_reversed)
+    if not plan:
+        return None
+    return UNDO_LABELS.get(plan, "Undo")
 
 
 def call_map(controls) -> list[dict]:
@@ -344,15 +382,41 @@ def call_map(controls) -> list[dict]:
         {"method": "GET", "path": "/api/bot/whoami", "switch": None,
          "about": "Which switches and voices are on. GET /api/bot/me is the same."},
         {"method": "GET", "path": "/api/bot/log", "switch": None,
-         "about": "What this key did, and whether each post was hidden or put back."},
+         "about": "What this key did, and the undo label for each change."},
         {"method": "POST", "path": "/api/bot/reverse", "switch": None,
-         "about": "Undo or restore one of this key's posts. Body: {\"log_id\": N}."},
+         "about": "Undo one of this key's changes. Body: {\"log_id\": N}."},
         {"method": "POST", "path": "/api/bot/posts", "switch": "posts",
          "about": "Publish as a granted voice. Body: {\"as\":\"church\" or \"user:ID\", \"kind\":\"verse\", \"title\":\"\", \"body\":\"\"}."},
         {"method": "GET", "path": "/api/bot/posts", "switch": "posts",
          "about": "Recent live wall posts. Query: as=church or as=user:ID."},
         {"method": "GET", "path": "/api/bot/security", "switch": "security",
          "about": "Summary, recent events, events_newest_at, and recording."},
+        {"method": "GET", "path": "/api/bot/sermons", "switch": "sermon_builder",
+         "about": "Sermon builder drafts. ?id= or GET /api/bot/sermons/<id> opens one with its sections. ?q= searches title and passage."},
+        {"method": "POST", "path": "/api/bot/sermons", "switch": "sermon_builder",
+         "about": "Start a draft. Body: {\"title\":\"\", \"primary_passage\":\"\", \"preacher_id\": N, \"service_date\":\"YYYY-MM-DD\", \"notes\":\"\"}."},
+        {"method": "POST", "path": "/api/bot/sermons/<id>", "switch": "sermon_builder",
+         "about": "Change a draft's title, passage, preacher, date, notes, or conclusion. GET reads that draft."},
+        {"method": "POST", "path": "/api/bot/sermons/<id>/sections", "switch": "sermon_builder",
+         "about": "Add a section, or change one when section_id is set. Body: {\"section_type\":\"point\", \"title\":\"\", \"content\":\"\"} or {\"illustration_id\": N} or {\"reference\":\"John 3:16\"}."},
+        {"method": "GET", "path": "/api/bot/illustrations", "switch": "sermon_builder",
+         "about": "Illustration library, including private stories. ?q= searches. ?id= opens one."},
+        {"method": "POST", "path": "/api/bot/illustrations", "switch": "sermon_builder",
+         "about": "Save an illustration. Body: {\"title\":\"\", \"content\":\"\", \"source\":\"\", \"tags\":\"\"}."},
+        {"method": "POST", "path": "/api/bot/illustrations/<id>", "switch": "sermon_builder",
+         "about": "Change an illustration's title, story, source, or tags."},
+        {"method": "GET", "path": "/api/bot/vault", "switch": "sermon_builder",
+         "about": "Sermon research vault. Shared notes plus this owner's private notes. ?q= searches. ?id= opens one."},
+        {"method": "POST", "path": "/api/bot/vault", "switch": "sermon_builder",
+         "about": "Save a research note. Body: {\"title\":\"\", \"content\":\"\", \"scripture_reference\":\"\"}."},
+        {"method": "POST", "path": "/api/bot/vault/<id>", "switch": "sermon_builder",
+         "about": "Change a research note the key can already see."},
+        {"method": "GET", "path": "/api/bot/verses", "switch": "sermon_builder",
+         "about": "Look up scripture. Query: ref=John 3:16 or ref=Romans 8:28-30."},
+        {"method": "GET", "path": "/api/bot/lineup", "switch": "sermon_builder",
+         "about": "Who is speaking, and which sermon, on upcoming service days. Query: days=21."},
+        {"method": "POST", "path": "/api/bot/lineup", "switch": "sermon_builder",
+         "about": "Set the speaker or sermon for one date. Body: {\"date\":\"YYYY-MM-DD\", \"preacher_id\": N, \"sermon_id\": N}. One Sunday only, not every week."},
     ]
     for row in SWITCHES:
         if row["kind"] != "read":
@@ -392,5 +456,5 @@ def help_payload(controls, voices: list[dict] | None = None) -> dict:
         "switches": normalize_controls(controls),
         "voices": voice_rows,
         "closed": list(CLOSED),
-        "undo": "POST /api/bot/reverse with {\"log_id\": N} hides that post or puts it back. The row is kept.",
+        "undo": "POST /api/bot/reverse with {\"log_id\": N} hides a post, sermon draft, illustration, or section, or puts the previous text back. The row is kept.",
     }

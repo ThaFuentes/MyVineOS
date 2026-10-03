@@ -63,7 +63,8 @@ def get_visible_illustrations(user_id: int, search: str | None = None) -> list[d
                CASE WHEN il.user_id IS NOT NULL THEN 'private' ELSE 'pastoral_group' END AS visibility
         FROM illustration_library il
         LEFT JOIN users u ON il.user_id = u.id
-        WHERE il.user_id = %s OR il.user_id IS NULL
+        WHERE (il.user_id = %s OR il.user_id IS NULL)
+          AND il.removed_at IS NULL
     """
     params = [user_id]
 
@@ -107,6 +108,7 @@ def get_illustration_by_id(illus_id: int, user_id: int) -> dict | None:
         FROM illustration_library il
         LEFT JOIN users u ON il.user_id = u.id
         WHERE il.id = %s
+          AND il.removed_at IS NULL
           AND (il.user_id = %s OR il.user_id IS NULL)
     """
     params = [illus_id, user_id]

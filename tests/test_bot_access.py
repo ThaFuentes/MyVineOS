@@ -13,9 +13,11 @@ from app.utils.bot_policy import (
     normalize_controls,
     resolve_voice,
     switch_on,
+    undo_label,
     undo_plan,
     validate_post,
 )
+from app.utils.bot_sermons import as_html, assignments_with_speaker, verse_span
 
 
 class BotPolicyTests(unittest.TestCase):
@@ -122,3 +124,81 @@ class BotPolicyTests(unittest.TestCase):
         self.assertNotIn("delete_post", store)
         self.assertNotIn("DELETE FROM community_posts", store)
         self.assertTrue(CLOSED)
+
+    def test_sermon_desk_undo_and_calls(self):
+        self.assertFalse(default_controls()["sermon_builder"])
+        self.assertEqual(undo_plan("sermon.create", False), "hide")
+        self.assertEqual(undo_plan("sermon.create", True), "show")
+        self.assertEqual(undo_plan("sermon.update", False), "restore")
+        self.assertEqual(undo_plan("sermon.update", True), "reapply")
+        self.assertEqual(undo_plan("section.add", False), "hide")
+        self.assertEqual(undo_plan("lineup.set", False), "restore")
+        self.assertEqual(undo_label("lineup.set", False), "Undo")
+        self.assertEqual(undo_label("lineup.set", True), "Redo")
+        self.assertEqual(undo_label("sermon.create", False), "Hide")
+        off = "\n".join(help_payload({})["lines"])
+        on = "\n".join(help_payload({"sermon_builder": True})["lines"])
+        for path in (
+            "GET /api/bot/sermons",
+            "POST /api/bot/sermons",
+            "POST /api/bot/illustrations",
+            "GET /api/bot/vault",
+            "GET /api/bot/verses",
+            "GET /api/bot/lineup",
+            "POST /api/bot/lineup",
+        ):
+            self.assertIn(path, on)
+        self.assertIn("GET /api/bot/sermons [off]", off)
+        self.assertIn("GET /api/bot/sermons [on]", on)
+        self.assertEqual(as_html("John 3:16"), "<p>John 3:16</p>")
+        self.assertIn("&lt;script&gt;", as_html("<script>alert(1)</script>"))
+        self.assertTrue(as_html("<p>Already</p>").startswith("<p>Already"))
+        self.assertEqual(verse_span(30, 28), (28, 30))
+        self.assertIsNone(verse_span(1, 41))
+        roles = assignments_with_speaker(
+            [
+                {"role_name": "Minister", "user_id": 2, "guest_name": None},
+                {"role_name": "Greeter", "user_id": 5, "guest_name": "Pat"},
+            ],
+            9,
+            "Guest Pat",
+            True,
+        )
+        self.assertEqual(roles[0]["user_id"], 9)
+        self.assertIsNone(roles[0]["guest_name"])
+        self.assertEqual(roles[1]["user_id"], 5)
+        added = assignments_with_speaker(
+            [{"role_name": "Greeter", "user_id": 5, "guest_name": None}],
+            None,
+            "Pat",
+            True,
+        )
+        self.assertEqual(added[-1]["role_name"], "Minister")
+        self.assertEqual(added[-1]["guest_name"], "Pat")
+        self.assertIsNone(added[-1]["user_id"])
+
+    def test_sermon_desk_does_not_hard_delete(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        names = (
+            "app/utils/bot_sermons.py",
+            "app/utils/bot_sermon_library.py",
+            "app/utils/bot_sermon_common.py",
+            "app/routes/bot_access.py",
+        )
+        blobs = [(root / name).read_text() for name in names]
+        for blob in blobs:
+            self.assertNotIn("delete_sermon", blob)
+            self.assertNotIn("delete_illustration", blob)
+            self.assertNotIn("save_sermon_sections", blob)
+            self.assertNotIn("append_scripture_to_sermon", blob)
+            self.assertNotIn("DELETE FROM pastoral_sermons", blob)
+            self.assertNotIn("DELETE FROM illustration_library", blob)
+            self.assertNotIn("DELETE FROM sermon_sections", blob)
+            self.assertNotIn("DELETE FROM pastoral_vault", blob)
+        routes = blobs[-1]
+        self.assertIn('"/api/bot/sermons"', routes)
+        self.assertIn('"/api/bot/verses"', routes)
+        self.assertIn('"/api/bot/lineup"', routes)
+        self.assertIn("sermons.apply_undo", routes)
+        self.assertIn("DELETE FROM service_plans", blobs[1])

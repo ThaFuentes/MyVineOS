@@ -5,8 +5,10 @@
     <h2 class="section-title">Bot Access</h2>
     <p class="help-text">
         Issue a key, then turn on only what this bot may do. It can post as the church
-        or as people you attach, read the areas you allow, and hide a post it made.
-        Hiding keeps the words so you or the bot can put them back.
+        or as people you attach, and read the areas you allow. The sermon builder
+        switch covers illustrations, drafts, verses, research notes, and who is
+        speaking on which day. Undo hides a new post or draft, or puts the previous
+        words back. The words stay saved.
     </p>
 
     {% if issued_key %}
@@ -92,13 +94,13 @@
                 {{ entry.created_at }} · {{ entry.action }}
                 {% if entry.ok %}ok{% else %}blocked{% endif %}
                 {% if entry.detail %}— {{ entry.detail }}{% endif %}
-                {% if entry.reversed %}· hidden, can be put back{% endif %}
+                {% if entry.reversed %}· reversed{% endif %}
                 {% if entry.can_reverse %}
                 <form method="POST" style="display:inline;">
                     {% include 'partials/csrf_field.html' %}
                     <input type="hidden" name="action" value="reverse">
                     <input type="hidden" name="log_id" value="{{ entry.id }}">
-                    <button class="btn" type="submit">{% if entry.reversed %}Put back{% else %}Hide{% endif %}</button>
+                    <button class="btn" type="submit">{{ entry.undo_label or 'Undo' }}</button>
                 </form>
                 {% endif %}
             </li>

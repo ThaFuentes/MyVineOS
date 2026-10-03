@@ -30,7 +30,7 @@ def get_my_vault(user_id: int):
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
         SELECT * FROM pastoral_vault
-        WHERE user_id = %s AND visibility = 'private'
+        WHERE user_id = %s AND visibility = 'private' AND removed_at IS NULL
         ORDER BY created_at DESC
     """, (user_id,))
     items = cur.fetchall()
@@ -45,7 +45,7 @@ def get_shared_vault():
     cur = db.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
         SELECT * FROM pastoral_vault
-        WHERE user_id IS NULL AND visibility = 'pastoral_group'
+        WHERE user_id IS NULL AND visibility = 'pastoral_group' AND removed_at IS NULL
         ORDER BY created_at DESC
     """)
     items = cur.fetchall()

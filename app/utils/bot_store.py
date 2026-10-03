@@ -284,6 +284,7 @@ def _log_view(row: dict) -> dict:
         item["snapshot"] = None
     item.pop("snapshot_json", None)
     item["can_reverse"] = policy.undo_plan(item.get("action") or "", item["reversed"]) is not None and item["ok"]
+    item["undo_label"] = policy.undo_label(item.get("action") or "", item["reversed"]) if item["can_reverse"] else None
     return item
 
 

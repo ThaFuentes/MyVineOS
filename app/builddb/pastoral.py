@@ -521,6 +521,32 @@ def create_tables(cursor):
                 except Exception as e:
                     print(f"  (skip {table}.campus_id: {e})")
 
+    # Soft hide for Bot Access undo. Hidden rows stay in the table.
+    for table in ("pastoral_sermons", "sermon_sections", "illustration_library", "pastoral_vault"):
+        cursor.execute(
+            """
+            SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'removed_at'
+            """,
+            (table,),
+        )
+        if cursor.fetchone():
+            continue
+        cursor.execute(
+            """
+            SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s
+            """,
+            (table,),
+        )
+        if not cursor.fetchone():
+            continue
+        print(f" Migration: Adding removed_at to {table}")
+        try:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN removed_at DATETIME NULL")
+        except Exception as exc:
+            print(f"  (skip {table}.removed_at: {exc})")
+
     # NEW: Seed default Sunday template if none exist; remove duplicate weekday masters
     print("Seeding default Sunday template (if needed)...")
     dedupe_service_templates()

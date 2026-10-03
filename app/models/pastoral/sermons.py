@@ -58,6 +58,7 @@ def get_visible_sermons(user_id, search=None, visibility=None, limit=None, offse
                    WHERE sc.sermon_id = ps.id AND sc.user_id = %s
                ))
                OR ps.visibility = 'pastoral_group')
+          AND ps.removed_at IS NULL
     """
     params = [user_id, user_id]
 
@@ -115,7 +116,7 @@ def get_sermon_by_id(sermon_id, user_id):
                    CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,'')) AS creator_name
             FROM pastoral_sermons ps
             LEFT JOIN users u ON ps.created_by = u.id
-            WHERE ps.id = %s
+            WHERE ps.id = %s AND ps.removed_at IS NULL
         """, (sermon_id,))
         return cur.fetchone()
 
@@ -125,6 +126,7 @@ def get_sermon_by_id(sermon_id, user_id):
         FROM pastoral_sermons ps
         LEFT JOIN users u ON ps.created_by = u.id
         WHERE ps.id = %s
+          AND ps.removed_at IS NULL
           AND (ps.created_by = %s
                OR (ps.visibility = 'collaborators' AND EXISTS (
                    SELECT 1 FROM sermon_collaborators sc
@@ -162,7 +164,7 @@ def get_sermon_for_podium(sermon_id, user_id):
                CONCAT(IFNULL(u.first_name,''), ' ', IFNULL(u.last_name,'')) AS creator_name
         FROM pastoral_sermons ps
         LEFT JOIN users u ON ps.created_by = u.id
-        WHERE ps.id = %s
+        WHERE ps.id = %s AND ps.removed_at IS NULL
     """, (sermon_id,))
     return cur.fetchone()
 
@@ -286,7 +288,7 @@ def get_sermon_sections(sermon_id):
         SELECT id, sort_order, section_type, title, content,
                scripture_reference, source, notes
         FROM sermon_sections
-        WHERE sermon_id = %s
+        WHERE sermon_id = %s AND removed_at IS NULL
         ORDER BY sort_order
     """, (sermon_id,))
 
@@ -308,7 +310,10 @@ def save_sermon_sections(sermon_id, sections_list):
     cur = db.cursor()
 
     # CRITICAL: Delete ALL old sections first - fixes extra blanks permanently
-    cur.execute("DELETE FROM sermon_sections WHERE sermon_id = %s", (sermon_id,))
+    cur.execute(
+        "DELETE FROM sermon_sections WHERE sermon_id = %s AND removed_at IS NULL",
+        (sermon_id,),
+    )
 
     # Insert new sections
     for i, sec in enumerate(sections_list):
