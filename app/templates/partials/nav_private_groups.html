@@ -5,7 +5,7 @@
 {% set community_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'bible.', 'curriculum.')) or ep.startswith('public.public_dashboard.') or ep == 'public.promotions_list' or ep == 'church.people' %}
 {% set church_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.', 'custom_modules.', 'child_checkin.', 'accounting.', 'volunteers.', 'communications.')) %}
 {% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule') %}
-{% set ministry_active = ep.startswith(('pastoral.', 'worship.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) or ep in ('church.moderation_desk', 'church.moderation_review') %}
+{% set ministry_active = ep.startswith(('pastoral.', 'worship.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) or ep in ('church.moderation_desk', 'church.moderation_review', 'church.moderation_flags') %}
 {% set show_gathering = session.user_role in ['Staff', 'Admin', 'Owner'] or user_has_permission('settings.ticket_managers') %}
 {% set show_security = can_access_security_console|default(false) %}
 {% set is_staff = session.get('user_role') in ['Staff', 'Admin', 'Owner'] %}
@@ -107,8 +107,9 @@
     {% if module_on('worship') and can_access_worship is defined and can_access_worship %}
     <a href="{{ url_for('worship.dashboard') }}" role="menuitem" class="{{ 'active' if ep.startswith('worship.') else '' }}">Worship Team</a>
     {% endif %}
-    {% if user_has_permission('moderate_site') %}
+    {% if user_has_permission('moderate_site') or user_has_permission('moderate_content') %}
     <a href="/church/moderation" role="menuitem" class="{{ 'active' if ep == 'church.moderation_desk' else '' }}">Site moderation</a>
+    <a href="/church/moderation/flags" role="menuitem" class="{{ 'active' if ep == 'church.moderation_flags' else '' }}">Reports</a>
     {% endif %}
     {% if user_has_permission('review_moderation') %}
     <a href="/church/moderation/review" role="menuitem" class="{{ 'active' if ep == 'church.moderation_review' else '' }}">Moderation review</a>

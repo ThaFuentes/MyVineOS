@@ -246,3 +246,33 @@ def fetch_link_image(url: str) -> tuple[bytes | None, str | None]:
     if ctype.startswith("image/") and ctype not in ("image/svg+xml", "image/svg"):
         return raw, ctype
     return None, None
+
+
+# ---------------------------------------------------------------------------
+# Signed thumbnail URLs: /compose/link-preview-img only fetches a remote image
+# for signed-in members or for a URL this app itself signed (wall cards that
+# guests can see). Stops the endpoint being an open image proxy.
+# ---------------------------------------------------------------------------
+
+def sign_image_url(url: str | None) -> str:
+    import hashlib
+    import hmac
+    from flask import current_app
+    if not url:
+        return ''
+    key = str(current_app.secret_key or '').encode('utf-8')
+    if not key:
+        return ''
+    digest = hmac.new(key, ('link-img:' + str(url)).encode('utf-8'), hashlib.sha256).hexdigest()
+    return digest[:32]
+
+
+def image_sig_ok(url: str | None, sig: str | None) -> bool:
+    import hmac
+    if not url or not sig:
+        return False
+    try:
+        expected = sign_image_url(url)
+    except Exception:
+        return False
+    return bool(expected) and hmac.compare_digest(expected, str(sig))

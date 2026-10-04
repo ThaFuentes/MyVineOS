@@ -7,7 +7,7 @@ from app.models import church_community as cc
 from app.models import social as social_model
 from app.models.log import log_change
 from app.utils.decorators import login_required
-from app.utils.helpers import contains_censored_word
+from app.utils.helpers import CENSORED_WORD_MESSAGE, contains_censored_word
 
 from . import church_bp
 
@@ -42,6 +42,12 @@ def react_to_post():
     ok, msg = social_bar.set_reaction(kind, int(oid), session['user_id'], react)
     if not ok:
         flash(msg, 'error')
+    elif react:
+        try:
+            from app.models.notifications import notify_reaction
+            notify_reaction(kind, int(oid), session['user_id'], react)
+        except Exception as exc:
+            print(f'reaction notify skipped: {exc}')
     dest = nxt if nxt.startswith('/') and not nxt.startswith('//') else url_for('public.public_dashboard.public_community')
     return redirect(dest)
 
@@ -56,6 +62,10 @@ def reshare_post():
     if not oid.isdigit():
         flash('Missing post.', 'error')
         return redirect(nxt if nxt.startswith('/') else url_for('church.church_home'))
+    slow = social_model.post_throttle_message(session['user_id'])
+    if slow:
+        flash(slow, 'info')
+        return redirect(nxt if nxt.startswith('/') and not nxt.startswith('//') else url_for('church.church_home'))
     ok, msg = social_bar.reshare(kind, int(oid), session['user_id'])
     flash(msg, 'success' if ok else 'error')
     dest = nxt if nxt.startswith('/') and not nxt.startswith('//') else url_for('church.member_page', username=session.get('username') or '')
@@ -76,7 +86,9 @@ def moderate_content(kind, item_id):
     from app.models import moderation as mod
     from flask import abort
     kind = (kind or '').strip()
-    if not (mod.can_moderate_kind(kind) or mod.can_moderate_walls()):
+    # Church-page editors may curate wall posts only; prayers, sermons, events,
+    # etc. need that type's moderate key (or the Moderator / site-mod role).
+    if not (mod.can_moderate_kind(kind) or (kind in mod.POST_KINDS and mod.can_moderate_walls())):
         abort(403)
     action = (request.form.get('action') or '').strip()
     reason = (request.form.get('reason') or '').strip()
@@ -235,7 +247,14 @@ def follow_user(username):
     if not user or social_model.blocked_either_way(session['user_id'], user['id']):
         return _unknown()
     follow = request.form.get('follow') != '0'
+    was_following = social_model.is_following(session['user_id'], user['id'])
     social_model.set_follow(session['user_id'], user['id'], follow)
+    if follow and not was_following:
+        try:
+            from app.models.notifications import notify_follow
+            notify_follow(user['id'], session['user_id'])
+        except Exception as exc:
+            print(f'follow notify skipped: {exc}')
     log_change(session['user_id'], 'follow_user' if follow else 'unfollow_user', target_id=user['id'])
     return redirect(url_for('church.member_page', username=username))
 
@@ -515,7 +534,7 @@ def member_photo_add(username):
 
 @church_bp.route('/u/<username>/photos/<int:photo_id>/delete', methods=['POST'])
 @login_required
-def member_photo_delete(username):
+def member_photo_delete(username, photo_id):
     user = cc.get_user_by_username(username)
     if not user or int(user['id']) != int(session['user_id']):
         return _unknown()
@@ -547,8 +566,8 @@ def member_link_add(username):
     if not user or int(user['id']) != int(session['user_id']):
         return _unknown()
     title = request.form.get('title') or ''
-    if contains_censored_word(title):
-        flash('That title is not allowed.', 'error')
+    if contains_censored_word(f"{title} {request.form.get('note') or ''}"):
+        flash(CENSORED_WORD_MESSAGE, 'error')
         return redirect(url_for('church.member_page', username=username))
     added = social_model.add_link(
         'member', user['id'],
@@ -564,7 +583,7 @@ def member_link_add(username):
 
 @church_bp.route('/u/<username>/links/<int:link_id>/delete', methods=['POST'])
 @login_required
-def member_link_delete(username):
+def member_link_delete(username, link_id):
     user = cc.get_user_by_username(username)
     if not user or int(user['id']) != int(session['user_id']):
         return _unknown()
@@ -592,3 +611,98 @@ def church_link_add():
     if campus_id:
         return redirect(url_for('church.church_home', campus_id=campus_id))
     return redirect(url_for('church.church_home'))
+
+
+def _safe_next(default_endpoint='church.church_home'):
+    nxt = (request.form.get('next') or request.args.get('next') or '').strip()
+    if nxt.startswith('/') and not nxt.startswith('//'):
+        return nxt
+    return url_for(default_endpoint)
+
+
+# ---------------------------------------------------------------------------
+# Report button (members) -> content_flags -> /church/moderation/flags
+# ---------------------------------------------------------------------------
+@church_bp.route('/report', methods=['POST'])
+@login_required
+def report_content():
+    from app.models import flags
+    kind = (request.form.get('content_kind') or request.form.get('content_type') or '').strip()
+    ok, msg = flags.report(
+        session['user_id'],
+        kind,
+        request.form.get('content_id') or 0,
+        request.form.get('category') or 'other',
+        request.form.get('note') or '',
+        comment_type=(request.form.get('comment_type') or '').strip() or None,
+    )
+    flash(msg, 'success' if ok else 'info')
+    return redirect(_safe_next())
+
+
+# ---------------------------------------------------------------------------
+# Notification bell
+# ---------------------------------------------------------------------------
+@church_bp.route('/notifications')
+@login_required
+def notifications_page():
+    from app.models import notifications as notif
+    return render_template(
+        'church/notifications.html',
+        notifications=notif.list_for(session['user_id'], limit=60),
+        unread=notif.unread_count(session['user_id']),
+    )
+
+
+@church_bp.route('/notifications/feed')
+@login_required
+def notifications_feed():
+    from flask import jsonify
+    from app.models import notifications as notif
+    return jsonify({
+        'ok': True,
+        'unread': notif.unread_count(session['user_id']),
+        'items': notif.list_for(session['user_id'], limit=15),
+    })
+
+
+@church_bp.route('/notifications/<int:notif_id>/open', methods=['POST'])
+@login_required
+def notification_open(notif_id):
+    from app.models import notifications as notif
+    from app.models.db import get_db
+    notif.mark_read(session['user_id'], notif_id)
+    dest = ''
+    try:
+        cur = get_db().cursor()
+        cur.execute("SELECT url FROM notifications WHERE id=%s AND user_id=%s", (int(notif_id), session['user_id']))
+        row = cur.fetchone()
+        dest = (row[0] if row else '') or ''
+    except Exception:
+        dest = ''
+    if dest.startswith('/') and not dest.startswith('//'):
+        return redirect(dest)
+    return redirect(url_for('church.notifications_page'))
+
+
+@church_bp.route('/notifications/<int:notif_id>/read', methods=['POST'])
+@login_required
+def notification_read(notif_id):
+    from flask import jsonify
+    from app.models import notifications as notif
+    notif.mark_read(session['user_id'], notif_id)
+    if request.accept_mimetypes.best == 'application/json' or request.headers.get('X-Requested-With'):
+        return jsonify({'ok': True, 'unread': notif.unread_count(session['user_id'])})
+    return redirect(_safe_next('church.notifications_page'))
+
+
+@church_bp.route('/notifications/read-all', methods=['POST'])
+@login_required
+def notifications_read_all():
+    from flask import jsonify
+    from app.models import notifications as notif
+    notif.mark_all_read(session['user_id'])
+    if request.accept_mimetypes.best == 'application/json' or request.headers.get('X-Requested-With'):
+        return jsonify({'ok': True, 'unread': 0})
+    flash('All caught up.', 'success')
+    return redirect(_safe_next('church.notifications_page'))

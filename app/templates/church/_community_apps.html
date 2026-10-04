@@ -9,7 +9,7 @@
     <a href="{{ url_for('church.people') }}">
       <i class="fa-solid fa-users" aria-hidden="true"></i> People
     </a>
-    {% if logged_in and user_has_permission('moderate_site') %}
+    {% if logged_in and (user_has_permission('moderate_site') or user_has_permission('moderate_content')) %}
     <a href="/church/moderation">
       <i class="fa-solid fa-user-shield" aria-hidden="true"></i> Site moderation
     </a>

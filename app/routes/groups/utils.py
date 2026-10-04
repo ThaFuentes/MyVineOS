@@ -156,6 +156,7 @@ KNOWN_PERMISSIONS = {
 
     'moderate_site': 'Site moderator — hide, shadow, warn, remove community content (reversible)',
     'review_moderation': 'Review and reverse what site moderators did',
+    'moderate_content': 'Moderator — report queue; hide / restore / remove posts, prayers and comments (reversible, no people tools)',
 }
 
 
@@ -182,7 +183,7 @@ PERMISSION_CATEGORIES = [
         'keys': sorted(k for k in KNOWN_PERMISSIONS if any(
             x in k for x in (
                 'announcement', 'event', 'sermon', 'prayer', 'dream', 'prophec',
-                'moderate_site', 'review_moderation',
+                'moderate_site', 'moderate_content', 'review_moderation',
             )
         )),
     },

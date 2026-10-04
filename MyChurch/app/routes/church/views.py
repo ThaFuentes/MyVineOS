@@ -1,7 +1,7 @@
 # Church page (official branch profile), Feed stays at /public/community,
 # optional member pages at /church/u/<username>.
 
-from flask import flash, redirect, render_template, request, send_from_directory, session, url_for
+from flask import abort, flash, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.utils import secure_filename
 
 from app.models import church_community as cc
@@ -209,8 +209,12 @@ def church_home(campus_id=None):
 def serve_identity(filename):
     from flask import current_app
     import os
+    name = secure_filename((filename or '').split('/')[-1])
+    denied = cc.identity_file_denied(name, session.get('user_id'))
+    if denied:
+        abort(404)
     folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'identity')
-    return send_from_directory(folder, secure_filename(filename.split('/')[-1]))
+    return send_from_directory(folder, name)
 
 
 def _safe_next(default: str) -> str:
@@ -661,6 +665,69 @@ def member_page(username):
     )
 
 
+def _apply_my_page_form(uid: int, space: dict | None) -> str | None:
+    """Save create/edit page form. Returns an error flash, or None on success."""
+    from app.models import family_links as fam
+    from app.models.users import update_user_profile
+    from app.utils.html_sanitize import sanitize_plain_text
+    from datetime import datetime
+
+    about = sanitize_plain_text(request.form.get('about_text') or request.form.get('about') or '')
+    verse = sanitize_plain_text(request.form.get('favorite_verse') or '')[:255]
+    hometown = sanitize_plain_text(request.form.get('hometown') or '')[:160]
+    occupation = sanitize_plain_text(request.form.get('occupation') or '')[:160]
+    interests = sanitize_plain_text(request.form.get('interests') or '')[:500]
+    if contains_censored_word(f'{about} {verse} {hometown} {occupation} {interests}'):
+        return 'That text contains a prohibited word.'
+    bday_raw = (request.form.get('birthday') or '').strip()
+    if bday_raw:
+        try:
+            datetime.strptime(bday_raw[:10], '%Y-%m-%d')
+        except ValueError:
+            return 'Birthday needs to be a real date.'
+    locked = fam.privacy_is_locked(uid)
+    payload = {
+        'about': about,
+        'favorite_verse': verse,
+        'show_training': request.form.get('show_training') == '1',
+        'show_replies': request.form.get('show_replies') == '1',
+        'show_follows': request.form.get('show_follows') == '1',
+        'allow_messages': request.form.get('allow_messages') == '1',
+        'show_stats': request.form.get('show_stats') == '1',
+        'accent_color': social_model.hex_or_none(request.form.get('accent_color')),
+        'bg_color': social_model.hex_or_none(request.form.get('bg_color')) or ((space or {}).get('bg_color')),
+        'text_color': social_model.hex_or_none(request.form.get('text_color')) or ((space or {}).get('text_color')),
+        'hometown': hometown,
+        'occupation': occupation,
+        'interests': interests,
+        'show_title': request.form.get('show_title') == '1',
+    }
+    if not locked:
+        payload.update({
+            'show_to_visitors': request.form.get('show_to_visitors') == '1',
+            'show_in_directory': request.form.get('show_in_directory') == '1',
+            'page_private': request.form.get('page_private') == '1',
+            'show_family': request.form.get('show_family') == '1',
+        })
+    if not space:
+        cc.create_member_space(uid, about=about, favorite_verse=verse)
+    cc.update_member_space(uid, payload)
+    bday_raw = (request.form.get('birthday') or '').strip()
+    bday = None
+    if bday_raw:
+        try:
+            bday = datetime.strptime(bday_raw[:10], '%Y-%m-%d').strftime('%Y-%m-%d')
+        except ValueError:
+            bday = None
+    update_user_profile(
+        uid,
+        birthday=bday,
+        show_birthday=1 if request.form.get('show_birthday') == '1' else 0,
+        updated_by=uid,
+    )
+    return None
+
+
 @church_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create_page():
@@ -673,34 +740,21 @@ def create_page():
         if request.form.get('not_now'):
             flash('You can create a page later from Home.', 'info')
             return redirect(url_for('church.church_home'))
-        about = (request.form.get('about_text') or request.form.get('about') or '').strip()
-        verse = (request.form.get('favorite_verse') or '').strip()
-        cc.create_member_space(uid, about=about, favorite_verse=verse)
-        cc.update_member_space(uid, {
-            'about': about,
-            'favorite_verse': verse,
-            'show_to_visitors': request.form.get('show_to_visitors') == '1',
-            'show_training': request.form.get('show_training') == '1',
-            'show_replies': request.form.get('show_replies') == '1',
-            'show_follows': request.form.get('show_follows') == '1',
-            'show_in_directory': request.form.get('show_in_directory') == '1',
-            'show_title': request.form.get('show_title') == '1',
-            'page_private': request.form.get('page_private') == '1',
-            'allow_messages': request.form.get('allow_messages') == '1',
-            'show_stats': request.form.get('show_stats') == '1',
-            'accent_color': social_model.hex_or_none(request.form.get('accent_color')),
-            'bg_color': social_model.hex_or_none(request.form.get('bg_color')),
-            'text_color': social_model.hex_or_none(request.form.get('text_color')),
-        })
+        err = _apply_my_page_form(uid, existing)
+        if err:
+            flash(err, 'error')
+            return redirect(url_for('church.create_page'))
         log_change(uid, 'create_member_space', target_id=uid, change_details='Created member page')
         user = cc.get_user_public(uid)
         flash('Your page is ready.', 'success')
         return redirect(url_for('church.member_page', username=user['username']))
     me = cc.get_user_public(uid)
+    from app.models import family_links as fam
     return render_template(
         'church/create_page.html',
         user=me,
         birthday_iso=_birthday_iso(me),
+        privacy_locked=fam.privacy_is_locked(uid),
     )
 
 
@@ -713,45 +767,10 @@ def edit_my_page():
         return redirect(url_for('church.create_page'))
     user = cc.get_user_public(uid)
     if request.method == 'POST':
-        about = (request.form.get('about_text') or request.form.get('about') or '').strip()
-        verse = (request.form.get('favorite_verse') or '').strip()
-        if contains_censored_word(f'{about} {verse}'):
-            flash('That text contains a prohibited word.', 'error')
+        err = _apply_my_page_form(uid, space)
+        if err:
+            flash(err, 'error')
             return redirect(url_for('church.edit_my_page'))
-        from app.models import family_links as fam
-        locked = fam.privacy_is_locked(uid)
-        payload = {
-            'about': about,
-            'favorite_verse': verse,
-            'show_training': request.form.get('show_training') == '1',
-            'show_replies': request.form.get('show_replies') == '1',
-            'show_follows': request.form.get('show_follows') == '1',
-            'allow_messages': request.form.get('allow_messages') == '1',
-            'show_stats': request.form.get('show_stats') == '1',
-            'accent_color': social_model.hex_or_none(request.form.get('accent_color')),
-            'bg_color': social_model.hex_or_none(request.form.get('bg_color')) or space.get('bg_color'),
-            'text_color': social_model.hex_or_none(request.form.get('text_color')) or space.get('text_color'),
-            'hometown': (request.form.get('hometown') or '').strip(),
-            'occupation': (request.form.get('occupation') or '').strip(),
-            'interests': (request.form.get('interests') or '').strip(),
-            'show_title': request.form.get('show_title') == '1',
-        }
-        if not locked:
-            payload.update({
-                'show_to_visitors': request.form.get('show_to_visitors') == '1',
-                'show_in_directory': request.form.get('show_in_directory') == '1',
-                'page_private': request.form.get('page_private') == '1',
-                'show_family': request.form.get('show_family') == '1',
-            })
-        cc.update_member_space(uid, payload)
-        from app.models.users import update_user_profile
-        bday = (request.form.get('birthday') or '').strip() or None
-        update_user_profile(
-            uid,
-            birthday=bday,
-            show_birthday=1 if request.form.get('show_birthday') == '1' else 0,
-            updated_by=uid,
-        )
         flash('Saved your page — About me, color, and the rest.', 'success')
         return redirect(url_for('church.member_page', username=user['username']))
     from app.models import family_links as fam

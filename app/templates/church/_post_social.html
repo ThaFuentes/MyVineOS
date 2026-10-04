@@ -35,6 +35,9 @@
   {% elif item.share_count %}
   <span class="post-share-count">{{ item.share_count }} share{{ 's' if item.share_count != 1 else '' }}</span>
   {% endif %}
+  {% if session.get('user_id') and item.type != 'photo' and not (item.author_id and item.author_id|int == session.get('user_id')|int) %}
+  {% with report_kind=item.type, report_id=item.id, report_comment_type=None %}{% include 'church/_report_button.html' %}{% endwith %}
+  {% endif %}
 </div>
 {% if item.shared_from %}
 <aside class="post-shared-orig">
@@ -42,8 +45,8 @@
     {% if item.shared_from.author_url %}<a href="{{ item.shared_from.author_url }}">{{ item.shared_from.display_name }}</a>
     {% else %}{{ item.shared_from.display_name or 'a member' }}{% endif %}
   </p>
-  {% if item.shared_from.title %}<strong>{{ item.shared_from.title }}</strong>{% endif %}
-  {% if item.shared_from.body %}<p>{{ item.shared_from.body[:280] }}</p>{% endif %}
+  {% if item.shared_from.title %}<strong>{{ item.shared_from.title|censor }}</strong>{% endif %}
+  {% if item.shared_from.body %}<p>{{ item.shared_from.body[:280]|censor }}</p>{% endif %}
 </aside>
 {% endif %}
 {% endif %}

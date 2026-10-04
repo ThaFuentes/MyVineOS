@@ -48,8 +48,9 @@ def list_prophecies():
     params = []
 
     sql += """
-        WHERE p.visibility IN ('public', 'private')
-           OR (p.visibility = 'personal' AND p.user_id = %s)
+        WHERE COALESCE(p.moderation_hidden, 0) = 0
+          AND (p.visibility IN ('public', 'private')
+               OR (p.visibility = 'personal' AND p.user_id = %s))
     """
     params.append(user_id)
 
@@ -102,7 +103,7 @@ def view_prophecy(prophecy_id):
                COALESCE(u.username, 'Anonymous') AS poster_name
         FROM prophecies p
         LEFT JOIN users u ON p.user_id = u.id
-        WHERE p.id = %s
+        WHERE p.id = %s AND COALESCE(p.moderation_hidden, 0) = 0
     """, (prophecy_id,))
     prophecy = cur.fetchone()
 
@@ -126,7 +127,7 @@ def view_prophecy(prophecy_id):
                COALESCE(u.username, 'Anonymous') AS commenter_name
         FROM prophecy_comments pc
         LEFT JOIN users u ON pc.user_id = u.id
-        WHERE pc.prophecy_id = %s
+        WHERE pc.prophecy_id = %s AND COALESCE(pc.removed, 0) = 0
         ORDER BY pc.date_added ASC
     """, (prophecy_id,))
     comments = cur.fetchall()
@@ -260,14 +261,13 @@ def delete_prophecy(prophecy_id):
         return redirect(url_for('prophecies.list_prophecies'))
 
     db = get_db()
-    cur = db.cursor()
     try:
-        cur.execute("DELETE FROM prophecies WHERE id = %s", (prophecy_id,))
-        db.commit()
-        if cur.rowcount:
+        from app.models import moderation as mod
+        ok, msg = mod.soft_delete_content('prophecy', int(prophecy_id), session['user_id'], 'Deleted')
+        if ok:
             log_change(session['user_id'], 'delete_prophecy', target_id=prophecy_id,
-                       change_details='Deleted prophecy')
-            flash('Prophecy deleted successfully.', 'success')
+                       change_details='Deleted (soft, restorable) prophecy')
+            flash('Prophecy deleted. A moderator can restore it.', 'success')
         else:
             flash('Prophecy not found.', 'error')
     except Exception as e:
@@ -366,8 +366,9 @@ def delete_comment(comment_id):
         return redirect(url_for('prophecies.list_prophecies'))
 
     try:
-        cur.execute("DELETE FROM prophecy_comments WHERE id = %s", (comment_id,))
-        db.commit()
+        from app.models.moderation import soft_delete_comment_auto
+        if not soft_delete_comment_auto('prophecy_comments', int(comment_id)):
+            raise RuntimeError('soft delete failed')
         log_change(session['user_id'], 'delete_comment', target_id=comment['prophecy_id'],
                    change_details='Deleted prophecy comment')
         flash('Comment deleted.', 'success')

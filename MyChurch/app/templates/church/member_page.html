@@ -52,6 +52,14 @@
       <a class="profile-me-btn{% if is_owner and compose_types %} profile-me-btn-quiet{% endif %}" href="{{ url_for('public.public_dashboard.public_community') }}">
         <i class="fa-solid fa-rss" aria-hidden="true"></i> Feed
       </a>
+      {% if is_owner %}
+      <a class="profile-me-btn profile-me-btn-quiet" href="{{ url_for('church.edit_my_page') }}">
+        <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit page
+      </a>
+      <a class="profile-me-btn profile-me-btn-quiet" href="{{ url_for('profile.profile') }}">
+        <i class="fa-solid fa-id-card" aria-hidden="true"></i> Edit profile
+      </a>
+      {% endif %}
     </div>
 
     {% set profile_kind = 'member' %}

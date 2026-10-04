@@ -30,12 +30,13 @@ def get_prophecies_list(is_logged_in=False, user_id=None, search_query=''):
     params = []
 
     if not is_logged_in:
-        sql += " WHERE p.visibility = %s"
+        sql += " WHERE COALESCE(p.moderation_hidden, 0) = 0 AND p.visibility = %s"
         params.append('public')
     else:
         sql += """
-            WHERE p.visibility IN ('public', 'private')
-               OR (p.visibility = 'personal' AND p.user_id = %s)
+            WHERE COALESCE(p.moderation_hidden, 0) = 0
+              AND (p.visibility IN ('public', 'private')
+                   OR (p.visibility = 'personal' AND p.user_id = %s))
         """
         params.append(user_id)
 
@@ -63,14 +64,14 @@ def get_prophecy_by_id(prophecy_id, is_logged_in=False, user_id=None):
                    COALESCE(u.username, 'Anonymous') AS poster_name
             FROM prophecies p
             LEFT JOIN users u ON p.user_id = u.id
-            WHERE p.id = %s
+            WHERE p.id = %s AND COALESCE(p.moderation_hidden, 0) = 0
         """, (prophecy_id,))
     else:
         cur.execute("""
             SELECT p.*,
                    COALESCE(p.contributor_name, 'Anonymous') AS poster_name
             FROM prophecies p
-            WHERE p.id = %s AND p.visibility = 'public'
+            WHERE p.id = %s AND p.visibility = 'public' AND COALESCE(p.moderation_hidden, 0) = 0
         """, (prophecy_id,))
 
     return cur.fetchone()
@@ -85,7 +86,7 @@ def get_prophecy_comments(prophecy_id):
                COALESCE(u.username, 'Anonymous') AS commenter_name
         FROM prophecy_comments pc
         LEFT JOIN users u ON pc.user_id = u.id
-        WHERE pc.prophecy_id = %s
+        WHERE pc.prophecy_id = %s AND COALESCE(pc.removed, 0) = 0
         ORDER BY pc.date_added ASC
     """, (prophecy_id,))
     return cur.fetchall()
@@ -128,13 +129,16 @@ def update_prophecy(prophecy_id, title, description, visibility):
 
 
 def delete_prophecy(prophecy_id):
-    """Delete prophecy and all its comments.html."""
+    """Soft-delete a prophecy (hidden + ledger, restorable); comments stay with it."""
+    from app.models import moderation as mod
     db = get_db()
-    cur = db.cursor()
     try:
-        cur.execute("DELETE FROM prophecy_comments WHERE prophecy_id = %s", (prophecy_id,))
-        cur.execute("DELETE FROM prophecies WHERE id = %s", (prophecy_id,))
-        db.commit()
+        actor = mod.session_actor_id()
+        if not actor:
+            raise RuntimeError('delete_prophecy needs a signed-in actor')
+        ok, msg = mod.soft_delete_content('prophecy', int(prophecy_id), actor, 'Deleted')
+        if not ok:
+            raise RuntimeError(msg)
         return True
     except Exception:
         db.rollback()
@@ -174,13 +178,11 @@ def update_prophecy_comment(comment_id, comment_text):
 
 
 def delete_prophecy_comment(comment_id):
-    """Delete a comment."""
+    """Remove a comment (soft: hidden + ledger, restorable)."""
+    from app.models.moderation import soft_delete_comment_auto
     db = get_db()
-    cur = db.cursor()
     try:
-        cur.execute("DELETE FROM prophecy_comments WHERE id = %s", (comment_id,))
-        db.commit()
-        return True
+        return soft_delete_comment_auto('prophecy_comments', int(comment_id))
     except Exception:
         db.rollback()
         raise

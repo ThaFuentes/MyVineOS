@@ -526,10 +526,10 @@ def member_photo_delete(username):
 @church_bp.route('/photos', methods=['POST'])
 @login_required
 def church_photo_add():
-    if not cc.can_edit_church_page():
+    campus_id = 0 if cc.single_church_install() else int(request.form.get('campus_id') or 0)
+    if not cc.can_edit_church_page(campus_id):
         flash('Only pastors and admins can add church photos.', 'error')
         return redirect(url_for('church.church_home'))
-    campus_id = 0 if cc.single_church_install() else int(request.form.get('campus_id') or 0)
     owner_type = 'campus' if campus_id else 'church'
     ok, msg = social_model.add_photo(
         owner_type, campus_id, request.files.get('photo'), request.form.get('caption') or '', session['user_id'],
@@ -575,10 +575,10 @@ def member_link_delete(username):
 @church_bp.route('/links', methods=['POST'])
 @login_required
 def church_link_add():
-    if not cc.can_edit_church_page():
+    campus_id = 0 if cc.single_church_install() else int(request.form.get('campus_id') or 0)
+    if not cc.can_edit_church_page(campus_id):
         flash('Only pastors and admins can add church links.', 'error')
         return redirect(url_for('church.church_home'))
-    campus_id = 0 if cc.single_church_install() else int(request.form.get('campus_id') or 0)
     owner_type = 'campus' if campus_id else 'church'
     added = social_model.add_link(
         owner_type, campus_id,

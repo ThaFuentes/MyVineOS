@@ -73,7 +73,7 @@
           {% if not m.is_mine %}
           <span class="mail-bubble-name">{{ m.display_name }}</span>
           {% endif %}
-          <p>{{ m.body }}</p>
+          <p>{{ m.body|censor }}</p>
           <time>{{ m.when_label }}</time>
         </div>
       </article>

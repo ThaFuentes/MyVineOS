@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=30">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/notification_bell.css') }}?v=20261004">
+{% endblock %}
+
+{% block content %}
+<div class="church-page">
+  <header class="feed-page-head">
+    <div>
+      <p class="page-kicker">You</p>
+      <h1 class="page-title">Notifications</h1>
+      <p class="page-description">Reactions, comments, replies, follows, @mentions, people praying for you, and notes.</p>
+    </div>
+    {% if unread %}
+    <form method="post" action="{{ url_for('church.notifications_read_all') }}">
+      {% include 'partials/csrf_field.html' %}
+      <button class="btn btn-secondary" type="submit">Mark all read ({{ unread }})</button>
+    </form>
+    {% endif %}
+  </header>
+
+  <section class="glass-panel profile-card">
+    {% if notifications %}
+    <ul class="notif-list">
+      {% for n in notifications %}
+      <li>
+        <form method="post" action="{{ url_for('church.notification_open', notif_id=n.id) }}">
+          {% include 'partials/csrf_field.html' %}
+          <button type="submit" class="notif-item{% if n.unread %} is-unread{% endif %}">
+            <span class="notif-ico">{% if n.pic_url %}<img src="{{ n.pic_url }}" alt="">{% else %}<i class="fa-solid {{ n.icon }}" aria-hidden="true"></i>{% endif %}</span>
+            <span class="notif-text"><strong>{{ n.actor }}</strong> {{ n.text }}
+              {% if n.body %}<span class="notif-body">{{ n.body|censor }}</span>{% endif %}
+              <span class="notif-when">{{ n.when }}</span>
+            </span>
+          </button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="profile-muted">Nothing yet. When someone reacts, comments, follows you or prays for your request, it shows up here.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

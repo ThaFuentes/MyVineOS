@@ -1428,7 +1428,7 @@ def member_wall(user_id: int, username: str = '', space: dict | None = None) -> 
     dreams = _safe_user_rows(
         """
         SELECT id, title, description AS body, date_posted, visibility
-        FROM dreams WHERE COALESCE(user_id, created_by) = %s
+        FROM dreams WHERE COALESCE(user_id, created_by) = %s AND COALESCE(moderation_hidden, 0) = 0
         ORDER BY date_posted DESC LIMIT 12
         """,
         uid,
@@ -1436,7 +1436,7 @@ def member_wall(user_id: int, username: str = '', space: dict | None = None) -> 
     prophecies = _safe_user_rows(
         """
         SELECT id, title, description AS body, created_at, visibility
-        FROM prophecies WHERE COALESCE(user_id, created_by) = %s
+        FROM prophecies WHERE COALESCE(user_id, created_by) = %s AND COALESCE(moderation_hidden, 0) = 0
         ORDER BY created_at DESC LIMIT 12
         """,
         uid,
@@ -1852,7 +1852,7 @@ def staff_on_page(campus: Optional[dict] = None) -> list[dict]:
                 SELECT DISTINCT u.id, u.username, u.first_name, u.last_name, u.role
                 FROM users u
                 INNER JOIN user_permissions up ON up.user_id = u.id
-                WHERE up.permission_key IN ('moderate_site', 'review_moderation')
+                WHERE up.permission_key IN ('moderate_site', 'moderate_content', 'review_moderation')
                 """
             )
             for row in cur.fetchall() or []:

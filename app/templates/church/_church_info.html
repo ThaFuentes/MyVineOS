@@ -72,7 +72,7 @@
 <section class="glass-panel profile-about">
   <h2>About</h2>
   {% if about_me %}
-  <p>{{ about_me | nl2br }}</p>
+  <p>{{ about_me | censor | nl2br }}</p>
   {% elif can_edit|default(false) %}
   <p class="profile-muted">Nothing here yet. <a href="{{ url_for('church.church_edit') }}">Add an About</a> for this church — it saves with the page color.</p>
   {% else %}

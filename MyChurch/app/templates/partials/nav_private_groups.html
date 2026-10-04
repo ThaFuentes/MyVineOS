@@ -4,7 +4,7 @@
 
 {% set community_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'bible.', 'curriculum.')) or ep.startswith('public.public_dashboard.') or ep == 'public.promotions_list' or ep == 'church.people' %}
 {% set church_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.', 'custom_modules.', 'child_checkin.', 'accounting.', 'volunteers.', 'communications.')) %}
-{% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule') %}
+{% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'church.edit_my_page', 'church.create_page') %}
 {% set ministry_active = ep.startswith(('pastoral.', 'worship.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) or ep in ('church.moderation_desk', 'church.moderation_review') %}
 {% set show_gathering = session.user_role in ['Staff', 'Admin', 'Owner'] or user_has_permission('settings.ticket_managers') %}
 {% set show_security = can_access_security_console|default(false) %}
@@ -136,7 +136,8 @@
     My Stuff{% if serving_pending_count %} <span class="count-pill count-pill-alert" title="Unanswered serving">{{ serving_pending_count }}</span>{% endif %} <span class="nav-caret" aria-hidden="true">▾</span>
   </button>
   <div class="nav-group-menu" role="menu">
-    <a href="{{ url_for('profile.profile') }}" role="menuitem" class="{{ 'active' if ep.startswith('profile.') else '' }}">Profile</a>
+    <a href="{{ url_for('church.edit_my_page') }}" role="menuitem" class="{{ 'active' if ep in ('church.edit_my_page', 'church.create_page') else '' }}">Edit your page</a>
+    <a href="{{ url_for('profile.profile') }}" role="menuitem" class="{{ 'active' if ep.startswith('profile.') else '' }}">Edit profile</a>
     {% if module_on('self_checkin') %}
     <a href="{{ url_for('attendance.self_checkin') }}" role="menuitem" class="{{ 'active' if ep == 'attendance.self_checkin' else '' }}">Self Check-In</a>
     {% endif %}

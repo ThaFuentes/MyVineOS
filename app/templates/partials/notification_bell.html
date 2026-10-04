@@ -1,0 +1,26 @@
+{# Notification bell (top bar). Count comes from notif_unread(); list loads on open. #}
+{% if session.get('user_id') %}
+{% set _unread = notif_unread() if notif_unread is defined else 0 %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/notification_bell.css') }}?v=20261004">
+<details class="notif-bell" data-feed-url="{{ url_for('church.notifications_feed') }}" data-open-base="{{ url_for('church.notifications_page') }}">
+  <summary class="notif-bell-btn" aria-label="Notifications{% if _unread %} ({{ _unread }} unread){% endif %}" title="Notifications">
+    <i class="fa-solid fa-bell" aria-hidden="true"></i>
+    <span class="notif-badge" data-notif-count{% if not _unread %} hidden{% endif %}>{{ _unread if _unread < 100 else '99+' }}</span>
+  </summary>
+  <div class="notif-panel" role="dialog" aria-label="Notifications">
+    <div class="notif-panel-head">
+      <strong>Notifications</strong>
+      <form method="post" action="{{ url_for('church.notifications_read_all') }}" class="notif-readall">
+        {% include 'partials/csrf_field.html' %}
+        <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+        <button type="submit" class="notif-link-btn">Mark all read</button>
+      </form>
+    </div>
+    <ul class="notif-list" data-notif-list>
+      <li class="notif-empty">Loading…</li>
+    </ul>
+    <a class="notif-see-all" href="{{ url_for('church.notifications_page') }}">See all notifications</a>
+  </div>
+</details>
+<script src="{{ url_for('static', filename='js/notification_bell.js') }}?v=20261004" defer></script>
+{% endif %}

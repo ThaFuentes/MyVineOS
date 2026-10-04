@@ -1,0 +1,22 @@
+{# Report button. Set report_kind, report_id (and report_comment_type for comments) before including. #}
+{% if session.get('user_id') and report_kind and report_id %}
+<details class="report-menu">
+  <summary title="Report this to a moderator"><i class="fa-regular fa-flag" aria-hidden="true"></i><span class="sr-only">Report</span></summary>
+  <form method="post" action="{{ url_for('church.report_content') }}" class="report-form">
+    {% include 'partials/csrf_field.html' %}
+    <input type="hidden" name="content_kind" value="{{ report_kind }}">
+    <input type="hidden" name="content_id" value="{{ report_id }}">
+    {% if report_comment_type %}<input type="hidden" name="comment_type" value="{{ report_comment_type }}">{% endif %}
+    <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+    <label>Why?
+      <select name="category" required>
+        {% for key, label in [('spam','Spam or scam'),('harassment','Harassment or bullying'),('abuse','Hateful or abusive'),('sexual','Sexual or inappropriate'),('crisis','Someone may be in danger'),('pii','Shares private information'),('other','Something else')] %}
+        <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <input type="text" name="note" maxlength="300" placeholder="Anything a moderator should know? (optional)">
+    <button type="submit" class="btn btn-secondary btn-sm">Send report</button>
+  </form>
+</details>
+{% endif %}

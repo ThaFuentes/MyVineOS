@@ -8,17 +8,20 @@
       <a href="{{ url_for('church.member_page', username=session.username) }}">
         <i class="fa-solid fa-user" aria-hidden="true"></i> Your page
       </a>
+      <a href="{{ you_edit_page or url_for('church.edit_my_page') }}">
+        <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit your page
+      </a>
       {% else %}
       <a href="{{ url_for('church.create_page') }}">
         <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create your page
       </a>
       {% endif %}
+      <a href="{{ url_for('profile.profile') }}">
+        <i class="fa-solid fa-id-card" aria-hidden="true"></i> Edit profile
+      </a>
     {% else %}
       <a href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Sign up</a>
       <a href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Log in</a>
-    {% endif %}
-    {% if you_edit_page %}
-    <a href="{{ you_edit_page }}"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit your page</a>
     {% endif %}
     <a href="{{ url_for('public.public_dashboard.public_community') }}">
       <i class="fa-solid fa-rss" aria-hidden="true"></i> Feed

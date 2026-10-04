@@ -120,7 +120,7 @@ def dashboard():
                    u.username AS poster_username
             FROM dreams d
             LEFT JOIN users u ON d.user_id = u.id
-            WHERE 1=1 {visibility_filter}
+            WHERE 1=1 AND COALESCE(d.moderation_hidden, 0) = 0 {visibility_filter}
             ORDER BY d.date_posted DESC
             LIMIT 5
         """)
@@ -144,7 +144,7 @@ def dashboard():
                    u.username AS poster_username
             FROM prophecies p
             LEFT JOIN users u ON p.user_id = u.id
-            WHERE 1=1 {visibility_filter}
+            WHERE 1=1 AND COALESCE(p.moderation_hidden, 0) = 0 {visibility_filter}
             ORDER BY p.created_at DESC
             LIMIT 5
         """)

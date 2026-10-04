@@ -291,18 +291,33 @@ def get_recent_comments(content_type, content_id, limit=3):
         return []
 
     try:
+        # Removed / shadowed comments never show in previews.
         cur.execute(f"""
             SELECT 
+                id, user_id,
                 {name_col} AS name, 
                 {comment_col} AS comment,
                 DATE_FORMAT({date_col}, '%%b %%e, %%Y %%h:%%i %%p') AS date
             FROM {table}
             WHERE {parent_col} = %s
+              AND COALESCE(removed, 0) = 0
+              AND COALESCE(shadowed, 0) = 0
             ORDER BY {date_col} DESC
             LIMIT %s
         """, (content_id, limit))
         return cur.fetchall()
     except Exception:
-        return []
+        try:
+            cur.execute(f"""
+                SELECT id, {name_col} AS name, {comment_col} AS comment,
+                       DATE_FORMAT({date_col}, '%%b %%e, %%Y %%h:%%i %%p') AS date
+                FROM {table}
+                WHERE {parent_col} = %s
+                ORDER BY {date_col} DESC
+                LIMIT %s
+            """, (content_id, limit))
+            return cur.fetchall()
+        except Exception:
+            return []
     finally:
         cur.close()

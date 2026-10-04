@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_community.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/global/church_profile.css') }}?v=30">
+{% endblock %}
+
+{% block content %}
+<div class="church-page">
+  <header class="feed-page-head">
+    <div>
+      <p class="page-kicker">Moderation</p>
+      <h1 class="page-title">Reports</h1>
+      <p class="page-description">What members reported. Hide takes it down (reversible), Dismiss keeps it up, Restore puts it back. Every decision goes to the moderation ledger and the audit log.</p>
+    </div>
+    <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('church.moderation_desk') }}">Moderation desk</a>
+      {% if can_review %}
+      <a class="btn btn-secondary" href="/church/moderation/review">Review queue</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <nav style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.8rem;">
+    {% for key, label in [('open', 'Open'), ('hidden', 'Hidden'), ('dismissed', 'Dismissed'), ('restored', 'Restored')] %}
+    <a class="btn btn-sm {{ 'btn-primary' if status_filter == key else 'btn-secondary' }}" href="{{ url_for('church.moderation_flags', status=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <section class="glass-panel profile-card" style="margin-bottom:1rem;">
+    <h2 class="profile-card-title">{{ status_filter|capitalize }} reports</h2>
+    {% if targets %}
+    <ul class="profile-serving-list">
+      {% for t in targets %}
+      <li class="profile-serving-row">
+        <div>
+          <strong>{{ t.content_kind|capitalize }}{% if t.comment_type %} ({{ t.comment_type }}){% endif %} #{{ t.content_id }}</strong>
+          <span>{{ t.reports }} report{{ '' if t.reports == 1 else 's' }} · {{ t.categories }}{% if t.author_username %} · by @{{ t.author_username }}{% endif %} · {{ t.last_at }}</span>
+          {% if t.missing %}<span class="profile-muted">Item no longer exists.</span>{% elif t.hidden %}<span class="profile-muted">Currently hidden.</span>{% endif %}
+          {% if t.preview %}<span>{{ t.preview }}</span>{% endif %}
+          {% if t.notes %}<span class="profile-muted">Notes: {{ t.notes }}</span>{% endif %}
+        </div>
+        <form method="post" class="profile-serving-actions" action="{{ url_for('church.moderation_flags', status=status_filter) }}">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="content_kind" value="{{ t.content_kind }}">
+          <input type="hidden" name="content_id" value="{{ t.content_id }}">
+          <input type="hidden" name="content_table" value="{{ t.content_table or '' }}">
+          <input type="hidden" name="comment_type" value="{{ t.comment_type or '' }}">
+          <input class="form-input" name="note" placeholder="Note (optional)" style="max-width:10rem;">
+          {% if not t.hidden and not t.missing %}
+          <button class="btn btn-secondary btn-sm" name="decision" value="hide">Hide</button>
+          {% endif %}
+          {% if status_filter == 'open' %}
+          <button class="btn btn-secondary btn-sm" name="decision" value="dismiss">Dismiss</button>
+          {% endif %}
+          {% if t.hidden %}
+          <button class="btn btn-secondary btn-sm" name="decision" value="restore">Restore</button>
+          {% endif %}
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="profile-muted">Nothing here. 🙏</p>
+    {% endif %}
+  </section>
+
+  <section class="glass-panel profile-card" style="margin-bottom:1rem;">
+    <h2 class="profile-card-title">Hidden &amp; deleted — restore</h2>
+    <p class="profile-muted">Moderator hides and admin/editor deletes are soft. Restore puts the item back for everyone.</p>
+    {% if removed %}
+    <ul class="profile-serving-list">
+      {% for a in removed %}
+      <li class="profile-serving-row">
+        <div>
+          <strong>{{ a.label }} · {{ a.target_kind }} #{{ a.target_id }}</strong>
+          <span>{% if a.target_username %}@{{ a.target_username }} · {% endif %}by {{ a.actor_name or a.actor_username or 'staff' }} · {{ a.created_at }}</span>
+          {% if a.preview %}<span>{{ a.preview }}</span>{% endif %}
+          {% if a.reason %}<span class="profile-muted">{{ a.reason }}</span>{% endif %}
+        </div>
+        <form method="post" class="profile-serving-actions" action="{{ url_for('church.moderation_restore') }}">
+          {% include 'partials/csrf_field.html' %}
+          <input type="hidden" name="action_id" value="{{ a.id }}">
+          <button class="btn btn-secondary btn-sm" type="submit">Restore</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="profile-muted">Nothing hidden right now.</p>
+    {% endif %}
+  </section>
+
+  <section class="glass-panel profile-card">
+    <h2 class="profile-card-title">Blocked word-list hits</h2>
+    <p class="profile-muted">Saves the censored-word filter stopped. The banned word is masked here and was never shown.</p>
+    {% if wordlist_hits %}
+    <ul class="profile-serving-list">
+      {% for h in wordlist_hits %}
+      <li class="profile-serving-row">
+        <div>
+          <strong>{% if h.username %}@{{ h.username }}{% else %}Guest{% endif %}</strong>
+          <span>{{ h.context or '' }} · {{ h.created_at }}</span>
+          {% if h.excerpt %}<span>{{ h.excerpt }}</span>{% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="profile-muted">No blocked saves.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

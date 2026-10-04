@@ -2,8 +2,10 @@
 {% set ep = request.endpoint or '' %}
 {% set mon = module_on %}
 <nav aria-label="My Stuff sections" style="display:flex; gap:0.5rem; flex-wrap:wrap; background:var(--bg-card, #252525); border:1px solid var(--primary-border, rgba(0,255,255,0.15)); border-radius:12px; padding:0.4rem; margin-bottom:0.75rem;">
+    <a href="{{ url_for('church.edit_my_page') }}"
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if ep in ('church.edit_my_page', 'church.create_page') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Edit your page</a>
     <a href="{{ url_for('profile.profile') }}"
-       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if ep.startswith('profile.') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Profile</a>
+       style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if ep.startswith('profile.') %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Edit profile</a>
     {% if mon('self_checkin') %}
     <a href="{{ url_for('attendance.self_checkin') }}"
        style="padding:0.35rem 0.85rem; border-radius:9999px; text-decoration:none; font-size:0.9rem; {% if ep == 'attendance.self_checkin' %}background:var(--primary); color:var(--text-on-primary);{% else %}background:rgba(255,255,255,0.06); color:var(--text-primary);{% endif %}">Check In</a>

@@ -115,12 +115,11 @@ def view_prophecy(prophecy_id):
 @gathering_place_required
 def delete_prophecy(prophecy_id):
     """Delete prophecy (with confirmation in template)."""
-    db = get_db()
-    cur = db.cursor()
+    # Soft delete: hidden from everyone, kept in the moderation ledger, restorable.
+    from app.models import moderation as mod
     try:
-        cur.execute("DELETE FROM prophecies WHERE id = %s", (prophecy_id,))
-        db.commit()
-        flash('Prophecy deleted permanently.', 'success')
+        ok, msg = mod.soft_delete_content('prophecy', int(prophecy_id), session['user_id'], 'Deleted in Gathering Place')
+        flash(msg if ok else 'Failed to delete prophecy.', 'success' if ok else 'error')
     except Exception:
         flash('Failed to delete prophecy.', 'error')
     return redirect(url_for('the_gathering.prophecies.prophecies_dashboard'))

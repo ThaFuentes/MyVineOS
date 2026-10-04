@@ -115,12 +115,11 @@ def view_dream(dream_id):
 @gathering_place_required
 def delete_dream(dream_id):
     """Delete dream/vision (with confirmation in template)."""
-    db = get_db()
-    cur = db.cursor()
+    # Soft delete: hidden from everyone, kept in the moderation ledger, restorable.
+    from app.models import moderation as mod
     try:
-        cur.execute("DELETE FROM dreams WHERE id = %s", (dream_id,))
-        db.commit()
-        flash('Dream/Vision deleted permanently.', 'success')
+        ok, msg = mod.soft_delete_content('dream', int(dream_id), session['user_id'], 'Deleted in Gathering Place')
+        flash(msg if ok else 'Failed to delete dream/vision.', 'success' if ok else 'error')
     except Exception:
         flash('Failed to delete dream/vision.', 'error')
     return redirect(url_for('the_gathering.dreams.dreams_dashboard'))

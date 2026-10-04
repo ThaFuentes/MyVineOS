@@ -184,3 +184,21 @@ scratch/
 
 # Community-layer sandbox is tracked on branch social-media (MyChurch/).
 # Secrets, venv, uploads, and runtime junk are ignored by MyChurch/.gitignore.
+
+# ─── Key files, push keys, exports, backups (added 2026-10-04) ──────────────
+# The app writes these next to the code; never commit them.
+dm_key.bin
+*.bin
+vapid*.json
+backups/
+*.tgz
+*.tar.gz
+*.sql.gz
+*.bak
+*.dump
+church_wip_*.patch
+church_backup_*.tgz
+# Local review notes and backups. Not part of the app.
+MAYA_CHANGES_2026-10-04.md
+*_review_2026-10-04.md
+*.bak*

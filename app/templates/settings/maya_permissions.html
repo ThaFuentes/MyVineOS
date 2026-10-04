@@ -1,0 +1,103 @@
+{% extends "settings/base_settings.html" %}
+
+{% block settings_content %}
+<section class="content-section">
+  <h2 class="section-title">Maya permissions</h2>
+  <p class="help-text">
+    What Maya's bot may do through <code>/api/bot/maya/…</code>. Owner only. Saving takes effect on her very next call.
+    Everything she does is written to Bot usage and the change log, attributed to her acting account.
+  </p>
+
+  <form method="POST" action="{{ url_for('maya_api.owner_set_account') }}" class="styled-form">
+    {% include 'partials/csrf_field.html' %}
+    <div class="settings-card">
+      <h3 class="section-subtitle">Which bot key is Maya</h3>
+      <label for="maya-key">Bot key</label>
+      <select id="maya-key" name="key_id" class="form-input">
+        {% for k in keys %}
+        <option value="{{ k.id }}" {% if settings and settings.key_id == k.id %}selected{% endif %}>{{ k.name }} · {{ k.key_prefix }}… · {{ 'On' if k.active else 'Off' }}</option>
+        {% endfor %}
+      </select>
+      <label for="maya-actor">Acting account (who her posts and edits show as)</label>
+      <select id="maya-actor" name="acting_user_id" class="form-input">
+        <option value="">Key creator</option>
+        {% for m in members %}
+        <option value="{{ m.id }}" {% if settings and settings.acting_user_id == m.id %}selected{% endif %}>{{ m.label or m.username or m.id }}</option>
+        {% endfor %}
+      </select>
+      {% if settings and settings.implicit %}<p class="help-text">Not saved yet: using the first active key named like "Maya".</p>{% endif %}
+      <button class="btn btn-primary" type="submit">Save Maya's key</button>
+    </div>
+  </form>
+
+  <div class="settings-card">
+    <h3 class="section-subtitle">Never allowed (built into the code)</h3>
+    <ul>{% for line in hard_limits %}<li>{{ line }}</li>{% endfor %}</ul>
+  </div>
+
+  {% if settings %}
+  <form method="POST" action="{{ url_for('maya_api.owner_save') }}" class="styled-form" id="maya-perms">
+    {% include 'partials/csrf_field.html' %}
+    {% for g in groups %}
+    <div class="settings-card" data-group style="margin-top:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+        <h3 class="section-subtitle" style="margin:0">{{ g.name }}</h3>
+        <span>
+          <button type="button" class="btn btn-secondary" data-all="on">All on</button>
+          <button type="button" class="btn btn-secondary" data-all="off">All off</button>
+        </span>
+      </div>
+      {% for p in g.perms %}
+      <label style="display:flex;gap:.6rem;align-items:flex-start;padding:.35rem 0;">
+        <input type="checkbox" name="perm" value="{{ p.id }}"
+               {% if state.get(p.id) %}checked{% endif %}
+               {% if not p.implemented %}disabled{% endif %}>
+        <span>
+          <strong>{{ p.label }}</strong>
+          {% if p.high_risk %}<span style="background:#b00020;color:#fff;border-radius:4px;padding:0 .35rem;font-size:.75rem;">High risk</span>{% endif %}
+          {% if not p.implemented %}<span class="help-text">(not available yet)</span>{% endif %}
+          <br><span class="help-text">{{ p.detail }} <code>{{ p.id }}</code></span>
+          {% if p.implemented %}
+          {% set running = expiry.get(p.id) %}
+          <br><span class="help-text">Auto-off:</span>
+          <select name="exp_unit_{{ p.id }}" class="form-input" style="width:auto;display:inline-block">
+            {% if running %}<option value="keep" selected>keep ({{ remaining(running) }})</option>{% endif %}
+            {% if not p.high_risk %}<option value="none" {% if not running %}selected{% endif %}>no expiry</option>{% endif %}
+            {% for u in units %}<option value="{{ u }}" {% if p.high_risk and not running and u == 'hours' %}selected{% endif %}>{{ u }}</option>{% endfor %}
+          </select>
+          <input name="exp_n_{{ p.id }}" class="form-input" inputmode="numeric" value="{{ 24 if p.high_risk else 1 }}" style="width:4.5rem;display:inline-block">
+          {% if state.get(p.id) %}<span class="help-text">{{ remaining(running) if running else 'no expiry' }}</span>{% endif %}
+          {% if p.high_risk %}<span class="help-text">(timer required; default 24 hours)</span>{% endif %}
+          {% endif %}
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="settings-card" style="margin-top:1rem;">
+      <h3 class="section-subtitle">Confirm it's you</h3>
+      <p class="help-text">Only needed to turn ON a High risk switch. Use your password or your 2FA code.</p>
+      <input class="form-input" type="password" name="confirm_password" autocomplete="current-password" placeholder="Your password">
+      <input class="form-input" name="confirm_code" inputmode="numeric" autocomplete="one-time-code" placeholder="2FA code">
+    </div>
+    <button class="btn btn-primary" type="submit" style="margin-top:1rem;">Save permissions</button>
+  </form>
+  {% endif %}
+
+  <div class="settings-card" style="margin-top:1rem;">
+    <h3 class="section-subtitle">Permission changes</h3>
+    {% for l in log %}
+    <div class="help-text">{{ l.created_at }} · {{ l.owner_username or '?' }} · <code>{{ l.perm }}</code> {{ 'on' if l.new_value else 'off' }}{% if l.high_risk %} · High risk{% endif %}{% if l.confirmed_with %} · {{ l.confirmed_with }}{% endif %}</div>
+    {% else %}<p class="help-text">No changes yet.</p>{% endfor %}
+  </div>
+</section>
+<script>
+document.querySelectorAll('[data-all]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var on = btn.getAttribute('data-all') === 'on';
+    btn.closest('[data-group]').querySelectorAll('input[type=checkbox]:not([disabled])').forEach(function (cb) { cb.checked = on; });
+  });
+});
+</script>
+{% endblock %}

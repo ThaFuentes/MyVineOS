@@ -115,12 +115,11 @@ def view_prayer(prayer_id):
 @gathering_place_required
 def delete_prayer(prayer_id):
     """Delete prayer (with confirmation in template)."""
-    db = get_db()
-    cur = db.cursor()
+    # Soft delete: hidden from everyone, kept in the moderation ledger, restorable.
+    from app.models import moderation as mod
     try:
-        cur.execute("DELETE FROM prayers WHERE id = %s", (prayer_id,))
-        db.commit()
-        flash('Prayer deleted permanently.', 'success')
+        ok, msg = mod.soft_delete_content('prayer', int(prayer_id), session['user_id'], 'Deleted in Gathering Place')
+        flash(msg if ok else 'Failed to delete prayer.', 'success' if ok else 'error')
     except Exception:
         flash('Failed to delete prayer.', 'error')
     return redirect(url_for('the_gathering.prayers.prayers_dashboard'))

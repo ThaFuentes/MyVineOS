@@ -83,11 +83,13 @@ def search_family_members(user_id, search_query):
     """Search for potential family members (respects allow_family_search)."""
     db = get_db()
     cur = db.cursor(pymysql.cursors.DictCursor)
-    like_param = f'%{search_query}%'
+    like_param = f"%{(search_query or '').strip().lower()}%"
     cur.execute('''
         SELECT id, first_name, last_name
         FROM users
-        WHERE (LOWER(first_name) LIKE %s OR LOWER(last_name) LIKE %s OR LOWER(email) LIKE %s)
+        WHERE (LOWER(first_name) LIKE %s OR LOWER(last_name) LIKE %s
+               OR LOWER(CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''))) LIKE %s
+               OR LOWER(email) LIKE %s)
           AND id != %s
           AND allow_family_search = 1
           AND id NOT IN (
@@ -95,7 +97,7 @@ def search_family_members(user_id, search_query):
               UNION
               SELECT user_id FROM family_relations WHERE relative_id = %s AND status IN ('pending', 'approved')
           )
-    ''', (like_param, like_param, like_param, user_id, user_id, user_id))
+    ''', (like_param, like_param, like_param, like_param, user_id, user_id, user_id))
     return cur.fetchall()
 
 

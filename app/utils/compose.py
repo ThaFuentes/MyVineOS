@@ -6,7 +6,7 @@ from flask import flash, session, url_for, request
 
 from app.models.log import log_change
 from app.utils.community_participation import can_create_community_content
-from app.utils.helpers import contains_censored_word
+from app.utils.helpers import CENSORED_WORD_MESSAGE, contains_censored_word
 from app.utils.html_sanitize import sanitize_plain_text
 from app.utils.appearance import sanitize_public_href
 from app.utils.link_preview import fetch_link_preview, first_url_in, looks_like_url
@@ -145,7 +145,7 @@ def create_from_compose(form, files=None):
             flash('Title and message are required.', 'error')
             return False, None
         if contains_censored_word(f'{title} {content}'):
-            flash('Content contains a prohibited word or phrase.', 'error')
+            flash(CENSORED_WORD_MESSAGE, 'error')
             return False, None
         ann_id = create_announcement(
             title, content, _visibility(form, 'public'), 1, 1, session.get('user_id')
@@ -161,7 +161,7 @@ def create_from_compose(form, files=None):
             flash('Title and description are required.', 'error')
             return False, None
         if contains_censored_word(f'{title} {description}'):
-            flash('Content contains a prohibited word or phrase.', 'error')
+            flash(CENSORED_WORD_MESSAGE, 'error')
             return False, None
         db = get_db()
         cur = db.cursor()
@@ -197,7 +197,7 @@ def create_from_compose(form, files=None):
             flash('Event name and date are required.', 'error')
             return False, None
         if contains_censored_word(name + ' ' + (form.get('description') or '')):
-            flash('Event contains a prohibited word or phrase.', 'error')
+            flash(CENSORED_WORD_MESSAGE, 'error')
             return False, None
         fee = form.get('cost_fees') or None
         pay_required = 1 if form.get('payment_required') or fee else 0
@@ -257,7 +257,7 @@ def create_from_compose(form, files=None):
             flash('Title is required.', 'error')
             return False, None
         if contains_censored_word(f'{title} {details}'):
-            flash('Content contains a prohibited word or phrase.', 'error')
+            flash(CENSORED_WORD_MESSAGE, 'error')
             return False, None
         if not link and not details:
             flash('Add a link, text, or use the full upload page for a file.', 'error')
@@ -278,6 +278,13 @@ def create_from_compose(form, files=None):
             form.get('url') or form.get('external_link') or '',
         )
         vis = _visibility(form, 'public')
+        if contains_censored_word(f'{title} {body}'):
+            flash(CENSORED_WORD_MESSAGE, 'error')
+            return False, None
+        slow = social_model.post_throttle_message(session['user_id'])
+        if slow:
+            flash(slow, 'info')
+            return False, None
         image_path = None
         upload = None
         if hasattr(files, 'get'):
@@ -295,8 +302,18 @@ def create_from_compose(form, files=None):
             link_desc=preview.get('description') or '',
         )
         if not post_id:
-            flash('Write something, add a photo, or drop the banned words.', 'error')
+            flash('Write something or add a photo.', 'error')
             return False, None
+        try:
+            from app.models.notifications import notify_mentions
+            notify_mentions(f'{title} {body}', session['user_id'], target_kind=kind, target_id=post_id)
+        except Exception as exc:
+            print(f'compose mention notify skipped: {exc}')
+        try:
+            from app.utils.ai_moderation import queue_check
+            queue_check(kind, post_id, f'{title} {body}', session['user_id'])
+        except Exception:
+            pass
         from app.models import church_community as cc
         voice = cc.resolve_compose_voice(form.get('posted_as'))
         if kind == 'book':

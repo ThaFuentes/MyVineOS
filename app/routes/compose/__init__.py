@@ -28,7 +28,7 @@ def compose_form():
 @login_required
 def compose_link_preview():
     from flask import jsonify
-    from app.utils.link_preview import fetch_link_preview, first_url_in
+    from app.utils.link_preview import fetch_link_preview, first_url_in, sign_image_url
 
     raw = (request.args.get('url') or '').strip()
     href = first_url_in(raw) or raw
@@ -36,7 +36,8 @@ def compose_link_preview():
     if not data:
         return jsonify({'ok': False})
     if data.get('image'):
-        data['image'] = url_for('compose.compose_link_preview_image', url=data['image'])
+        data['image'] = url_for('compose.compose_link_preview_image', url=data['image'],
+                                sig=sign_image_url(data['image']))
     return jsonify({'ok': True, **data})
 
 
@@ -44,9 +45,13 @@ def compose_link_preview():
 def compose_link_preview_image():
     """Same-origin thumbnail so hotlink-protected og:images actually paint."""
     from flask import Response, abort
-    from app.utils.link_preview import fetch_link_image
+    from app.utils.link_preview import fetch_link_image, image_sig_ok
 
-    raw, ctype = fetch_link_image(request.args.get('url') or '')
+    url = request.args.get('url') or ''
+    # Members, or a URL this app signed (wall cards guests can see). Not an open proxy.
+    if not session.get('user_id') and not image_sig_ok(url, request.args.get('sig')):
+        abort(403)
+    raw, ctype = fetch_link_image(url)
     if not raw or not ctype:
         abort(404)
     resp = Response(raw, mimetype=ctype)
@@ -71,8 +76,10 @@ def compose_create():
 def compose_reply():
     """Inline reply. Guests: community/church only. Not on member pages."""
     from flask import flash, session
-    from app.utils.comment_moderation import insert_public_comment, COMMENT_TYPES
-    from app.utils.helpers import contains_censored_word
+    from app.utils.comment_moderation import (
+        insert_public_comment, COMMENT_TYPES, comment_throttle_message,
+    )
+    from app.utils.helpers import CENSORED_WORD_MESSAGE, contains_censored_word
     from app.utils.html_sanitize import sanitize_plain_text
     from app.utils.visitor_permissions import visitor_can_comment
 
@@ -95,7 +102,11 @@ def compose_reply():
         flash('Write a reply.', 'error')
         return redirect(nxt)
     if contains_censored_word(text) or contains_censored_word(request.form.get('name') or ''):
-        flash('That reply has a prohibited word.', 'error')
+        flash(CENSORED_WORD_MESSAGE, 'error')
+        return redirect(nxt)
+    slow = comment_throttle_message(user_id=uid, ip=request.remote_addr)
+    if slow:
+        flash(slow, 'info')
         return redirect(nxt)
     if surface == 'member' and not uid:
         flash('Sign in to reply on a member page. Guests can reply in Community.', 'info')

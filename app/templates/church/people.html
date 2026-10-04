@@ -38,7 +38,7 @@
           <strong>{{ p.display_name }}</strong>
           <span>@{{ p.username }}</span>
           {% if p.branch_name %}<span>{% if p.same_branch %}Your branch · {% endif %}{{ p.branch_name }}</span>{% endif %}
-          {% if p.occupation %}<span>{{ p.occupation }}</span>{% endif %}
+          {% if p.occupation %}<span>{{ p.occupation|censor }}</span>{% endif %}
           {% if not p.has_page %}<span>No page yet</span>{% endif %}
         </span>
       </a>

@@ -302,11 +302,11 @@ def _same_origin_request() -> bool:
                 # avoid importing urllib if not needed
                 from urllib.parse import urlparse
                 netloc = urlparse(candidate).netloc.split(":")[0].lower()
-                if netloc == host or netloc.endswith("." + host):
+                # Exact host only: a sibling/sub-domain is not this site.
+                if netloc == host:
                     return True
             except Exception:
-                if host in candidate.lower():
-                    return True
+                continue
         return False
     except Exception:
         return False
@@ -399,6 +399,53 @@ def validate_csrf(token: str) -> bool:
     ok, _reason, _meta = classify_csrf_token(token)
     return ok
 
+# ====================== CHURCH BOT API ======================
+def _bot_bearer_valid() -> bool:
+    """True only when the request carries an active bot session or API key."""
+    try:
+        header = request.headers.get("Authorization") or ""
+        raw = header[7:].strip() if header.lower().startswith("bearer ") else ""
+        raw = raw or (request.headers.get("X-Bot-Key") or "").strip()
+        if not raw or len(raw) > 200:
+            return False
+        from app.utils import bot_store
+        row = bot_store.find_session(raw) if raw.startswith("mvos_s_") else bot_store.find_key(raw)
+        return bool(row and row.get("active"))
+    except Exception as exc:
+        logger("bot key check failed (treating as unverified): " + str(exc))
+        return False
+
+
+def _bot_request_allowed(ip) -> bool:
+    """/api/bot/*: skip CSRF/UA checks (bearer API), keep limits for unverified callers."""
+    if _bot_bearer_valid():
+        g.pbt_bot_verified = True
+        return True
+    if not check_rate_limit(ip):
+        g.rate_limited = True
+        log_security_event("rate_limit_exceeded", "Unverified /api/bot caller exceeded rate limit")
+        increment_attack_stat("ddos_attempts")
+        return False
+    if is_locked_out():
+        log_security_event("brute_force_lock", "Unverified /api/bot caller is locked out")
+        increment_attack_stat("brute_force")
+        return False
+    score = get_reputation_score(ip)
+    rep_floor = int(REPUTATION_BLOCK_THRESHOLD) if REPUTATION_BLOCK_THRESHOLD is not None else 8
+    if score < rep_floor:
+        log_security_event("low_reputation", f"/api/bot reputation score {score} below threshold {rep_floor}")
+        increment_attack_stat("reputation_block", penalize=False)
+        return False
+    # A bearer was sent but did not validate: count it toward the reputation jail.
+    try:
+        if (request.headers.get("Authorization") or request.headers.get("X-Bot-Key")):
+            record_bad_behavior(ip, "bad_bot_key")
+    except Exception:
+        pass
+    # Let the route answer 401 with its own help text. No vetting for this session.
+    return True
+
+
 # ====================== FULL SECURITY PIPELINE ======================
 def run_full_security_pipeline():
     if not FULL_SECURITY_PIPELINE_ENABLED:
@@ -411,15 +458,12 @@ def run_full_security_pipeline():
         return True
 
     path = request.path or ""
-    # Church bot key. The route checks the bearer token. A tool user-agent
-    # or a missing CSRF field must not jail or block /api/bot.
+    # Church bot key. A tool user-agent or a missing CSRF field must not jail
+    # or block /api/bot, but only a caller holding a valid bot key/session skips
+    # the pipeline. Everyone else still gets the rate limit, IP jail and
+    # reputation checks, and the session is never vetted for them.
     if path == "/api/bot" or path.startswith("/api/bot/"):
-        try:
-            if not is_vetted():
-                mark_as_vetted()
-        except Exception:
-            pass
-        return True
+        return _bot_request_allowed(ip)
     action = (request.form.get("action") or "").lower()
     is_public_guest_mutation = path.startswith("/public/") and action in (
         "comment", "reply", "potluck", "submit_request"
@@ -612,6 +656,10 @@ def run_full_security_pipeline():
                 logger("CSRF soft-allow on auth entry (mobile-friendly)")
             # Logged-in member + same-origin browser: almost always multi-tab / stale tab /
             # long form — NOT a cross-site attack. Soft-allow and do not jail the IP.
+            elif member and same_origin and reason in ("bad_signature", "malformed"):
+                # A forged or mangled token is never a stale tab. Refuse it.
+                log_security_event("csrf_member_forged", detail, severity="medium")
+                return False
             elif member and same_origin:
                 # Same-site logged-in POSTs (multi-tab, long sermon forms, stale cache)
                 # are not cross-site CSRF. Session cookie already binds identity.

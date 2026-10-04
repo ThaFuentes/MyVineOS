@@ -73,6 +73,7 @@
     <div class="user-info">
       {% include 'partials/display_prefs.html' %}
       {% if session.get('user_id') %}
+        {% include 'partials/notification_bell.html' %}
         <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">My Dashboard</a>
         <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.8rem; min-height:auto;">Logout</a>
       {% else %}

@@ -32,6 +32,8 @@ def get_all_prophecies(filter_type='all', search_query=None, limit=50):
         where_clauses.append("(pr.title LIKE %s OR pr.prophecy_text LIKE %s)")
         params.extend([f"%{search_query}%", f"%{search_query}%"])
 
+    # Soft-deleted / moderator-hidden items live in Moderation -> Reports (restore there).
+    where_clauses.append("COALESCE(pr.moderation_hidden, 0) = 0")
     where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
     cc = comment_count_subquery('prophecy', 'pr')

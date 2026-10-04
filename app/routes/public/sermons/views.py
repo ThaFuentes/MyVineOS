@@ -102,8 +102,10 @@ def public_sermon_detail(sermon_id):
         if action == 'delete' and session.get('role') in ['Owner', 'Admin']:
             comment_id = request.form.get('comment_id')
             try:
-                cur.execute("DELETE FROM sermon_comments WHERE id = %s", (comment_id,))
-                db.commit()
+                from app.models import moderation as mod
+                if not mod.soft_delete_comment('sermon_comments', int(comment_id or 0),
+                                               session.get('user_id'), 'Deleted'):
+                    raise RuntimeError('soft delete failed')
                 flash('Comment deleted.', 'success')
             except Exception:
                 flash('Failed to delete comment.', 'error')

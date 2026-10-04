@@ -290,6 +290,7 @@ AREA_MATRIX = [
         'icon': 'fa-user-shield',
         'actions': [
             {'id': 'moderate', 'label': 'Site moderator — hide, shadow, warn, remove prayers and posts (reversible)', 'keys': ['moderate_site']},
+            {'id': 'content', 'label': 'Moderator — report queue; hide / restore posts, prayers and comments (no people tools)', 'keys': ['moderate_content']},
             {'id': 'review', 'label': 'Review & reverse what moderators did', 'keys': ['review_moderation']},
         ],
     },

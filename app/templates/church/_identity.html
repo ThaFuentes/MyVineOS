@@ -51,7 +51,7 @@
       {% if identity_kicker %}<p class="profile-kicker">{{ identity_kicker }}</p>{% endif %}
       <h1 class="profile-name">{{ display_name or church_name }}</h1>
       {% if branch_name %}<p class="profile-branch">{{ branch_name }}</p>{% endif %}
-      {% if verse %}<blockquote class="profile-verse">{{ verse }}</blockquote>{% endif %}
+      {% if verse %}<blockquote class="profile-verse">{{ verse|censor }}</blockquote>{% endif %}
     </div>
   </div>
 </div>

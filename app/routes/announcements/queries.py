@@ -68,7 +68,7 @@ def get_announcement_comments(ann_id):
                COALESCE(u.username, 'Anonymous') AS commenter_name
         FROM announcement_comments c
         LEFT JOIN users u ON c.user_id = u.id
-        WHERE c.announcement_id = %s
+        WHERE c.announcement_id = %s AND COALESCE(c.removed, 0) = 0
         ORDER BY c.date_added ASC
     """, (ann_id,))
     return cur.fetchall()

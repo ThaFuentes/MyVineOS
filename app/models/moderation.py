@@ -19,6 +19,12 @@ ACTION_LABELS = {
     'post_hide': 'Hid a wall post',
     'post_shadow': 'Shadowed a wall post',
     'post_restore': 'Restored a wall post',
+    'post_delete': 'Deleted a wall post (soft, can be restored)',
+    'post_self_delete': 'Author deleted their own post (soft)',
+    'comment_restore': 'Restored a comment',
+    'comment_self_delete': 'Author deleted their own comment (soft)',
+    'content_delete': 'Deleted community content (soft, can be restored)',
+    'flag_dismiss': 'Dismissed a report',
     'content_hide': 'Hid community content',
     'content_restore': 'Restored community content',
     'user_warn': 'Warned a member',
@@ -33,6 +39,7 @@ ACTION_LABELS = {
 REVERSIBLE = frozenset({
     'comment_remove', 'comment_shadow', 'comment_edit',
     'post_hide', 'post_shadow', 'content_hide',
+    'post_delete', 'content_delete',
     'user_warn', 'user_shadow', 'user_ban', 'user_lock',
 })
 
@@ -53,8 +60,13 @@ CONTENT_SPECS = {
     'prophecy': {'table': 'prophecies', 'perm': 'moderate_prophecies', 'title': 'title', 'body': 'description', 'author': 'user_id'},
 }
 POST_KINDS = frozenset({'post', 'quote', 'verse', 'image', 'book', 'blog', 'share'})
+# Dedicated Moderator role (Access key moderate_content): wall posts, prayers,
+# and comments on anything. No people tools (warn/shadow/ban), no office tools.
+CONTENT_MOD_KINDS = POST_KINDS | frozenset({'prayer'})
+HIDE_ACTIONS = ('post_hide', 'post_delete', 'content_hide', 'content_delete', 'comment_remove')
 SITE_MOD_PERMS = (
     'moderate_site',
+    'moderate_content',
     'moderate_prayers',
     'moderate_sermons',
     'moderate_events',
@@ -379,14 +391,14 @@ def _apply_reverse(kind: str, row: dict, snap: dict, reviewer_id: int) -> None:
         )
         db.commit()
         return
-    if kind == 'post_hide' and tid:
+    if kind in ('post_hide', 'post_delete') and tid:
         cur.execute(
             "UPDATE community_posts SET removed_at=NULL, removed_by=NULL WHERE id=%s",
             (int(tid),),
         )
         db.commit()
         return
-    if kind == 'content_hide' and table and tid:
+    if kind in ('content_hide', 'content_delete') and table and tid:
         _unhide_row(table, int(tid), snap)
         return
     if kind == 'post_shadow' and tid:
@@ -416,7 +428,8 @@ def _apply_reverse(kind: str, row: dict, snap: dict, reviewer_id: int) -> None:
     raise ValueError('Could not reverse that action.')
 
 
-def hide_post(post_id: int, actor_id: int, reason: str = '') -> tuple[bool, str]:
+def hide_post(post_id: int, actor_id: int, reason: str = '', *, warn: bool = True,
+              action_type: str = 'post_hide') -> tuple[bool, str]:
     from app.models.social import get_community_post
     ensure_tables()
     row = get_community_post(post_id)
@@ -431,9 +444,9 @@ def hide_post(post_id: int, actor_id: int, reason: str = '') -> tuple[bool, str]
         (int(actor_id), int(post_id)),
     )
     db.commit()
-    record_action(
+    action_id = record_action(
         actor_id=actor_id,
-        action_type='post_hide',
+        action_type=action_type,
         target_kind='post',
         target_table='community_posts',
         target_id=int(post_id),
@@ -446,7 +459,8 @@ def hide_post(post_id: int, actor_id: int, reason: str = '') -> tuple[bool, str]
             'visibility': row.get('visibility'),
         },
     )
-    if reason and row.get('user_id'):
+    _remember_action(action_id)
+    if warn and reason and row.get('user_id'):
         try:
             warn_user(int(row['user_id']), actor_id, reason)
         except Exception:
@@ -561,6 +575,8 @@ def can_moderate_kind(kind: str) -> bool:
         return True
     if not has_request_context():
         return False
+    if kind in CONTENT_MOD_KINDS and can_moderate_content():
+        return True
     perm = spec.get('perm')
     return bool(perm and user_has_permission(perm))
 
@@ -602,6 +618,7 @@ def flag_wall_moderation(items: list[dict] | None) -> list[dict]:
     from app.utils.permissions import user_has_permission
     site = can_moderate_site()
     walls = can_moderate_walls()
+    content_mod = can_moderate_content()
     in_req = has_request_context()
     for item in items or []:
         kind = (item.get('type') or item.get('kind') or '').strip()
@@ -612,8 +629,8 @@ def flag_wall_moderation(items: list[dict] | None) -> list[dict]:
             and spec
             and (
                 site
-                or walls
-                or item.get('can_manage_wall')
+                or (kind in POST_KINDS and (walls or item.get('can_manage_wall')))
+                or (kind in CONTENT_MOD_KINDS and content_mod)
                 or (in_req and perm and user_has_permission(perm))
             )
         )
@@ -660,11 +677,13 @@ def _unhide_row(table: str, item_id: int, snap: dict | None = None) -> None:
     db.commit()
 
 
-def hide_content(kind: str, item_id: int, actor_id: int, reason: str = '') -> tuple[bool, str]:
+def hide_content(kind: str, item_id: int, actor_id: int, reason: str = '', *, warn: bool = True,
+                 action_type: str = 'content_hide') -> tuple[bool, str]:
     """Hide a prayer, sermon, event, wall post, etc. Reviewers can put it back."""
     kind = (kind or '').strip()
     if kind in POST_KINDS:
-        return hide_post(item_id, actor_id, reason)
+        post_action = 'post_delete' if action_type == 'content_delete' else 'post_hide'
+        return hide_post(item_id, actor_id, reason, warn=warn, action_type=post_action)
     spec = CONTENT_SPECS.get(kind)
     if not spec:
         return False, 'That kind of post cannot be moderated here.'
@@ -698,9 +717,9 @@ def hide_content(kind: str, item_id: int, actor_id: int, reason: str = '') -> tu
     author = row.get(spec.get('author') or 'user_id') or row.get('created_by') or row.get('user_id')
     title = row.get(spec.get('title') or 'title') or ''
     body = row.get(spec.get('body') or 'body') or ''
-    record_action(
+    action_id = record_action(
         actor_id=actor_id,
-        action_type='content_hide',
+        action_type=action_type,
         target_kind=kind,
         target_table=table,
         target_id=int(item_id),
@@ -714,7 +733,8 @@ def hide_content(kind: str, item_id: int, actor_id: int, reason: str = '') -> tu
             'is_active': row.get('is_active'),
         },
     )
-    if reason and author:
+    _remember_action(action_id)
+    if warn and reason and author:
         try:
             warn_user(int(author), actor_id, reason)
         except Exception:
@@ -741,3 +761,271 @@ def restore_content(kind: str, item_id: int, actor_id: int) -> tuple[bool, str]:
 def can_review_moderation() -> bool:
     from app.utils.permissions import user_has_permission
     return bool(user_has_permission('review_moderation'))
+
+
+# ---------------------------------------------------------------------------
+# Moderator role, soft deletes, restore (2026-10-04)
+# ---------------------------------------------------------------------------
+
+def can_moderate_content() -> bool:
+    """Dedicated Moderator (moderate_content), site mods, or Owner/Admin."""
+    from flask import has_request_context
+    from app.utils.permissions import user_has_permission
+    if not has_request_context():
+        return False
+    return bool(user_has_permission('moderate_content') or user_has_permission('moderate_site'))
+
+
+def _remember_action(action_id) -> None:
+    """Let callers (report queue) link the ledger row they just caused."""
+    try:
+        from flask import g, has_request_context
+        if has_request_context():
+            g.last_moderation_action_id = action_id
+    except Exception:
+        pass
+
+
+def last_action_id():
+    try:
+        from flask import g, has_request_context
+        if has_request_context():
+            return getattr(g, 'last_moderation_action_id', None)
+    except Exception:
+        pass
+    return None
+
+
+def comment_table_ok(table: str) -> bool:
+    from app.builddb.comment_moderation import COMMENT_TABLES
+    return (table or '') in COMMENT_TABLES
+
+
+def _comment_text_col(table: str) -> str:
+    from app.utils.comment_moderation import COMMENT_TYPES
+    for cfg in COMMENT_TYPES.values():
+        if cfg['table'] == table:
+            return cfg['text_col']
+    return 'comment'
+
+
+def get_comment(table: str, comment_id: int) -> dict | None:
+    if not comment_table_ok(table):
+        return None
+    cur = _cur()
+    try:
+        cur.execute(f"SELECT * FROM {table} WHERE id=%s LIMIT 1", (int(comment_id),))
+        row = cur.fetchone()
+    except Exception:
+        return None
+    if row:
+        row['body'] = row.get(_comment_text_col(table))
+    return row
+
+
+def soft_delete_comment(table: str, comment_id: int, actor_id: int | None, reason: str = '', *,
+                        self_delete: bool = False) -> bool:
+    """Mark a comment removed (never DELETE) and write it to the ledger."""
+    if not actor_id or not comment_table_ok(table):
+        return False
+    ensure_tables()
+    row = get_comment(table, comment_id)
+    if not row:
+        return False
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute(
+            f"UPDATE {table} SET removed=1, moderated_by=%s, moderated_at=NOW() WHERE id=%s",
+            (int(actor_id), int(comment_id)),
+        )
+    except Exception:
+        cur.execute(f"UPDATE {table} SET removed=1 WHERE id=%s", (int(comment_id),))
+    db.commit()
+    action_id = record_action(
+        actor_id=actor_id,
+        action_type='comment_self_delete' if self_delete else 'comment_remove',
+        target_kind='comment',
+        target_table=table,
+        target_id=int(comment_id),
+        target_user_id=row.get('user_id'),
+        reason=reason,
+        snapshot={'body': (row.get('body') or '')[:1000], 'table': table, 'id': int(comment_id)},
+    )
+    _remember_action(action_id)
+    return True
+
+
+def soft_delete_content(kind: str, item_id: int, actor_id: int, reason: str = '') -> tuple[bool, str]:
+    """Admin/editor delete of a post, prayer, dream, etc: hide it, keep the row, log it."""
+    ok, msg = hide_content(kind, item_id, actor_id, reason or 'Deleted', warn=False,
+                           action_type='content_delete')
+    if ok:
+        msg = 'Deleted. A moderator can restore it from the moderation queue.'
+    elif 'already hidden' in (msg or ''):
+        ok, msg = True, 'Already removed from the site.'
+    return ok, msg
+
+
+def session_actor_id() -> int | None:
+    """Signed-in user for query-layer deletes (soft delete needs an actor)."""
+    try:
+        from flask import has_request_context, session
+        if has_request_context():
+            return int(session.get('user_id') or 0) or None
+    except Exception:
+        pass
+    return None
+
+
+def soft_delete_comment_auto(table: str, comment_id: int, reason: str = 'Deleted') -> bool:
+    """Soft delete from a route/query that only knows the comment id."""
+    actor = session_actor_id()
+    row = get_comment(table, comment_id) if comment_table_ok(table) else None
+    if not actor or not row:
+        return False
+    own = int(row.get('user_id') or 0) == int(actor)
+    return soft_delete_comment(table, int(comment_id), actor, reason, self_delete=own)
+
+
+def _reverse_open_hides(target_table: str, target_id: int, reviewer_id: int, note: str) -> None:
+    """Close the ledger rows a restore undoes so the review desk stays honest."""
+    db = get_db()
+    cur = db.cursor()
+    ph = ','.join(['%s'] * len(HIDE_ACTIONS))
+    try:
+        cur.execute(
+            f"""
+            UPDATE moderation_actions
+            SET status='reversed', reversed_by=%s, reversed_at=NOW(), reverse_note=%s
+            WHERE target_table=%s AND target_id=%s AND status='active' AND action_type IN ({ph})
+            """,
+            (int(reviewer_id), (note or 'Restored')[:500], target_table, int(target_id), *HIDE_ACTIONS),
+        )
+        db.commit()
+    except Exception as exc:
+        print(f'moderation reverse rows: {exc}')
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+def restore_comment(table: str, comment_id: int, actor_id: int, note: str = '') -> tuple[bool, str]:
+    if not comment_table_ok(table):
+        return False, 'Unknown comment.'
+    ensure_tables()
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute(
+            f"UPDATE {table} SET removed=0, moderated_by=%s, moderated_at=NOW() WHERE id=%s",
+            (int(actor_id), int(comment_id)),
+        )
+    except Exception:
+        cur.execute(f"UPDATE {table} SET removed=0 WHERE id=%s", (int(comment_id),))
+    db.commit()
+    _reverse_open_hides(table, int(comment_id), actor_id, note)
+    record_action(
+        actor_id=actor_id,
+        action_type='comment_restore',
+        target_kind='comment',
+        target_table=table,
+        target_id=int(comment_id),
+        reason=note,
+    )
+    return True, 'Comment is back.'
+
+
+def restore_target(kind: str, item_id: int, actor_id: int, note: str = '',
+                   table: str | None = None) -> tuple[bool, str]:
+    """Moderator restore/undo for a hidden or soft-deleted post, prayer or comment."""
+    kind = (kind or '').strip()
+    if kind == 'comment':
+        return restore_comment(table or '', int(item_id), actor_id, note)
+    spec = CONTENT_SPECS.get(kind)
+    if not spec:
+        return False, 'Unknown item.'
+    ensure_tables()
+    snap = {}
+    try:
+        cur = _cur()
+        cur.execute(
+            """
+            SELECT snapshot_json FROM moderation_actions
+            WHERE target_table=%s AND target_id=%s AND status='active'
+            ORDER BY id DESC LIMIT 1
+            """,
+            (spec['table'], int(item_id)),
+        )
+        row = cur.fetchone() or {}
+        snap = json.loads(row.get('snapshot_json') or '{}') or {}
+    except Exception:
+        snap = {}
+    _unhide_row(spec['table'], int(item_id), snap)
+    _reverse_open_hides(spec['table'], int(item_id), actor_id, note)
+    record_action(
+        actor_id=actor_id,
+        action_type='post_restore' if kind in POST_KINDS else 'content_restore',
+        target_kind=kind,
+        target_table=spec['table'],
+        target_id=int(item_id),
+        reason=note,
+    )
+    return True, 'Restored. Everyone can see it again.'
+
+
+def list_removed(limit: int = 60) -> list[dict]:
+    """Active hide/delete rows a moderator can restore."""
+    ensure_tables()
+    cur = _cur()
+    ph = ','.join(['%s'] * len(HIDE_ACTIONS))
+    try:
+        cur.execute(
+            f"""
+            SELECT a.*, u.username AS actor_username,
+                   TRIM(CONCAT(COALESCE(u.first_name,''),' ',COALESCE(u.last_name,''))) AS actor_name,
+                   t.username AS target_username
+            FROM moderation_actions a
+            LEFT JOIN users u ON u.id = a.actor_id
+            LEFT JOIN users t ON t.id = a.target_user_id
+            WHERE a.status='active' AND a.action_type IN ({ph})
+            ORDER BY a.created_at DESC
+            LIMIT %s
+            """,
+            (*HIDE_ACTIONS, int(limit)),
+        )
+        return [_decorate(r) for r in (cur.fetchall() or [])]
+    except Exception as exc:
+        print(f'moderation list_removed: {exc}')
+        return []
+
+
+def content_author_id(kind: str, item_id: int) -> int | None:
+    """Author of a post/prayer/event/etc. (for notifications and reports)."""
+    spec = CONTENT_SPECS.get((kind or '').strip())
+    if not spec or not item_id:
+        return None
+    try:
+        row = _fetch_content_row(spec, int(item_id))
+    except Exception:
+        return None
+    if not row:
+        return None
+    author = row.get(spec.get('author') or 'user_id') or row.get('user_id') or row.get('created_by')
+    try:
+        return int(author) if author else None
+    except (TypeError, ValueError):
+        return None
+
+
+def content_is_hidden(kind: str, row: dict | None) -> bool:
+    if not row:
+        return True
+    if (kind or '') in POST_KINDS:
+        return bool(row.get('removed_at'))
+    if row.get('moderation_hidden'):
+        return True
+    if kind == 'prayer' and (row.get('status') or '') in ('hidden', 'removed', 'rejected', 'deleted', 'spam'):
+        return True
+    return False

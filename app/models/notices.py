@@ -169,7 +169,7 @@ def list_notices(user_id: int, limit: int = 12) -> list[dict]:
             """
             SELECT c.created_at AS when_at, c.comment AS body, e.id AS parent_id, e.event_name AS title
             FROM event_comments c JOIN events e ON e.id = c.event_id
-            WHERE COALESCE(e.created_by, e.updated_by) = %s AND COALESCE(c.user_id, 0) <> %s
+            WHERE COALESCE(e.created_by, e.updated_by) = %s AND COALESCE(c.user_id, 0) <> %s AND COALESCE(c.removed, 0) = 0
             ORDER BY c.created_at DESC LIMIT 6
             """,
             'event', 'church.church_home',
@@ -178,7 +178,7 @@ def list_notices(user_id: int, limit: int = 12) -> list[dict]:
             """
             SELECT c.date_added AS when_at, c.prayer AS body, p.id AS parent_id, p.title
             FROM prayers_added c JOIN prayers p ON p.id = c.prayer_request_id
-            WHERE COALESCE(p.user_id, p.created_by) = %s AND COALESCE(c.user_id, 0) <> %s
+            WHERE COALESCE(p.user_id, p.created_by) = %s AND COALESCE(c.user_id, 0) <> %s AND COALESCE(c.removed, 0) = 0
             ORDER BY c.date_added DESC LIMIT 6
             """,
             'prayer', 'church.church_home',
@@ -187,7 +187,7 @@ def list_notices(user_id: int, limit: int = 12) -> list[dict]:
             """
             SELECT c.date_added AS when_at, c.comment AS body, a.id AS parent_id, a.title
             FROM announcement_comments c JOIN announcements a ON a.id = c.announcement_id
-            WHERE a.created_by = %s AND COALESCE(c.user_id, 0) <> %s
+            WHERE a.created_by = %s AND COALESCE(c.user_id, 0) <> %s AND COALESCE(c.removed, 0) = 0
             ORDER BY c.date_added DESC LIMIT 6
             """,
             'reply', 'church.church_home',
@@ -197,7 +197,7 @@ def list_notices(user_id: int, limit: int = 12) -> list[dict]:
             SELECT c.date_added AS when_at, c.comment AS body, p.id AS parent_id, p.caption AS title
             FROM page_photo_comments c
             JOIN page_photos p ON p.id = c.photo_id
-            WHERE p.owner_type = 'member' AND p.owner_id = %s AND COALESCE(c.user_id, 0) <> %s
+            WHERE p.owner_type = 'member' AND p.owner_id = %s AND COALESCE(c.user_id, 0) <> %s AND COALESCE(c.removed, 0) = 0
             ORDER BY c.date_added DESC LIMIT 6
             """,
             'photo', 'church.photo_view',

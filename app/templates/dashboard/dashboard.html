@@ -175,7 +175,7 @@
     <span class="dash-tile-label">Gathering</span>
   </a>
   {% endif %}
-  {% if user_has_permission('moderate_site') %}
+  {% if user_has_permission('moderate_site') or user_has_permission('moderate_content') %}
   <a href="/church/moderation" class="glass-panel dash-tile dash-tile-gathering">
     <span class="dash-tile-icon"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span>
     <span class="dash-tile-label">Site moderation</span>

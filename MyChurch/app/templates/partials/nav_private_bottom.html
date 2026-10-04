@@ -2,7 +2,7 @@
 {% set ep = request.endpoint or '' %}
 {% set s = g.settings|default({}) if g is defined else {} %}
 {% set office_active = ep.startswith(('members.', 'donations.', 'bills.', 'inventory.', 'attendance.', 'groups.', 'child_checkin.', 'custom_modules.', 'accounting.', 'volunteers.', 'communications.')) and ep not in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond') %}
-{% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond') %}
+{% set account_active = ep.startswith(('profile.', 'settings.', 'help.', 'support_tickets.')) or ep in ('attendance.self_checkin', 'child_checkin.my_kids', 'volunteers.my_schedule', 'volunteers.my_respond', 'church.edit_my_page', 'church.create_page') %}
 {% set life_active = ep.startswith(('events.', 'prayers.', 'sermons.', 'dreams.', 'prophecies.', 'announcements.', 'curriculum.')) or ep in ('church.people', 'public.promotions_list') or ep.startswith('church.messages') %}
 {% set ministry_active = ep.startswith(('pastoral.', 'worship.', 'the_gathering.', 'log.', 'tickets.', 'security.', 'ai_insights.')) or ep in ('church.moderation_desk', 'church.moderation_review') %}
 {% set more_active = office_active or life_active or ministry_active or ep.startswith('legal.') %}
@@ -71,8 +71,11 @@
     <button type="button" class="nav-sheet-close" data-nav-sheet-close aria-label="Close">×</button>
   </header>
   <div class="nav-sheet-body">
+    <a href="{{ url_for('church.edit_my_page') }}" class="nav-sheet-link {{ 'active' if ep in ('church.edit_my_page', 'church.create_page') else '' }}">
+      <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit your page
+    </a>
     <a href="{{ url_for('profile.profile') }}" class="nav-sheet-link {{ 'active' if ep.startswith('profile.') else '' }}">
-      <i class="fa-solid fa-id-card" aria-hidden="true"></i> Profile
+      <i class="fa-solid fa-id-card" aria-hidden="true"></i> Edit profile
     </a>
     {% if module_on('self_checkin') %}
     <a href="{{ url_for('attendance.self_checkin') }}" class="nav-sheet-link {{ 'active' if ep == 'attendance.self_checkin' else '' }}">

@@ -610,26 +610,42 @@ def delete_post(post_id: int, actor_id: int) -> tuple[bool, str]:
             allowed = False
     if not allowed:
         return False, 'You can only delete your own posts.'
-    image = (row.get('image_path') or '').strip()
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("DELETE FROM community_posts WHERE id=%s", (int(post_id),))
-    try:
+    if row.get('removed_at'):
+        return False, 'That post was already removed.'
+    # Soft delete only: the row (and its image file, which a reshare may share)
+    # stays on disk. Feeds already skip removed_at rows. Every delete goes to the
+    # moderation ledger; deletes by someone other than the author can be restored.
+    from app.models import moderation as mod
+    self_delete = owner == actor
+    if self_delete:
+        db = get_db()
+        cur = db.cursor()
         cur.execute(
-            "DELETE FROM content_posting WHERE content_type=%s AND content_id=%s",
-            (row.get('kind') or 'post', int(post_id)),
+            "UPDATE community_posts SET removed_at=NOW(), removed_by=%s WHERE id=%s",
+            (actor, int(post_id)),
         )
-    except Exception:
-        pass
-    db.commit()
-    if image:
-        path = os.path.join(identity_dir(), image) if not os.path.isabs(image) else image
-        if os.path.isfile(path):
-            try:
-                os.remove(path)
-            except OSError:
-                pass
-    return True, 'Post removed.'
+        db.commit()
+        mod.record_action(
+            actor_id=actor,
+            action_type='post_self_delete',
+            target_kind='post',
+            target_table='community_posts',
+            target_id=int(post_id),
+            target_user_id=owner or None,
+            snapshot={
+                'title': row.get('title'),
+                'body': row.get('body'),
+                'kind': row.get('kind'),
+                'visibility': row.get('visibility'),
+                'image_path': row.get('image_path'),
+            },
+        )
+        return True, 'Post removed.'
+    ok, msg = mod.hide_post(int(post_id), actor, 'Deleted by a page editor or admin', warn=False,
+                            action_type='post_delete')
+    if not ok:
+        return False, msg
+    return True, 'Post removed. A moderator can restore it if that was a mistake.'
 
 
 def following_ids(user_id: int | None) -> list[int]:
@@ -852,6 +868,35 @@ def list_badges(user_id: int) -> list[dict]:
         return list(cur.fetchall() or [])
     except Exception:
         return []
+
+
+# Per-member anti-flood throttles (not a content gate).
+POSTS_PER_HOUR = 20
+COMMENTS_PER_HOUR = 60
+
+
+def hour_post_count(user_id: int) -> int:
+    cur = _cur()
+    try:
+        cur.execute(
+            """
+            SELECT COUNT(*) AS n FROM community_posts
+            WHERE user_id=%s AND created_at >= (NOW() - INTERVAL 1 HOUR)
+            """,
+            (int(user_id),),
+        )
+        return int((cur.fetchone() or {}).get('n') or 0)
+    except Exception:
+        return 0
+
+
+def post_throttle_message(user_id: int | None) -> str:
+    """'' when they may post, otherwise a friendly slow-down note."""
+    if not user_id:
+        return ''
+    if hour_post_count(int(user_id)) >= POSTS_PER_HOUR:
+        return f'Slow down a little — {POSTS_PER_HOUR} posts an hour is the limit. Try again soon.'
+    return ''
 
 
 def hour_message_count(user_id: int) -> int:
@@ -1346,7 +1391,8 @@ def send_message(thread_id: int, sender_id: int, body: str) -> tuple[bool, str]:
     if len(text) > MAX_MESSAGE_LEN:
         return False, 'That note is too long. Keep it under 4,000 characters.'
     if contains_censored_word(text):
-        return False, 'That wording isn’t allowed here. Try saying it another way.'
+        from app.utils.helpers import CENSORED_WORD_MESSAGE
+        return False, CENSORED_WORD_MESSAGE
     if hour_message_count(sender_id) >= 30:
         return False, 'Slow down a little — 30 notes an hour is the limit.'
     thread = get_thread(thread_id, sender_id)
@@ -1376,6 +1422,16 @@ def send_message(thread_id: int, sender_id: int, body: str) -> tuple[bool, str]:
         notify_note_reply(thread, int(sender_id), _person_name(sender))
     except Exception as exc:
         print(f'note notify skipped: {exc}')
+    try:
+        # Bell entry for 1:1 notes (push already went out above).
+        if not is_church_thread(thread) and not is_room_thread(thread):
+            from app.models.notifications import notify
+            other = thread['user_high'] if int(thread['user_low']) == int(sender_id) else thread['user_low']
+            notify(other, 'dm', actor_id=sender_id, target_kind='dm', target_id=int(thread_id),
+                   url=url_for('church.messages_thread', thread_id=int(thread_id)) if has_request_context() else '',
+                   body='', push=False)
+    except Exception as exc:
+        print(f'dm bell skipped: {exc}')
     return True, ''
 
 

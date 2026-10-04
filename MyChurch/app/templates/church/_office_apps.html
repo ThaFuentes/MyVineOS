@@ -65,7 +65,8 @@
     {% if module_on('support_tickets') %}
     <a href="{{ url_for('support_tickets.dashboard') }}"><i class="fa-solid fa-ticket" aria-hidden="true"></i> My Tickets</a>
     {% endif %}
-    <a href="{{ url_for('profile.profile') }}"><i class="fa-solid fa-user" aria-hidden="true"></i> Profile</a>
+    <a href="{{ url_for('church.edit_my_page') }}"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit your page</a>
+    <a href="{{ url_for('profile.profile') }}"><i class="fa-solid fa-id-card" aria-hidden="true"></i> Edit profile</a>
     <a href="{{ url_for('help.help_index') }}"><i class="fa-solid fa-circle-question" aria-hidden="true"></i> Help</a>
     <a href="{{ url_for('settings.general') }}"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
     {% if session.get('user_role') in ['Owner', 'Admin'] %}

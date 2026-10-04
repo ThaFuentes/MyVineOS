@@ -86,9 +86,11 @@ def get_recent_activity(limit=10):
         UNION ALL
         SELECT 'dream' AS type, id, title, date_posted AS created_at, visibility, contributor_name AS author
         FROM dreams
+        WHERE COALESCE(moderation_hidden, 0) = 0
         UNION ALL
         SELECT 'prophecy' AS type, id, title, created_at, visibility, NULL AS author
         FROM prophecies
+        WHERE COALESCE(moderation_hidden, 0) = 0
         UNION ALL
         SELECT 'announcement' AS type, id, title, created_at, visibility, NULL AS author
         FROM announcements

@@ -42,6 +42,10 @@
     <a href="{{ url_for('bot_access.page') }}"
        class="settings-nav-link {{ 'active' if request.endpoint == 'bot_access.page' else '' }}">Bot Access</a>
     {% endif %}
+    {% if session.get('user_role') == 'Owner' and endpoint_exists('maya_api.owner_page') %}
+    <a href="{{ url_for('maya_api.owner_page') }}"
+       class="settings-nav-link {{ 'active' if request.endpoint == 'maya_api.owner_page' else '' }}">Maya permissions</a>
+    {% endif %}
     {% if session.get('user_role') == 'Owner' and endpoint_exists('bot_access.usage') %}
     <a href="{{ url_for('bot_access.usage') }}"
        class="settings-nav-link {{ 'active' if request.endpoint == 'bot_access.usage' else '' }}">Bot usage</a>

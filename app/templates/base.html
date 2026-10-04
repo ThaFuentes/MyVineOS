@@ -103,6 +103,7 @@
         </form>
         {% include 'partials/campus_switcher.html' %}
         {% include 'partials/display_prefs.html' %}
+        {% include 'partials/notification_bell.html' %}
         <div class="user-chip">
           <i class="fa-solid fa-user" aria-hidden="true"></i> {{ session.username|default('Member') }}
           <span style="opacity:0.7; font-size:0.75em;">{{ session.user_role|default('') }}</span>

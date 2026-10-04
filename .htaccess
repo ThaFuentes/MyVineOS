@@ -7,3 +7,42 @@ PassengerPython "/home/ua882038/virtualenv/public_html/myvinechurch.online/3.13/
 <IfModule Litespeed>
 </IfModule>
 # DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END
+
+# BEGIN MYVINE DOCROOT PROTECTION (2026-10-04)
+# The app root is also the public docroot on HostM. LiteSpeed serves any real
+# file in here before Passenger sees the request, so keep secrets, keys,
+# backups, exports and source code out of reach. Static assets live under
+# /static/ and stay public. Flask routes are not affected by these rules.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Dotfiles and dot-folders (.env, .env.*, .git/, .venv/, .htaccess) except ACME checks
+    RewriteRule "(^|/)\.(?!well-known/)" - [F,L]
+    # Private folders: source, sandbox copies, backups, exports, logs, raw uploads.
+    # Uploads are served only through Flask routes that check access.
+    RewriteRule "^(app|poweredbytop|MyChurch|myvineos|marketing|scripts|tests|docs|export|exports|backups|logs|log_files|tmp|uploads|instance|__pycache__|venv|env)(/|$)" - [F,L]
+</IfModule>
+
+# Secret and private file types anywhere under the docroot
+<FilesMatch "(?i)(^\.|\.(env|bin|key|pem|p12|pfx|sql|sqlite|sqlite3|db|dump|bak|backup|old|orig|save|swp|tmp|log|md|py|pyc|pyo|ini|cfg|conf|toml|yml|yaml|lock|zip|tgz|gz|tar|bz2|xz|7z|rar|patch|diff|sh|pid)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Named root files: push keys, requirement lists, code maps, launchers, config
+<FilesMatch "(?i)^(vapid.*\.json|config.*\.json|credentials.*\.json|service-account.*\.json|requirements.*\.txt|project_structure\.txt|WORSHIP_PROMPTER_UPDATE\.txt|License|htaccess|docker-compose.*|passenger.*|wsgi\.py|main\.py|myvineos|Makefile|Dockerfile)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+# END MYVINE DOCROOT PROTECTION

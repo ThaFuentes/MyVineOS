@@ -435,6 +435,14 @@ def apply_moderation_action(content_type, parent_id, moderator_id, moderator_use
                 item_title=f"{content_type}:{parent_id}",
                 details=f"{detail_prefix} restored by {moderator_username}.",
             )
+            record_action(
+                actor_id=moderator_id,
+                action_type='comment_restore',
+                target_kind='comment',
+                target_table=cfg['table'],
+                target_id=comment_id,
+                target_user_id=comment.get('uid'),
+            )
             flash('Comment is back.', 'success')
 
         elif action == 'edit':
@@ -570,6 +578,9 @@ def insert_public_comment(content_type, parent_id, name, text, parent_comment_id
         return False
     if contains_censored_word(f'{name or ""} {text or ""}'):
         return False
+    # Anti-flood backstop (routes show the friendly message first).
+    if comment_throttle_message(user_id, ip):
+        return False
 
     db = get_db()
     cur = db.cursor()
@@ -583,12 +594,73 @@ def insert_public_comment(content_type, parent_id, name, text, parent_comment_id
     try:
         cur.execute(f"INSERT INTO {cfg['table']} ({col_sql}) VALUES ({placeholders})", vals)
         db.commit()
+        new_id = cur.lastrowid
         cur.close()
-        return True
     except Exception:
         db.rollback()
         cur.close()
         return False
+    after_comment_saved(content_type, parent_id, new_id, text, user_id=user_id, name=name,
+                        parent_comment_id=parent_comment_id)
+    return True
+
+
+def after_comment_saved(content_type, parent_id, comment_id, text, user_id=None, name='',
+                        parent_comment_id=None):
+    """Bell notifications + the (future) AI check. Never breaks the save."""
+    cfg = COMMENT_TYPES.get(content_type) or {}
+    try:
+        from app.models.notifications import notify_comment
+        notify_comment(content_type, parent_id, user_id, text or '', table=cfg.get('table'),
+                       parent_comment_id=parent_comment_id,
+                       guest_name='' if user_id else (name or 'A guest'))
+    except Exception as exc:
+        print(f'comment notify skipped: {exc}')
+    try:
+        from app.utils.ai_moderation import queue_check
+        queue_check('comment', comment_id, text or '', user_id, table=cfg.get('table'))
+    except Exception:
+        pass
+
+
+def hour_comment_count(user_id=None, ip=None) -> int:
+    """Comments/responses in the last hour across every comment table."""
+    if not user_id and not ip:
+        return 0
+    db = get_db()
+    cur = db.cursor()
+    total = 0
+    seen = set()
+    for cfg in COMMENT_TYPES.values():
+        table = cfg['table']
+        if table in seen:
+            continue
+        seen.add(table)
+        col, val = (cfg['user_col'], int(user_id)) if user_id else (cfg['ip_col'], ip)
+        # prayers_added stores UTC_TIMESTAMP(); the rest use the DB clock.
+        now_sql = 'UTC_TIMESTAMP()' if table == 'prayers_added' else 'NOW()'
+        try:
+            cur.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE {col} = %s AND {cfg['date_col']} >= ({now_sql} - INTERVAL 1 HOUR)",
+                (val,),
+            )
+            total += int((cur.fetchone() or [0])[0] or 0)
+        except Exception:
+            continue
+    cur.close()
+    return total
+
+
+def comment_throttle_message(user_id=None, ip=None) -> str:
+    """'' when they may comment, otherwise a friendly slow-down note."""
+    from app.models.social import COMMENTS_PER_HOUR
+    try:
+        if hour_comment_count(user_id, ip) >= COMMENTS_PER_HOUR:
+            return (f'Slow down a little \u2014 {COMMENTS_PER_HOUR} comments an hour is the limit. '
+                    'Try again soon.')
+    except Exception:
+        return ''
+    return ''
 
 
 def comment_count_subquery(content_type, parent_alias, parent_id_col='id'):

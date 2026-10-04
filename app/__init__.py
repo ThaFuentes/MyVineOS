@@ -30,6 +30,26 @@ from app.utils.helpers import censor_text, jinja_nl2br, jinja_censor
 from app.models.pastoral.shared import is_in_pastoral_group
 from app.utils.permissions import user_has_permission
 from app.routes.the_gathering.dashboard.utils import format_manager_datetime
+def _resolve_secret_key() -> str:
+    """
+    SECRET_KEY from the environment. Never fall back to a known default:
+    - production (FLASK_ENV=production or REQUIRE_HTTPS on): refuse to start
+      (validate_production_secrets already raises for weak values).
+    - anywhere else: use a random per-process key and say so loudly. Sessions
+      reset on restart, which is fine for dev; set SECRET_KEY in .env to keep them.
+    """
+    key = (os.environ.get('SECRET_KEY') or '').strip()
+    if key:
+        return key
+    from app.utils.production_secrets import _is_production
+    if _is_production():
+        raise RuntimeError('SECRET_KEY is not set. Refusing to start in production without it.')
+    import secrets as _secrets
+    print('WARNING: SECRET_KEY is not set. Using a random key for this process only. '
+          'Sessions and CSRF tokens will reset on restart. Set SECRET_KEY in .env.')
+    return _secrets.token_hex(32)
+
+
 def create_app():
     """
     Create and configure the Flask application instance.
@@ -41,7 +61,7 @@ def create_app():
     static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
     app = Flask(__name__, static_folder=static_folder)
     # Configuration
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-insecure-change-this-immediately-2026'
+    app.config['SECRET_KEY'] = _resolve_secret_key()
     # Additional Flask security configs
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -322,6 +342,14 @@ def create_app():
         except Exception:
             return ''
     app.jinja_env.globals['safe_url_for'] = _safe_url_for
+
+    def _link_img_sig(url):
+        try:
+            from app.utils.link_preview import sign_image_url
+            return sign_image_url(url)
+        except Exception:
+            return ''
+    app.jinja_env.globals['link_img_sig'] = _link_img_sig
     @app.template_filter('relative_time')
     def relative_time_filter(value):
         if not value:
@@ -595,6 +623,25 @@ def create_app():
         except Exception:
             return dict(can_access_worship=False, can_manage_worship=lambda: False)
 
+    # Notification bell: unread count, looked up once per request and only
+    # when a template actually asks for it.
+    @app.context_processor
+    def inject_notification_bell():
+        from flask import g as flask_g, session as flask_session
+
+        def _unread():
+            if not flask_session.get('user_id'):
+                return 0
+            if 'notif_unread' not in flask_g:
+                try:
+                    from app.models.notifications import unread_count
+                    flask_g.notif_unread = unread_count(flask_session.get('user_id'))
+                except Exception:
+                    flask_g.notif_unread = 0
+            return flask_g.notif_unread
+
+        return dict(notif_unread=_unread)
+
     # CSRF token for templates (works with PBT CSRF in security pipeline)
     @app.context_processor
     def inject_csrf_token():
@@ -810,6 +857,7 @@ def create_app():
         'help',
         'security',
         'bot_access',
+        'maya_api',
         'ai_insights',
         'curriculum',
         'child_checkin',

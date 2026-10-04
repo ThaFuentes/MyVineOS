@@ -60,7 +60,7 @@
             <time>{{ t.when_label or '' }}</time>
           </span>
           {% if t.kicker %}<span class="mail-kicker">{{ t.kicker }}</span>{% endif %}
-          <span class="mail-preview">{% if t.preview_from_me %}You: {% endif %}{{ t.preview }}</span>
+          <span class="mail-preview">{% if t.preview_from_me %}You: {% endif %}{{ t.preview|censor }}</span>
         </span>
         {% if t.unread %}<span class="mail-dot" aria-label="Unread"></span>{% endif %}
       </a>

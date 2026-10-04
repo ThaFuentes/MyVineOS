@@ -66,6 +66,14 @@ def get_censored_words() -> List[str]:
     - Returns empty list if no row, column missing, NULL, empty, or any DB error -> censoring disabled silently.
     - Returns stripped words (original case preserved for replacement).
     """
+    # One query per request (feeds call |censor on every card and comment).
+    try:
+        from flask import g, has_request_context
+        if has_request_context() and isinstance(getattr(g, '_censored_words', None), list):
+            return list(g._censored_words)
+    except Exception:
+        pass
+    words: List[str] = []
     try:
         db = get_db()
         cur = db.cursor(pymysql.cursors.DictCursor)
@@ -77,12 +85,39 @@ def get_censored_words() -> List[str]:
         text = row.get('censored_words', '') if row else ''
         text = (text or '').strip()
         if text:
-            return [w.strip() for w in text.split('\n') if w.strip()]
+            words = [w.strip() for w in text.split('\n') if w.strip()]
     except Exception:
         # Completely silent - any issue -> no censoring, no logs, no spam
+        words = []
+    try:
+        from flask import g, has_request_context
+        if has_request_context():
+            g._censored_words = list(words)
+    except Exception:
         pass
+    return words  # Empty list = censoring disabled
 
-    return []  # Empty list = censoring disabled
+
+# One friendly message for every blocked save on social surfaces.
+CENSORED_WORD_MESSAGE = (
+    'That has a word we don’t allow here, so it wasn’t posted. '
+    'Please reword it and try again.'
+)
+
+
+def _note_wordlist_hit(text: str) -> None:
+    """Moderation hook: record a masked content_flags row once per request."""
+    try:
+        from flask import g, has_request_context, request
+        if not has_request_context() or request.method not in ('POST', 'PUT', 'PATCH'):
+            return
+        if getattr(g, '_wordlist_hit_logged', False):
+            return
+        g._wordlist_hit_logged = True
+        from app.models.flags import record_wordlist_hit
+        record_wordlist_hit(text)
+    except Exception:
+        pass
 
 
 # Identity spam / ad injection (names, usernames) — common on open registration sites
@@ -181,10 +216,12 @@ def contains_censored_word(text: Optional[str]) -> bool:
         lower_word = word.lower()
         if ' ' in lower_word:  # Phrase - exact match
             if lower_word in text_lower:
+                _note_wordlist_hit(text)
                 return True
         else:  # Single word - word boundaries
             pattern = r"\b" + re.escape(lower_word) + r"\b"
             if re.search(pattern, text_lower):
+                _note_wordlist_hit(text)
                 return True
     return False
 

@@ -29,6 +29,8 @@ def set_reaction(content_type: str, content_id: int, user_id: int, reaction: str
     react = (reaction or '').strip().lower()
     if react and react not in REACTION_KEYS:
         return False, 'Unknown reaction.'
+    if react and not reactable(kind, content_id):
+        return False, 'That post is not available.'
     db = get_db()
     cur = db.cursor()
     if not react:
@@ -54,12 +56,32 @@ def set_reaction(content_type: str, content_id: int, user_id: int, reaction: str
     return True, 'Reacted.'
 
 
+def reactable(kind: str, content_id: int) -> bool:
+    """Only real, visible items take reactions (no counts on hidden or made-up targets)."""
+    from app.models import moderation as mod
+    if kind == 'photo':
+        try:
+            cur = _cur()
+            cur.execute("SELECT id FROM page_photos WHERE id=%s", (int(content_id),))
+            return bool(cur.fetchone())
+        except Exception:
+            return False
+    spec = mod.CONTENT_SPECS.get(kind)
+    if not spec:
+        return False
+    try:
+        row = mod._fetch_content_row(spec, int(content_id))
+    except Exception:
+        return False
+    return bool(row) and not mod.content_is_hidden(kind, row)
+
+
 def reshare(content_type: str, content_id: int, user_id: int) -> tuple[bool, str]:
     kind = (content_type or 'post').strip().lower()
     from app.models import social as social_model
     if kind in WALL_KINDS:
         src = social_model.get_community_post(int(content_id))
-        if not src:
+        if not src or src.get('removed_at'):
             return False, 'That post is gone.'
         if src.get('allow_share') in (0, '0', False):
             return False, 'They turned off resharing on this post.'
@@ -168,7 +190,7 @@ def attach_social(items: list[dict], viewer_id: int | None = None) -> list[dict]
                 SELECT p.*, u.username, u.first_name, u.last_name
                 FROM community_posts p
                 LEFT JOIN users u ON u.id = p.user_id
-                WHERE p.id IN ({ph})
+                WHERE p.id IN ({ph}) AND p.removed_at IS NULL AND COALESCE(p.shadowed, 0) = 0
                 """,
                 share_ids,
             )

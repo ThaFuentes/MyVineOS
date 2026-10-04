@@ -30,12 +30,13 @@ def get_dreams_list(is_logged_in=False, user_id=None, search_query=None):
 
     if is_logged_in and user_id:
         sql += """
-            WHERE d.visibility IN ('public', 'private')
-               OR (d.visibility = 'personal' AND d.user_id = %s)
+            WHERE COALESCE(d.moderation_hidden, 0) = 0
+              AND (d.visibility IN ('public', 'private')
+                   OR (d.visibility = 'personal' AND d.user_id = %s))
         """
         params.append(user_id)
     else:
-        sql += " WHERE d.visibility = 'public'"
+        sql += " WHERE COALESCE(d.moderation_hidden, 0) = 0 AND d.visibility = 'public'"
 
     if search_query:
         like_param = '%' + search_query.lower() + '%'
@@ -57,7 +58,7 @@ def get_dream_by_id(dream_id):
                COALESCE(u.username, d.contributor_name, 'Anonymous') AS poster_name
         FROM dreams d
         LEFT JOIN users u ON d.user_id = u.id
-        WHERE d.id = %s
+        WHERE d.id = %s AND COALESCE(d.moderation_hidden, 0) = 0
     """, (dream_id,))
     return cur.fetchone()
 
@@ -101,13 +102,15 @@ def update_dream(dream_id, title, description, notes, category, date_occurred, v
 
 
 def delete_dream(dream_id):
-    """Delete dream. Returns True if deleted."""
+    """Soft-delete a dream (hidden + ledger, restorable). Returns True if removed."""
+    from app.models import moderation as mod
     db = get_db()
-    cur = db.cursor()
     try:
-        cur.execute("DELETE FROM dreams WHERE id = %s", (dream_id,))
-        db.commit()
-        return cur.rowcount > 0
+        actor = mod.session_actor_id()
+        if not actor:
+            return False
+        ok, _msg = mod.soft_delete_content('dream', int(dream_id), actor, 'Deleted')
+        return ok
     except Exception:
         db.rollback()
         raise
@@ -125,7 +128,7 @@ def get_dream_comments(dream_id):
                COALESCE(u.username, dc.contributor_name, 'Anonymous') AS commenter_name
         FROM dream_comments dc
         LEFT JOIN users u ON dc.user_id = u.id
-        WHERE dc.dream_id = %s
+        WHERE dc.dream_id = %s AND COALESCE(dc.removed, 0) = 0
         ORDER BY dc.date_posted ASC
     """, (dream_id,))
     return cur.fetchall()
@@ -161,13 +164,11 @@ def update_dream_comment(comment_id, new_text):
 
 
 def delete_dream_comment(comment_id):
-    """Delete a comment."""
+    """Remove a comment (soft: hidden + ledger, restorable)."""
+    from app.models.moderation import soft_delete_comment_auto
     db = get_db()
-    cur = db.cursor()
     try:
-        cur.execute("DELETE FROM dream_comments WHERE id = %s", (comment_id,))
-        db.commit()
-        return cur.rowcount > 0
+        return soft_delete_comment_auto('dream_comments', int(comment_id))
     except Exception:
         db.rollback()
         raise

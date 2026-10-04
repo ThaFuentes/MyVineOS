@@ -155,7 +155,7 @@ def register_detail_routes(bp):
         cur.execute("""
             SELECT *, comment AS comment_text, created_at AS created_at_utc
             FROM event_comments
-            WHERE event_id = %s
+            WHERE event_id = %s AND COALESCE(removed, 0) = 0
             ORDER BY created_at DESC
         """, (event_id,))
         comments = cur.fetchall()
@@ -194,15 +194,19 @@ def register_detail_routes(bp):
         cur.execute("SELECT user_id FROM event_comments WHERE id = %s", (comment_id,))
         comment = cur.fetchone()
 
-        if not comment or (comment['user_id'] != user_id and not session.get('user_has_permission', lambda p: False)('moderate_events')):
+        from app.utils.permissions import user_has_permission
+        if not comment or (comment['user_id'] != user_id and not (
+            user_has_permission('moderate_events') or user_has_permission('moderate_content')
+        )):
             flash('You do not have permission to delete this comment.', 'error')
             return redirect(url_for('events.view_event', event_id=event_id))
 
         try:
-            cur = db.cursor()
-            cur.execute("DELETE FROM event_comments WHERE id = %s", (comment_id,))
-            db.commit()
-            log_change(user_id, 'delete', target_id=comment_id, change_details=f'Deleted comment on event {event_id}')
+            from app.models import moderation as mod
+            if not mod.soft_delete_comment('event_comments', int(comment_id), user_id, 'Deleted',
+                                           self_delete=comment['user_id'] == user_id):
+                raise RuntimeError('soft delete failed')
+            log_change(user_id, 'delete', target_id=comment_id, change_details=f'Deleted (soft) comment on event {event_id}')
             flash('Comment deleted.', 'success')
         except Exception:
             db.rollback()

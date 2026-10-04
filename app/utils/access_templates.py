@@ -277,6 +277,8 @@ SITE_MOD_KEYS = [
     'moderate_prophecies',
 ]
 MOD_REVIEW_KEYS = ['review_moderation', 'moderate_site', 'view_audit_logs']
+# Dedicated Moderator: report queue + hide/restore/soft-delete posts, prayers, comments.
+CONTENT_MOD_KEYS = ['moderate_content']
 
 
 def ensure_moderation_templates(cur) -> None:
@@ -288,6 +290,12 @@ def ensure_moderation_templates(cur) -> None:
             'One pack for the whole site: walls, prayers, sermons, events, dreams, prophecies, comments. Same work as Gathering Place. Reviewers can reverse it. No office, finance, or settings.',
             'Staff',
             SITE_MOD_KEYS,
+        ),
+        (
+            'Moderator',
+            'Works the report queue: hide, restore and remove wall posts, prayers and comments (all reversible). No warn/shadow/ban, no office tools.',
+            'any',
+            CONTENT_MOD_KEYS,
         ),
         (
             'Moderation review',

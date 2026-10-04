@@ -275,7 +275,7 @@ def add_photo(owner_type: str, owner_id: int, file_storage, caption: str, user_i
     if not file_storage or not file_storage.filename:
         return False, 'Choose a photo.'
     ext = file_storage.filename.rsplit('.', 1)[-1].lower() if '.' in file_storage.filename else ''
-    if ext not in PHOTO_EXT:
+    if ext not in PHOTO_EXT or not _looks_like_image(file_storage):
         return False, 'Use png, jpg, gif, or webp.'
     cap = sanitize_plain_text(caption)[:255]
     if contains_censored_word(cap):
@@ -332,11 +332,31 @@ def church_avatar_url(portrait_path: str | None) -> str:
     return identity_url(portrait_path) or default_church_avatar()
 
 
+def _looks_like_image(file_storage) -> bool:
+    """Extension is not enough — reject HTML/SVG/PHP saved as .jpg."""
+    if not file_storage:
+        return False
+    stream = getattr(file_storage, 'stream', None) or file_storage
+    try:
+        pos = stream.tell()
+        header = stream.read(16) or b''
+        stream.seek(pos)
+    except Exception:
+        return False
+    if header.startswith(b'\xff\xd8\xff') or header.startswith(b'\x89PNG\r\n\x1a\n'):
+        return True
+    if header.startswith(b'GIF87a') or header.startswith(b'GIF89a'):
+        return True
+    if header.startswith(b'RIFF') and header[8:12] == b'WEBP':
+        return True
+    return False
+
+
 def save_identity_file(file_storage, prefix: str) -> str | None:
     if not file_storage or not file_storage.filename:
         return None
     ext = file_storage.filename.rsplit('.', 1)[-1].lower() if '.' in file_storage.filename else ''
-    if ext not in PHOTO_EXT:
+    if ext not in PHOTO_EXT or not _looks_like_image(file_storage):
         return None
     name = f"{prefix}_{uuid.uuid4().hex[:12]}.{ext}"
     file_storage.save(os.path.join(identity_dir(), name))

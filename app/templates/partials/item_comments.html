@@ -2,7 +2,11 @@
 {% if item.comments %}
 <ul class="wall-replies">
   {% for c in item.comments[:4] %}
-  <li><strong>{{ (c.name or c.contributor_name or 'Member') | censor }}</strong> {{ (c.comment or c.prayer or c.body) | censor }}</li>
+  <li><strong>{{ (c.name or c.contributor_name or 'Member') | censor }}</strong> {{ (c.comment or c.prayer or c.body) | censor }}
+    {% if c.id and session.get('user_id') and not (c.user_id and c.user_id|int == session.get('user_id')|int) %}
+    {% with report_kind='comment', report_id=c.id, report_comment_type=item.type %}{% include 'church/_report_button.html' %}{% endwith %}
+    {% endif %}
+  </li>
   {% endfor %}
 </ul>
 {% endif %}

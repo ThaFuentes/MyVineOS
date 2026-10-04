@@ -9,7 +9,7 @@ from app.models import social as social_model
 from app.models.log import log_change
 from app.utils.compose import available_compose_types
 from app.utils.decorators import login_required
-from app.utils.helpers import censor_text, contains_censored_word
+from app.utils.helpers import CENSORED_WORD_MESSAGE, censor_text, contains_censored_word
 
 from . import church_bp
 
@@ -405,7 +405,7 @@ def church_edit():
         about = (request.form.get('about_text') or request.form.get('about') or '').strip()
         verse = (request.form.get('verse') or '').strip()
         if contains_censored_word(f'{about} {verse}'):
-            flash('That text contains a prohibited word.', 'error')
+            flash(CENSORED_WORD_MESSAGE, 'error')
             return redirect(edit_url)
         cc.save_church_page(
             campus_id, about, verse, session.get('user_id'),
@@ -678,6 +678,9 @@ def create_page():
             return redirect(url_for('church.church_home'))
         about = (request.form.get('about_text') or request.form.get('about') or '').strip()
         verse = (request.form.get('favorite_verse') or '').strip()
+        if contains_censored_word(f'{about} {verse}'):
+            flash(CENSORED_WORD_MESSAGE, 'error')
+            return redirect(url_for('church.create_page'))
         cc.create_member_space(uid, about=about, favorite_verse=verse)
         cc.update_member_space(uid, {
             'about': about,
@@ -718,8 +721,11 @@ def edit_my_page():
     if request.method == 'POST':
         about = (request.form.get('about_text') or request.form.get('about') or '').strip()
         verse = (request.form.get('favorite_verse') or '').strip()
-        if contains_censored_word(f'{about} {verse}'):
-            flash('That text contains a prohibited word.', 'error')
+        profile_text = ' '.join(
+            (request.form.get(k) or '') for k in ('hometown', 'occupation', 'interests')
+        )
+        if contains_censored_word(f'{about} {verse} {profile_text}'):
+            flash(CENSORED_WORD_MESSAGE, 'error')
             return redirect(url_for('church.edit_my_page'))
         from app.models import family_links as fam
         locked = fam.privacy_is_locked(uid)

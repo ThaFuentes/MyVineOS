@@ -88,7 +88,7 @@ def announcements():
                    COALESCE(u.username, 'Anonymous') AS commenter_name
             FROM announcement_comments c
             LEFT JOIN users u ON c.user_id = u.id
-            WHERE c.announcement_id = %s
+            WHERE c.announcement_id = %s AND COALESCE(c.removed, 0) = 0
             ORDER BY c.date_added ASC
         """, (ann['id'],))
         ann['comments.html'] = cur.fetchall()
@@ -166,7 +166,7 @@ def view_announcement(ann_id):
                COALESCE(u.username, 'Anonymous') AS commenter_name
         FROM announcement_comments c
         LEFT JOIN users u ON c.user_id = u.id
-        WHERE c.announcement_id = %s
+        WHERE c.announcement_id = %s AND COALESCE(c.removed, 0) = 0
         ORDER BY c.date_added ASC
     """, (ann_id,))
     comments = cur.fetchall()
@@ -386,11 +386,11 @@ def delete_comment(ann_id, comment_id):
         return redirect(url_for('announcements.view_announcement', ann_id=ann_id))
 
     db = get_db()
-    cur = db.cursor()
     try:
-        cur.execute("DELETE FROM announcement_comments WHERE id = %s", (comment_id,))
-        db.commit()
-        log_change(session['user_id'], 'delete_comment', ann_id, 'Deleted comment')
+        from app.models.moderation import soft_delete_comment_auto
+        if not soft_delete_comment_auto('announcement_comments', int(comment_id)):
+            raise RuntimeError('soft delete failed')
+        log_change(session['user_id'], 'delete_comment', ann_id, 'Deleted (soft) comment')
         flash('Comment deleted.', 'success')
     except Exception as e:
         db.rollback()

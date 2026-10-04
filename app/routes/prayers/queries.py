@@ -89,7 +89,7 @@ def get_prayer_responses(prayer_id):
                COALESCE(CONCAT(u.first_name, ' ', u.last_name), pa.contributor_name, 'Anonymous') AS responder_name
         FROM prayers_added pa
         LEFT JOIN users u ON pa.user_id = u.id
-        WHERE pa.prayer_request_id = %s
+        WHERE pa.prayer_request_id = %s AND COALESCE(pa.removed, 0) = 0
         ORDER BY pa.date_added ASC
     """, (prayer_id,))
     return cur.fetchall()
@@ -179,13 +179,16 @@ def purge_bot_prayers():
 
 
 def delete_prayer(prayer_id):
-    """Delete prayer and all its responses. Also hide leftover bot junk."""
+    """Soft-delete a prayer (hidden + ledger, restorable). Also hide leftover bot junk."""
+    from app.models import moderation as mod
     db = get_db()
-    cur = db.cursor()
     try:
-        cur.execute("DELETE FROM prayers_added WHERE prayer_request_id = %s", (prayer_id,))
-        cur.execute("DELETE FROM prayers WHERE id = %s", (prayer_id,))
-        db.commit()
+        actor = mod.session_actor_id()
+        if not actor:
+            raise RuntimeError('delete_prayer needs a signed-in actor')
+        ok, msg = mod.soft_delete_content('prayer', int(prayer_id), actor, 'Deleted')
+        if not ok:
+            raise RuntimeError(msg)
         purge_bot_prayers()
         return True
     except Exception:

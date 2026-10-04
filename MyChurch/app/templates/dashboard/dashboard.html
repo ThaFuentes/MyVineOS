@@ -217,9 +217,13 @@
     <span class="dash-tile-label">My Tickets</span>
   </a>
   {% endif %}
+  <a href="{{ url_for('church.edit_my_page') }}" class="glass-panel dash-tile dash-tile-profile">
+    <span class="dash-tile-icon"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Edit page</span>
+  </a>
   <a href="{{ url_for('profile.profile') }}" class="glass-panel dash-tile dash-tile-profile">
-    <span class="dash-tile-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
-    <span class="dash-tile-label">Profile</span>
+    <span class="dash-tile-icon"><i class="fa-solid fa-id-card" aria-hidden="true"></i></span>
+    <span class="dash-tile-label">Edit profile</span>
   </a>
   <a href="{{ url_for('settings.general') }}" class="glass-panel dash-tile dash-tile-settings">
     <span class="dash-tile-icon"><i class="fa-solid fa-gear" aria-hidden="true"></i></span>

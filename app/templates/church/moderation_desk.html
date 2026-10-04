@@ -16,6 +16,7 @@
       <p class="page-description">One desk for the whole site — walls, prayers, sermons, comments. Who can do this is set under Members → People tools → Site moderation. Gathering Place uses the same people. Reviewers can reverse what you do.</p>
     </div>
     <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+      <a class="btn btn-primary" href="{{ url_for('church.moderation_flags') }}">Reports{% if open_flags %} <span class="notif-count-inline">{{ open_flags }}</span>{% endif %}</a>
       {% if can_review %}
       <a class="btn btn-primary" href="/church/moderation/review">Review queue</a>
       {% endif %}
@@ -23,6 +24,7 @@
     </div>
   </header>
 
+  {% if site_mod %}
   <section class="glass-panel profile-card" style="margin-bottom:1rem;">
     <h2 class="profile-card-title">Warn or shadow a member</h2>
     <p class="profile-muted">A warning shows on their page. Shadow lets them log in but others cannot see their posts. Ban and login lock stay with Admin / Owner.</p>
@@ -40,6 +42,7 @@
       </div>
     </form>
   </section>
+  {% endif %}
 
   <section class="glass-panel profile-card" style="margin-bottom:1rem;">
     <h2 class="profile-card-title">Recent prayers</h2>

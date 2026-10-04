@@ -25,7 +25,8 @@ from .forms import validate_add_prayer_form, validate_edit_prayer_form, validate
 from .utils import REQUIRED_ROLES, ADMIN_ROLES
 
 from app.utils.decorators import login_required, role_required
-from app.utils.helpers import contains_censored_word, censor_text
+from app.utils.helpers import CENSORED_WORD_MESSAGE, contains_censored_word, censor_text
+from app.utils.comment_moderation import comment_throttle_message
 from app.models.db import get_db
 from app.models.log import log_change
 from app.utils.time_utils import format_church
@@ -52,6 +53,10 @@ def prayers():
         cur = db.cursor(pymysql.cursors.DictCursor)
 
         if is_logged_in:
+            # Guest prayers wait for approval: only moderators (and the author) see pending ones.
+            from app.utils.permissions import user_has_permission
+            can_see_pending = session.get('user_role') in ('Admin', 'Owner') \
+                or user_has_permission('moderate_prayers') or user_has_permission('moderate_content')
 #            print("[DEBUG] Logged-in view - fetching public + private prayers")
             cur.execute("""
                 SELECT p.id, p.title, p.description, p.date_posted, p.visibility,
@@ -62,8 +67,10 @@ def prayers():
                 LEFT JOIN users u ON p.user_id = u.id
                 WHERE p.visibility IN ('public', 'private')
                   AND COALESCE(p.status, 'approved') NOT IN ('rejected', 'deleted', 'removed', 'spam', 'hidden')
+                  AND COALESCE(p.moderation_hidden, 0) = 0
+                  AND (COALESCE(p.status, 'approved') <> 'pending' OR %s OR p.user_id = %s)
                 ORDER BY p.date_posted DESC
-            """)
+            """, (1 if can_see_pending else 0, user_id))
             template = 'prayers/prayers_dashboard.html'
         else:
             print("[DEBUG] Guest view - fetching public prayers only")
@@ -74,6 +81,7 @@ def prayers():
                 FROM prayers p
                 WHERE p.visibility = 'public'
                   AND COALESCE(p.status, 'approved') = 'approved'
+                  AND COALESCE(p.moderation_hidden, 0) = 0
                 ORDER BY p.date_posted DESC
             """)
             template = 'public/prayers/prayers.html'
@@ -233,6 +241,21 @@ def view_prayer(prayer_id):
             """, (prayer_id,))
 
         prayer = cur.fetchone()
+        if prayer:
+            # Hidden / soft-deleted prayers are gone for everyone but moderators;
+            # pending (guest, awaiting approval) only for the author and moderators.
+            from app.utils.permissions import user_has_permission
+            status = (prayer.get('status') or 'approved').lower()
+            is_mod = bool(user_id) and (
+                session.get('user_role') in ('Admin', 'Owner')
+                or user_has_permission('moderate_prayers')
+                or user_has_permission('moderate_content')
+            )
+            is_author = bool(user_id) and user_id in (prayer.get('user_id'), prayer.get('created_by'))
+            if (prayer.get('moderation_hidden') or status in ('hidden', 'removed', 'rejected', 'deleted', 'spam')) and not is_mod:
+                prayer = None
+            elif status == 'pending' and not (is_mod or is_author):
+                prayer = None
         if not prayer:
             flash('Prayer request not found or not visible to you.', 'error')
             return redirect(url_for('prayers.prayers'))
@@ -258,7 +281,9 @@ def view_prayer(prayer_id):
             if not response_text:
                 flash('Response text is required.', 'error')
             elif contains_censored_word(check_text):
-                flash('Response contains a prohibited word or phrase.', 'error')
+                flash(CENSORED_WORD_MESSAGE, 'error')
+            elif comment_throttle_message(user_id=user_id, ip=request.remote_addr):
+                flash(comment_throttle_message(user_id=user_id, ip=request.remote_addr), 'info')
             else:
                 cur = db.cursor()
                 ip = request.remote_addr if not is_logged_in else None
@@ -269,8 +294,15 @@ def view_prayer(prayer_id):
                 """, (prayer_id, response_text, user_id, contributor_name, ip))
                 db.commit()
 
+                response_id = cur.lastrowid
                 log_change(user_id or 0, 'add_prayer_response', target_id=prayer_id,
                            change_details='Added response to prayer request')
+                try:
+                    from app.utils.comment_moderation import after_comment_saved
+                    after_comment_saved('prayer', prayer_id, response_id, response_text,
+                                        user_id=user_id, name=contributor_name or '')
+                except Exception as exc:
+                    print(f'prayer response notify skipped: {exc}')
 
                 flash('Your prayer response has been added.', 'success')
 
@@ -406,15 +438,16 @@ def delete_prayer(prayer_id):
             return redirect(url_for('prayers.prayers'))
         title = row['title']
 
-        cur = db.cursor()
-        cur.execute("DELETE FROM prayers_added WHERE prayer_request_id = %s", (prayer_id,))
-        cur.execute("DELETE FROM prayers WHERE id = %s", (prayer_id,))
-        db.commit()
+        # Soft delete (hidden + moderation ledger); a moderator can restore it.
+        from app.models import moderation as mod
+        ok, msg = mod.soft_delete_content('prayer', int(prayer_id), user_id, 'Deleted by staff')
+        if not ok:
+            raise RuntimeError(msg)
 
         log_change(user_id, 'delete_prayer', target_id=prayer_id,
-                   change_details=f"Deleted prayer '{title}'")
+                   change_details=f"Deleted (soft, restorable) prayer '{title}'")
 
-        flash('Prayer request deleted successfully.', 'success')
+        flash('Prayer request deleted. A moderator can restore it from Reports.', 'success')
 
     except Exception as exc:
         db.rollback()
@@ -443,18 +476,21 @@ def delete_response(prayer_id, response_id):
     response = cur.fetchone()
 
     is_owner = response and response['user_id'] == user_id
-    is_moderator = user_role in ['Admin', 'Owner'] or session.get('user_has_permission', lambda p: False)('moderate_prayers')
+    from app.utils.permissions import user_has_permission
+    is_moderator = user_role in ['Admin', 'Owner'] or user_has_permission('moderate_prayers') \
+        or user_has_permission('moderate_content')
 
     if not response or (not is_owner and not is_moderator):
         flash('You do not have permission to delete this response.', 'error')
         return redirect(url_for('prayers.view_prayer', prayer_id=prayer_id))
 
     try:
-        cur = db.cursor()
-        cur.execute("DELETE FROM prayers_added WHERE id = %s", (response_id,))
-        db.commit()
+        from app.models import moderation as mod
+        if not mod.soft_delete_comment('prayers_added', int(response_id), user_id,
+                                       'Deleted', self_delete=bool(is_owner)):
+            raise RuntimeError('soft delete failed')
         log_change(user_id, 'delete', target_id=response_id,
-                   change_details=f'Deleted response on prayer {prayer_id}')
+                   change_details=f'Deleted (soft) response on prayer {prayer_id}')
         flash('Response deleted.', 'success')
     except Exception:
         db.rollback()

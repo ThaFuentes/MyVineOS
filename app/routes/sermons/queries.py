@@ -63,7 +63,7 @@ def get_sermon_comments(sermon_id):
                u.username AS commenter_username
         FROM sermon_comments sc
         LEFT JOIN users u ON sc.user_id = u.id
-        WHERE sc.sermon_id = %s
+        WHERE sc.sermon_id = %s AND COALESCE(sc.removed, 0) = 0
         ORDER BY sc.date_added ASC
     """, (sermon_id,))
     return cur.fetchall()
@@ -143,11 +143,9 @@ def update_sermon_comment(comment_id, new_comment):
 
 
 def delete_sermon_comment(comment_id):
-    """Delete a comment."""
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("DELETE FROM sermon_comments WHERE id = %s", (comment_id,))
-    db.commit()
+    """Remove a comment (soft: hidden + moderation ledger, restorable)."""
+    from app.models.moderation import soft_delete_comment_auto
+    return soft_delete_comment_auto('sermon_comments', int(comment_id))
 
 
 def get_sermon_file_owner(filename):
